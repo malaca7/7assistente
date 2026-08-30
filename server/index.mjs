@@ -13,6 +13,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import QRCode from 'qrcode';
+import { createClient } from '@supabase/supabase-js';
 import { 
   executePublishedFlow, 
   loadDb, 
@@ -37,6 +38,12 @@ const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, '..');
 const AUTH_FOLDER = path.resolve(__dirname, 'whatsapp_auth');
 
+// Supabase Real-Time Bridge
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://nskflvulclgwqqasdntq.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5za2ZsdnVsY2xnd3FxYXNkbnRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwMTQ0NjQsImV4cCI6MjEwMzU5MDQ2NH0.mL82cgH4MadNi_sTeKKgYmRAuhmp7HqImuAs9hTrTZI';
+
+const supabaseServer = (SUPABASE_URL && SUPABASE_ANON_KEY) ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
@@ -59,6 +66,25 @@ let connectionState = {
   connectedAt: null,
   batteryLevel: 95,
 };
+
+async function syncStateToSupabase() {
+  if (!supabaseServer) return;
+  try {
+    const sessionPayload = {
+      ...connectionState,
+      qr: currentQR,
+      qrDataUrl: currentQRDataUrl,
+      updated_at: new Date().toISOString(),
+    };
+    await supabaseServer.from('settings').upsert({
+      id: 'default',
+      whatsapp_session: sessionPayload,
+      updated_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    // Non-fatal
+  }
+}
 
 // Send message (supports text, native buttons, and rich media)
 async function sendWhatsAppMessage(jid, reply) {
@@ -180,7 +206,8 @@ async function startWhatsApp() {
         currentQR = qr;
         currentQRDataUrl = await QRCode.toDataURL(qr, { margin: 2, scale: 8 });
         connectionState.status = 'qrcode';
-        console.log('[WhatsApp Server] Novo QR Code real gerado!');
+        console.log('[WhatsApp Server] 📱 Novo QR Code real gerado!');
+        syncStateToSupabase();
       }
 
       if (connection === 'close') {
@@ -197,6 +224,7 @@ async function startWhatsApp() {
         if (isLoggedOut) {
           connectionState.status = 'disconnected';
           console.log('[WhatsApp Server] ❌ Sessão deslogada do WhatsApp. Limpando credenciais...');
+          syncStateToSupabase();
           try {
             if (fs.existsSync(AUTH_FOLDER)) {
               fs.rmSync(AUTH_FOLDER, { recursive: true, force: true });
@@ -206,11 +234,13 @@ async function startWhatsApp() {
           reconnectTimer = setTimeout(startWhatsApp, 3000);
         } else if (isReplaced) {
           connectionState.status = 'connecting';
+          syncStateToSupabase();
           console.warn('[WhatsApp Server] ⚠️ AVISO: Sessão em conflito (outra instância ativa). Aguardando 15s antes de reconectar...');
           isStarting = false;
           reconnectTimer = setTimeout(startWhatsApp, 15000);
         } else {
           connectionState.status = 'connecting';
+          syncStateToSupabase();
           isStarting = false;
           reconnectTimer = setTimeout(startWhatsApp, 5000);
         }
@@ -230,6 +260,7 @@ async function startWhatsApp() {
         currentQRDataUrl = null;
         isStarting = false;
         console.log(`[WhatsApp Server] ✅ SUCESSO! WhatsApp Conectado e Executando Fluxos Publicados: ${phone} (${name})`);
+        syncStateToSupabase();
       }
     });
 
