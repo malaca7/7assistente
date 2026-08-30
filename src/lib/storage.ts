@@ -191,14 +191,15 @@ export const StorageService = {
     const activeFlows = flows.filter(f => f.status === 'published').length;
     const waitingHuman = conversations.filter(c => c.status === 'waiting_human').length;
     const activeConversations = conversations.filter(c => c.status === 'bot' || c.status === 'human').length;
+    const messagesCount = conversations.length;
 
     return {
-      totalContacts: contacts.length > 0 ? contacts.length : initialKPIs.totalContacts,
-      totalConversations: conversations.length > 0 ? conversations.length : initialKPIs.totalConversations,
-      activeConversations: activeConversations > 0 ? activeConversations : initialKPIs.activeConversations,
-      activeFlows: activeFlows > 0 ? activeFlows : initialKPIs.activeFlows,
-      waitingHuman: waitingHuman > 0 ? waitingHuman : initialKPIs.waitingHuman,
-      messagesSentToday: initialKPIs.messagesSentToday,
+      totalContacts: contacts.length,
+      totalConversations: conversations.length,
+      activeConversations: activeConversations,
+      activeFlows: activeFlows,
+      waitingHuman: waitingHuman,
+      messagesSentToday: messagesCount,
     };
   },
 

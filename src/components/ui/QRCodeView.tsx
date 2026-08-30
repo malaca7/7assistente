@@ -217,32 +217,16 @@ export const QRCodeView: React.FC<QRCodeViewProps> = ({
 
           {/* Timer & Scan Action Button */}
           <div className="text-center space-y-3 w-full max-w-xs">
-            {isRealQR && !isExpired && (
-              <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
-                <span>Expira em:</span>
-                <span className="font-mono font-bold text-emerald-400 text-sm">{timeLeft}s</span>
-              </div>
-            )}
-
-            <div className="flex items-center gap-2">
+            <div className="w-full">
               <Button
                 variant="brand"
                 size="md"
                 className="w-full font-bold shadow-glow-brand"
-                leftIcon={<CheckCircle2 className="w-4 h-4" />}
-                onClick={() => onConnect(pairingPhone)}
-                isLoading={isLoading}
-              >
-                Conectar WhatsApp
-              </Button>
-              <Button
-                variant="outline"
-                size="md"
+                leftIcon={<RefreshCw className="w-4 h-4" />}
                 onClick={onRefresh}
-                title="Atualizar QR Code"
                 isLoading={isLoading}
               >
-                <RefreshCw className="w-4 h-4" />
+                Gerar / Atualizar QR Code
               </Button>
             </div>
           </div>
