@@ -58,6 +58,14 @@ function setItem<T>(key: string, value: T): void {
 
 async function syncWithWhatsAppServer(): Promise<void> {
   try {
+    let backendUrl = '';
+    if (typeof window !== 'undefined') {
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        backendUrl = `http://${window.location.hostname}:3001`;
+      }
+    }
+    if (!backendUrl) return;
+
     const flows = getItem<Flow[]>(STORAGE_KEYS.FLOWS, sampleFlows);
     const settings = getItem<Settings>(STORAGE_KEYS.SETTINGS, initialSettings);
     const nodesMap: Record<string, FlowNode[]> = {};
@@ -68,7 +76,7 @@ async function syncWithWhatsAppServer(): Promise<void> {
       edgesMap[f.id] = getItem<FlowEdge[]>(`${STORAGE_KEYS.FLOW_EDGES_PREFIX}${f.id}`, f.id === 'flow-001' ? (initialFlowEdges as FlowEdge[]) : []);
     }
 
-    await fetch('http://localhost:3001/api/whatsapp/sync-flows', {
+    await fetch(`${backendUrl}/api/whatsapp/sync-flows`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

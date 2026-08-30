@@ -15,7 +15,21 @@ interface WhatsAppContextType {
   refreshStatus: () => Promise<void>;
 }
 
-const SERVER_URL = 'http://localhost:3001';
+const getBackendUrl = (): string => {
+  if (typeof window === 'undefined') return 'http://localhost:3001';
+  if (import.meta.env.VITE_BACKEND_URL) return import.meta.env.VITE_BACKEND_URL;
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return `http://${window.location.hostname}:3001`;
+  }
+  try {
+    const raw = localStorage.getItem('7assistente_settings');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.backend_url) return parsed.backend_url;
+    }
+  } catch {}
+  return '';
+};
 
 const defaultSession: WhatsAppSession = {
   status: 'disconnected',
@@ -39,7 +53,7 @@ export const WhatsAppProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Fetch status from live WhatsApp Baileys server
   const fetchLiveStatus = useCallback(async () => {
     try {
-      const res = await fetch(`${SERVER_URL}/api/whatsapp/status`);
+      const res = await fetch(`${getBackendUrl()}/api/whatsapp/status`);
       if (res.ok) {
         const data = await res.json();
         if (data.qr) {
@@ -103,7 +117,7 @@ export const WhatsAppProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const generateQRCode = useCallback(async (): Promise<string> => {
     setIsConnecting(true);
     try {
-      await fetch(`${SERVER_URL}/api/whatsapp/start`, { method: 'POST' });
+      await fetch(`${getBackendUrl()}/api/whatsapp/start`, { method: 'POST' });
       await fetchLiveStatus();
     } catch (err) {
       console.warn('Could not call start on WhatsApp server:', err);
@@ -141,7 +155,7 @@ export const WhatsAppProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Disconnect device
   const disconnect = useCallback(async () => {
     try {
-      await fetch(`${SERVER_URL}/api/whatsapp/disconnect`, { method: 'POST' });
+      await fetch(`${getBackendUrl()}/api/whatsapp/disconnect`, { method: 'POST' });
     } catch (err) {
       console.warn('Disconnect endpoint error:', err);
     }
