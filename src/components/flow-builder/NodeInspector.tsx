@@ -4,6 +4,7 @@ import { Input, Textarea } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { Trash2, Copy, SlidersHorizontal, Sparkles, X, Plus, Check, Calendar, DollarSign, Users } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { VariableBadge } from './ui/VariableBadge';
 
 export interface NodeInspectorProps {
   node: FlowNode | null;
@@ -682,14 +683,17 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
             />
 
             <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-2">
-              <span className="text-xs font-semibold text-amber-400 block">
-                Variáveis Criadas Automaticamente na Escolha:
-              </span>
-              <p className="text-[11px] text-slate-300">
-                • <strong className="text-amber-300 font-mono">servico_selecionado:</strong> Nome do serviço escolhido<br />
-                • <strong className="text-amber-300 font-mono">valor_servico:</strong> Preço formatado (ex: R$ 45,00)<br />
-                • <strong className="text-amber-300 font-mono">duracao_servico:</strong> Tempo de execução em minutos
-              </p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-amber-400">
+                  Variáveis Criadas na Escolha:
+                </span>
+                <span className="text-[10px] text-emerald-400 font-mono">1-Clique Copiar</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                <VariableBadge name="servico_selecionado" />
+                <VariableBadge name="valor_servico" />
+                <VariableBadge name="duracao_servico" />
+              </div>
             </div>
           </div>
         )}
@@ -722,17 +726,20 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
             </div>
 
             <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-2">
-              <span className="text-xs font-semibold text-indigo-400 block">
-                Variáveis Geradas Automaticamente:
-              </span>
-              <p className="text-[11px] text-slate-300 leading-relaxed">
-                • <strong className="text-indigo-300 font-mono">is_primeiro_contato:</strong> true / false<br />
-                • <strong className="text-indigo-300 font-mono">tipo_cliente:</strong> "novo" ou "recorrente"<br />
-                • <strong className="text-indigo-300 font-mono">nome_cliente:</strong> Nome salvo no cadastro ou do WhatsApp<br />
-                • <strong className="text-indigo-300 font-mono">telefone_whatsapp:</strong> Número do cliente com DDD<br />
-                • <strong className="text-indigo-300 font-mono">total_agendamentos:</strong> Quantidade de agendamentos realizados<br />
-                • <strong className="text-indigo-300 font-mono">tags_contato:</strong> Tags do cliente no painel
-              </p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-indigo-400">
+                  Variáveis Geradas Automaticamente:
+                </span>
+                <span className="text-[10px] text-emerald-400 font-mono">1-Clique Copiar</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                <VariableBadge name="is_primeiro_contato" />
+                <VariableBadge name="tipo_cliente" />
+                <VariableBadge name="nome_cliente" />
+                <VariableBadge name="telefone_whatsapp" />
+                <VariableBadge name="total_agendamentos" />
+                <VariableBadge name="tags_contato" />
+              </div>
             </div>
           </div>
         )}

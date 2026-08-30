@@ -109,6 +109,8 @@ export const ButtonsNode: React.FC<NodeProps> = ({ id, selected, data }) => {
   );
 };
 
+import { VariableBadge } from '../ui/VariableBadge';
+
 export const QuestionNode: React.FC<NodeProps> = ({ id, selected, data }) => {
   const nodeData = data as unknown as FlowNodeData;
   const config = nodeData.config || {};
@@ -118,7 +120,7 @@ export const QuestionNode: React.FC<NodeProps> = ({ id, selected, data }) => {
       id={id}
       selected={selected}
       title={nodeData.label || 'Fazer Pergunta'}
-      subtitle={`Salva em: {{${config.variableName || 'resposta'}}}`}
+      subtitle="Pergunta & Resposta"
       icon={<HelpCircle className="w-4 h-4" />}
       iconBg="bg-cyan-500"
       accentColor="bg-cyan-500"
@@ -132,7 +134,10 @@ export const QuestionNode: React.FC<NodeProps> = ({ id, selected, data }) => {
         </div>
         <div className="flex items-center justify-between text-[10px] text-slate-400">
           <span>Tipo: {config.expectedType || 'Texto livre'}</span>
-          <span className="font-mono text-cyan-400">{`{{${config.variableName || 'resposta'}}}`}</span>
+          <div className="flex items-center gap-1">
+            <span className="text-[9px] text-slate-500">Salva:</span>
+            <VariableBadge name={config.variableName || 'resposta'} />
+          </div>
         </div>
       </div>
     </BaseNode>

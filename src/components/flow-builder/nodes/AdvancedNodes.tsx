@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { BaseNode } from './BaseNode';
 import { FlowNodeData } from '../../../types';
+import { VariableBadge } from '../ui/VariableBadge';
 
 export const ConditionNode: React.FC<NodeProps> = ({ id, selected, data }) => {
   const nodeData = data as unknown as FlowNodeData;
@@ -42,11 +43,13 @@ export const ConditionNode: React.FC<NodeProps> = ({ id, selected, data }) => {
       customOutputs={outputs}
       isConfigured={Boolean(config.variable && config.operator)}
     >
-      <div className="p-2 rounded-lg bg-dark-950/70 border border-slate-800 text-[11px] text-slate-300 font-mono">
+      <div className="p-2 rounded-lg bg-dark-950/70 border border-slate-800 text-[11px] text-slate-300 font-mono flex items-center gap-1.5 flex-wrap">
         {config.variable ? (
-          <span>
-            {`{{${config.variable}}}`} <span className="text-purple-400">{config.operator || '=='}</span> "{config.value || ''}"
-          </span>
+          <>
+            <VariableBadge name={config.variable} />
+            <span className="text-purple-400 font-bold">{config.operator || '=='}</span>
+            <span className="text-slate-200 truncate font-sans">"{config.value || ''}"</span>
+          </>
         ) : (
           <span className="italic text-slate-500 font-sans">Configure a regra de condição...</span>
         )}
@@ -154,8 +157,8 @@ export const VariableNode: React.FC<NodeProps> = ({ id, selected, data }) => {
       hasOutput={true}
       isConfigured={Boolean(config.varName)}
     >
-      <div className="p-2 rounded-lg bg-dark-950/70 border border-slate-800 text-[11px] text-slate-300 flex items-center justify-between font-mono">
-        <span className="text-violet-400">{`{{${config.varName || 'variavel'}}}`}</span>
+      <div className="p-2 rounded-lg bg-dark-950/70 border border-slate-800 text-[11px] text-slate-300 flex items-center justify-between font-mono gap-2">
+        <VariableBadge name={config.varName || 'variavel'} />
         <span className="text-slate-500">=</span>
         <span className="truncate max-w-[100px] text-slate-200">{config.varValue || 'valor'}</span>
       </div>
@@ -310,13 +313,19 @@ export const ScheduleContactNode: React.FC<NodeProps> = ({ id, selected, data })
             {isShowSlotsMode ? '🔍 Consultar Horários' : '✅ Confirmar Reserva'}
           </span>
           <span className="text-[10px] font-mono text-slate-400">
-            {config.dateType === 'tomorrow' ? 'Amanhã' : config.dateType === 'variable' ? `{{${config.dateVariable || 'data'}}}` : 'Hoje'}
+            {config.dateType === 'tomorrow' ? (
+              'Amanhã'
+            ) : config.dateType === 'variable' ? (
+              <VariableBadge name={config.dateVariable || 'data_agendamento'} />
+            ) : (
+              'Hoje'
+            )}
           </span>
         </div>
         <div className="flex items-center justify-between text-slate-200 pt-0.5">
           <span className="font-semibold text-emerald-400">Serviço:</span>
           <span className="truncate max-w-[130px] font-medium text-white">
-            {config.serviceName ? config.serviceName : '{{servico_selecionado}}'}
+            {config.serviceName ? config.serviceName : <VariableBadge name="servico_selecionado" />}
           </span>
         </div>
       </div>
@@ -349,8 +358,10 @@ export const ServicesCatalogNode: React.FC<NodeProps> = ({ id, selected, data })
           </span>
           <span className="text-[10px] text-slate-400 font-mono">Painel Admin</span>
         </div>
-        <div className="text-[10px] text-slate-300 font-medium pt-0.5">
-          Salva variáveis: <span className="font-mono text-amber-300">servico_selecionado, valor_servico</span>
+        <div className="text-[10px] text-slate-300 font-medium pt-0.5 flex items-center gap-1.5 flex-wrap">
+          <span className="text-slate-400">Copia:</span>
+          <VariableBadge name="servico_selecionado" />
+          <VariableBadge name="valor_servico" />
         </div>
       </div>
     </BaseNode>
@@ -379,14 +390,17 @@ export const CheckContactNode: React.FC<NodeProps> = ({ id, selected, data }) =>
       customOutputs={outputs}
       isConfigured={true}
     >
-      <div className="p-2.5 rounded-xl bg-dark-950/90 border border-indigo-500/20 text-[10px] text-slate-300 space-y-1">
+      <div className="p-2.5 rounded-xl bg-dark-950/90 border border-indigo-500/20 text-[10px] text-slate-300 space-y-1.5">
         <div className="flex items-center justify-between">
           <span className="text-indigo-400 font-bold">Variáveis Geradas:</span>
-          <span className="text-emerald-400 font-mono">Automático</span>
+          <span className="text-emerald-400 font-mono text-[9px]">1-Clique Copiar</span>
         </div>
-        <p className="font-mono text-[9.5px] text-slate-400 leading-tight">
-          nome_cliente, telefone_whatsapp, is_primeiro_contato, total_agendamentos
-        </p>
+        <div className="flex flex-wrap gap-1 pt-0.5">
+          <VariableBadge name="nome_cliente" />
+          <VariableBadge name="telefone_whatsapp" />
+          <VariableBadge name="is_primeiro_contato" />
+          <VariableBadge name="total_agendamentos" />
+        </div>
       </div>
     </BaseNode>
   );
@@ -411,22 +425,23 @@ export const UpdateContactNode: React.FC<NodeProps> = ({ id, selected, data }) =
     >
       <div className="space-y-1 p-2 rounded-xl bg-dark-950/80 border border-cyan-500/20 text-[11px] text-slate-300">
         {config.contactName && (
-          <div className="truncate">
-            <span className="text-cyan-400 font-semibold">Nome: </span>
-            <span className="font-mono">{`{{${config.contactName}}}`}</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-cyan-400 font-semibold text-[10px]">Nome: </span>
+            <VariableBadge name={config.contactName} />
           </div>
         )}
         {config.tags && (
           <div className="truncate">
-            <span className="text-cyan-400 font-semibold">Tags: </span>
-            <span className="text-[10px] bg-cyan-950/80 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-800/60">
+            <span className="text-cyan-400 font-semibold text-[10px]">Tags: </span>
+            <span className="text-[10px] bg-cyan-950/80 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-800/60 font-sans">
               {config.tags}
             </span>
           </div>
         )}
         {config.customFieldKey && (
-          <div className="truncate text-[10px] font-mono text-slate-400">
-            {config.customFieldKey} = {`{{${config.customFieldValue || 'valor'}}}`}
+          <div className="flex items-center gap-1.5 text-[10px]">
+            <span className="font-mono text-slate-400">{config.customFieldKey} =</span>
+            <VariableBadge name={config.customFieldValue || 'valor'} />
           </div>
         )}
         {!config.contactName && !config.tags && !config.customFieldKey && (
@@ -436,3 +451,4 @@ export const UpdateContactNode: React.FC<NodeProps> = ({ id, selected, data }) =
     </BaseNode>
   );
 };
+
