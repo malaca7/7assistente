@@ -6,7 +6,10 @@ import {
   Copy, 
   Check, 
   QrCode as QrCodeIcon,
-  AlertCircle
+  AlertCircle,
+  Smartphone,
+  ShieldCheck,
+  Zap
 } from 'lucide-react';
 import { Button } from './Button';
 
@@ -18,26 +21,6 @@ export interface QRCodeViewProps {
   onRequestPairingCode?: (phone: string) => Promise<{ success: boolean; code?: string; error?: string }>;
   isLoading?: boolean;
   adminPhone?: string;
-}
-
-// Generate authentic WhatsApp Multi-Device pairing payload
-function generateAuthenticWhatsAppQR(): string {
-  const randomB64 = (len: number) => {
-    const array = new Uint8Array(len);
-    if (typeof window !== 'undefined' && window.crypto) {
-      window.crypto.getRandomValues(array);
-    } else {
-      for (let i = 0; i < len; i++) array[i] = Math.floor(Math.random() * 256);
-    }
-    return btoa(String.fromCharCode(...array));
-  };
-
-  const ref = randomB64(16);
-  const pubKey = randomB64(32);
-  const identityKey = randomB64(32);
-  const advSecret = randomB64(32);
-
-  return `1@${ref},${pubKey},${identityKey},${advSecret}`;
 }
 
 export const QRCodeView: React.FC<QRCodeViewProps> = ({
@@ -55,24 +38,21 @@ export const QRCodeView: React.FC<QRCodeViewProps> = ({
   const [isGeneratingCode, setIsGeneratingCode] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
   const [pairingError, setPairingError] = useState<string | null>(null);
-  const [localFallbackQR, setLocalFallbackQR] = useState<string>(() => generateAuthenticWhatsAppQR());
 
-  // Determine active QR value
-  const isServerQR = Boolean(
+  // Check if we have an authentic QR Code received from the active Baileys server
+  const isAuthenticServerQR = Boolean(
     qrDataUrl?.startsWith('data:image/') ||
     (value && value.includes('@') && value.includes(',') && !value.includes('7assistente_') && !value.includes('pairing_v2026'))
   );
 
-  const activeQRString = isServerQR ? value : localFallbackQR;
-
   const refreshQR = useCallback(() => {
-    setLocalFallbackQR(generateAuthenticWhatsAppQR());
     setTimeLeft(45);
     onRefresh();
   }, [onRefresh]);
 
   // Expiration countdown
   useEffect(() => {
+    if (!isAuthenticServerQR) return;
     setTimeLeft(45);
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
@@ -85,9 +65,9 @@ export const QRCodeView: React.FC<QRCodeViewProps> = ({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [value, qrDataUrl, localFallbackQR]);
+  }, [value, qrDataUrl, isAuthenticServerQR]);
 
-  const isExpired = timeLeft === 0;
+  const isExpired = isAuthenticServerQR && timeLeft === 0;
 
   const handleGeneratePairingCode = async () => {
     const cleanPhone = pairingPhone.replace(/\D/g, '');
@@ -103,20 +83,8 @@ export const QRCodeView: React.FC<QRCodeViewProps> = ({
       if (res.success && res.code) {
         setPairingCode(res.code);
       } else {
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-        let p1 = '';
-        let p2 = '';
-        for (let i = 0; i < 4; i++) p1 += chars.charAt(Math.floor(Math.random() * chars.length));
-        for (let i = 0; i < 4; i++) p2 += chars.charAt(Math.floor(Math.random() * chars.length));
-        setPairingCode(`${p1}-${p2}`);
+        setPairingError(res.error || 'Servidor WhatsApp não está respondendo. Inicie o bot na Discloud ou localmente.');
       }
-    } else {
-      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-      let p1 = '';
-      let p2 = '';
-      for (let i = 0; i < 4; i++) p1 += chars.charAt(Math.floor(Math.random() * chars.length));
-      for (let i = 0; i < 4; i++) p2 += chars.charAt(Math.floor(Math.random() * chars.length));
-      setPairingCode(`${p1}-${p2}`);
     }
     setIsGeneratingCode(false);
   };
@@ -158,7 +126,7 @@ export const QRCodeView: React.FC<QRCodeViewProps> = ({
         </button>
       </div>
 
-      {/* MODE 1: Authentic WhatsApp QR Code */}
+      {/* MODE 1: Official WhatsApp QR Code */}
       {activeMode === 'qr' && (
         <div className="flex flex-col items-center space-y-5">
           {/* WhatsApp QR Box */}
@@ -170,36 +138,51 @@ export const QRCodeView: React.FC<QRCodeViewProps> = ({
             <div className="absolute -bottom-1.5 -right-1.5 w-7 h-7 border-b-4 border-r-4 border-emerald-500 rounded-br-2xl" />
 
             <div className="w-60 h-60 sm:w-68 sm:h-68 bg-white flex items-center justify-center relative rounded-2xl overflow-hidden p-2">
-              {qrDataUrl && isServerQR ? (
-                <img
-                  src={qrDataUrl}
-                  alt="WhatsApp QR Code"
-                  className={`w-full h-full object-contain transition-all duration-300 ${
-                    isExpired || isLoading ? 'opacity-15 blur-[2px]' : 'opacity-100'
-                  }`}
-                />
+              {isAuthenticServerQR ? (
+                qrDataUrl ? (
+                  <img
+                    src={qrDataUrl}
+                    alt="WhatsApp QR Code Oficial"
+                    className={`w-full h-full object-contain transition-all duration-300 ${
+                      isExpired || isLoading ? 'opacity-15 blur-[2px]' : 'opacity-100'
+                    }`}
+                  />
+                ) : (
+                  <QRCodeSVG
+                    value={value}
+                    size={240}
+                    level="M"
+                    includeMargin={false}
+                    className={`transition-all duration-300 ${
+                      isExpired || isLoading ? 'opacity-15 blur-[2px]' : 'opacity-100'
+                    }`}
+                    imageSettings={{
+                      src: 'https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg',
+                      x: undefined,
+                      y: undefined,
+                      height: 44,
+                      width: 44,
+                      excavate: true,
+                    }}
+                  />
+                )
               ) : (
-                <QRCodeSVG
-                  value={activeQRString}
-                  size={240}
-                  level="M"
-                  includeMargin={false}
-                  className={`transition-all duration-300 ${
-                    isExpired || isLoading ? 'opacity-15 blur-[2px]' : 'opacity-100'
-                  }`}
-                  imageSettings={{
-                    src: 'https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg',
-                    x: undefined,
-                    y: undefined,
-                    height: 44,
-                    width: 44,
-                    excavate: true,
-                  }}
-                />
+                /* Connecting to Baileys Server */
+                <div className="flex flex-col items-center justify-center p-5 text-center space-y-3 bg-dark-950 rounded-2xl w-full h-full text-slate-200">
+                  <div className="w-11 h-11 rounded-full border-3 border-emerald-500 border-t-transparent animate-spin flex items-center justify-center">
+                    <Smartphone className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <div className="space-y-1">
+                    <h5 className="text-xs font-bold text-white">Aguardando Conexão do Bot</h5>
+                    <p className="text-[11px] text-slate-300 leading-tight">
+                      Inicie o bot na <strong>Discloud</strong> ou no seu computador para sincronizar o QR Code oficial em tempo real.
+                    </p>
+                  </div>
+                </div>
               )}
 
               {/* Scanning Laser Line */}
-              {!isExpired && !isLoading && (
+              {isAuthenticServerQR && !isExpired && !isLoading && (
                 <div className="absolute left-2 right-2 h-1 bg-emerald-500 shadow-[0_0_12px_#10b981] animate-[pulse_2s_ease-in-out_infinite]" />
               )}
 
@@ -207,7 +190,7 @@ export const QRCodeView: React.FC<QRCodeViewProps> = ({
               {isExpired && (
                 <div className="absolute inset-0 bg-dark-950/85 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center space-y-3">
                   <span className="text-sm font-bold text-white">QR Code Expirou</span>
-                  <p className="text-xs text-slate-300">Clique abaixo para gerar um novo código de conexão.</p>
+                  <p className="text-xs text-slate-300">Clique abaixo para gerar um novo código oficial.</p>
                   <Button
                     size="sm"
                     variant="brand"
@@ -223,7 +206,7 @@ export const QRCodeView: React.FC<QRCodeViewProps> = ({
 
           {/* Timer & Refresh Action Button */}
           <div className="text-center space-y-3 w-full max-w-xs">
-            {!isExpired && (
+            {isAuthenticServerQR && !isExpired && (
               <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
                 <span>Expira em:</span>
                 <span className="font-mono font-bold text-emerald-400 text-sm">{timeLeft}s</span>
