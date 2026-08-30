@@ -1,0 +1,1203 @@
+{
+  "flows": [
+    {
+      "id": "flow-1788033465058",
+      "name": "Atendimento",
+      "description": "Novo fluxo de automação",
+      "status": "published",
+      "version": 7,
+      "node_count": 10,
+      "trigger_type": "Mensagem recebida",
+      "created_at": "2026-08-29T19:57:45.058Z",
+      "updated_at": "2026-08-30T15:53:39.736Z"
+    }
+  ],
+  "nodes": {
+    "flow-001": [
+      {
+        "id": "node-trigger",
+        "type": "trigger",
+        "data": {
+          "label": "Gatilho: Qualquer Mensagem",
+          "nodeType": "trigger",
+          "config": {
+            "eventType": "any_message"
+          }
+        }
+      },
+      {
+        "id": "node-msg-1",
+        "type": "message",
+        "data": {
+          "label": "Boas-Vindas",
+          "nodeType": "message",
+          "config": {
+            "text": "Olá, {{nome_cliente}}! 👋\n\nSou a {{bot_nome}}, assistente virtual da {{empresa}}.\n\nComo posso te ajudar hoje?"
+          }
+        }
+      },
+      {
+        "id": "node-buttons-1",
+        "type": "buttons",
+        "data": {
+          "label": "Menu de Opções",
+          "nodeType": "buttons",
+          "config": {
+            "bodyText": "Escolha uma das opções abaixo digitando o número correspondente:",
+            "buttons": [
+              {
+                "id": "1",
+                "title": "1️⃣ Conhecer Nossos Serviços"
+              },
+              {
+                "id": "2",
+                "title": "2️⃣ Planos & Preços"
+              },
+              {
+                "id": "3",
+                "title": "3️⃣ Horário de Atendimento"
+              },
+              {
+                "id": "4",
+                "title": "4️⃣ Falar com Atendente Humano"
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "flow-1788033465058": [
+      {
+        "id": "node-trigger-1788033748050",
+        "type": "trigger",
+        "position": {
+          "x": 80,
+          "y": 225
+        },
+        "data": {
+          "label": "Gatilho",
+          "nodeType": "trigger",
+          "description": "Inicia o fluxo ao receber mensagens ou eventos.",
+          "isConfigured": true,
+          "config": {
+            "eventType": "any_message",
+            "keywords": "",
+            "matchType": "contains"
+          }
+        },
+        "measured": {
+          "width": 288,
+          "height": 129
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-message-1788033773183",
+        "type": "message",
+        "position": {
+          "x": 860,
+          "y": 120
+        },
+        "data": {
+          "label": "Enviar Mensagem",
+          "nodeType": "message",
+          "description": "Envia texto com suporte a variáveis dinâmicas.",
+          "isConfigured": true,
+          "config": {
+            "text": "Olá, me chamo *{{bot_nome}}*. e sou assistente de atendimento da *{{empresa}}*! e vou lhe auxiliar para ter um melhor atendimento",
+            "previewUrl": false
+          }
+        },
+        "measured": {
+          "width": 288,
+          "height": 165
+        },
+        "selected": false
+      },
+      {
+        "id": "node-question-1788033927695",
+        "type": "question",
+        "position": {
+          "x": 1250,
+          "y": 120
+        },
+        "data": {
+          "label": "Pergunta & Resposta",
+          "nodeType": "question",
+          "description": "Faz uma pergunta e armazena a resposta em variável.",
+          "isConfigured": true,
+          "config": {
+            "questionText": "Por favor, informe seu nome:",
+            "expectedType": "text",
+            "variableName": "nome_cliente"
+          }
+        },
+        "measured": {
+          "width": 288,
+          "height": 156
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-update_contact-1788041687381",
+        "type": "update_contact",
+        "position": {
+          "x": 1640,
+          "y": 120
+        },
+        "data": {
+          "label": "Salvar / Vincular Dados",
+          "nodeType": "update_contact",
+          "description": "Salva nome, tags e campos personalizados direto no WhatsApp do cliente.",
+          "isConfigured": true,
+          "config": {
+            "contactName": "nome_cliente",
+            "tags": "Cliente",
+            "customFieldKey": "interesse_principal",
+            "customFieldValue": "opcao_selecionada"
+          }
+        },
+        "measured": {
+          "width": 288,
+          "height": 191
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-check_contact-1788102919201",
+        "type": "check_contact",
+        "position": {
+          "x": 470,
+          "y": 225
+        },
+        "data": {
+          "label": "Verificar Contato (Novo vs Salvo)",
+          "nodeType": "check_contact",
+          "description": "Verifica se é o primeiro contato do cliente ou contato existente e cria variáveis.",
+          "isConfigured": true,
+          "config": {}
+        },
+        "measured": {
+          "width": 288,
+          "height": 303
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-message-1788102948794",
+        "type": "message",
+        "position": {
+          "x": 885,
+          "y": 450
+        },
+        "data": {
+          "label": "Enviar Mensagem",
+          "nodeType": "message",
+          "description": "Envia texto com suporte a variáveis dinâmicas.",
+          "isConfigured": true,
+          "config": {
+            "text": "Olá {{nome_cliente}}, me chamo *{{bot_nome}}*. e sou assistente de atendimento da *{{empresa}}*! e vou lhe auxiliar para ter um melhor atendimento",
+            "previewUrl": false
+          }
+        },
+        "measured": {
+          "width": 288,
+          "height": 165
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-ask_date-1788104674417",
+        "type": "ask_date",
+        "position": {
+          "x": 2010,
+          "y": 360
+        },
+        "data": {
+          "label": "1. Escolher Dia do Agendamento",
+          "nodeType": "ask_date",
+          "description": "Oferece botões rápidos (Hoje, Amanhã) ou permite o cliente digitar uma data (ex: 25/08).",
+          "isConfigured": true,
+          "config": {
+            "questionText": "*{{nome_cliente}}*, para qual dia você gostaria de agendar seu atendimento?",
+            "dateVariable": "data_agendamento",
+            "allowCustomDate": true
+          }
+        },
+        "measured": {
+          "width": 288,
+          "height": 168
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-schedule_contact-1788104743355",
+        "type": "schedule_contact",
+        "position": {
+          "x": 2810,
+          "y": 120
+        },
+        "data": {
+          "label": "3. Horários Livres da Agenda",
+          "nodeType": "schedule_contact",
+          "description": "Calcula horários realmente livres para a data e serviço, enviando opções para o cliente.",
+          "isConfigured": true,
+          "config": {
+            "mode": "show_slots",
+            "dateType": "variable",
+            "dateVariable": "data_agendamento",
+            "serviceName": "{{servico_selecionado}}",
+            "introMessage": "Estes são os horários disponíveis para agendamento. Toque no seu horário preferido:"
+          }
+        },
+        "measured": {
+          "width": 288,
+          "height": 194
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-confirm_booking-1788104787175",
+        "type": "confirm_booking",
+        "position": {
+          "x": 3200,
+          "y": 120
+        },
+        "data": {
+          "label": "4. Confirmar & Gravar Agendamento",
+          "nodeType": "confirm_booking",
+          "description": "Exibe resumo com serviço, valor, data e horário, grava na Agenda e adiciona tag Agendado.",
+          "isConfigured": true,
+          "config": {
+            "confirmMessage": "✅ Perfeito {{nome_cliente}}! Seu agendamento de *{{servico_selecionado}}* foi confirmado para o dia *{{data_agendamento}}* às *{{horario_agendamento}}*!"
+          }
+        },
+        "measured": {
+          "width": 288,
+          "height": 218
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-services_catalog-1788105189425",
+        "type": "services_catalog",
+        "position": {
+          "x": 2370,
+          "y": 165
+        },
+        "data": {
+          "label": "2. Catálogo de Serviços & Preços",
+          "nodeType": "services_catalog",
+          "description": "Puxa serviços e preços da Agenda e envia em botões interativos para escolha.",
+          "isConfigured": true,
+          "config": {
+            "displayFormat": "buttons",
+            "introMessage": "*{{nome_cliente}}*, qual serviço você deseja?",
+            "footerText": "Toque no serviço desejado para agendar:",
+            "serviceVarName": "servico_selecionado",
+            "priceVarName": "valor_servico",
+            "durationVarName": "duracao_servico"
+          }
+        },
+        "measured": {
+          "width": 288,
+          "height": 303
+        },
+        "selected": true,
+        "dragging": false
+      }
+    ]
+  },
+  "edges": {
+    "flow-001": [
+      {
+        "id": "edge-1",
+        "source": "node-trigger",
+        "target": "node-msg-1"
+      },
+      {
+        "id": "edge-2",
+        "source": "node-msg-1",
+        "target": "node-buttons-1"
+      }
+    ],
+    "flow-1788033465058": [
+      {
+        "animated": true,
+        "style": {
+          "stroke": "#6366f1",
+          "strokeWidth": 2.5
+        },
+        "source": "node-message-1788033773183",
+        "target": "node-question-1788033927695",
+        "id": "xy-edge__node-message-1788033773183-node-question-1788033927695",
+        "targetHandle": null
+      },
+      {
+        "animated": true,
+        "style": {
+          "stroke": "#6366f1",
+          "strokeWidth": 2.5
+        },
+        "source": "node-question-1788033927695",
+        "target": "node-update_contact-1788041687381",
+        "id": "xy-edge__node-question-1788033927695-node-update_contact-1788041687381",
+        "targetHandle": null
+      },
+      {
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        },
+        "source": "node-check_contact-1788102919201",
+        "sourceHandle": "is_new",
+        "target": "node-message-1788033773183",
+        "id": "xy-edge__node-check_contact-1788102919201is_new-node-message-1788033773183",
+        "targetHandle": null
+      },
+      {
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        },
+        "source": "node-trigger-1788033748050",
+        "target": "node-check_contact-1788102919201",
+        "id": "xy-edge__node-trigger-1788033748050-node-check_contact-1788102919201",
+        "targetHandle": null
+      },
+      {
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        },
+        "source": "node-check_contact-1788102919201",
+        "sourceHandle": "is_existing",
+        "target": "node-message-1788102948794",
+        "id": "xy-edge__node-check_contact-1788102919201is_existing-node-message-1788102948794",
+        "targetHandle": null
+      },
+      {
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        },
+        "source": "node-schedule_contact-1788104743355",
+        "target": "node-confirm_booking-1788104787175",
+        "id": "xy-edge__node-schedule_contact-1788104743355-node-confirm_booking-1788104787175"
+      },
+      {
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        },
+        "source": "node-update_contact-1788041687381",
+        "target": "node-ask_date-1788104674417",
+        "id": "xy-edge__node-update_contact-1788041687381-node-ask_date-1788104674417"
+      },
+      {
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        },
+        "source": "node-message-1788102948794",
+        "target": "node-ask_date-1788104674417",
+        "id": "xy-edge__node-message-1788102948794-node-ask_date-1788104674417"
+      },
+      {
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        },
+        "source": "node-services_catalog-1788105189425",
+        "target": "node-schedule_contact-1788104743355",
+        "id": "xy-edge__node-services_catalog-1788105189425-node-schedule_contact-1788104743355"
+      },
+      {
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        },
+        "source": "node-ask_date-1788104674417",
+        "target": "node-services_catalog-1788105189425",
+        "id": "xy-edge__node-ask_date-1788104674417-node-services_catalog-1788105189425"
+      }
+    ]
+  },
+  "botProfile": {
+    "name": "Malaca",
+    "company_name": "Malaca Group",
+    "gender": "male",
+    "tone": "friendly",
+    "support_phone": "+55 81 99613-8924",
+    "business_hours": "Segunda a Sexta, das 08h às 18h",
+    "welcome_message": "Olá! Sou a Malaca, assistente virtual da Malaca Group. Como posso te ajudar hoje?",
+    "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
+    "company_segment": "Developers",
+    "support_email": "malaca@malaca.com.br",
+    "website_url": "https://malaca.com.br"
+  },
+  "sessions": {
+    "168650497613858": {
+      "flowId": "flow-1788033465058",
+      "currentNodeId": "node-services_catalog-1788105189425",
+      "variables": {
+        "nome_cliente": "Rogerio",
+        "telefone_cliente": "558196138924",
+        "ultima_mensagem": "Oi",
+        "opcao_selecionada": "🕒 08:30",
+        "botao_id": "slot_08:30",
+        "telefone_whatsapp": "558196138924",
+        "is_primeiro_contato": false,
+        "is_novo_contato": false,
+        "tipo_cliente": "recorrente",
+        "tags_contato": "Cliente, Agendado",
+        "total_agendamentos": 2,
+        "data_agendamento": "2026-08-30",
+        "servico_selecionado": "{{servico_selecionado}}",
+        "horario_agendamento": "08:30",
+        "servico_agendado": "{{servico_selecionado}}"
+      },
+      "waitingForVar": null,
+      "activeButtons": [
+        {
+          "id": "srv_srv-1788102781953",
+          "title": "Corte Cabelo (R$30)",
+          "fullService": {
+            "id": "srv-1788102781953",
+            "name": "Corte Cabelo",
+            "duration_minutes": 45,
+            "price": 30
+          }
+        },
+        {
+          "id": "srv_srv-1788102793887",
+          "title": "Barba (R$20)",
+          "fullService": {
+            "id": "srv-1788102793887",
+            "name": "Barba",
+            "duration_minutes": 20,
+            "price": 20
+          }
+        },
+        {
+          "id": "srv_srv-1788102815219",
+          "title": "Corte Cabelo +  (R$45)",
+          "fullService": {
+            "id": "srv-1788102815219",
+            "name": "Corte Cabelo + Barba (Promoção)",
+            "duration_minutes": 50,
+            "price": 45
+          }
+        }
+      ]
+    },
+    "558196138924": {
+      "flowId": "flow-1788033465058",
+      "currentNodeId": "node-services_catalog-1788105189425",
+      "variables": {
+        "nome_cliente": "Rogerio",
+        "telefone_cliente": "558196138924",
+        "ultima_mensagem": "Oi",
+        "opcao_selecionada": "🕒 08:30",
+        "botao_id": "slot_08:30",
+        "telefone_whatsapp": "558196138924",
+        "is_primeiro_contato": false,
+        "is_novo_contato": false,
+        "tipo_cliente": "recorrente",
+        "tags_contato": "Cliente, Agendado",
+        "total_agendamentos": 2,
+        "data_agendamento": "2026-08-30",
+        "servico_selecionado": "{{servico_selecionado}}",
+        "horario_agendamento": "08:30",
+        "servico_agendado": "{{servico_selecionado}}"
+      },
+      "waitingForVar": null,
+      "activeButtons": [
+        {
+          "id": "srv_srv-1788102781953",
+          "title": "Corte Cabelo (R$30)",
+          "fullService": {
+            "id": "srv-1788102781953",
+            "name": "Corte Cabelo",
+            "duration_minutes": 45,
+            "price": 30
+          }
+        },
+        {
+          "id": "srv_srv-1788102793887",
+          "title": "Barba (R$20)",
+          "fullService": {
+            "id": "srv-1788102793887",
+            "name": "Barba",
+            "duration_minutes": 20,
+            "price": 20
+          }
+        },
+        {
+          "id": "srv_srv-1788102815219",
+          "title": "Corte Cabelo +  (R$45)",
+          "fullService": {
+            "id": "srv-1788102815219",
+            "name": "Corte Cabelo + Barba (Promoção)",
+            "duration_minutes": 50,
+            "price": 45
+          }
+        }
+      ]
+    }
+  },
+  "appointments": [
+    {
+      "id": "apt-1788043578235",
+      "contact_name": "malaquias",
+      "contact_phone": "81996138924",
+      "service_name": "Corte Cabelo + Barba",
+      "appointment_date": "2026-08-30",
+      "appointment_time": "15:00",
+      "status": "confirmed",
+      "created_at": "2026-08-29T22:46:18.240Z"
+    },
+    {
+      "id": "apt-1788043578235",
+      "contact_name": "malaquias",
+      "contact_phone": "81996138924",
+      "service_name": "Corte Cabelo + Barba",
+      "appointment_date": "2026-08-30",
+      "appointment_time": "14:45",
+      "status": "confirmed",
+      "created_at": "2026-08-29T22:48:07.007Z"
+    },
+    {
+      "id": "apt-1788043578235",
+      "contact_name": "malaquias",
+      "contact_phone": "81996138924",
+      "service_name": "Corte Cabelo + Barba",
+      "appointment_date": "2026-08-30",
+      "appointment_time": "14:30",
+      "status": "confirmed",
+      "created_at": "2026-08-29T23:14:30.301Z"
+    },
+    {
+      "id": "apt-1788104116622",
+      "contact_phone": "558196138924",
+      "contact_name": "Rogerio",
+      "service_name": "{{servico_selecionado}}",
+      "duration_minutes": 30,
+      "appointment_date": "2026-08-30",
+      "appointment_time": "08:00",
+      "status": "confirmed",
+      "created_at": "2026-08-30T15:35:16.622Z"
+    },
+    {
+      "id": "apt-1788104123641",
+      "contact_phone": "558196138924",
+      "contact_name": "Rogerio",
+      "service_name": "{{servico_selecionado}}",
+      "duration_minutes": 30,
+      "appointment_date": "2026-08-30",
+      "appointment_time": "08:30",
+      "status": "confirmed",
+      "created_at": "2026-08-30T15:35:23.641Z"
+    }
+  ],
+  "contacts": {
+    "558196138924": {
+      "id": "contact-558196138924",
+      "phone": "558196138924",
+      "name": "Rogerio",
+      "status": "active",
+      "tags": [
+        "Cliente",
+        "Agendado"
+      ],
+      "metadata": {
+        "interesse_principal": "Consultar Valores"
+      },
+      "created_at": "2026-08-29T23:23:18.236Z",
+      "updated_at": "2026-08-30T15:54:58.044Z",
+      "profile_picture_url": "https://pps.whatsapp.net/v/t61.24694-24/674630155_1633106875192131_9214554452579566382_n.jpg?ccb=11-4&oh=01_Q5Aa5QH8Rcsf-hGOlkVBBpTEo5nl3x1xEqmhIqKGisBkzVPZ0g&oe=6AA16C21&_nc_sid=5e03e0&_nc_cat=104"
+    }
+  },
+  "conversations": {
+    "conv-558196138924": {
+      "id": "conv-558196138924",
+      "contact_id": "contact-558196138924",
+      "contact_name": "Rogerio",
+      "contact_phone": "558196138924",
+      "status": "waiting_human",
+      "started_at": "2026-08-29T23:00:04.971Z",
+      "unread_count": 0,
+      "created_at": "2026-08-29T23:00:04.971Z",
+      "last_message": "*Rogerio*, qual serviço você deseja?",
+      "last_message_at": "2026-08-30T15:54:58.044Z",
+      "updated_at": "2026-08-30T15:54:58.044Z"
+    }
+  },
+  "messages": {
+    "conv-558196138924": [
+      {
+        "id": "msg-1788044404971-kuvsl",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:00:04.971Z"
+      },
+      {
+        "id": "msg-1788044404971-2kru5",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Por favor, informe seu nome:",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:00:04.971Z"
+      },
+      {
+        "id": "msg-1788044411785-gkyue",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "O que você deseja malaquias?",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:00:11.785Z"
+      },
+      {
+        "id": "msg-1788044788667-z341y",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:06:28.667Z"
+      },
+      {
+        "id": "msg-1788044788674-95p8s",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Por favor, informe seu nome:",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:06:28.674Z"
+      },
+      {
+        "id": "msg-1788044794245-sr7gl",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "O que você deseja malaquias?",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:06:34.245Z"
+      },
+      {
+        "id": "msg-1788044824213-55y40",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "O que você deseja malaquias?",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:07:04.213Z"
+      },
+      {
+        "id": "msg-1788044830433-ox91o",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:07:10.433Z"
+      },
+      {
+        "id": "msg-1788044830439-n0xpx",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Por favor, informe seu nome:",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:07:10.439Z"
+      },
+      {
+        "id": "msg-1788044838744-lms0r",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "O que você deseja Malaquias?",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:07:18.744Z"
+      },
+      {
+        "id": "msg-1788045151608-qb3rj",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:12:31.608Z"
+      },
+      {
+        "id": "msg-1788045151613-oyqp6",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Por favor, informe seu nome:",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:12:31.613Z"
+      },
+      {
+        "id": "msg-1788045157913-2mtxu",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "O que você deseja Malaquias?",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:12:37.913Z"
+      },
+      {
+        "id": "msg-1788045163371-92bv5",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Obrigado Malaquias, estou finalizando o atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:12:43.371Z"
+      },
+      {
+        "id": "msg-1788045163378-rgmaz",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Opções Interativas",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:12:43.378Z"
+      },
+      {
+        "id": "msg-1788045163384-fdb96",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "👨‍💼 *Atendimento Humano:*\n\nVocê foi transferido para nossa equipe de atendimento.",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:12:43.384Z"
+      },
+      {
+        "id": "msg-1788045171625-t13d1",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:12:51.625Z"
+      },
+      {
+        "id": "msg-1788045171630-7w1jx",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Por favor, informe seu nome:",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:12:51.630Z"
+      },
+      {
+        "id": "msg-1788045798236-jwm75",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "[Disparando Fluxo: *Atendimento*]",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:23:18.236Z"
+      },
+      {
+        "id": "msg-1788045807147-i31y5",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "O que você deseja Rogerio?",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:23:27.147Z"
+      },
+      {
+        "id": "msg-1788045812075-ibj9v",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Obrigado Rogerio, estou finalizando o atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:23:32.075Z"
+      },
+      {
+        "id": "msg-1788045812080-nxlu2",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Opções Interativas",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:23:32.080Z"
+      },
+      {
+        "id": "msg-1788045812085-9u819",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "👨‍💼 *Atendimento Humano:*\n\nVocê foi transferido para nossa equipe de atendimento.",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:23:32.085Z"
+      },
+      {
+        "id": "msg-1788045954304-zdszs",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:25:54.304Z"
+      },
+      {
+        "id": "msg-1788045954305-z1kx0",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Por favor, informe seu nome:",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:25:54.304Z"
+      },
+      {
+        "id": "msg-1788045959344-hcvh6",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "O que você deseja jr?",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:25:59.344Z"
+      },
+      {
+        "id": "msg-1788045963368-idjk0",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Obrigado jr, estou finalizando o atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:26:03.368Z"
+      },
+      {
+        "id": "msg-1788102716995-7rvy5",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:11:56.995Z"
+      },
+      {
+        "id": "msg-1788102716997-3edqn",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Por favor, informe seu nome:",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:11:56.997Z"
+      },
+      {
+        "id": "msg-1788102735742-h7u02",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "O que você deseja Rogerio?",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:12:15.742Z"
+      },
+      {
+        "id": "msg-1788102744140-4rir0",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Conheça nossos serviços e valores:\n\n*1.* 🏷️ *Atendimento Especialista*\n   💰 R$ 150,00 • ⏱️ 30 min\n\n*2.* 🏷️ *Demonstração da Plataforma*\n   💰 R$ 0,00 • ⏱️ 45 min\n\n*3.* 🏷️ *Suporte & Configuração*\n   💰 R$ 80,00 • ⏱️ 30 min",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:12:24.140Z"
+      },
+      {
+        "id": "msg-1788102876862-6ui5u",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:14:36.862Z"
+      },
+      {
+        "id": "msg-1788102876862-34xz8",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Por favor, informe seu nome:",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:14:36.862Z"
+      },
+      {
+        "id": "msg-1788102883133-xg1x1",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "O que você deseja Rogerio?",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:14:43.133Z"
+      },
+      {
+        "id": "msg-1788102886853-tvvut",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Conheça nossos serviços e valores:\n\n*1.* 🏷️ *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:14:46.853Z"
+      },
+      {
+        "id": "msg-1788103533271-wgru7",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá Rogerio, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:25:33.271Z"
+      },
+      {
+        "id": "msg-1788103533272-ss7fm",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "O que você deseja Rogerio?",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:25:33.272Z"
+      },
+      {
+        "id": "msg-1788103538364-wtim7",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Conheça nossos serviços e valores:\n\n*1.* 🏷️ *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:25:38.364Z"
+      },
+      {
+        "id": "msg-1788103543470-furvd",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Conheça nossos serviços e valores:\n\n*1.* 🏷️ *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:25:43.470Z"
+      },
+      {
+        "id": "msg-1788103554102-3q41o",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Conheça nossos serviços e valores:\n\n*1.* 🏷️ *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:25:54.102Z"
+      },
+      {
+        "id": "msg-1788104098855-q8a3s",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá Rogerio, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:34:58.855Z"
+      },
+      {
+        "id": "msg-1788104098856-41ine",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "*Rogerio*, qual serviço você deseja?\n\n*1.* 🏷️ *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:34:58.856Z"
+      },
+      {
+        "id": "msg-1788104098858-ryrfa",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "📅 *Horários Disponíveis na Agenda (2026-08-30):*\n\nServiço: *{{servico_selecionado}}*\n\nEscolha o melhor horário:",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:34:58.858Z"
+      },
+      {
+        "id": "msg-1788104116623-qou5w",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "✅ Seu agendamento de *{{servico_selecionado}}* foi confirmado para 2026-08-30 às 08:00 com duração de {{duracao_servico}}!",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:35:16.623Z"
+      },
+      {
+        "id": "msg-1788104116625-f0r7r",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "📅 *Horários Disponíveis na Agenda (2026-08-30):*\n\nServiço: *{{servico_selecionado}}*\n\nEscolha o melhor horário:",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:35:16.625Z"
+      },
+      {
+        "id": "msg-1788104123642-iq86i",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "✅ Seu agendamento de *{{servico_selecionado}}* foi confirmado para 2026-08-30 às 08:30 com duração de {{duracao_servico}}!",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:35:23.642Z"
+      },
+      {
+        "id": "msg-1788104123644-5vqz8",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "📅 *Horários Disponíveis na Agenda (2026-08-30):*\n\nServiço: *{{servico_selecionado}}*\n\nEscolha o melhor horário:",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:35:23.644Z"
+      },
+      {
+        "id": "msg-1788104852271-c0ql9",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá Rogerio, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:47:32.271Z"
+      },
+      {
+        "id": "msg-1788104852272-mh2o9",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "*Rogerio*, qual serviço você deseja?",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:47:32.272Z"
+      },
+      {
+        "id": "msg-1788104864326-csq8y",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "*Rogerio*, qual serviço você deseja?",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:47:44.326Z"
+      },
+      {
+        "id": "msg-1788104869545-5rds5",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "*Rogerio*, qual serviço você deseja?",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:47:49.545Z"
+      },
+      {
+        "id": "msg-1788105229427-rfvay",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá Rogerio, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:53:49.427Z"
+      },
+      {
+        "id": "msg-1788105229429-8cegg",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "*Rogerio*, qual serviço você deseja?",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:53:49.428Z"
+      },
+      {
+        "id": "msg-1788105235421-t8y5t",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "*Rogerio*, qual serviço você deseja?",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:53:55.421Z"
+      },
+      {
+        "id": "msg-1788105298043-dqzp8",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá Rogerio, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:54:58.043Z"
+      },
+      {
+        "id": "msg-1788105298044-p16ka",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "*Rogerio*, qual serviço você deseja?",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:54:58.044Z"
+      }
+    ]
+  },
+  "agendaSettings": {
+    "business_days": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "start_time": "08:00",
+    "end_time": "20:00",
+    "slot_duration_minutes": 15,
+    "break_start_time": "12:00",
+    "break_end_time": "14:00",
+    "services": [
+      {
+        "id": "srv-1788102781953",
+        "name": "Corte Cabelo",
+        "duration_minutes": 45,
+        "price": 30
+      },
+      {
+        "id": "srv-1788102793887",
+        "name": "Barba",
+        "duration_minutes": 20,
+        "price": 20
+      },
+      {
+        "id": "srv-1788102815219",
+        "name": "Corte Cabelo + Barba (Promoção)",
+        "duration_minutes": 50,
+        "price": 45
+      }
+    ]
+  }
+}
