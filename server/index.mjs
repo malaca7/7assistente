@@ -381,6 +381,31 @@ async function resolveRealWhatsAppPhone(jid, msg, authState) {
 
 // REST API Endpoints
 
+// Health Check & Root Status
+app.get('/health', (req, res) => {
+  res.json({ status: 'online', bot: 'Talvane Barber WhatsApp', service: 'WhatsApp Baileys' });
+});
+
+// Standard Aliases
+app.get('/api/status', (req, res) => {
+  res.json({
+    status: connectionState.status === 'connected' ? 'online' : connectionState.status,
+    bot: 'Talvane Barber WhatsApp',
+    service: 'WhatsApp Baileys',
+    connection: connectionState,
+    qr: currentQR,
+    qrDataUrl: currentQRDataUrl,
+  });
+});
+
+app.get('/api/qr', (req, res) => {
+  res.json({
+    status: connectionState.status,
+    qr: currentQR,
+    qrDataUrl: currentQRDataUrl,
+  });
+});
+
 // 1. Status & Live QR Code
 app.get('/api/whatsapp/status', (req, res) => {
   res.json({
