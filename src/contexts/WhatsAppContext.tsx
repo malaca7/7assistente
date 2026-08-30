@@ -32,7 +32,7 @@ const getBackendUrl = (): string => {
       if (parsed?.backend_url) return parsed.backend_url;
     }
   } catch {}
-  return '';
+  return 'https://7assistente.discloud.app';
 };
 
 const defaultSession: WhatsAppSession = {

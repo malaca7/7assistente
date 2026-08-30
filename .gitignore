@@ -30,3 +30,4 @@ scripts/
 *.njsproj
 *.sln
 *.sw?
+node_modules
