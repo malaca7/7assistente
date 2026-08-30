@@ -1,0 +1,702 @@
+{
+  "flows": [
+    {
+      "id": "flow-1788033465058",
+      "name": "Atendimento",
+      "description": "Novo fluxo de automação",
+      "status": "published",
+      "version": 7,
+      "node_count": 6,
+      "trigger_type": "Mensagem recebida",
+      "created_at": "2026-08-29T19:57:45.058Z",
+      "updated_at": "2026-08-30T15:08:21.095Z"
+    }
+  ],
+  "nodes": {
+    "flow-001": [
+      {
+        "id": "node-trigger",
+        "type": "trigger",
+        "data": {
+          "label": "Gatilho: Qualquer Mensagem",
+          "nodeType": "trigger",
+          "config": {
+            "eventType": "any_message"
+          }
+        }
+      },
+      {
+        "id": "node-msg-1",
+        "type": "message",
+        "data": {
+          "label": "Boas-Vindas",
+          "nodeType": "message",
+          "config": {
+            "text": "Olá, {{nome_cliente}}! 👋\n\nSou a {{bot_nome}}, assistente virtual da {{empresa}}.\n\nComo posso te ajudar hoje?"
+          }
+        }
+      },
+      {
+        "id": "node-buttons-1",
+        "type": "buttons",
+        "data": {
+          "label": "Menu de Opções",
+          "nodeType": "buttons",
+          "config": {
+            "bodyText": "Escolha uma das opções abaixo digitando o número correspondente:",
+            "buttons": [
+              {
+                "id": "1",
+                "title": "1️⃣ Conhecer Nossos Serviços"
+              },
+              {
+                "id": "2",
+                "title": "2️⃣ Planos & Preços"
+              },
+              {
+                "id": "3",
+                "title": "3️⃣ Horário de Atendimento"
+              },
+              {
+                "id": "4",
+                "title": "4️⃣ Falar com Atendente Humano"
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "flow-1788033465058": [
+      {
+        "id": "node-trigger-1788033748050",
+        "type": "trigger",
+        "position": {
+          "x": 100,
+          "y": 420
+        },
+        "data": {
+          "label": "Gatilho",
+          "nodeType": "trigger",
+          "description": "Inicia o fluxo ao receber mensagens ou eventos.",
+          "isConfigured": true,
+          "config": {
+            "eventType": "any_message",
+            "keywords": "",
+            "matchType": "contains"
+          }
+        },
+        "measured": {
+          "width": 288,
+          "height": 129
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-message-1788033773183",
+        "type": "message",
+        "position": {
+          "x": 480,
+          "y": 420
+        },
+        "data": {
+          "label": "Enviar Mensagem",
+          "nodeType": "message",
+          "description": "Envia texto com suporte a variáveis dinâmicas.",
+          "isConfigured": true,
+          "config": {
+            "text": "Olá, me chamo *{{bot_nome}}*. e sou assistente de atendimento da *{{empresa}}*! e vou lhe auxiliar para ter um melhor atendimento",
+            "previewUrl": false
+          }
+        },
+        "measured": {
+          "width": 288,
+          "height": 165
+        },
+        "selected": false
+      },
+      {
+        "id": "node-question-1788033927695",
+        "type": "question",
+        "position": {
+          "x": 860,
+          "y": 420
+        },
+        "data": {
+          "label": "Pergunta & Resposta",
+          "nodeType": "question",
+          "description": "Faz uma pergunta e armazena a resposta em variável.",
+          "isConfigured": true,
+          "config": {
+            "questionText": "Por favor, informe seu nome:",
+            "expectedType": "text",
+            "variableName": "nome_cliente"
+          }
+        },
+        "measured": {
+          "width": 288,
+          "height": 151
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-update_contact-1788041687381",
+        "type": "update_contact",
+        "position": {
+          "x": 1240,
+          "y": 420
+        },
+        "data": {
+          "label": "Salvar / Vincular Dados",
+          "nodeType": "update_contact",
+          "description": "Salva nome, tags e campos personalizados direto no WhatsApp do cliente.",
+          "isConfigured": true,
+          "config": {
+            "contactName": "nome_cliente",
+            "tags": "Cliente",
+            "customFieldKey": "interesse_principal",
+            "customFieldValue": "opcao_selecionada"
+          }
+        },
+        "measured": {
+          "width": 288,
+          "height": 169
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-buttons-1788041726010",
+        "type": "buttons",
+        "position": {
+          "x": 1620,
+          "y": 420
+        },
+        "data": {
+          "label": "Botões Interativos",
+          "nodeType": "buttons",
+          "description": "Envia mensagem com até 3 botões clicáveis.",
+          "isConfigured": true,
+          "config": {
+            "bodyText": "O que você deseja {{nome_cliente}}?",
+            "buttons": [
+              {
+                "id": "btn_2",
+                "title": "Consultar Valores"
+              }
+            ]
+          }
+        },
+        "measured": {
+          "width": 288,
+          "height": 205
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-services_catalog-1788101781817",
+        "type": "services_catalog",
+        "position": {
+          "x": 2000,
+          "y": 420
+        },
+        "data": {
+          "label": "Catálogo de Serviços & Preços",
+          "nodeType": "services_catalog",
+          "description": "Exibe lista de serviços e valores cadastrados na Agenda com opções interativas.",
+          "isConfigured": true,
+          "config": {
+            "displayFormat": "text_list",
+            "introMessage": "Conheça nossos serviços e valores:",
+            "footerText": "Toque no serviço desejado para agendar:",
+            "serviceVarName": "servico_selecionado",
+            "priceVarName": "valor_servico",
+            "durationVarName": "duracao_servico"
+          }
+        },
+        "measured": {
+          "width": 288,
+          "height": 178
+        },
+        "selected": false,
+        "dragging": false
+      }
+    ]
+  },
+  "edges": {
+    "flow-001": [
+      {
+        "id": "edge-1",
+        "source": "node-trigger",
+        "target": "node-msg-1"
+      },
+      {
+        "id": "edge-2",
+        "source": "node-msg-1",
+        "target": "node-buttons-1"
+      }
+    ],
+    "flow-1788033465058": [
+      {
+        "animated": true,
+        "style": {
+          "stroke": "#6366f1",
+          "strokeWidth": 2.5
+        },
+        "source": "node-trigger-1788033748050",
+        "target": "node-message-1788033773183",
+        "id": "xy-edge__node-trigger-1788033748050-node-message-1788033773183"
+      },
+      {
+        "animated": true,
+        "style": {
+          "stroke": "#6366f1",
+          "strokeWidth": 2.5
+        },
+        "source": "node-message-1788033773183",
+        "target": "node-question-1788033927695",
+        "id": "xy-edge__node-message-1788033773183-node-question-1788033927695"
+      },
+      {
+        "animated": true,
+        "style": {
+          "stroke": "#6366f1",
+          "strokeWidth": 2.5
+        },
+        "source": "node-question-1788033927695",
+        "target": "node-update_contact-1788041687381",
+        "id": "xy-edge__node-question-1788033927695-node-update_contact-1788041687381"
+      },
+      {
+        "animated": true,
+        "style": {
+          "stroke": "#6366f1",
+          "strokeWidth": 2.5
+        },
+        "source": "node-update_contact-1788041687381",
+        "target": "node-buttons-1788041726010",
+        "id": "xy-edge__node-update_contact-1788041687381-node-buttons-1788041726010"
+      },
+      {
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        },
+        "source": "node-buttons-1788041726010",
+        "sourceHandle": "btn_2",
+        "target": "node-services_catalog-1788101781817",
+        "id": "xy-edge__node-buttons-1788041726010btn_2-node-services_catalog-1788101781817"
+      }
+    ]
+  },
+  "botProfile": {
+    "name": "Malaca",
+    "company_name": "Malaca Group",
+    "gender": "male",
+    "tone": "friendly",
+    "support_phone": "+55 81 99613-8924",
+    "business_hours": "Segunda a Sexta, das 08h às 18h",
+    "welcome_message": "Olá! Sou a Malaca, assistente virtual da Malaca Group. Como posso te ajudar hoje?",
+    "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
+    "company_segment": "Developers",
+    "support_email": "malaca@malaca.com.br",
+    "website_url": "https://malaca.com.br"
+  },
+  "sessions": {
+    "168650497613858": {
+      "flowId": "flow-1788033465058",
+      "currentNodeId": "node-message-1788043065287",
+      "variables": {
+        "nome_cliente": "jr",
+        "telefone_cliente": "558196138924",
+        "ultima_mensagem": "2",
+        "opcao_selecionada": "Consultar Valores",
+        "botao_id": "btn_2",
+        "telefone_whatsapp": "558196138924"
+      },
+      "waitingForVar": null,
+      "activeButtons": [
+        {
+          "id": "btn_1",
+          "title": "Agendar um Horário"
+        },
+        {
+          "id": "btn_2",
+          "title": "Consultar Valores"
+        }
+      ]
+    },
+    "558196138924": {
+      "flowId": "flow-1788033465058",
+      "currentNodeId": "node-message-1788043065287",
+      "variables": {
+        "nome_cliente": "jr",
+        "telefone_cliente": "558196138924",
+        "ultima_mensagem": "2",
+        "opcao_selecionada": "Consultar Valores",
+        "botao_id": "btn_2",
+        "telefone_whatsapp": "558196138924"
+      },
+      "waitingForVar": null,
+      "activeButtons": [
+        {
+          "id": "btn_1",
+          "title": "Agendar um Horário"
+        },
+        {
+          "id": "btn_2",
+          "title": "Consultar Valores"
+        }
+      ]
+    }
+  },
+  "appointments": [
+    {
+      "id": "apt-1788043578235",
+      "contact_name": "malaquias",
+      "contact_phone": "81996138924",
+      "service_name": "Corte Cabelo + Barba",
+      "appointment_date": "2026-08-30",
+      "appointment_time": "15:00",
+      "status": "confirmed",
+      "created_at": "2026-08-29T22:46:18.240Z"
+    },
+    {
+      "id": "apt-1788043578235",
+      "contact_name": "malaquias",
+      "contact_phone": "81996138924",
+      "service_name": "Corte Cabelo + Barba",
+      "appointment_date": "2026-08-30",
+      "appointment_time": "14:45",
+      "status": "confirmed",
+      "created_at": "2026-08-29T22:48:07.007Z"
+    },
+    {
+      "id": "apt-1788043578235",
+      "contact_name": "malaquias",
+      "contact_phone": "81996138924",
+      "service_name": "Corte Cabelo + Barba",
+      "appointment_date": "2026-08-30",
+      "appointment_time": "14:30",
+      "status": "confirmed",
+      "created_at": "2026-08-29T23:14:30.301Z"
+    }
+  ],
+  "contacts": {
+    "558196138924": {
+      "id": "contact-558196138924",
+      "phone": "558196138924",
+      "name": "jr",
+      "status": "active",
+      "tags": [
+        "Cliente"
+      ],
+      "metadata": {
+        "interesse_principal": "Agendar um Horário"
+      },
+      "created_at": "2026-08-29T23:23:18.236Z",
+      "updated_at": "2026-08-29T23:26:03.368Z"
+    }
+  },
+  "conversations": {
+    "conv-558196138924": {
+      "id": "conv-558196138924",
+      "contact_id": "contact-558196138924",
+      "contact_name": "jr",
+      "contact_phone": "558196138924",
+      "status": "waiting_human",
+      "started_at": "2026-08-29T23:00:04.971Z",
+      "unread_count": 0,
+      "created_at": "2026-08-29T23:00:04.971Z",
+      "last_message": "Obrigado jr, estou finalizando o atendimento",
+      "last_message_at": "2026-08-29T23:26:03.368Z",
+      "updated_at": "2026-08-29T23:26:03.368Z"
+    }
+  },
+  "messages": {
+    "conv-558196138924": [
+      {
+        "id": "msg-1788044404971-kuvsl",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:00:04.971Z"
+      },
+      {
+        "id": "msg-1788044404971-2kru5",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Por favor, informe seu nome:",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:00:04.971Z"
+      },
+      {
+        "id": "msg-1788044411785-gkyue",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "O que você deseja malaquias?",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:00:11.785Z"
+      },
+      {
+        "id": "msg-1788044788667-z341y",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:06:28.667Z"
+      },
+      {
+        "id": "msg-1788044788674-95p8s",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Por favor, informe seu nome:",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:06:28.674Z"
+      },
+      {
+        "id": "msg-1788044794245-sr7gl",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "O que você deseja malaquias?",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:06:34.245Z"
+      },
+      {
+        "id": "msg-1788044824213-55y40",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "O que você deseja malaquias?",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:07:04.213Z"
+      },
+      {
+        "id": "msg-1788044830433-ox91o",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:07:10.433Z"
+      },
+      {
+        "id": "msg-1788044830439-n0xpx",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Por favor, informe seu nome:",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:07:10.439Z"
+      },
+      {
+        "id": "msg-1788044838744-lms0r",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "O que você deseja Malaquias?",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:07:18.744Z"
+      },
+      {
+        "id": "msg-1788045151608-qb3rj",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:12:31.608Z"
+      },
+      {
+        "id": "msg-1788045151613-oyqp6",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Por favor, informe seu nome:",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:12:31.613Z"
+      },
+      {
+        "id": "msg-1788045157913-2mtxu",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "O que você deseja Malaquias?",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:12:37.913Z"
+      },
+      {
+        "id": "msg-1788045163371-92bv5",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Obrigado Malaquias, estou finalizando o atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:12:43.371Z"
+      },
+      {
+        "id": "msg-1788045163378-rgmaz",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Opções Interativas",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:12:43.378Z"
+      },
+      {
+        "id": "msg-1788045163384-fdb96",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "👨‍💼 *Atendimento Humano:*\n\nVocê foi transferido para nossa equipe de atendimento.",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:12:43.384Z"
+      },
+      {
+        "id": "msg-1788045171625-t13d1",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:12:51.625Z"
+      },
+      {
+        "id": "msg-1788045171630-7w1jx",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Por favor, informe seu nome:",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:12:51.630Z"
+      },
+      {
+        "id": "msg-1788045798236-jwm75",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "[Disparando Fluxo: *Atendimento*]",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:23:18.236Z"
+      },
+      {
+        "id": "msg-1788045807147-i31y5",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "O que você deseja Rogerio?",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:23:27.147Z"
+      },
+      {
+        "id": "msg-1788045812075-ibj9v",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Obrigado Rogerio, estou finalizando o atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:23:32.075Z"
+      },
+      {
+        "id": "msg-1788045812080-nxlu2",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Opções Interativas",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:23:32.080Z"
+      },
+      {
+        "id": "msg-1788045812085-9u819",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "👨‍💼 *Atendimento Humano:*\n\nVocê foi transferido para nossa equipe de atendimento.",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:23:32.085Z"
+      },
+      {
+        "id": "msg-1788045954304-zdszs",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:25:54.304Z"
+      },
+      {
+        "id": "msg-1788045954305-z1kx0",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Por favor, informe seu nome:",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:25:54.304Z"
+      },
+      {
+        "id": "msg-1788045959344-hcvh6",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "O que você deseja jr?",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:25:59.344Z"
+      },
+      {
+        "id": "msg-1788045963368-idjk0",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Obrigado jr, estou finalizando o atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-29T23:26:03.368Z"
+      }
+    ]
+  },
+  "agendaSettings": {
+    "business_days": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "start_time": "08:00",
+    "end_time": "18:00",
+    "slot_duration_minutes": 15,
+    "break_start_time": "12:00",
+    "break_end_time": "14:00",
+    "services": [
+      {
+        "id": "srv-1",
+        "name": "Atendimento Especialista",
+        "duration_minutes": 30,
+        "price": 150
+      },
+      {
+        "id": "srv-2",
+        "name": "Demonstração da Plataforma",
+        "duration_minutes": 45,
+        "price": 0
+      },
+      {
+        "id": "srv-3",
+        "name": "Suporte & Configuração",
+        "duration_minutes": 30,
+        "price": 80
+      }
+    ]
+  }
+}
