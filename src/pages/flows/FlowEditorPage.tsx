@@ -312,83 +312,164 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
     [screenToFlowPosition, spawnNodeAtPosition]
   );
 
-  // Auto-Layout Algorithm (Hierarchical DAG Alignment)
+  // Auto-Layout Algorithm (True Genealogical Tree / Organogram Hierarchy)
   const handleAutoLayout = useCallback(() => {
     if (nodes.length === 0) return;
 
-    const adj = new Map<string, string[]>();
-    const inDegree = new Map<string, number>();
+    const childrenMap = new Map<string, string[]>();
+    const parentMap = new Map<string, string[]>();
 
     nodes.forEach((n) => {
-      adj.set(n.id, []);
-      inDegree.set(n.id, 0);
+      childrenMap.set(n.id, []);
+      parentMap.set(n.id, []);
     });
 
     edges.forEach((e) => {
-      if (adj.has(e.source) && adj.has(e.target)) {
-        adj.get(e.source)!.push(e.target);
-        inDegree.set(e.target, (inDegree.get(e.target) || 0) + 1);
+      if (childrenMap.has(e.source) && childrenMap.has(e.target)) {
+        if (!childrenMap.get(e.source)!.includes(e.target)) {
+          childrenMap.get(e.source)!.push(e.target);
+        }
+        if (!parentMap.get(e.target)!.includes(e.source)) {
+          parentMap.get(e.target)!.push(e.source);
+        }
       }
     });
 
-    // Root nodes
-    const roots = nodes.filter((n) => (n.data?.nodeType || n.type) === 'trigger' || inDegree.get(n.id) === 0);
+    // 1. Assign Layer (X coordinate / Depth Level) via Longest Path from Roots
+    const roots = nodes.filter((n) => (n.data?.nodeType || n.type) === 'trigger' || (parentMap.get(n.id)?.length || 0) === 0);
     if (roots.length === 0 && nodes.length > 0) {
       roots.push(nodes[0]);
     }
 
-    const nodeLevels = new Map<string, number>();
+    const depthMap = new Map<string, number>();
     const visited = new Set<string>();
-    const queue: { id: string; level: number }[] = roots.map((r) => ({ id: r.id, level: 0 }));
 
-    roots.forEach((r) => {
-      nodeLevels.set(r.id, 0);
-      visited.add(r.id);
-    });
+    const assignDepth = (nodeId: string, currentDepth: number) => {
+      const existing = depthMap.get(nodeId) || 0;
+      if (currentDepth > existing) {
+        depthMap.set(nodeId, currentDepth);
+      } else if (!depthMap.has(nodeId)) {
+        depthMap.set(nodeId, currentDepth);
+      }
 
-    while (queue.length > 0) {
-      const { id, level } = queue.shift()!;
-      const neighbors = adj.get(id) || [];
-      neighbors.forEach((nbrId) => {
-        const curLevel = nodeLevels.get(nbrId) || 0;
-        if (level + 1 > curLevel) {
-          nodeLevels.set(nbrId, level + 1);
-        }
-        if (!visited.has(nbrId)) {
-          visited.add(nbrId);
-          queue.push({ id: nbrId, level: level + 1 });
-        }
+      if (visited.has(nodeId)) return;
+      visited.add(nodeId);
+
+      const children = childrenMap.get(nodeId) || [];
+      children.forEach((childId) => {
+        assignDepth(childId, (depthMap.get(nodeId) || currentDepth) + 1);
       });
-    }
+    };
 
+    roots.forEach((r) => assignDepth(r.id, 0));
+
+    // Handle any unreachable / disconnected nodes
     nodes.forEach((n) => {
-      if (!nodeLevels.has(n.id)) {
-        nodeLevels.set(n.id, 0);
+      if (!depthMap.has(n.id)) {
+        depthMap.set(n.id, 0);
       }
     });
 
-    const levelGroups = new Map<number, Node[]>();
+    // Group nodes by column/depth level
+    const maxDepth = Math.max(...Array.from(depthMap.values()), 0);
+    const columns: Node[][] = Array.from({ length: maxDepth + 1 }, () => []);
+
     nodes.forEach((n) => {
-      const lvl = nodeLevels.get(n.id) || 0;
-      if (!levelGroups.has(lvl)) levelGroups.set(lvl, []);
-      levelGroups.get(lvl)!.push(n);
+      const d = depthMap.get(n.id) || 0;
+      columns[d].push(n);
     });
 
-    const HORIZONTAL_SPACING = 380;
-    const VERTICAL_SPACING = 240;
-    const START_X = 100;
+    // 2. Initial Y Placement (Hierarchical Center-Out from Parents)
+    const NODE_WIDTH = 300;
+    const HORIZONTAL_GAP = 90;
+    const HORIZONTAL_STEP = NODE_WIDTH + HORIZONTAL_GAP; // 390px
+    const MIN_VERTICAL_GAP = 210; // Space per node row
+    const START_X = 80;
     const START_Y = 120;
 
-    const layoutedNodes = nodes.map((n) => {
-      const lvl = nodeLevels.get(n.id) || 0;
-      const group = levelGroups.get(lvl) || [n];
-      const indexInGroup = group.findIndex((gn) => gn.id === n.id);
+    const yPositions = new Map<string, number>();
 
-      const totalHeight = (group.length - 1) * VERTICAL_SPACING;
-      const yOffset = -totalHeight / 2;
+    // Position roots
+    roots.forEach((r, idx) => {
+      yPositions.set(r.id, START_Y + idx * (MIN_VERTICAL_GAP * 2));
+    });
 
-      const posX = START_X + lvl * HORIZONTAL_SPACING;
-      const posY = START_Y + 300 + yOffset + indexInGroup * VERTICAL_SPACING;
+    // Propagate Y positions from layer 0 to maxDepth
+    for (let d = 0; d <= maxDepth; d++) {
+      const colNodes = columns[d];
+      
+      colNodes.forEach((node) => {
+        const parents = parentMap.get(node.id) || [];
+        if (parents.length > 0 && !yPositions.has(node.id)) {
+          // Calculate mean Y of parents
+          const parentYs = parents.map((pId) => yPositions.get(pId) ?? START_Y);
+          const avgY = parentYs.reduce((a, b) => a + b, 0) / parentYs.length;
+          yPositions.set(node.id, avgY);
+        } else if (!yPositions.has(node.id)) {
+          yPositions.set(node.id, START_Y);
+        }
+
+        // If node has multiple children in next layer, distribute them symmetrically around node's Y
+        const children = childrenMap.get(node.id) || [];
+        if (children.length > 1) {
+          const totalSpan = (children.length - 1) * MIN_VERTICAL_GAP;
+          const startChildY = (yPositions.get(node.id) || START_Y) - totalSpan / 2;
+          children.forEach((childId, cIdx) => {
+            if (!yPositions.has(childId)) {
+              yPositions.set(childId, startChildY + cIdx * MIN_VERTICAL_GAP);
+            }
+          });
+        }
+      });
+
+      // 3. Collision Resolution per column (Prevent overlapping nodes)
+      colNodes.sort((a, b) => (yPositions.get(a.id) || 0) - (yPositions.get(b.id) || 0));
+
+      for (let i = 1; i < colNodes.length; i++) {
+        const prevId = colNodes[i - 1].id;
+        const curId = colNodes[i].id;
+        const prevY = yPositions.get(prevId) || 0;
+        const curY = yPositions.get(curId) || 0;
+
+        if (curY < prevY + MIN_VERTICAL_GAP) {
+          yPositions.set(curId, prevY + MIN_VERTICAL_GAP);
+        }
+      }
+    }
+
+    // 4. Center-align parent nodes relative to their children's actual spread (Bottom-Up Pass)
+    for (let d = maxDepth - 1; d >= 0; d--) {
+      const colNodes = columns[d];
+      colNodes.forEach((node) => {
+        const children = childrenMap.get(node.id) || [];
+        if (children.length > 0) {
+          const childYs = children.map((cId) => yPositions.get(cId) || 0);
+          const minChildY = Math.min(...childYs);
+          const maxChildY = Math.max(...childYs);
+          const centeredY = (minChildY + maxChildY) / 2;
+          yPositions.set(node.id, centeredY);
+        }
+      });
+
+      // Re-resolve any collisions created by centering
+      colNodes.sort((a, b) => (yPositions.get(a.id) || 0) - (yPositions.get(b.id) || 0));
+      for (let i = 1; i < colNodes.length; i++) {
+        const prevId = colNodes[i - 1].id;
+        const curId = colNodes[i].id;
+        const prevY = yPositions.get(prevId) || 0;
+        const curY = yPositions.get(curId) || 0;
+
+        if (curY < prevY + MIN_VERTICAL_GAP) {
+          yPositions.set(curId, prevY + MIN_VERTICAL_GAP);
+        }
+      }
+    }
+
+    // Generate final layouted nodes
+    const layoutedNodes: Node[] = nodes.map((n) => {
+      const depth = depthMap.get(n.id) || 0;
+      const posX = START_X + depth * HORIZONTAL_STEP;
+      const posY = yPositions.get(n.id) || START_Y;
 
       return {
         ...n,
@@ -398,10 +479,10 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
 
     setNodes(layoutedNodes);
     pushHistory(layoutedNodes, edges);
-    success('Fluxo Organizado', 'Todos os nós e conexões foram alinhados com perfeição!');
+    success('Organograma Alinhado', 'Estrutura em árvore genealógica organizada com sucesso!');
 
     setTimeout(() => {
-      fitView({ padding: 0.25, duration: 500 });
+      fitView({ padding: 0.18, duration: 800 });
     }, 60);
   }, [nodes, edges, setNodes, pushHistory, fitView, success]);
 

@@ -321,13 +321,15 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
         {/* Save Flow */}
         <Button
           size="sm"
-          variant="outline"
-          leftIcon={<Save className="w-4 h-4" />}
+          variant={isDirty ? 'primary' : 'outline'}
+          leftIcon={!isDirty ? <Check className="w-4 h-4 text-emerald-400" /> : <Save className="w-4 h-4" />}
           isLoading={isSaving}
+          disabled={!isDirty || isSaving}
           onClick={onSave}
-          title="Salvar Manualmente (Ctrl+S)"
+          title={isDirty ? 'Salvar Alterações (Ctrl+S)' : 'Nenhuma alteração pendente (Tudo Salvo)'}
+          className={!isDirty ? 'opacity-50 cursor-not-allowed border-white/5 text-slate-400 hover:bg-transparent hover:text-slate-400' : 'border-primary-500/60 shadow-sm shadow-primary-500/20'}
         >
-          Salvar
+          {isDirty ? 'Salvar' : 'Salvo'}
         </Button>
 
         {/* Publish / Activate Toggle */}
