@@ -77,11 +77,17 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
         const loadedNodes = await StorageService.getFlowNodes(flowId);
         const loadedEdges = await StorageService.getFlowEdges(flowId);
 
+        // Sanitize any edge where targetHandle was erroneously hooked to the back/right side
+        const sanitizedEdges = (loadedEdges as unknown as Edge[]).map((e) => ({
+          ...e,
+          targetHandle: null,
+        }));
+
         setNodes(loadedNodes as unknown as Node[]);
-        setEdges(loadedEdges as unknown as Edge[]);
+        setEdges(sanitizedEdges);
 
         // Initialize history
-        historyRef.current = [{ nodes: loadedNodes as unknown as Node[], edges: loadedEdges as unknown as Edge[] }];
+        historyRef.current = [{ nodes: loadedNodes as unknown as Node[], edges: sanitizedEdges }];
         historyIndexRef.current = 0;
         setLastSavedTime(new Date());
         setIsDirty(false);
@@ -172,13 +178,17 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
     }
   }, [autoSaveMode, autoSaveIntervalSec, isDirty, handleSave]);
 
-  // Connect edges
+  // Connect edges (Always attaches to Left/Target input handle of destination node)
   const onConnect = useCallback(
     (params: Connection) => {
+      const cleanParams: Connection = {
+        ...params,
+        targetHandle: null,
+      };
       setEdges((eds) => {
         const newEdges = addEdge(
           {
-            ...params,
+            ...cleanParams,
             type: edgeType,
             animated: true,
             style: { stroke: '#06b6d4', strokeWidth: 2.5 },

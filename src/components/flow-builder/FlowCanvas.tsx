@@ -106,7 +106,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
         fitView
         snapToGrid
         snapGrid={[15, 15]}
-        connectionMode={ConnectionMode.Loose}
+        connectionMode={ConnectionMode.Strict}
         connectionLineType={
           edgeType === 'smoothstep'
             ? ConnectionLineType.SmoothStep
