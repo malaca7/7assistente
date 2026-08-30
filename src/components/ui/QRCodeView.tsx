@@ -168,16 +168,25 @@ export const QRCodeView: React.FC<QRCodeViewProps> = ({
                 )
               ) : (
                 /* Connecting to Baileys Server */
-                <div className="flex flex-col items-center justify-center p-5 text-center space-y-3 bg-dark-950 rounded-2xl w-full h-full text-slate-200">
-                  <div className="w-11 h-11 rounded-full border-3 border-emerald-500 border-t-transparent animate-spin flex items-center justify-center">
+                <div className="flex flex-col items-center justify-center p-4 text-center space-y-2.5 bg-dark-950 rounded-2xl w-full h-full text-slate-200">
+                  <div className="w-10 h-10 rounded-full border-3 border-emerald-500 border-t-transparent animate-spin flex items-center justify-center">
                     <Smartphone className="w-5 h-5 text-emerald-400" />
                   </div>
                   <div className="space-y-1">
-                    <h5 className="text-xs font-bold text-white">Aguardando Conexão do Bot</h5>
-                    <p className="text-[11px] text-slate-300 leading-tight">
-                      Inicie o bot na <strong>Discloud</strong> ou no seu computador para sincronizar o QR Code oficial em tempo real.
+                    <h5 className="text-xs font-bold text-white">Sincronizando com o Bot</h5>
+                    <p className="text-[10.5px] text-slate-300 leading-tight">
+                      Para conectar, use o <strong>Código de Pareamento</strong> acima ou abra pelo servidor local do bot:
                     </p>
                   </div>
+                  <a
+                    href="http://localhost:3001/configuracoes"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600/30 border border-emerald-500/40 text-[11px] font-bold text-emerald-300 hover:bg-emerald-600/50 transition-colors"
+                  >
+                    <span>Abrir no Servidor Local (Porta 3001)</span>
+                    <Zap className="w-3.5 h-3.5" />
+                  </a>
                 </div>
               )}
 
