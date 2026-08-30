@@ -48,7 +48,7 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 8080;
 
 if (!fs.existsSync(AUTH_FOLDER)) {
   fs.mkdirSync(AUTH_FOLDER, { recursive: true });
