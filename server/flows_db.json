@@ -6,10 +6,10 @@
       "description": "Novo fluxo de automação",
       "status": "published",
       "version": 7,
-      "node_count": 8,
+      "node_count": 10,
       "trigger_type": "Mensagem recebida",
       "created_at": "2026-08-29T19:57:45.058Z",
-      "updated_at": "2026-08-30T15:44:23.466Z"
+      "updated_at": "2026-08-30T15:52:07.447Z"
     }
   ],
   "nodes": {
@@ -171,7 +171,7 @@
         "type": "services_catalog",
         "position": {
           "x": 2115,
-          "y": 450
+          "y": 375
         },
         "data": {
           "label": "Catálogo de Serviços & Preços",
@@ -189,9 +189,9 @@
         },
         "measured": {
           "width": 288,
-          "height": 195
+          "height": 303
         },
-        "selected": true,
+        "selected": false,
         "dragging": false
       },
       {
@@ -240,28 +240,76 @@
         "dragging": false
       },
       {
-        "id": "node-schedule_contact-1788103407879",
-        "type": "schedule_contact",
+        "id": "node-ask_date-1788104674417",
+        "type": "ask_date",
         "position": {
-          "x": 2760,
-          "y": 480
+          "x": 2025,
+          "y": 765
         },
         "data": {
-          "label": "Agenda & Horários Livres",
-          "nodeType": "schedule_contact",
-          "description": "Mostra horários disponíveis na agenda e confirma o agendamento no WhatsApp.",
+          "label": "1. Escolher Dia do Agendamento",
+          "nodeType": "ask_date",
+          "description": "Oferece botões rápidos (Hoje, Amanhã) ou permite o cliente digitar uma data (ex: 25/08).",
           "isConfigured": true,
           "config": {
-            "mode": "show_slots",
-            "dateType": "today",
+            "questionText": "*{{nome_cliente}}*, para qual dia você gostaria de agendar seu atendimento?",
             "dateVariable": "data_agendamento",
-            "serviceName": "{{servico_selecionado}}",
-            "confirmMessage": "✅ Seu agendamento de *{{servico_selecionado}}* foi confirmado para {{data_agendamento}} às {{horario_agendamento}} com duração de {{duracao_servico}}!"
+            "allowCustomDate": true
           }
         },
         "measured": {
           "width": 288,
-          "height": 162
+          "height": 168
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-schedule_contact-1788104743355",
+        "type": "schedule_contact",
+        "position": {
+          "x": 2775,
+          "y": 750
+        },
+        "data": {
+          "label": "3. Horários Livres da Agenda",
+          "nodeType": "schedule_contact",
+          "description": "Calcula horários realmente livres para a data e serviço, enviando opções para o cliente.",
+          "isConfigured": true,
+          "config": {
+            "mode": "show_slots",
+            "dateType": "variable",
+            "dateVariable": "data_agendamento",
+            "serviceName": "{{servico_selecionado}}",
+            "introMessage": "Estes são os horários disponíveis para agendamento. Toque no seu horário preferido:"
+          }
+        },
+        "measured": {
+          "width": 288,
+          "height": 194
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-confirm_booking-1788104787175",
+        "type": "confirm_booking",
+        "position": {
+          "x": 3225,
+          "y": 735
+        },
+        "data": {
+          "label": "4. Confirmar & Gravar Agendamento",
+          "nodeType": "confirm_booking",
+          "description": "Exibe resumo com serviço, valor, data e horário, grava na Agenda e adiciona tag Agendado.",
+          "isConfigured": true,
+          "config": {
+            "confirmMessage": "✅ Perfeito {{nome_cliente}}! Seu agendamento de *{{servico_selecionado}}* foi confirmado para o dia *{{data_agendamento}}* às *{{horario_agendamento}}*!"
+          }
+        },
+        "measured": {
+          "width": 288,
+          "height": 218
         },
         "selected": false,
         "dragging": false
@@ -373,10 +421,20 @@
           "stroke": "#06b6d4",
           "strokeWidth": 2.5
         },
-        "source": "node-services_catalog-1788101781817",
-        "target": "node-schedule_contact-1788103407879",
-        "id": "xy-edge__node-services_catalog-1788101781817-node-schedule_contact-1788103407879",
-        "targetHandle": null
+        "source": "node-ask_date-1788104674417",
+        "target": "node-schedule_contact-1788104743355",
+        "id": "xy-edge__node-ask_date-1788104674417-node-schedule_contact-1788104743355"
+      },
+      {
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        },
+        "source": "node-schedule_contact-1788104743355",
+        "target": "node-confirm_booking-1788104787175",
+        "id": "xy-edge__node-schedule_contact-1788104743355-node-confirm_booking-1788104787175"
       }
     ]
   },
@@ -396,7 +454,7 @@
   "sessions": {
     "168650497613858": {
       "flowId": "flow-1788033465058",
-      "currentNodeId": "node-schedule_contact-1788103407879",
+      "currentNodeId": "node-services_catalog-1788101781817",
       "variables": {
         "nome_cliente": "Rogerio",
         "telefone_cliente": "558196138924",
@@ -407,8 +465,8 @@
         "is_primeiro_contato": false,
         "is_novo_contato": false,
         "tipo_cliente": "recorrente",
-        "tags_contato": "Cliente",
-        "total_agendamentos": 0,
+        "tags_contato": "Cliente, Agendado",
+        "total_agendamentos": 2,
         "data_agendamento": "2026-08-30",
         "servico_selecionado": "{{servico_selecionado}}",
         "horario_agendamento": "08:30",
@@ -417,25 +475,40 @@
       "waitingForVar": null,
       "activeButtons": [
         {
-          "id": "slot_09:00",
-          "title": "🕒 09:00",
-          "slotTime": "09:00"
+          "id": "srv_srv-1788102781953",
+          "title": "Corte Cabelo (R$30)",
+          "fullService": {
+            "id": "srv-1788102781953",
+            "name": "Corte Cabelo",
+            "duration_minutes": 45,
+            "price": 30
+          }
         },
         {
-          "id": "slot_09:15",
-          "title": "🕒 09:15",
-          "slotTime": "09:15"
+          "id": "srv_srv-1788102793887",
+          "title": "Barba (R$20)",
+          "fullService": {
+            "id": "srv-1788102793887",
+            "name": "Barba",
+            "duration_minutes": 20,
+            "price": 20
+          }
         },
         {
-          "id": "slot_09:30",
-          "title": "🕒 09:30",
-          "slotTime": "09:30"
+          "id": "srv_srv-1788102815219",
+          "title": "Corte Cabelo +  (R$45)",
+          "fullService": {
+            "id": "srv-1788102815219",
+            "name": "Corte Cabelo + Barba (Promoção)",
+            "duration_minutes": 50,
+            "price": 45
+          }
         }
       ]
     },
     "558196138924": {
       "flowId": "flow-1788033465058",
-      "currentNodeId": "node-schedule_contact-1788103407879",
+      "currentNodeId": "node-services_catalog-1788101781817",
       "variables": {
         "nome_cliente": "Rogerio",
         "telefone_cliente": "558196138924",
@@ -446,8 +519,8 @@
         "is_primeiro_contato": false,
         "is_novo_contato": false,
         "tipo_cliente": "recorrente",
-        "tags_contato": "Cliente",
-        "total_agendamentos": 0,
+        "tags_contato": "Cliente, Agendado",
+        "total_agendamentos": 2,
         "data_agendamento": "2026-08-30",
         "servico_selecionado": "{{servico_selecionado}}",
         "horario_agendamento": "08:30",
@@ -456,19 +529,34 @@
       "waitingForVar": null,
       "activeButtons": [
         {
-          "id": "slot_09:00",
-          "title": "🕒 09:00",
-          "slotTime": "09:00"
+          "id": "srv_srv-1788102781953",
+          "title": "Corte Cabelo (R$30)",
+          "fullService": {
+            "id": "srv-1788102781953",
+            "name": "Corte Cabelo",
+            "duration_minutes": 45,
+            "price": 30
+          }
         },
         {
-          "id": "slot_09:15",
-          "title": "🕒 09:15",
-          "slotTime": "09:15"
+          "id": "srv_srv-1788102793887",
+          "title": "Barba (R$20)",
+          "fullService": {
+            "id": "srv-1788102793887",
+            "name": "Barba",
+            "duration_minutes": 20,
+            "price": 20
+          }
         },
         {
-          "id": "slot_09:30",
-          "title": "🕒 09:30",
-          "slotTime": "09:30"
+          "id": "srv_srv-1788102815219",
+          "title": "Corte Cabelo +  (R$45)",
+          "fullService": {
+            "id": "srv-1788102815219",
+            "name": "Corte Cabelo + Barba (Promoção)",
+            "duration_minutes": 50,
+            "price": 45
+          }
         }
       ]
     }
@@ -541,7 +629,7 @@
         "interesse_principal": "Consultar Valores"
       },
       "created_at": "2026-08-29T23:23:18.236Z",
-      "updated_at": "2026-08-30T15:35:23.644Z",
+      "updated_at": "2026-08-30T15:47:49.545Z",
       "profile_picture_url": "https://pps.whatsapp.net/v/t61.24694-24/674630155_1633106875192131_9214554452579566382_n.jpg?ccb=11-4&oh=01_Q5Aa5QH8Rcsf-hGOlkVBBpTEo5nl3x1xEqmhIqKGisBkzVPZ0g&oe=6AA16C21&_nc_sid=5e03e0&_nc_cat=104"
     }
   },
@@ -555,9 +643,9 @@
       "started_at": "2026-08-29T23:00:04.971Z",
       "unread_count": 0,
       "created_at": "2026-08-29T23:00:04.971Z",
-      "last_message": "📅 *Horários Disponíveis na Agenda (2026-08-30):*\n\nServiço: *{{servico_selecionado}}*\n\nEscolha o melhor horário:",
-      "last_message_at": "2026-08-30T15:35:23.644Z",
-      "updated_at": "2026-08-30T15:35:23.644Z"
+      "last_message": "*Rogerio*, qual serviço você deseja?",
+      "last_message_at": "2026-08-30T15:47:49.545Z",
+      "updated_at": "2026-08-30T15:47:49.545Z"
     }
   },
   "messages": {
@@ -984,6 +1072,42 @@
         "content": "📅 *Horários Disponíveis na Agenda (2026-08-30):*\n\nServiço: *{{servico_selecionado}}*\n\nEscolha o melhor horário:",
         "status": "delivered",
         "created_at": "2026-08-30T15:35:23.644Z"
+      },
+      {
+        "id": "msg-1788104852271-c0ql9",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá Rogerio, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:47:32.271Z"
+      },
+      {
+        "id": "msg-1788104852272-mh2o9",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "*Rogerio*, qual serviço você deseja?",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:47:32.272Z"
+      },
+      {
+        "id": "msg-1788104864326-csq8y",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "*Rogerio*, qual serviço você deseja?",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:47:44.326Z"
+      },
+      {
+        "id": "msg-1788104869545-5rds5",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "*Rogerio*, qual serviço você deseja?",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:47:49.545Z"
       }
     ]
   },

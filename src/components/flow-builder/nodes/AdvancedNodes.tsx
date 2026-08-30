@@ -336,14 +336,13 @@ export const ScheduleContactNode: React.FC<NodeProps> = ({ id, selected, data })
 export const ServicesCatalogNode: React.FC<NodeProps> = ({ id, selected, data }) => {
   const nodeData = data as unknown as FlowNodeData;
   const config = nodeData.config || {};
-  const isButtonsFormat = config.displayFormat !== 'text_list';
 
   return (
     <BaseNode
       id={id}
       selected={selected}
       title={nodeData.label || 'Catálogo de Serviços & Preços'}
-      subtitle="Puxa serviços e valores do painel"
+      subtitle="Exibe todos os serviços da Agenda"
       icon={<DollarSign className="w-4 h-4" />}
       iconBg="bg-amber-600"
       accentColor="bg-amber-500"
@@ -351,17 +350,27 @@ export const ServicesCatalogNode: React.FC<NodeProps> = ({ id, selected, data })
       hasOutput={true}
       isConfigured={true}
     >
-      <div className="space-y-1.5 p-2.5 rounded-xl bg-dark-950/90 border border-amber-500/20 text-[11px]">
+      <div className="space-y-2 p-2.5 rounded-xl bg-dark-950/90 border border-amber-500/20 text-[11px]">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30">
-            {isButtonsFormat ? '🔘 Menu Interativo' : '📋 Lista de Preços'}
+            🔘 Todos os Serviços da Agenda
           </span>
-          <span className="text-[10px] text-slate-400 font-mono">Painel Admin</span>
+          <span className="text-[10px] text-slate-400 font-mono">Dinâmico</span>
         </div>
-        <div className="text-[10px] text-slate-300 font-medium pt-0.5 flex items-center gap-1.5 flex-wrap">
-          <span className="text-slate-400">Copia:</span>
-          <VariableBadge name="servico_selecionado" />
-          <VariableBadge name="valor_servico" />
+
+        <p className="text-[10.5px] text-slate-300 leading-snug">
+          Envia todos os serviços cadastrados no painel como opções interativas no WhatsApp.
+        </p>
+
+        <div className="border-t border-white/5 pt-1.5 space-y-1">
+          <span className="text-[10px] font-semibold text-amber-400 block">
+            Retorna a opção escolhida em:
+          </span>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <VariableBadge name="servico_selecionado" />
+            <VariableBadge name="valor_servico" />
+            <VariableBadge name="duracao_servico" />
+          </div>
         </div>
       </div>
     </BaseNode>

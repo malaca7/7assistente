@@ -483,19 +483,29 @@ function parseCustomDateString(input) {
         }
 
         // If from services_catalog button selection
-        if (prevType === 'services_catalog' && matchedBtn.id.startsWith('srv_')) {
-          const srvId = matchedBtn.id.replace('srv_', '');
-          const services = db.agendaSettings?.services || [];
-          const matchedService = services.find((s) => s.id === srvId) || matchedBtn.fullService;
-          const srvName = matchedService?.name || matchedBtn.title;
-          const srvPrice = matchedService ? `R$ ${matchedService.price.toFixed(2).replace('.', ',')}` : '';
-          const srvDur = matchedService?.duration_minutes || 30;
+        if (prevType === 'services_catalog') {
+          const srv =
+            matchedBtn.fullService ||
+            (db.agendaSettings?.services || []).find(
+              (s) =>
+                s.id === matchedBtn.id.replace('srv_', '') ||
+                s.name?.toLowerCase().trim() === (matchedBtn.serviceName || '').toLowerCase().trim()
+            ) || {
+              name: matchedBtn.serviceName || matchedBtn.title.split('(')[0].trim(),
+              price: matchedBtn.price || 0,
+              duration_minutes: matchedBtn.duration_minutes || 30,
+            };
+
+          const srvName = srv.name || matchedBtn.serviceName || matchedBtn.title.split('(')[0].trim();
+          const srvPrice = srv.price ? `R$ ${Number(srv.price).toFixed(2).replace('.', ',')}` : '';
+          const srvDur = srv.duration_minutes || 30;
 
           session.variables['servico_selecionado'] = srvName;
           session.variables['valor_servico'] = srvPrice;
-          session.variables['duracao_servico'] = srvDur;
+          session.variables['duracao_servico'] = `${srvDur} min`;
           session.variables['duracao_minutos'] = srvDur;
-          console.log(`[FlowRunner] 🏷️ Serviço selecionado pelo cliente: ${srvName} (${srvPrice}, ${srvDur} min)`);
+          session.variables['opcao_selecionada'] = srvName;
+          console.log(`[FlowRunner] 🏷️ Serviço selecionado pelo cliente: "${srvName}" (${srvPrice}, ${srvDur} min)`);
         }
 
         const targetEdge =
@@ -614,41 +624,55 @@ function parseCustomDateString(input) {
       break;
     }
 
-    // 5. Services Catalog Node (Serviços e Valores da Agenda)
+    // 5. Services Catalog Node (Todos os Serviços e Valores da Agenda)
     else if (nodeType === 'services_catalog') {
       const services = (db.agendaSettings?.services && db.agendaSettings.services.length > 0) ? db.agendaSettings.services : [
-        { id: 'srv-1', name: 'Atendimento Especialista', duration_minutes: 30, price: 150 },
-        { id: 'srv-2', name: 'Demonstração da Plataforma', duration_minutes: 45, price: 0 },
-        { id: 'srv-3', name: 'Suporte & Configuração', duration_minutes: 30, price: 80 },
+        { id: 'srv-1', name: 'Corte de Cabelo', duration_minutes: 30, price: 35 },
+        { id: 'srv-2', name: 'Barba Terapia', duration_minutes: 45, price: 40 },
+        { id: 'srv-3', name: 'Combo Cabelo + Barba', duration_minutes: 60, price: 70 },
       ];
 
-      const isTextList = config.displayFormat === 'text_list';
+      const intro = replaceVars(config.introMessage || 'Conheça nossos serviços e valores disponíveis:', session.variables, botProfile);
+      const footer = config.footerText ? replaceVars(config.footerText, session.variables, botProfile) : 'Toque no serviço desejado ou digite o número para escolher:';
 
-      if (isTextList) {
-        const intro = replaceVars(config.introMessage || 'Conheça nossos serviços e valores disponíveis:', session.variables, botProfile);
-        const listLines = services.map((s, idx) => `*${idx + 1}.* 🏷️ *${s.name}*\n   💰 R$ ${s.price.toFixed(2).replace('.', ',')} • ⏱️ ${s.duration_minutes} min`).join('\n\n');
-        replies.push(`${intro}\n\n${listLines}`);
+      const serviceButtons = services.map((s, idx) => ({
+        id: `srv_${s.id || idx + 1}`,
+        title: `${s.name} (R$ ${Number(s.price || 0).toFixed(2).replace('.', ',')})`,
+        serviceName: s.name,
+        price: Number(s.price || 0),
+        duration_minutes: s.duration_minutes || 30,
+        fullService: s,
+      }));
+
+      session.activeButtons = serviceButtons;
+      session.currentNodeId = currentNode.id;
+
+      if (services.length <= 3) {
+        replies.push({
+          type: 'buttons',
+          body: `🏷️ *Catálogo de Serviços*\n\n${intro}`,
+          footer,
+          buttons: serviceButtons.map((b) => ({
+            id: b.id,
+            title: b.title.length > 20 ? b.title.substring(0, 20) : b.title,
+          })),
+        });
       } else {
-        const intro = replaceVars(config.introMessage || 'Conheça nossos serviços e valores:', session.variables, botProfile);
-        const footer = config.footerText ? replaceVars(config.footerText, session.variables, botProfile) : 'Toque no serviço desejado para agendar:';
-
-        const serviceButtons = services.slice(0, 3).map((s, idx) => ({
-          id: `srv_${s.id}`,
-          title: `${s.name.substring(0, 15)} (R$${s.price})`,
-          fullService: s,
-        }));
-
-        session.activeButtons = serviceButtons;
-        session.currentNodeId = currentNode.id;
+        const listLines = services
+          .map((s, idx) => `*${idx + 1}️⃣* *${s.name}*\n   💰 R$ ${Number(s.price || 0).toFixed(2).replace('.', ',')} • ⏱️ ${s.duration_minutes || 30} min`)
+          .join('\n\n');
 
         replies.push({
           type: 'buttons',
-          body: intro,
-          footer,
-          buttons: serviceButtons,
+          body: `🏷️ *Catálogo de Serviços*\n\n${intro}\n\n${listLines}`,
+          footer: '👉 Digite o número correspondente ao serviço desejado:',
+          buttons: serviceButtons.slice(0, 3).map((b) => ({
+            id: b.id,
+            title: b.title.length > 20 ? b.title.substring(0, 20) : b.title,
+          })),
         });
-        break;
       }
+      break;
     }
 
     // 6. Schedule Contact & Available Slots Node (Agenda Integrada)
