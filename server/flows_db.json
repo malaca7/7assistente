@@ -9,7 +9,7 @@
       "node_count": 8,
       "trigger_type": "Mensagem recebida",
       "created_at": "2026-08-29T19:57:45.058Z",
-      "updated_at": "2026-08-30T15:30:46.866Z"
+      "updated_at": "2026-08-30T15:39:37.891Z"
     }
   ],
   "nodes": {
@@ -135,7 +135,7 @@
         },
         "measured": {
           "width": 288,
-          "height": 151
+          "height": 156
         },
         "selected": false,
         "dragging": false
@@ -161,7 +161,7 @@
         },
         "measured": {
           "width": 288,
-          "height": 169
+          "height": 191
         },
         "selected": false,
         "dragging": false
@@ -170,7 +170,7 @@
         "id": "node-services_catalog-1788101781817",
         "type": "services_catalog",
         "position": {
-          "x": 2445,
+          "x": 2000,
           "y": 420
         },
         "data": {
@@ -189,9 +189,9 @@
         },
         "measured": {
           "width": 288,
-          "height": 178
+          "height": 195
         },
-        "selected": true,
+        "selected": false,
         "dragging": false
       },
       {
@@ -210,7 +210,7 @@
         },
         "measured": {
           "width": 288,
-          "height": 224
+          "height": 303
         },
         "selected": false,
         "dragging": false
@@ -243,8 +243,8 @@
         "id": "node-schedule_contact-1788103407879",
         "type": "schedule_contact",
         "position": {
-          "x": 2820,
-          "y": 555
+          "x": 1620,
+          "y": 540
         },
         "data": {
           "label": "Agenda & Horários Livres",
@@ -255,15 +255,15 @@
             "mode": "show_slots",
             "dateType": "today",
             "dateVariable": "data_agendamento",
-            "serviceName": "",
-            "confirmMessage": "✅ Seu agendamento foi confirmado para {{data_agendamento}} às {{horario_agendamento}}!"
+            "serviceName": "{{servico_selecionado}}",
+            "confirmMessage": "✅ Seu agendamento de *{{servico_selecionado}}* foi confirmado para {{data_agendamento}} às {{horario_agendamento}} com duração de {{duracao_servico}}!"
           }
         },
         "measured": {
           "width": 288,
           "height": 162
         },
-        "selected": false,
+        "selected": true,
         "dragging": false
       }
     ]
@@ -290,7 +290,8 @@
         },
         "source": "node-message-1788033773183",
         "target": "node-question-1788033927695",
-        "id": "xy-edge__node-message-1788033773183-node-question-1788033927695"
+        "id": "xy-edge__node-message-1788033773183-node-question-1788033927695",
+        "targetHandle": null
       },
       {
         "animated": true,
@@ -300,7 +301,8 @@
         },
         "source": "node-question-1788033927695",
         "target": "node-update_contact-1788041687381",
-        "id": "xy-edge__node-question-1788033927695-node-update_contact-1788041687381"
+        "id": "xy-edge__node-question-1788033927695-node-update_contact-1788041687381",
+        "targetHandle": null
       },
       {
         "type": "smoothstep",
@@ -312,7 +314,8 @@
         "source": "node-check_contact-1788102919201",
         "sourceHandle": "is_new",
         "target": "node-message-1788033773183",
-        "id": "xy-edge__node-check_contact-1788102919201is_new-node-message-1788033773183"
+        "id": "xy-edge__node-check_contact-1788102919201is_new-node-message-1788033773183",
+        "targetHandle": null
       },
       {
         "type": "smoothstep",
@@ -323,7 +326,8 @@
         },
         "source": "node-trigger-1788033748050",
         "target": "node-check_contact-1788102919201",
-        "id": "xy-edge__node-trigger-1788033748050-node-check_contact-1788102919201"
+        "id": "xy-edge__node-trigger-1788033748050-node-check_contact-1788102919201",
+        "targetHandle": null
       },
       {
         "type": "smoothstep",
@@ -335,7 +339,8 @@
         "source": "node-check_contact-1788102919201",
         "sourceHandle": "is_existing",
         "target": "node-message-1788102948794",
-        "id": "xy-edge__node-check_contact-1788102919201is_existing-node-message-1788102948794"
+        "id": "xy-edge__node-check_contact-1788102919201is_existing-node-message-1788102948794",
+        "targetHandle": null
       },
       {
         "type": "smoothstep",
@@ -346,7 +351,8 @@
         },
         "source": "node-update_contact-1788041687381",
         "target": "node-services_catalog-1788101781817",
-        "id": "xy-edge__node-update_contact-1788041687381-node-services_catalog-1788101781817"
+        "id": "xy-edge__node-update_contact-1788041687381-node-services_catalog-1788101781817",
+        "targetHandle": null
       },
       {
         "type": "smoothstep",
@@ -357,7 +363,8 @@
         },
         "source": "node-message-1788102948794",
         "target": "node-services_catalog-1788101781817",
-        "id": "xy-edge__node-message-1788102948794-node-services_catalog-1788101781817"
+        "id": "xy-edge__node-message-1788102948794-node-services_catalog-1788101781817",
+        "targetHandle": null
       },
       {
         "type": "smoothstep",
@@ -368,7 +375,8 @@
         },
         "source": "node-services_catalog-1788101781817",
         "target": "node-schedule_contact-1788103407879",
-        "id": "xy-edge__node-services_catalog-1788101781817-node-schedule_contact-1788103407879"
+        "id": "xy-edge__node-services_catalog-1788101781817-node-schedule_contact-1788103407879",
+        "targetHandle": null
       }
     ]
   },
@@ -388,57 +396,79 @@
   "sessions": {
     "168650497613858": {
       "flowId": "flow-1788033465058",
-      "currentNodeId": "node-services_catalog-1788101781817",
+      "currentNodeId": "node-schedule_contact-1788103407879",
       "variables": {
         "nome_cliente": "Rogerio",
         "telefone_cliente": "558196138924",
-        "ultima_mensagem": "3",
-        "opcao_selecionada": "Agendar Horário",
-        "botao_id": "btn_2",
+        "ultima_mensagem": "1",
+        "opcao_selecionada": "🕒 08:30",
+        "botao_id": "slot_08:30",
         "telefone_whatsapp": "558196138924",
         "is_primeiro_contato": false,
         "is_novo_contato": false,
         "tipo_cliente": "recorrente",
         "tags_contato": "Cliente",
-        "total_agendamentos": 0
+        "total_agendamentos": 0,
+        "data_agendamento": "2026-08-30",
+        "servico_selecionado": "{{servico_selecionado}}",
+        "horario_agendamento": "08:30",
+        "servico_agendado": "{{servico_selecionado}}"
       },
       "waitingForVar": null,
       "activeButtons": [
         {
-          "id": "btn_2",
-          "title": "Consultar Valores"
+          "id": "slot_09:00",
+          "title": "🕒 09:00",
+          "slotTime": "09:00"
         },
         {
-          "id": "btn_2",
-          "title": "Agendar Horário"
+          "id": "slot_09:15",
+          "title": "🕒 09:15",
+          "slotTime": "09:15"
+        },
+        {
+          "id": "slot_09:30",
+          "title": "🕒 09:30",
+          "slotTime": "09:30"
         }
       ]
     },
     "558196138924": {
       "flowId": "flow-1788033465058",
-      "currentNodeId": "node-services_catalog-1788101781817",
+      "currentNodeId": "node-schedule_contact-1788103407879",
       "variables": {
         "nome_cliente": "Rogerio",
         "telefone_cliente": "558196138924",
-        "ultima_mensagem": "3",
-        "opcao_selecionada": "Agendar Horário",
-        "botao_id": "btn_2",
+        "ultima_mensagem": "1",
+        "opcao_selecionada": "🕒 08:30",
+        "botao_id": "slot_08:30",
         "telefone_whatsapp": "558196138924",
         "is_primeiro_contato": false,
         "is_novo_contato": false,
         "tipo_cliente": "recorrente",
         "tags_contato": "Cliente",
-        "total_agendamentos": 0
+        "total_agendamentos": 0,
+        "data_agendamento": "2026-08-30",
+        "servico_selecionado": "{{servico_selecionado}}",
+        "horario_agendamento": "08:30",
+        "servico_agendado": "{{servico_selecionado}}"
       },
       "waitingForVar": null,
       "activeButtons": [
         {
-          "id": "btn_2",
-          "title": "Consultar Valores"
+          "id": "slot_09:00",
+          "title": "🕒 09:00",
+          "slotTime": "09:00"
         },
         {
-          "id": "btn_2",
-          "title": "Agendar Horário"
+          "id": "slot_09:15",
+          "title": "🕒 09:15",
+          "slotTime": "09:15"
+        },
+        {
+          "id": "slot_09:30",
+          "title": "🕒 09:30",
+          "slotTime": "09:30"
         }
       ]
     }
@@ -473,6 +503,28 @@
       "appointment_time": "14:30",
       "status": "confirmed",
       "created_at": "2026-08-29T23:14:30.301Z"
+    },
+    {
+      "id": "apt-1788104116622",
+      "contact_phone": "558196138924",
+      "contact_name": "Rogerio",
+      "service_name": "{{servico_selecionado}}",
+      "duration_minutes": 30,
+      "appointment_date": "2026-08-30",
+      "appointment_time": "08:00",
+      "status": "confirmed",
+      "created_at": "2026-08-30T15:35:16.622Z"
+    },
+    {
+      "id": "apt-1788104123641",
+      "contact_phone": "558196138924",
+      "contact_name": "Rogerio",
+      "service_name": "{{servico_selecionado}}",
+      "duration_minutes": 30,
+      "appointment_date": "2026-08-30",
+      "appointment_time": "08:30",
+      "status": "confirmed",
+      "created_at": "2026-08-30T15:35:23.641Z"
     }
   ],
   "contacts": {
@@ -482,13 +534,14 @@
       "name": "Rogerio",
       "status": "active",
       "tags": [
-        "Cliente"
+        "Cliente",
+        "Agendado"
       ],
       "metadata": {
         "interesse_principal": "Consultar Valores"
       },
       "created_at": "2026-08-29T23:23:18.236Z",
-      "updated_at": "2026-08-30T15:25:54.102Z",
+      "updated_at": "2026-08-30T15:35:23.644Z",
       "profile_picture_url": "https://pps.whatsapp.net/v/t61.24694-24/674630155_1633106875192131_9214554452579566382_n.jpg?ccb=11-4&oh=01_Q5Aa5QH8Rcsf-hGOlkVBBpTEo5nl3x1xEqmhIqKGisBkzVPZ0g&oe=6AA16C21&_nc_sid=5e03e0&_nc_cat=104"
     }
   },
@@ -502,9 +555,9 @@
       "started_at": "2026-08-29T23:00:04.971Z",
       "unread_count": 0,
       "created_at": "2026-08-29T23:00:04.971Z",
-      "last_message": "Conheça nossos serviços e valores:\n\n*1.* 🏷️ *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min",
-      "last_message_at": "2026-08-30T15:25:54.102Z",
-      "updated_at": "2026-08-30T15:25:54.102Z"
+      "last_message": "📅 *Horários Disponíveis na Agenda (2026-08-30):*\n\nServiço: *{{servico_selecionado}}*\n\nEscolha o melhor horário:",
+      "last_message_at": "2026-08-30T15:35:23.644Z",
+      "updated_at": "2026-08-30T15:35:23.644Z"
     }
   },
   "messages": {
@@ -868,6 +921,69 @@
         "content": "Conheça nossos serviços e valores:\n\n*1.* 🏷️ *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min",
         "status": "delivered",
         "created_at": "2026-08-30T15:25:54.102Z"
+      },
+      {
+        "id": "msg-1788104098855-q8a3s",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá Rogerio, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:34:58.855Z"
+      },
+      {
+        "id": "msg-1788104098856-41ine",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "*Rogerio*, qual serviço você deseja?\n\n*1.* 🏷️ *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:34:58.856Z"
+      },
+      {
+        "id": "msg-1788104098858-ryrfa",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "📅 *Horários Disponíveis na Agenda (2026-08-30):*\n\nServiço: *{{servico_selecionado}}*\n\nEscolha o melhor horário:",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:34:58.858Z"
+      },
+      {
+        "id": "msg-1788104116623-qou5w",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "✅ Seu agendamento de *{{servico_selecionado}}* foi confirmado para 2026-08-30 às 08:00 com duração de {{duracao_servico}}!",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:35:16.623Z"
+      },
+      {
+        "id": "msg-1788104116625-f0r7r",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "📅 *Horários Disponíveis na Agenda (2026-08-30):*\n\nServiço: *{{servico_selecionado}}*\n\nEscolha o melhor horário:",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:35:16.625Z"
+      },
+      {
+        "id": "msg-1788104123642-iq86i",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "✅ Seu agendamento de *{{servico_selecionado}}* foi confirmado para 2026-08-30 às 08:30 com duração de {{duracao_servico}}!",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:35:23.642Z"
+      },
+      {
+        "id": "msg-1788104123644-5vqz8",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "📅 *Horários Disponíveis na Agenda (2026-08-30):*\n\nServiço: *{{servico_selecionado}}*\n\nEscolha o melhor horário:",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:35:23.644Z"
       }
     ]
   },

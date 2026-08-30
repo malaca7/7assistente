@@ -337,6 +337,37 @@ export async function executePublishedFlow(senderJid, messageText, pushName, rea
   const botProfile = db.botProfile || {};
   const replies = [];
 
+function parseCustomDateString(input) {
+  const clean = (input || '').toLowerCase().trim();
+  const today = new Date();
+  
+  if (clean === 'hoje' || clean === '1' || clean.includes('hoje') || clean === 'date_today') {
+    return today.toISOString().split('T')[0];
+  }
+  if (clean === 'amanha' || clean === 'amanhã' || clean === '2' || clean.includes('amanh') || clean === 'date_tomorrow') {
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
+  }
+  
+  // Format DD/MM or DD/MM/YYYY
+  const ddmmyyyy = clean.match(/(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?/);
+  if (ddmmyyyy) {
+    const day = ddmmyyyy[1].padStart(2, '0');
+    const month = ddmmyyyy[2].padStart(2, '0');
+    const year = ddmmyyyy[3] ? (ddmmyyyy[3].length === 2 ? `20${ddmmyyyy[3]}` : ddmmyyyy[3]) : today.getFullYear();
+    return `${year}-${month}-${day}`;
+  }
+  
+  // Format YYYY-MM-DD
+  const yyyymmdd = clean.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  if (yyyymmdd) {
+    return `${yyyymmdd[1]}-${yyyymmdd[2].padStart(2, '0')}-${yyyymmdd[3].padStart(2, '0')}`;
+  }
+
+  return today.toISOString().split('T')[0];
+}
+
   const isReset =
     cleanInput.toLowerCase() === 'menu' ||
     cleanInput.toLowerCase() === 'inicio' ||
@@ -367,6 +398,21 @@ export async function executePublishedFlow(senderJid, messageText, pushName, rea
         if (db.contacts[cleanPhone]) db.contacts[cleanPhone].name = cleanInput;
         if (db.conversations[`conv-${cleanPhone}`]) db.conversations[`conv-${cleanPhone}`].contact_name = cleanInput;
       }
+
+      const nextEdge = edges.find((e) => e.source === prevNode.id);
+      if (nextEdge) {
+        currentNode = nodes.find((n) => n.id === nextEdge.target);
+        session.currentNodeId = currentNode?.id || null;
+      }
+    }
+
+    // 1.1 Ask Date response
+    else if (prevNode && prevType === 'ask_date') {
+      const parsedDate = parseCustomDateString(cleanInput);
+      session.variables['data_agendamento'] = parsedDate;
+      const parts = parsedDate.split('-');
+      session.variables['data_formatada'] = `${parts[2]}/${parts[1]}/${parts[0]}`;
+      console.log(`[FlowRunner] 📅 Data de agendamento selecionada: ${parsedDate} (${session.variables['data_formatada']})`);
 
       const nextEdge = edges.find((e) => e.source === prevNode.id);
       if (nextEdge) {
@@ -685,6 +731,72 @@ export async function executePublishedFlow(senderJid, messageText, pushName, rea
         });
         break;
       }
+    }
+
+    // 4.3 Ask Date Node
+    else if (nodeType === 'ask_date') {
+      const qText = config.questionText ? replaceVars(config.questionText, session.variables, botProfile) : 'Para qual dia você gostaria de agendar seu atendimento?';
+      const todayStr = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      const tomDate = new Date();
+      tomDate.setDate(tomDate.getDate() + 1);
+      const tomStr = tomDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+
+      const dateButtons = [
+        { id: 'date_today', title: `Hoje (${todayStr})` },
+        { id: 'date_tomorrow', title: `Amanhã (${tomStr})` },
+        { id: 'date_custom', title: 'Outra Data (Digitar)' },
+      ];
+
+      session.activeButtons = dateButtons;
+      session.currentNodeId = currentNode.id;
+
+      replies.push({
+        type: 'buttons',
+        body: `📅 *Escolha a Data do Agendamento*\n\n${qText}`,
+        footer: 'Toque em uma das opções ou digite a data:',
+        buttons: dateButtons,
+      });
+      break;
+    }
+
+    // 4.4 Confirm Booking Node
+    else if (nodeType === 'confirm_booking') {
+      const srvName = session.variables['servico_selecionado'] || config.serviceName || 'Atendimento Geral';
+      const srvPrice = session.variables['valor_servico'] || '';
+      const dateVal = session.variables['data_agendamento'] || new Date().toISOString().split('T')[0];
+      const timeVal = session.variables['horario_agendamento'] || session.variables['horario_escolhido'] || '09:00';
+      const clientName = session.variables.nome_cliente || senderName;
+
+      const srvObj = (db.agendaSettings?.services || []).find((s) => s.name?.toLowerCase().trim() === srvName.toLowerCase().trim());
+      const srvDur = srvObj?.duration_minutes || session.variables['duracao_minutos'] || (srvName.toLowerCase().includes('barba') ? 55 : 30);
+
+      const newApt = {
+        id: `apt-${Date.now()}`,
+        contact_phone: cleanPhone,
+        contact_name: clientName,
+        service_name: srvName,
+        duration_minutes: srvDur,
+        appointment_date: dateVal,
+        appointment_time: timeVal,
+        status: 'confirmed',
+        created_at: new Date().toISOString(),
+      };
+
+      if (!db.appointments) db.appointments = [];
+      db.appointments.push(newApt);
+
+      if (db.contacts[cleanPhone]) {
+        const curTags = db.contacts[cleanPhone].tags || [];
+        if (!curTags.includes('Agendado')) db.contacts[cleanPhone].tags = [...curTags, 'Agendado'];
+      }
+
+      session.variables['data_agendamento'] = dateVal;
+      session.variables['horario_agendamento'] = timeVal;
+      session.variables['servico_agendado'] = srvName;
+
+      const defaultConfirm = `✅ *Agendamento Confirmado com Sucesso!*\n\n• *Cliente:* ${clientName}\n• *Serviço:* ${srvName}${srvPrice ? ` (${srvPrice})` : ''}\n• *Data:* ${dateVal}\n• *Horário:* ${timeVal}\n\nSeu horário foi reservado em nossa Agenda com sucesso!`;
+      const confirmText = config.confirmMessage ? replaceVars(config.confirmMessage, session.variables, botProfile) : defaultConfirm;
+      replies.push(confirmText);
     }
 
     // 5. Update Contact Profile Node

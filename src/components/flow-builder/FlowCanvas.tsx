@@ -13,6 +13,7 @@ import {
   OnConnect,
   ConnectionMode,
   ConnectionLineType,
+  Connection,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -29,7 +30,9 @@ import {
   ScheduleContactNode,
   UpdateContactNode,
   ServicesCatalogNode,
-  CheckContactNode
+  CheckContactNode,
+  AskDateNode,
+  ConfirmBookingNode,
 } from './nodes/AdvancedNodes';
 
 export interface FlowCanvasProps {
@@ -37,10 +40,10 @@ export interface FlowCanvasProps {
   edges: Edge[];
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
-  onConnect: OnConnect;
-  onNodeClick: (event: React.MouseEvent, node: Node) => void;
-  onPaneClick: () => void;
-  edgeType?: 'smoothstep' | 'default' | 'straight' | 'step';
+  onConnect: (connection: Connection) => void;
+  onNodeClick?: (event: React.MouseEvent, node: Node) => void;
+  onPaneClick?: () => void;
+  edgeType?: string;
   onDrop?: (event: React.DragEvent) => void;
   onDragOver?: (event: React.DragEvent) => void;
   onEdgeClick?: (event: React.MouseEvent, edge: Edge) => void;
@@ -75,9 +78,11 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
       ai_agent: AiAgentNode,
       media: MediaNode,
       human_handoff: HumanHandoffNode,
-      schedule_contact: ScheduleContactNode,
-      update_contact: UpdateContactNode,
+      ask_date: AskDateNode,
       services_catalog: ServicesCatalogNode,
+      schedule_contact: ScheduleContactNode,
+      confirm_booking: ConfirmBookingNode,
+      update_contact: UpdateContactNode,
       check_contact: CheckContactNode,
     }),
     []

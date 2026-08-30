@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { FlowNode } from '../../types';
 import { Input, Textarea } from '../ui/Input';
 import { Button } from '../ui/Button';
-import { Trash2, Copy, SlidersHorizontal, Sparkles, X, Plus, Check, Calendar, DollarSign, Users } from 'lucide-react';
+import { Trash2, Copy, SlidersHorizontal, Sparkles, X, Plus, Check, Calendar, DollarSign, Users, CheckCircle2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { VariableBadge } from './ui/VariableBadge';
 
@@ -577,40 +577,70 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
         )}
 
         {/* 10. Schedule Contact (Agenda & Horários Livres) */}
+        {/* 10. Ask / Select Date */}
+        {nodeType === 'ask_date' && (
+          <div className="space-y-4">
+            <div className="p-3 rounded-2xl bg-teal-950/40 border border-teal-500/30 text-xs text-teal-200 space-y-1">
+              <span className="font-bold flex items-center gap-1.5 text-teal-300">
+                <Calendar className="w-3.5 h-3.5" />
+                Escolha da Data pelo Cliente:
+              </span>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Envia opções interativas para o cliente escolher o dia (ex: <strong>Hoje</strong>, <strong>Amanhã</strong> ou <strong>Digitar Outra Data</strong>). Converte datas digitadas (ex: 25/08) para formato ISO e salva na variável.
+              </p>
+            </div>
+
+            <Textarea
+              label="Mensagem da Pergunta de Data"
+              value={config.questionText || ''}
+              onChange={(e) => handleConfigChange('questionText', e.target.value)}
+              placeholder="Ex: Para qual dia você gostaria de agendar seu atendimento?"
+              rows={2}
+            />
+
+            <Input
+              label="Nome da Variável para Salvar a Data"
+              value={config.dateVariable || 'data_agendamento'}
+              onChange={(e) => handleConfigChange('dateVariable', e.target.value)}
+              placeholder="data_agendamento"
+              hint="Salva a data selecionada/digitada no formato AAAA-MM-DD para consultar horários."
+            />
+
+            <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-2">
+              <span className="text-xs font-semibold text-teal-400 block">
+                Variável Gerada:
+              </span>
+              <div className="flex items-center gap-2">
+                <VariableBadge name={config.dateVariable || 'data_agendamento'} />
+                <span className="text-[11px] text-slate-400 font-mono">(ex: 2026-08-30)</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 11. Schedule Contact (Horários Livres da Agenda) */}
         {nodeType === 'schedule_contact' && (
           <div className="space-y-4">
             <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-200 space-y-1">
               <span className="font-bold flex items-center gap-1.5 text-emerald-300">
                 <Calendar className="w-3.5 h-3.5" />
-                Funções da Agenda Integrada:
+                Consulta de Horários Disponíveis:
               </span>
               <p className="text-[11px] text-slate-300 leading-relaxed">
-                Este nó consulta os horários livres configurados no painel e permite ao cliente escolher o horário desejado pelo WhatsApp.
+                Busca os horários livres na <strong>Agenda</strong> para o dia informado e a duração do serviço escolhido, enviando botões interativos para o cliente selecionar.
               </p>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-slate-300">Função / Modo do Nó</label>
-              <select
-                value={config.mode || 'show_slots'}
-                onChange={(e) => handleConfigChange('mode', e.target.value)}
-                className="w-full rounded-xl bg-dark-850 border border-slate-700/60 px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              >
-                <option value="show_slots">🔍 Consultar & Mostrar Horários Livres (Menu de Botões)</option>
-                <option value="confirm_booking">✅ Confirmar Reserva no Horário Escolhido</option>
-              </select>
             </div>
 
             <div className="space-y-1.5">
               <label className="block text-xs font-medium text-slate-300">Data da Consulta</label>
               <select
-                value={config.dateType || 'today'}
+                value={config.dateType || 'variable'}
                 onChange={(e) => handleConfigChange('dateType', e.target.value)}
                 className="w-full rounded-xl bg-dark-850 border border-slate-700/60 px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
+                <option value="variable">Data informada em Variável ({'{{data_agendamento}}'})</option>
                 <option value="today">Hoje (Data Atual)</option>
                 <option value="tomorrow">Amanhã (+1 dia)</option>
-                <option value="variable">Data informada em Variável (ex: data_agendamento)</option>
               </select>
             </div>
 
@@ -619,26 +649,71 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
                 label="Nome da Variável com a Data"
                 value={config.dateVariable || 'data_agendamento'}
                 onChange={(e) => handleConfigChange('dateVariable', e.target.value)}
-                placeholder="Ex: data_agendamento (formato AAAA-MM-DD)"
+                placeholder="data_agendamento"
               />
             )}
 
             <Input
-              label="Nome do Serviço (ou Variável)"
+              label="Serviço ou Variável de Duração"
               value={config.serviceName || ''}
               onChange={(e) => handleConfigChange('serviceName', e.target.value)}
-              placeholder="Ex: Corte Cabelo ou {{servico_selecionado}}"
-              hint="Se deixar vazio, usará automaticamente a variável {{servico_selecionado}}."
+              placeholder="Ex: {{servico_selecionado}}"
+              hint="Se vazio, usa {{servico_selecionado}} para calcular o tempo do atendimento."
             />
 
             <Textarea
-              label="Mensagem de Confirmação no WhatsApp"
+              label="Texto de Apresentação dos Horários"
+              value={config.introMessage || ''}
+              onChange={(e) => handleConfigChange('introMessage', e.target.value)}
+              placeholder="Ex: Estes são os horários livres disponíveis para esta data. Toque no seu horário desejado:"
+              rows={2}
+            />
+
+            <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-2">
+              <span className="text-xs font-semibold text-emerald-400 block">
+                Variável Gerada ao Tocar no Horário:
+              </span>
+              <div className="flex items-center gap-2">
+                <VariableBadge name="horario_agendamento" />
+                <span className="text-[11px] text-slate-400 font-mono">(ex: 14:30)</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 12. Confirm Booking (Confirmar & Gravar na Agenda) */}
+        {nodeType === 'confirm_booking' && (
+          <div className="space-y-4">
+            <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-200 space-y-1">
+              <span className="font-bold flex items-center gap-1.5 text-emerald-300">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Confirmação & Gravação na Agenda:
+              </span>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Apresenta o resumo completo de todos os dados do agendamento, bloqueia o horário na Agenda e adiciona a tag <strong>Agendado</strong> ao cliente no CRM.
+              </p>
+            </div>
+
+            <Textarea
+              label="Mensagem de Confirmação Final"
               value={config.confirmMessage || ''}
               onChange={(e) => handleConfigChange('confirmMessage', e.target.value)}
-              placeholder="Ex: ✅ Agendamento confirmado para {{data_agendamento}} às {{horario_agendamento}}!"
+              placeholder="Ex: ✅ Perfeito {{nome_cliente}}! Seu agendamento de *{{servico_selecionado}}* está confirmado para o dia *{{data_agendamento}}* às *{{horario_agendamento}}*."
               rows={3}
-              hint="Enviada ao cliente no WhatsApp após confirmar o horário."
             />
+
+            <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-2">
+              <span className="text-xs font-semibold text-emerald-400 block">
+                Resumo de Variáveis Utilizadas:
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                <VariableBadge name="nome_cliente" />
+                <VariableBadge name="servico_selecionado" />
+                <VariableBadge name="valor_servico" />
+                <VariableBadge name="data_agendamento" />
+                <VariableBadge name="horario_agendamento" />
+              </div>
+            </div>
           </div>
         )}
 

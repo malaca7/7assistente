@@ -81,9 +81,11 @@ export type NodeTypeEnum =
   | 'ai_agent'
   | 'media'
   | 'human_handoff'
-  | 'schedule_contact'
-  | 'update_contact'
+  | 'ask_date'
   | 'services_catalog'
+  | 'schedule_contact'
+  | 'confirm_booking'
+  | 'update_contact'
   | 'check_contact';
 
 export interface Appointment {

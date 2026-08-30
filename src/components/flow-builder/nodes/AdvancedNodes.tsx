@@ -406,6 +406,80 @@ export const CheckContactNode: React.FC<NodeProps> = ({ id, selected, data }) =>
   );
 };
 
+export const AskDateNode: React.FC<NodeProps> = ({ id, selected, data }) => {
+  const nodeData = data as unknown as FlowNodeData;
+  const config = nodeData.config || {};
+
+  return (
+    <BaseNode
+      id={id}
+      selected={selected}
+      title={nodeData.label || 'Escolher Dia do Agendamento'}
+      subtitle="Pergunta ou oferece opções de data"
+      icon={<Calendar className="w-4 h-4" />}
+      iconBg="bg-teal-600"
+      accentColor="bg-teal-500"
+      hasInput={true}
+      hasOutput={true}
+      isConfigured={true}
+    >
+      <div className="space-y-2 p-2.5 rounded-xl bg-dark-950/90 border border-teal-500/20 text-[11px]">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-teal-500/15 text-teal-300 border border-teal-500/30">
+            {config.allowCustomDate !== false ? '📅 Menu + Digitar Data' : '📅 Hoje / Amanhã'}
+          </span>
+          <span className="text-[10px] text-slate-400 font-mono">WhatsApp</span>
+        </div>
+        <div className="text-[10px] text-slate-300 flex items-center justify-between">
+          <span>Variável salva:</span>
+          <VariableBadge name={config.dateVariable || 'data_agendamento'} />
+        </div>
+      </div>
+    </BaseNode>
+  );
+};
+
+export const ConfirmBookingNode: React.FC<NodeProps> = ({ id, selected, data }) => {
+  const nodeData = data as unknown as FlowNodeData;
+  const config = nodeData.config || {};
+
+  return (
+    <BaseNode
+      id={id}
+      selected={selected}
+      title={nodeData.label || 'Confirmar Agendamento'}
+      subtitle="Exibe resumo e grava na Agenda"
+      icon={<CheckCircle2 className="w-4 h-4" />}
+      iconBg="bg-emerald-600"
+      accentColor="bg-emerald-500"
+      hasInput={true}
+      hasOutput={true}
+      isConfigured={true}
+    >
+      <div className="space-y-1.5 p-2.5 rounded-xl bg-dark-950/90 border border-emerald-500/20 text-[10px]">
+        <div className="flex items-center justify-between border-b border-white/5 pb-1">
+          <span className="font-bold text-emerald-400">Resumo do Agendamento:</span>
+          <span className="text-[9px] font-mono text-slate-400">Automático</span>
+        </div>
+        <div className="space-y-1 pt-0.5">
+          <div className="flex items-center justify-between">
+            <span className="text-slate-400">🏷️ Serviço:</span>
+            <VariableBadge name="servico_selecionado" />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-slate-400">📅 Data:</span>
+            <VariableBadge name="data_agendamento" />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-slate-400">🕒 Horário:</span>
+            <VariableBadge name="horario_agendamento" />
+          </div>
+        </div>
+      </div>
+    </BaseNode>
+  );
+};
+
 export const UpdateContactNode: React.FC<NodeProps> = ({ id, selected, data }) => {
   const nodeData = data as unknown as FlowNodeData;
   const config = nodeData.config || {};
@@ -451,4 +525,5 @@ export const UpdateContactNode: React.FC<NodeProps> = ({ id, selected, data }) =
     </BaseNode>
   );
 };
+
 
