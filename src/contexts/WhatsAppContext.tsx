@@ -9,10 +9,13 @@ interface WhatsAppContextType {
   isConnecting: boolean;
   qrDataUrl: string | null;
   rawQR: string | null;
+  backendUrl: string;
   generateQRCode: () => Promise<string>;
+  requestPairingCode: (phone: string) => Promise<{ success: boolean; code?: string; error?: string }>;
   connectDevice: (phone?: string, name?: string) => Promise<void>;
   disconnect: () => Promise<void>;
   refreshStatus: () => Promise<void>;
+  setCustomBackendUrl: (url: string) => Promise<void>;
 }
 
 const getBackendUrl = (): string => {
@@ -127,6 +130,39 @@ export const WhatsAppProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return rawQR || '';
   }, [fetchLiveStatus, rawQR]);
 
+  // Request real 8-digit WhatsApp Pairing Code by phone number
+  const requestPairingCode = useCallback(async (phone: string): Promise<{ success: boolean; code?: string; error?: string }> => {
+    setIsConnecting(true);
+    try {
+      const url = getBackendUrl();
+      if (!url) {
+        return { success: false, error: 'Configure a URL do servidor backend primeiro.' };
+      }
+      const res = await fetch(`${url}/api/whatsapp/pairing-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'Erro ao gerar código de pareamento.' };
+      }
+      return { success: true, code: data.code };
+    } catch (err: any) {
+      console.error('Pairing code request error:', err);
+      return { success: false, error: err?.message || 'Servidor backend inacessível.' };
+    } finally {
+      setIsConnecting(false);
+    }
+  }, []);
+
+  const setCustomBackendUrl = useCallback(async (url: string) => {
+    const clean = url.trim().replace(/\/+$/, '');
+    await StorageService.updateSettings({ backend_url: clean } as any);
+    success('Servidor Atualizado', `Backend configurado para: ${clean || 'Padrão'}`);
+    fetchLiveStatus();
+  }, [fetchLiveStatus, success]);
+
   // Connect / Pair Fallback Manual
   const connectDevice = useCallback(async (customPhone?: string, customName?: string) => {
     setIsConnecting(true);
@@ -182,10 +218,13 @@ export const WhatsAppProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         isConnecting,
         rawQR,
         qrDataUrl,
+        backendUrl: getBackendUrl(),
         generateQRCode,
+        requestPairingCode,
         connectDevice,
         disconnect,
         refreshStatus: fetchLiveStatus,
+        setCustomBackendUrl,
       }}
     >
       {children}

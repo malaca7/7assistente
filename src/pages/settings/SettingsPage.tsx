@@ -77,15 +77,20 @@ export const SettingsPage: React.FC = () => {
     isConnecting, 
     rawQR, 
     qrDataUrl, 
+    backendUrl,
     generateQRCode, 
+    requestPairingCode,
     connectDevice, 
-    disconnect 
+    disconnect,
+    setCustomBackendUrl,
+    refreshStatus
   } = useWhatsApp();
 
   const [activeTab, setActiveTab] = useState<string>('whatsapp_qr');
   const [isSaving, setIsSaving] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [qrCodeVal, setQrCodeVal] = useState<string>(rawQR || session.qrCode || '7assistente_qr_init');
+  const [customServerInput, setCustomServerInput] = useState(backendUrl || '');
+  const [isTestingServer, setIsTestingServer] = useState(false);
 
   // Bot Profile form state
   const [botName, setBotName] = useState(defaultBotProfile.name);
@@ -122,8 +127,7 @@ export const SettingsPage: React.FC = () => {
   }, []);
 
   const handleRefreshQR = async () => {
-    const newQr = await generateQRCode();
-    setQrCodeVal(newQr);
+    await generateQRCode();
   };
 
   const handleConnectSimulated = async () => {
@@ -311,9 +315,10 @@ export const SettingsPage: React.FC = () => {
                 /* Disconnected / QR Code View */
                 <div className="space-y-4">
                   <QRCodeView
-                    value={rawQR || qrCodeVal || '2@7assistente_live_qr_pairing_v2026'}
+                    value={rawQR || ''}
                     qrDataUrl={qrDataUrl}
                     onRefresh={handleRefreshQR}
+                    onRequestPairingCode={requestPairingCode}
                     onConnect={(customPhone) =>
                       connectDevice(
                         customPhone || supportPhone || '81996138924',
@@ -325,6 +330,51 @@ export const SettingsPage: React.FC = () => {
                   />
                 </div>
               )}
+            </Card>
+
+            {/* Backend Server Configuration Card */}
+            <Card className="border-slate-800 bg-dark-900">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Code2 className="w-4 h-4 text-emerald-400" />
+                    <CardTitle className="text-sm">Endereço do Servidor do Bot (Backend)</CardTitle>
+                  </div>
+                  <Badge variant={rawQR || isConnected ? 'brand' : 'neutral'} dot>
+                    {isConnected ? 'Conectado' : rawQR ? 'Online (Aguardando Pareamento)' : 'Local / Nuvem'}
+                  </Badge>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Configure a URL onde o seu bot Baileys está rodando (Discloud, servidor próprio ou localhost).
+                </p>
+              </CardHeader>
+
+              <div className="space-y-3">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={customServerInput}
+                    onChange={(e) => setCustomServerInput(e.target.value)}
+                    placeholder="http://localhost:3001 ou https://7assistente.discloud.app"
+                    className="flex-1 rounded-xl bg-dark-950 border border-slate-700/60 px-3.5 py-2 text-xs text-white font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <Button
+                    size="sm"
+                    variant="brand"
+                    onClick={async () => {
+                      setIsTestingServer(true);
+                      await setCustomBackendUrl(customServerInput);
+                      setIsTestingServer(false);
+                    }}
+                    isLoading={isTestingServer}
+                  >
+                    Salvar & Testar
+                  </Button>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  💡 Quando hospedado no Discloud, preencha com a URL do seu bot. Em execução local no seu computador, o sistema usa automaticamente <code className="text-emerald-400 font-mono">http://localhost:3001</code>.
+                </p>
+              </div>
             </Card>
           </div>
 
@@ -353,7 +403,7 @@ export const SettingsPage: React.FC = () => {
                     2
                   </div>
                   <p className="leading-relaxed">
-                    Toque em <strong>Configurações</strong> ou nos <strong>3 pontinhos</strong> &gt; <strong>Aparelhos Conectados</strong>.
+                    Toque em <strong>Configurações</strong> (ou <strong>3 pontinhos</strong>) &gt; <strong>Aparelhos Conectados</strong>.
                   </p>
                 </div>
 
@@ -362,14 +412,14 @@ export const SettingsPage: React.FC = () => {
                     3
                   </div>
                   <p className="leading-relaxed">
-                    Toque em <strong>Conectar um Aparelho</strong> e aponte a câmera para o <strong>QR Code</strong> ao lado.
+                    Toque em <strong>Conectar um Aparelho</strong> e aponte a câmera para o <strong>QR Code</strong> ao lado, ou use a aba <strong>Código de Pareamento</strong> digitando seu número.
                   </p>
                 </div>
 
                 <div className="p-3.5 rounded-xl bg-primary-950/40 border border-primary-800/40 flex items-start gap-2.5">
                   <ShieldCheck className="w-4 h-4 text-primary-400 flex-shrink-0 mt-0.5" />
                   <p className="text-[11px] text-slate-300 leading-relaxed">
-                    A conexão é segura e criptografada de ponta a ponta. Não armazenamos mensagens confidenciais desnecessárias.
+                    A conexão é segura e criptografada de ponta a ponta oficial do Baileys / WhatsApp.
                   </p>
                 </div>
               </div>

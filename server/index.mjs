@@ -367,6 +367,42 @@ app.post('/api/whatsapp/start', async (req, res) => {
   res.json({ success: true, message: 'Serviço do WhatsApp iniciado' });
 });
 
+// 2.1 Request 8-Digit Pairing Code by Phone Number
+app.post('/api/whatsapp/pairing-code', async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) {
+      return res.status(400).json({ error: 'Número de telefone é obrigatório' });
+    }
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.length < 10) {
+      return res.status(400).json({ error: 'Número de telefone inválido (ex: 5581996138924)' });
+    }
+
+    if (!sock || connectionState.status === 'disconnected') {
+      await startWhatsApp();
+    }
+
+    let attempts = 0;
+    while (!sock && attempts < 25) {
+      await new Promise((r) => setTimeout(r, 200));
+      attempts++;
+    }
+
+    if (!sock) {
+      return res.status(500).json({ error: 'Falha ao inicializar o WhatsApp' });
+    }
+
+    const rawCode = await sock.requestPairingCode(cleanPhone);
+    const formattedCode = rawCode?.match(/.{1,4}/g)?.join('-') || rawCode;
+    console.log(`[WhatsApp Server] 🔑 Código de pareamento gerado para ${cleanPhone}: ${formattedCode}`);
+    res.json({ success: true, code: formattedCode, rawCode, phone: cleanPhone });
+  } catch (err) {
+    console.error('[WhatsApp Server] Erro ao gerar código de pareamento:', err.message);
+    res.status(500).json({ error: err.message || 'Erro ao gerar código de pareamento' });
+  }
+});
+
 // 3. Disconnect / Logout
 app.post('/api/whatsapp/disconnect', async (req, res) => {
   try {
