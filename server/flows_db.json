@@ -9,7 +9,7 @@
       "node_count": 10,
       "trigger_type": "Mensagem recebida",
       "created_at": "2026-08-29T19:57:45.058Z",
-      "updated_at": "2026-08-30T15:52:07.447Z"
+      "updated_at": "2026-08-30T15:53:39.736Z"
     }
   ],
   "nodes": {
@@ -71,8 +71,8 @@
         "id": "node-trigger-1788033748050",
         "type": "trigger",
         "position": {
-          "x": 100,
-          "y": 420
+          "x": 80,
+          "y": 225
         },
         "data": {
           "label": "Gatilho",
@@ -97,7 +97,7 @@
         "type": "message",
         "position": {
           "x": 860,
-          "y": 300
+          "y": 120
         },
         "data": {
           "label": "Enviar Mensagem",
@@ -119,8 +119,8 @@
         "id": "node-question-1788033927695",
         "type": "question",
         "position": {
-          "x": 1240,
-          "y": 420
+          "x": 1250,
+          "y": 120
         },
         "data": {
           "label": "Pergunta & Resposta",
@@ -144,8 +144,8 @@
         "id": "node-update_contact-1788041687381",
         "type": "update_contact",
         "position": {
-          "x": 1620,
-          "y": 300
+          "x": 1640,
+          "y": 120
         },
         "data": {
           "label": "Salvar / Vincular Dados",
@@ -167,39 +167,11 @@
         "dragging": false
       },
       {
-        "id": "node-services_catalog-1788101781817",
-        "type": "services_catalog",
-        "position": {
-          "x": 2115,
-          "y": 375
-        },
-        "data": {
-          "label": "Catálogo de Serviços & Preços",
-          "nodeType": "services_catalog",
-          "description": "Exibe lista de serviços e valores cadastrados na Agenda com opções interativas.",
-          "isConfigured": true,
-          "config": {
-            "displayFormat": "buttons",
-            "introMessage": "*{{nome_cliente}}*, qual serviço você deseja?",
-            "footerText": "Toque no serviço desejado para agendar:",
-            "serviceVarName": "servico_selecionado",
-            "priceVarName": "valor_servico",
-            "durationVarName": "duracao_servico"
-          }
-        },
-        "measured": {
-          "width": 288,
-          "height": 303
-        },
-        "selected": false,
-        "dragging": false
-      },
-      {
         "id": "node-check_contact-1788102919201",
         "type": "check_contact",
         "position": {
-          "x": 480,
-          "y": 420
+          "x": 470,
+          "y": 225
         },
         "data": {
           "label": "Verificar Contato (Novo vs Salvo)",
@@ -219,8 +191,8 @@
         "id": "node-message-1788102948794",
         "type": "message",
         "position": {
-          "x": 860,
-          "y": 540
+          "x": 885,
+          "y": 450
         },
         "data": {
           "label": "Enviar Mensagem",
@@ -243,8 +215,8 @@
         "id": "node-ask_date-1788104674417",
         "type": "ask_date",
         "position": {
-          "x": 2025,
-          "y": 765
+          "x": 2010,
+          "y": 360
         },
         "data": {
           "label": "1. Escolher Dia do Agendamento",
@@ -268,8 +240,8 @@
         "id": "node-schedule_contact-1788104743355",
         "type": "schedule_contact",
         "position": {
-          "x": 2775,
-          "y": 750
+          "x": 2810,
+          "y": 120
         },
         "data": {
           "label": "3. Horários Livres da Agenda",
@@ -295,8 +267,8 @@
         "id": "node-confirm_booking-1788104787175",
         "type": "confirm_booking",
         "position": {
-          "x": 3225,
-          "y": 735
+          "x": 3200,
+          "y": 120
         },
         "data": {
           "label": "4. Confirmar & Gravar Agendamento",
@@ -312,6 +284,34 @@
           "height": 218
         },
         "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-services_catalog-1788105189425",
+        "type": "services_catalog",
+        "position": {
+          "x": 2370,
+          "y": 165
+        },
+        "data": {
+          "label": "2. Catálogo de Serviços & Preços",
+          "nodeType": "services_catalog",
+          "description": "Puxa serviços e preços da Agenda e envia em botões interativos para escolha.",
+          "isConfigured": true,
+          "config": {
+            "displayFormat": "buttons",
+            "introMessage": "*{{nome_cliente}}*, qual serviço você deseja?",
+            "footerText": "Toque no serviço desejado para agendar:",
+            "serviceVarName": "servico_selecionado",
+            "priceVarName": "valor_servico",
+            "durationVarName": "duracao_servico"
+          }
+        },
+        "measured": {
+          "width": 288,
+          "height": 303
+        },
+        "selected": true,
         "dragging": false
       }
     ]
@@ -397,10 +397,20 @@
           "stroke": "#06b6d4",
           "strokeWidth": 2.5
         },
+        "source": "node-schedule_contact-1788104743355",
+        "target": "node-confirm_booking-1788104787175",
+        "id": "xy-edge__node-schedule_contact-1788104743355-node-confirm_booking-1788104787175"
+      },
+      {
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        },
         "source": "node-update_contact-1788041687381",
-        "target": "node-services_catalog-1788101781817",
-        "id": "xy-edge__node-update_contact-1788041687381-node-services_catalog-1788101781817",
-        "targetHandle": null
+        "target": "node-ask_date-1788104674417",
+        "id": "xy-edge__node-update_contact-1788041687381-node-ask_date-1788104674417"
       },
       {
         "type": "smoothstep",
@@ -410,9 +420,19 @@
           "strokeWidth": 2.5
         },
         "source": "node-message-1788102948794",
-        "target": "node-services_catalog-1788101781817",
-        "id": "xy-edge__node-message-1788102948794-node-services_catalog-1788101781817",
-        "targetHandle": null
+        "target": "node-ask_date-1788104674417",
+        "id": "xy-edge__node-message-1788102948794-node-ask_date-1788104674417"
+      },
+      {
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        },
+        "source": "node-services_catalog-1788105189425",
+        "target": "node-schedule_contact-1788104743355",
+        "id": "xy-edge__node-services_catalog-1788105189425-node-schedule_contact-1788104743355"
       },
       {
         "type": "smoothstep",
@@ -422,19 +442,8 @@
           "strokeWidth": 2.5
         },
         "source": "node-ask_date-1788104674417",
-        "target": "node-schedule_contact-1788104743355",
-        "id": "xy-edge__node-ask_date-1788104674417-node-schedule_contact-1788104743355"
-      },
-      {
-        "type": "smoothstep",
-        "animated": true,
-        "style": {
-          "stroke": "#06b6d4",
-          "strokeWidth": 2.5
-        },
-        "source": "node-schedule_contact-1788104743355",
-        "target": "node-confirm_booking-1788104787175",
-        "id": "xy-edge__node-schedule_contact-1788104743355-node-confirm_booking-1788104787175"
+        "target": "node-services_catalog-1788105189425",
+        "id": "xy-edge__node-ask_date-1788104674417-node-services_catalog-1788105189425"
       }
     ]
   },
@@ -454,11 +463,11 @@
   "sessions": {
     "168650497613858": {
       "flowId": "flow-1788033465058",
-      "currentNodeId": "node-services_catalog-1788101781817",
+      "currentNodeId": "node-services_catalog-1788105189425",
       "variables": {
         "nome_cliente": "Rogerio",
         "telefone_cliente": "558196138924",
-        "ultima_mensagem": "1",
+        "ultima_mensagem": "Oi",
         "opcao_selecionada": "🕒 08:30",
         "botao_id": "slot_08:30",
         "telefone_whatsapp": "558196138924",
@@ -508,11 +517,11 @@
     },
     "558196138924": {
       "flowId": "flow-1788033465058",
-      "currentNodeId": "node-services_catalog-1788101781817",
+      "currentNodeId": "node-services_catalog-1788105189425",
       "variables": {
         "nome_cliente": "Rogerio",
         "telefone_cliente": "558196138924",
-        "ultima_mensagem": "1",
+        "ultima_mensagem": "Oi",
         "opcao_selecionada": "🕒 08:30",
         "botao_id": "slot_08:30",
         "telefone_whatsapp": "558196138924",
@@ -629,7 +638,7 @@
         "interesse_principal": "Consultar Valores"
       },
       "created_at": "2026-08-29T23:23:18.236Z",
-      "updated_at": "2026-08-30T15:47:49.545Z",
+      "updated_at": "2026-08-30T15:54:58.044Z",
       "profile_picture_url": "https://pps.whatsapp.net/v/t61.24694-24/674630155_1633106875192131_9214554452579566382_n.jpg?ccb=11-4&oh=01_Q5Aa5QH8Rcsf-hGOlkVBBpTEo5nl3x1xEqmhIqKGisBkzVPZ0g&oe=6AA16C21&_nc_sid=5e03e0&_nc_cat=104"
     }
   },
@@ -644,8 +653,8 @@
       "unread_count": 0,
       "created_at": "2026-08-29T23:00:04.971Z",
       "last_message": "*Rogerio*, qual serviço você deseja?",
-      "last_message_at": "2026-08-30T15:47:49.545Z",
-      "updated_at": "2026-08-30T15:47:49.545Z"
+      "last_message_at": "2026-08-30T15:54:58.044Z",
+      "updated_at": "2026-08-30T15:54:58.044Z"
     }
   },
   "messages": {
@@ -1108,6 +1117,51 @@
         "content": "*Rogerio*, qual serviço você deseja?",
         "status": "delivered",
         "created_at": "2026-08-30T15:47:49.545Z"
+      },
+      {
+        "id": "msg-1788105229427-rfvay",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá Rogerio, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:53:49.427Z"
+      },
+      {
+        "id": "msg-1788105229429-8cegg",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "*Rogerio*, qual serviço você deseja?",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:53:49.428Z"
+      },
+      {
+        "id": "msg-1788105235421-t8y5t",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "*Rogerio*, qual serviço você deseja?",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:53:55.421Z"
+      },
+      {
+        "id": "msg-1788105298043-dqzp8",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá Rogerio, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:54:58.043Z"
+      },
+      {
+        "id": "msg-1788105298044-p16ka",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "*Rogerio*, qual serviço você deseja?",
+        "status": "delivered",
+        "created_at": "2026-08-30T15:54:58.044Z"
       }
     ]
   },
