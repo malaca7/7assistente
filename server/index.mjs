@@ -390,12 +390,49 @@ app.get('/api/whatsapp/status', (req, res) => {
   });
 });
 
-// 2. Start / Restart
+app.get('/api/whatsapp/qr', (req, res) => {
+  res.json({
+    status: connectionState.status,
+    qr: currentQR,
+    qrDataUrl: currentQRDataUrl,
+  });
+});
+
+// 2. Start / Refresh QR
 app.post('/api/whatsapp/start', async (req, res) => {
   if (connectionState.status !== 'connected') {
     startWhatsApp();
   }
   res.json({ success: true, message: 'Serviço do WhatsApp iniciado' });
+});
+
+app.post('/api/whatsapp/refresh-qr', async (req, res) => {
+  try {
+    currentQR = null;
+    currentQRDataUrl = null;
+    if (sock) {
+      try {
+        sock.ev.removeAllListeners();
+        sock.end();
+      } catch (e) {}
+      sock = null;
+    }
+    isStarting = false;
+    await startWhatsApp();
+    let attempts = 0;
+    while (!currentQR && attempts < 25) {
+      await new Promise((r) => setTimeout(r, 200));
+      attempts++;
+    }
+    res.json({
+      success: true,
+      status: connectionState.status,
+      qr: currentQR,
+      qrDataUrl: currentQRDataUrl,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // 2.1 Request 8-Digit Pairing Code by Phone Number
