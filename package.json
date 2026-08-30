@@ -9,6 +9,7 @@
     "dev": "vite",
     "server": "node server/index.mjs",
     "build": "tsc -b && vite build",
+    "deploy": "node scripts/deploy.mjs",
     "lint": "oxlint",
     "preview": "vite preview"
   },
