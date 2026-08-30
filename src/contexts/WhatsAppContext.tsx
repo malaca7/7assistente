@@ -176,9 +176,17 @@ export const WhatsAppProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const backend = getBackendUrl() || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:3001' : '');
     if (backend) {
       try {
-        await fetch(`${backend}/api/whatsapp/start`, { method: 'POST' });
+        const res = await fetch(`${backend}/api/whatsapp/refresh-qr`, { method: 'POST' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.qr) setRawQR(data.qr);
+          if (data.qrDataUrl) setQrDataUrl(data.qrDataUrl);
+          if (data.status) setSession((prev) => ({ ...prev, status: data.status }));
+          setIsConnecting(false);
+          return data.qr || '';
+        }
       } catch (err) {
-        console.warn('Could not call start on WhatsApp server:', err);
+        console.warn('Could not call refresh-qr on WhatsApp server:', err);
       }
     }
     await fetchLiveStatus();

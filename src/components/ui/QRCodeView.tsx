@@ -138,36 +138,57 @@ export const QRCodeView: React.FC<QRCodeViewProps> = ({
             <div className="absolute -bottom-1.5 -right-1.5 w-7 h-7 border-b-4 border-r-4 border-emerald-500 rounded-br-2xl" />
 
             <div className="w-60 h-60 sm:w-68 sm:h-68 bg-white flex items-center justify-center relative rounded-2xl overflow-hidden p-2">
-              {qrDataUrl ? (
-                <img
-                  src={qrDataUrl}
-                  alt="WhatsApp QR Code Oficial"
-                  className={`w-full h-full object-contain transition-all duration-300 ${
-                    isExpired || isLoading ? 'opacity-15 blur-[2px]' : 'opacity-100'
-                  }`}
-                />
+              {isAuthenticServerQR ? (
+                qrDataUrl ? (
+                  <img
+                    src={qrDataUrl}
+                    alt="WhatsApp QR Code Oficial"
+                    className={`w-full h-full object-contain transition-all duration-300 ${
+                      isExpired || isLoading ? 'opacity-15 blur-[2px]' : 'opacity-100'
+                    }`}
+                  />
+                ) : (
+                  <QRCodeSVG
+                    value={value}
+                    size={240}
+                    level="M"
+                    includeMargin={false}
+                    className={`transition-all duration-300 ${
+                      isExpired || isLoading ? 'opacity-15 blur-[2px]' : 'opacity-100'
+                    }`}
+                    imageSettings={{
+                      src: 'https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg',
+                      x: undefined,
+                      y: undefined,
+                      height: 44,
+                      width: 44,
+                      excavate: true,
+                    }}
+                  />
+                )
               ) : (
-                <QRCodeSVG
-                  value={value || 'https://web.whatsapp.com'}
-                  size={240}
-                  level="M"
-                  includeMargin={false}
-                  className={`transition-all duration-300 ${
-                    isExpired || isLoading ? 'opacity-15 blur-[2px]' : 'opacity-100'
-                  }`}
-                  imageSettings={{
-                    src: 'https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg',
-                    x: undefined,
-                    y: undefined,
-                    height: 44,
-                    width: 44,
-                    excavate: true,
-                  }}
-                />
+                <div className="flex flex-col items-center justify-center p-4 text-center space-y-3 bg-dark-950 rounded-2xl w-full h-full text-slate-200">
+                  <div className="w-10 h-10 rounded-full border-3 border-emerald-500 border-t-transparent animate-spin flex items-center justify-center">
+                    <Smartphone className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <div className="space-y-1">
+                    <h5 className="text-xs font-bold text-white">Gerando QR Code Oficial</h5>
+                    <p className="text-[11px] text-slate-300 leading-tight">
+                      Aguardando chave criptográfica do WhatsApp.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveMode('code')}
+                    className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 underline underline-offset-2"
+                  >
+                    Ou usar Código de Pareamento
+                  </button>
+                </div>
               )}
 
               {/* Scanning Laser Line */}
-              {!isExpired && !isLoading && (
+              {isAuthenticServerQR && !isExpired && !isLoading && (
                 <div className="absolute left-2 right-2 h-1 bg-emerald-500 shadow-[0_0_12px_#10b981] animate-[pulse_2s_ease-in-out_infinite]" />
               )}
 
