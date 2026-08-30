@@ -11,24 +11,32 @@ import { SettingsPage } from './pages/settings/SettingsPage';
 import { AiAgentsPage } from './pages/ai-agents/AiAgentsPage';
 import { AgendaPage } from './pages/agenda/AgendaPage';
 
+const normalizePath = (rawPath: string) => {
+  let clean = rawPath.replace(/^\/7assistente\/?/, '/');
+  if (!clean.startsWith('/')) clean = `/${clean}`;
+  return clean;
+};
+
 export const App: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
   const [currentPath, setCurrentPath] = useState<string>(() => {
-    return window.location.pathname || '/';
+    return normalizePath(window.location.pathname || '/');
   });
 
   // Handle browser back/forward buttons
   useEffect(() => {
     const handlePopState = () => {
-      setCurrentPath(window.location.pathname || '/');
+      setCurrentPath(normalizePath(window.location.pathname || '/'));
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   const navigate = (path: string) => {
-    window.history.pushState({}, '', path);
-    setCurrentPath(path);
+    const isGitHubPages = window.location.pathname.startsWith('/7assistente');
+    const targetUrl = isGitHubPages ? `/7assistente${path === '/' ? '' : path}` : path;
+    window.history.pushState({}, '', targetUrl);
+    setCurrentPath(normalizePath(path));
   };
 
   if (isLoading) {
