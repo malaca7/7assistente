@@ -59,15 +59,7 @@ export const WhatsAppProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           };
           setSession(newSession);
           await StorageService.updateSettings({ whatsapp_session: newSession });
-
-          if (prevStatusRef.current !== 'connected') {
-            const now = Date.now();
-            if (!initialLoadRef.current && now - lastToastTimeRef.current > 6000) {
-              success('WhatsApp Conectado!', `Aparelho (+55 ${data.phone}) emparelhado com sucesso!`);
-              lastToastTimeRef.current = now;
-            }
-            prevStatusRef.current = 'connected';
-          }
+          prevStatusRef.current = 'connected';
         } else if (data.status === 'qrcode') {
           setSession((prev) => ({
             ...prev,
@@ -75,14 +67,17 @@ export const WhatsAppProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             qrCode: data.qr,
           }));
           prevStatusRef.current = 'qrcode';
+        } else if (data.status === 'connecting') {
+          setSession((prev) => ({
+            ...prev,
+            status: 'connecting',
+          }));
+          prevStatusRef.current = 'connecting';
         } else if (data.status === 'disconnected') {
-          if (prevStatusRef.current === 'connected') {
-            const now = Date.now();
-            if (!initialLoadRef.current && now - lastToastTimeRef.current > 6000) {
-              warning('WhatsApp Desconectado', 'A sessão do WhatsApp foi encerrada ou conectada em outro dispositivo.');
-              lastToastTimeRef.current = now;
-            }
-          }
+          setSession((prev) => ({
+            ...prev,
+            status: 'disconnected',
+          }));
           prevStatusRef.current = 'disconnected';
         }
         initialLoadRef.current = false;
@@ -95,12 +90,12 @@ export const WhatsAppProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
       initialLoadRef.current = false;
     }
-  }, [success, warning]);
+  }, []);
 
-  // Polling for live status and QR updates
+  // Polling for live status and QR updates (smooth 4s interval)
   useEffect(() => {
     fetchLiveStatus();
-    const interval = setInterval(fetchLiveStatus, 2000);
+    const interval = setInterval(fetchLiveStatus, 4000);
     return () => clearInterval(interval);
   }, [fetchLiveStatus]);
 

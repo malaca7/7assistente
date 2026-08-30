@@ -50,6 +50,8 @@ if (!fs.existsSync(AUTH_FOLDER)) {
 let sock = null;
 let currentQR = null;
 let currentQRDataUrl = null;
+let isStarting = false;
+let reconnectTimer = null;
 let connectionState = {
   status: 'disconnected',
   phone: null,
@@ -135,9 +137,28 @@ async function sendWhatsAppMessage(jid, reply) {
 }
 
 async function startWhatsApp() {
+  if (isStarting) {
+    console.log('[WhatsApp Server] ⏳ Inicialização já em andamento, aguardando...');
+    return;
+  }
+  isStarting = true;
+
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+
   try {
     const { state, saveCreds } = await useMultiFileAuthState(AUTH_FOLDER);
     const { version } = await fetchLatestBaileysVersion().catch(() => ({ version: [2, 3000, 1015901307] }));
+
+    if (sock) {
+      try {
+        sock.ev.removeAllListeners();
+        sock.end?.();
+      } catch (e) {}
+      sock = null;
+    }
 
     sock = makeWASocket({
       version,
@@ -146,6 +167,8 @@ async function startWhatsApp() {
       logger: pino({ level: 'silent' }),
       browser: ['7 Assistente', 'Chrome', '120.0.0'],
       syncFullHistory: false,
+      connectTimeoutMs: 60000,
+      keepAliveIntervalMs: 25000,
     });
 
     sock.ev.on('creds.update', saveCreds);
@@ -168,24 +191,28 @@ async function startWhatsApp() {
 
         console.log(`[WhatsApp Server] Conexão encerrada (Status: ${statusCode || 'unknown'}, Motivo: ${errorReason || 'Nenhum'})`);
         
-        connectionState.status = 'disconnected';
         currentQR = null;
         currentQRDataUrl = null;
 
         if (isLoggedOut) {
+          connectionState.status = 'disconnected';
           console.log('[WhatsApp Server] ❌ Sessão deslogada do WhatsApp. Limpando credenciais...');
           try {
             if (fs.existsSync(AUTH_FOLDER)) {
               fs.rmSync(AUTH_FOLDER, { recursive: true, force: true });
             }
           } catch (e) {}
-          setTimeout(startWhatsApp, 3000);
+          isStarting = false;
+          reconnectTimer = setTimeout(startWhatsApp, 3000);
         } else if (isReplaced) {
-          console.warn('[WhatsApp Server] ⚠️ AVISO: Sessão conectada em outra instância (ex: Discloud ou outro terminal). Aguardando 30s para evitar conflito de conexão.');
-          setTimeout(startWhatsApp, 30000);
+          connectionState.status = 'connecting';
+          console.warn('[WhatsApp Server] ⚠️ AVISO: Sessão em conflito (outra instância ativa). Aguardando 15s antes de reconectar...');
+          isStarting = false;
+          reconnectTimer = setTimeout(startWhatsApp, 15000);
         } else {
-          // Normal transient disconnect, reconnect in 5s
-          setTimeout(startWhatsApp, 5000);
+          connectionState.status = 'connecting';
+          isStarting = false;
+          reconnectTimer = setTimeout(startWhatsApp, 5000);
         }
       } else if (connection === 'open') {
         const jid = sock.user?.id || '';
@@ -201,6 +228,7 @@ async function startWhatsApp() {
         };
         currentQR = null;
         currentQRDataUrl = null;
+        isStarting = false;
         console.log(`[WhatsApp Server] ✅ SUCESSO! WhatsApp Conectado e Executando Fluxos Publicados: ${phone} (${name})`);
       }
     });
