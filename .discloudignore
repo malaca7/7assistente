@@ -1,0 +1,10 @@
+.git/
+.github/
+node_modules/
+*.zip
+*.tar.gz
+*.log
+deployAll.ps1
+packageDiscloud.ps1
+syncMainBranch.ps1
+_temp_main_stage/
