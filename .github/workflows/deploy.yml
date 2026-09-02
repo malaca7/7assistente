@@ -62,9 +62,8 @@ jobs:
 
   deploy-discloud:
     name: Deploy to Discloud
+    if: secrets.DISCLOUD_TOKEN != ''
     runs-on: ubuntu-latest
-    continue-on-error: true
-    if: "${{ secrets.DISCLOUD_TOKEN != '' }}"
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
