@@ -713,12 +713,103 @@ app.post('/api/whatsapp/sync-flows', (req, res) => {
 });
 
 // 11. Serve Frontend Production Build (Discloud / Cloud Hosting)
-const distPath = path.resolve(ROOT_DIR, 'dist');
-if (fs.existsSync(distPath)) {
-  app.use(express.static(distPath));
-  app.use((req, res, next) => {
+function healFlatExtractedFiles(baseDir) {
+  try {
+    if (!fs.existsSync(baseDir)) return;
+    const entries = fs.readdirSync(baseDir);
+    const backslashFiles = entries.filter((name) => name.startsWith('dist\\') || name.startsWith('dist/'));
+    if (backslashFiles.length > 0) {
+      const targetDist = path.resolve(baseDir, 'dist');
+      if (!fs.existsSync(targetDist)) fs.mkdirSync(targetDist, { recursive: true });
+      for (const rawName of backslashFiles) {
+        const relativeName = rawName.replace(/^dist[\\\/]/, '').replace(/\\/g, '/');
+        const targetFilePath = path.resolve(targetDist, relativeName);
+        const targetFileDir = path.dirname(targetFilePath);
+        if (!fs.existsSync(targetFileDir)) fs.mkdirSync(targetFileDir, { recursive: true });
+        const sourcePath = path.resolve(baseDir, rawName);
+        if (fs.existsSync(sourcePath) && !fs.existsSync(targetFilePath)) {
+          fs.copyFileSync(sourcePath, targetFilePath);
+        }
+      }
+      console.log(`[WhatsApp Server] 🛠️ Auto-recuperação da pasta dist realizada com ${backslashFiles.length} arquivos.`);
+    }
+  } catch (err) {
+    console.warn('[WhatsApp Server] Aviso ao verificar auto-recuperação da pasta dist:', err?.message || err);
+  }
+}
+
+healFlatExtractedFiles(ROOT_DIR);
+healFlatExtractedFiles(process.cwd());
+
+const possibleDistPaths = [
+  path.resolve(ROOT_DIR, 'dist'),
+  path.resolve(process.cwd(), 'dist'),
+  path.resolve(__dirname, 'dist'),
+  path.resolve(__dirname, '../dist')
+];
+
+const validDistPath = possibleDistPaths.find((p) => {
+  try {
+    return fs.existsSync(p) && fs.existsSync(path.join(p, 'index.html'));
+  } catch {
+    return false;
+  }
+});
+
+if (validDistPath) {
+  const indexHtmlFile = path.resolve(validDistPath, 'index.html');
+  console.log(`[WhatsApp Server] 🌐 Servindo painel admin estático a partir de: ${validDistPath}`);
+  
+  app.use(express.static(validDistPath, {
+    index: false,
+    maxAge: '1h'
+  }));
+
+  // Serve SPA index.html for all non-API GET routes
+  app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api')) return next();
-    res.sendFile(path.resolve(distPath, 'index.html'));
+    if (fs.existsSync(indexHtmlFile)) {
+      res.sendFile(indexHtmlFile, (err) => {
+        if (err) {
+          console.error('[WhatsApp Server] Erro ao enviar index.html:', err?.message || err);
+          if (!res.headersSent) res.status(500).send('Erro ao carregar o painel administrativo.');
+        }
+      });
+    } else {
+      next();
+    }
+  });
+} else {
+  console.warn('[WhatsApp Server] ⚠️ Pasta dist com index.html não encontrada! Ativando página de contingência.');
+  
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.send(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>7 Assistente — Painel WhatsApp</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { background: #0b0f19; color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+    .card { background: #111827; border: 1px solid #374151; border-radius: 16px; padding: 32px; max-width: 500px; width: 100%; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
+    h1 { font-size: 22px; color: #60a5fa; margin-bottom: 10px; }
+    p { color: #9ca3af; font-size: 14px; line-height: 1.6; margin-bottom: 24px; }
+    .btn { display: inline-block; background: #2563eb; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: background 0.2s; }
+    .btn:hover { background: #1d4ed8; }
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; background: rgba(16, 185, 129, 0.1); border: 1px solid #059669; border-radius: 9999px; color: #10b981; font-size: 12px; font-weight: 600; margin-bottom: 20px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge"><span class="dot"></span> Backend WhatsApp Ativo</div>
+    <h1>🤖 7 Assistente WhatsApp</h1>
+    <p>O servidor backend do bot está conectado e processando mensagens com sucesso na nuvem.</p>
+    <a href="https://talvane.malaca.com.br" class="btn">Acessar Painel Administrativo</a>
+  </div>
+</body>
+</html>`);
   });
 }
 
@@ -726,3 +817,4 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`[WhatsApp Server] Servidor de Conexão e Motor de Fluxos rodando na porta ${PORT} (0.0.0.0)`);
   startWhatsApp();
 });
+
