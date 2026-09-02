@@ -108,9 +108,22 @@ export const ContactsPage: React.FC<ContactsPageProps> = ({ onNavigate }) => {
 
   const handleDeleteContact = async (contact: Contact) => {
     try {
-      // Optimistic update
+      // 1. Optimistic UI update
       setContacts((prev) => prev.filter((c) => c.id !== contact.id && c.phone !== contact.phone));
-      await StorageService.deleteContact(contact.id, contact.phone);
+
+      if (typeof StorageService.deleteContact === 'function') {
+        await StorageService.deleteContact(contact.id, contact.phone);
+      } else {
+        // Direct local and server fallback
+        const localContacts = (JSON.parse(localStorage.getItem('7assistente_contacts') || '[]') as Contact[]).filter(
+          (c) => c.id !== contact.id && c.phone !== contact.phone
+        );
+        localStorage.setItem('7assistente_contacts', JSON.stringify(localContacts));
+        const backendUrl = window.location.origin.includes('discloud') ? window.location.origin : 'https://talvanebarber.discloud.app';
+        const cleanPhone = (contact.phone || contact.id).replace(/\D/g, '');
+        fetch(`${backendUrl}/api/whatsapp/contacts/${cleanPhone || contact.id}?phone=${cleanPhone}`, { method: 'DELETE' }).catch(() => {});
+      }
+
       await loadContacts();
       success('Contato Removido', `${contact.name} foi excluído da base.`);
     } catch (err: any) {
