@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build React Admin Panel
+    name: Build React Admin Panel & Push gh-pages
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -40,6 +40,15 @@ jobs:
           echo "talvane.malaca.com.br" > dist/CNAME
           cp dist/index.html dist/404.html
           touch dist/.nojekyll
+
+      - name: Push to gh-pages Branch
+        if: github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
+          cname: talvane.malaca.com.br
 
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
