@@ -284,15 +284,15 @@ export function replaceVars(text, vars = {}, botProfile = {}) {
   if (!text) return '';
   let res = text;
 
-  res = res.replace(/\{\{bot_nome\}\}/gi, botProfile.name || '7 Assistente');
-  res = res.replace(/\{\{empresa\}\}/gi, botProfile.company_name || 'Minha Empresa');
+  res = res.replace(/\{\{bot_nome\}\}/gi, botProfile.name || 'Talvane Barber Bot');
+  res = res.replace(/\{\{empresa\}\}/gi, botProfile.company_name || 'Talvane Barber');
   res = res.replace(/\{\{bot_genero\}\}/gi, botProfile.gender === 'female' ? 'Feminino' : 'Masculino');
-  res = res.replace(/\{\{bot_tom\}\}/gi, botProfile.tone || 'Amigável');
-  res = res.replace(/\{\{suporte_telefone\}\}/gi, botProfile.support_phone || '+55 81 99613-8924');
-  res = res.replace(/\{\{suporte_email\}\}/gi, botProfile.support_email || 'suporte@empresa.com');
-  res = res.replace(/\{\{horario_atendimento\}\}/gi, botProfile.business_hours || '08h às 18h');
-  res = res.replace(/\{\{site_empresa\}\}/gi, botProfile.website_url || 'https://7assistente.com.br');
-  res = res.replace(/\{\{mensagem_boas_vindas\}\}/gi, botProfile.welcome_message || '');
+  res = res.replace(/\{\{bot_tom\}\}/gi, botProfile.tone || 'Amigável e Profissional');
+  res = res.replace(/\{\{suporte_telefone\}\}/gi, botProfile.support_phone || '81996138924');
+  res = res.replace(/\{\{suporte_email\}\}/gi, botProfile.support_email || 'contato@talvanebarber.com.br');
+  res = res.replace(/\{\{horario_atendimento\}\}/gi, botProfile.business_hours || '08:00 às 19:00');
+  res = res.replace(/\{\{site_empresa\}\}/gi, botProfile.website_url || 'https://talvane.malaca.com.br');
+  res = res.replace(/\{\{mensagem_boas_vindas\}\}/gi, botProfile.welcome_message || 'Olá! Seja bem-vindo à Talvane Barber.');
 
   Object.keys(vars).forEach((key) => {
     const val = vars[key];
