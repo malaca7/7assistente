@@ -414,8 +414,10 @@ export async function getActiveFlowAndGraph(db) {
     }
   }
 
-  let publishedFlow = (flows || []).find((f) => f.status === 'published') || flows?.[0];
-  if (!publishedFlow) return { publishedFlow: null, nodes: [], edges: [] };
+  let publishedFlow = (flows || []).find((f) => f.status === 'published');
+  if (!publishedFlow) {
+    return { publishedFlow: null, nodes: [], edges: [] };
+  }
 
   const flowId = publishedFlow.id;
   let nodes = db.nodes?.[flowId] || [];
@@ -456,19 +458,10 @@ export async function getActiveFlowAndGraph(db) {
 
       if (nodes.length > 0) {
         saveDb(db);
-        console.log(`[FlowRunner] 📥 Nós do fluxo "${publishedFlow.name}" carregados com sucesso do Supabase!`);
+        console.log(`[FlowRunner] 📥 Nós do fluxo ativo "${publishedFlow.name}" carregados com sucesso!`);
       }
     } catch (e) {
       console.warn('[FlowRunner] Falha ao carregar nós do Supabase:', e?.message || e);
-    }
-  }
-
-  // Fallback to flow-001 or first available node set if specific flowId had 0 nodes
-  if ((!nodes || nodes.length === 0) && db.nodes) {
-    const firstKey = Object.keys(db.nodes)[0];
-    if (firstKey && db.nodes[firstKey]?.length > 0) {
-      nodes = db.nodes[firstKey];
-      edges = db.edges?.[firstKey] || [];
     }
   }
 
@@ -811,18 +804,23 @@ function parseCustomDateString(input) {
     // 4. Check Contact Node (Primeiro Contato vs Contato Salvo)
     else if (nodeType === 'check_contact') {
       const existingContact = db.contacts && db.contacts[cleanPhone];
-      const hasPriorMessages = db.messages && db.messages[`conv-${cleanPhone}`] && db.messages[`conv-${cleanPhone}`].length > 1;
-      const aptsCount = (db.appointments || []).filter((a) => a.contact_phone === cleanPhone).length;
+      const aptsCount = (db.appointments || []).filter((a) => (a.contact_phone === cleanPhone || a.phone === cleanPhone)).length;
       
-      const isExisting = Boolean(existingContact && (existingContact.name || existingContact.tags?.length > 0 || hasPriorMessages || aptsCount > 0));
-      const isNew = !isExisting;
+      const isRegistered = Boolean(
+        (existingContact && existingContact.tags?.includes('Cliente') && existingContact.name && existingContact.name !== 'Cliente') ||
+        (session.variables.nome_cliente && session.variables.nome_cliente !== senderName && session.variables.nome_cliente !== 'Cliente') ||
+        aptsCount > 0
+      );
+      const isNew = !isRegistered;
 
       // Populate rich context variables
       session.variables['is_primeiro_contato'] = isNew;
       session.variables['is_novo_contato'] = isNew;
       session.variables['tipo_cliente'] = isNew ? 'novo' : 'recorrente';
       session.variables['telefone_whatsapp'] = cleanPhone;
-      session.variables['nome_cliente'] = existingContact?.name || senderName;
+      if (isRegistered && existingContact?.name) {
+        session.variables['nome_cliente'] = existingContact.name;
+      }
       session.variables['tags_contato'] = (existingContact?.tags || []).join(', ');
       session.variables['total_agendamentos'] = aptsCount;
 

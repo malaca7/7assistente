@@ -734,8 +734,11 @@ app.post('/api/whatsapp/sync-flows', (req, res) => {
     if (botProfile) db.botProfile = { ...db.botProfile, ...botProfile };
     if (agendaSettings) db.agendaSettings = { ...db.agendaSettings, ...agendaSettings };
 
+    // Reset active sessions so subsequent messages strictly trigger the newly published flow
+    db.sessions = {};
+
     saveDb(db);
-    console.log('[WhatsApp Server] ✅ Fluxos, nós, identidade e agenda sincronizados com sucesso do Painel!');
+    console.log('[WhatsApp Server] ✅ Fluxos, nós, identidade e agenda sincronizados! Sessões ativas resetadas para o novo fluxo.');
 
     if (supabaseServer && botProfile) {
       supabaseServer.from('settings').upsert({

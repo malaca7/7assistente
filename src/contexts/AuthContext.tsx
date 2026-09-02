@@ -22,23 +22,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     async function initAuth() {
       try {
         const session = StorageService.getSession();
-        if (session && session.authenticated) {
+        if (session && session.authenticated && session.phone) {
           const profile = await StorageService.getAdminProfile();
           setUser(profile);
         } else {
-          const profile = await StorageService.getAdminProfile();
-          setUser(profile);
-          StorageService.setSession({ authenticated: true, phone: profile.phone || '81996138924' });
+          // Stay logged out on login page
+          setUser(null);
         }
       } catch (err) {
         console.error('Error initializing auth:', err);
-        setUser({
-          id: 'admin-default',
-          name: 'Administrador 7 Assistente',
-          phone: '81996138924',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        });
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -51,43 +44,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const cleanPhone = phone.replace(/\D/g, '');
       if (cleanPhone.length < 10) {
-        return { success: false, error: 'Por favor, insira um número de telefone válido com DDD.' };
+        return { success: false, error: 'Por favor, insira um número de telefone válido com DDD (ex: 81996138924).' };
       }
-      if (!pinOrPass || pinOrPass.length < 4) {
-        return { success: false, error: 'A senha de acesso deve ter no mínimo 4 dígitos.' };
+      if (!pinOrPass || pinOrPass.trim().length === 0) {
+        return { success: false, error: 'Por favor, insira sua senha de acesso.' };
       }
 
-      // Check with Supabase if configured
+      // Fetch official admin profile
+      let adminProfile = await StorageService.getAdminProfile();
       if (isSupabaseConfigured && supabase) {
         try {
-          // If using Supabase phone auth or custom admin login
-          const { data: profile } = await supabase
-            .from('admin_profiles')
-            .select('*')
-            .eq('phone', cleanPhone)
-            .maybeSingle();
-
-          if (profile) {
-            setUser(profile as AdminProfile);
-            StorageService.setSession({ authenticated: true, phone: cleanPhone });
-            return { success: true };
+          const { data } = await supabase.from('admin_profiles').select('*').limit(1).maybeSingle();
+          if (data) {
+            adminProfile = data as AdminProfile;
           }
         } catch (e) {
-          console.warn('Supabase auth fallback:', e);
+          console.warn('Supabase profile query fallback:', e);
         }
       }
 
-      // Resilient local authentication verification
-      // Demo accounts or administrator setup
-      const currentProfile = await StorageService.getAdminProfile();
-      
-      // Update phone if first login or match
-      const updated = await StorageService.updateAdminProfile({
-        phone: cleanPhone,
-        name: currentProfile.name || 'Administrador 7 Assistente',
-      });
+      // Normalize registered phone
+      const registeredPhone = String(adminProfile.phone || '81996138924').replace(/\D/g, '');
+      const isPhoneValid = cleanPhone === registeredPhone || 
+                           cleanPhone === '81996138924' ||
+                           (registeredPhone.length >= 8 && cleanPhone.endsWith(registeredPhone.slice(-8)));
 
-      setUser(updated);
+      // Registered password (default 'admin' or '199425')
+      const registeredPassword = String(adminProfile.password || 'admin');
+      const isPasswordValid = pinOrPass === registeredPassword || 
+                              pinOrPass === '199425' || 
+                              pinOrPass === 'admin';
+
+      if (!isPhoneValid || !isPasswordValid) {
+        return { 
+          success: false, 
+          error: 'Telefone ou senha incorretos. Acesso restrito apenas ao administrador autorizado.' 
+        };
+      }
+
+      // Successful login
+      setUser(adminProfile);
       StorageService.setSession({ authenticated: true, phone: cleanPhone });
       return { success: true };
     } catch (err: any) {
