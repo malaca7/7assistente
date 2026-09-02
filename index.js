@@ -1,9 +1,11 @@
-// Polyfill WebSocket before anything else is imported
+import './server/websocketPolyfill.mjs';
 import WebSocket from 'ws';
-if (!globalThis.WebSocket) {
+
+if (typeof globalThis !== 'undefined') {
   globalThis.WebSocket = WebSocket;
 }
 
 // Discloud Root Entry Point
 import './server/index.mjs';
+
 
