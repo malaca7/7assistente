@@ -455,6 +455,40 @@ export const StorageService = {
     return updated;
   },
 
+  async deleteContact(id: string, phone?: string): Promise<void> {
+    const backendUrl = getBackendUrl();
+    const cleanPhone = (phone || id).replace(/\D/g, '');
+
+    // 1. Remove from local storage
+    const contacts = getItem<Contact[]>(STORAGE_KEYS.CONTACTS, []);
+    const filtered = contacts.filter(c => c.id !== id && c.phone !== phone && c.phone !== cleanPhone);
+    setItem(STORAGE_KEYS.CONTACTS, filtered);
+
+    // 2. Remove from Supabase
+    if (isSupabaseConfigured && supabase) {
+      try {
+        if (cleanPhone) {
+          await supabase.from('contacts').delete().eq('phone', cleanPhone);
+        }
+        if (id) {
+          await supabase.from('contacts').delete().eq('id', id);
+        }
+      } catch (e) {
+        console.warn('Supabase contact delete fallback:', e);
+      }
+    }
+
+    // 3. Remove from WhatsApp Backend Server
+    try {
+      const target = cleanPhone || id;
+      await fetch(`${backendUrl}/api/whatsapp/contacts/${target}?phone=${cleanPhone}`, {
+        method: 'DELETE',
+      });
+    } catch (e) {
+      // Ignore
+    }
+  },
+
   // Conversations
   async getConversations(): Promise<Conversation[]> {
     const backendUrl = getBackendUrl();
@@ -510,6 +544,27 @@ export const StorageService = {
 
     setItem(STORAGE_KEYS.CONVERSATIONS, convs);
     return updated;
+  },
+
+  async deleteConversation(id: string): Promise<void> {
+    const backendUrl = getBackendUrl();
+    const convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, []);
+    const filtered = convs.filter(c => c.id !== id);
+    setItem(STORAGE_KEYS.CONVERSATIONS, filtered);
+    localStorage.removeItem(`${STORAGE_KEYS.MESSAGES_PREFIX}${id}`);
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('conversations').delete().eq('id', id);
+        await supabase.from('messages').delete().eq('conversation_id', id);
+      } catch (e) {}
+    }
+
+    try {
+      await fetch(`${backendUrl}/api/whatsapp/conversations/${id}`, {
+        method: 'DELETE',
+      });
+    } catch (e) {}
   },
 
   // Messages
