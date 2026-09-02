@@ -19,7 +19,7 @@ import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
 import { useToast } from '../../contexts/ToastContext';
 import { useWhatsApp } from '../../contexts/WhatsAppContext';
-import { StorageService } from '../../lib/storage';
+import { StorageService, getBackendUrl } from '../../lib/storage';
 import { Flow, FlowNode, FlowEdge, FlowNodeData } from '../../types';
 
 export interface FlowEditorPageProps {
@@ -664,8 +664,41 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
   const handleToggleStatus = async () => {
     if (!flow) return;
     const newStatus = flow.status === 'published' ? 'paused' : 'published';
-    const updated = await StorageService.saveFlow({ ...flow, status: newStatus });
+
+    // 1. Save graph first so latest canvas edits are immediately persisted
+    await StorageService.saveFlowGraph(
+      flowId,
+      nodes as unknown as FlowNode[],
+      edges as unknown as FlowEdge[]
+    );
+
+    // 2. If publishing, pause any other active flow
+    if (newStatus === 'published') {
+      const allFlows = await StorageService.getFlows();
+      for (const f of allFlows) {
+        if (f.id !== flow.id && f.status === 'published') {
+          await StorageService.saveFlow({ ...f, status: 'paused' });
+        }
+      }
+    }
+
+    // 3. Save flow status
+    const updated = await StorageService.saveFlow({
+      ...flow,
+      status: newStatus,
+      node_count: nodes.length,
+      updated_at: new Date().toISOString(),
+    });
     setFlow(updated);
+
+    // 4. Publish directly on server
+    const backendUrl = getBackendUrl();
+    try {
+      if (newStatus === 'published') {
+        await fetch(`${backendUrl}/api/whatsapp/flows/${flow.id}/publish`, { method: 'POST' });
+      }
+    } catch {}
+
     success(
       newStatus === 'published' ? 'Fluxo Publicado' : 'Fluxo Pausado',
       `O fluxo "${flow.name}" agora está ${newStatus === 'published' ? 'Publicado e Ativo no WhatsApp' : 'Pausado'}.`

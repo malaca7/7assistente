@@ -722,7 +722,80 @@ app.get('/api/whatsapp/agenda/available-slots', (req, res) => {
   res.json({ date: dateStr, available_slots: slots });
 });
 
-// 10. Sync Flows
+// 10. Flow Management REST Endpoints
+app.get('/api/whatsapp/flows', (req, res) => {
+  const db = loadDb();
+  res.json(db.flows || []);
+});
+
+app.post('/api/whatsapp/flows', (req, res) => {
+  try {
+    const flow = req.body;
+    const db = loadDb();
+    if (!db.flows) db.flows = [];
+    const idx = db.flows.findIndex(f => f.id === flow.id);
+    if (idx >= 0) {
+      db.flows[idx] = { ...db.flows[idx], ...flow, updated_at: new Date().toISOString() };
+    } else {
+      db.flows.unshift({ ...flow, updated_at: new Date().toISOString() });
+    }
+    saveDb(db);
+    res.json({ success: true, flow });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/whatsapp/flows/:id/graph', (req, res) => {
+  const { id } = req.params;
+  const db = loadDb();
+  const nodes = db.nodes?.[id] || [];
+  const edges = db.edges?.[id] || [];
+  res.json({ nodes, edges });
+});
+
+app.post('/api/whatsapp/flows/:id/graph', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nodes, edges } = req.body;
+    const db = loadDb();
+    if (!db.nodes) db.nodes = {};
+    if (!db.edges) db.edges = {};
+    if (nodes) db.nodes[id] = nodes;
+    if (edges) db.edges[id] = edges;
+
+    // Reset active sessions so subsequent WhatsApp messages immediately run the updated graph
+    db.sessions = {};
+    saveDb(db);
+    console.log(`[WhatsApp Server] 🔄 Grafo do fluxo ${id} salvo com ${nodes?.length || 0} nós e ${edges?.length || 0} conexões.`);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/whatsapp/flows/:id/publish', (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = loadDb();
+    if (!db.flows) db.flows = [];
+    db.flows.forEach(f => {
+      if (f.id === id) {
+        f.status = 'published';
+      } else {
+        f.status = 'paused';
+      }
+    });
+    db.sessions = {};
+    saveDb(db);
+    console.log(`[WhatsApp Server] 🚀 Fluxo ${id} definido como PUBLICADO (ATIVO) no WhatsApp!`);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 11. Sync Flows
 app.post('/api/whatsapp/sync-flows', (req, res) => {
   try {
     const { flows, nodes, edges, botProfile, agendaSettings } = req.body;

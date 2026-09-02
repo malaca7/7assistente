@@ -228,6 +228,18 @@ export const StorageService = {
 
   // Flows
   async getFlows(): Promise<Flow[]> {
+    const backendUrl = getBackendUrl();
+    try {
+      const res = await fetch(`${backendUrl}/api/whatsapp/flows`);
+      if (res.ok) {
+        const serverFlows = await res.json();
+        if (Array.isArray(serverFlows) && serverFlows.length > 0) {
+          setItem(STORAGE_KEYS.FLOWS, serverFlows);
+          return serverFlows;
+        }
+      }
+    } catch {}
+
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.from('flows').select('*').order('updated_at', { ascending: false });
@@ -245,6 +257,7 @@ export const StorageService = {
   },
 
   async saveFlow(flow: Flow): Promise<Flow> {
+    const backendUrl = getBackendUrl();
     const flows = await this.getFlows();
     const index = flows.findIndex(f => f.id === flow.id);
     const updated = { ...flow, updated_at: new Date().toISOString() };
@@ -255,6 +268,17 @@ export const StorageService = {
       flows.unshift(updated);
     }
 
+    setItem(STORAGE_KEYS.FLOWS, flows);
+
+    // Save directly to WhatsApp Server
+    try {
+      await fetch(`${backendUrl}/api/whatsapp/flows`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      });
+    } catch {}
+
     if (isSupabaseConfigured && supabase) {
       try {
         await supabase.from('flows').upsert(updated);
@@ -262,7 +286,7 @@ export const StorageService = {
         console.warn('Supabase flow upsert fallback:', e);
       }
     }
-    setItem(STORAGE_KEYS.FLOWS, flows);
+
     syncWithWhatsAppServer();
     return updated;
   },
@@ -307,6 +331,18 @@ export const StorageService = {
 
   // Flow Nodes & Edges
   async getFlowNodes(flowId: string): Promise<FlowNode[]> {
+    const backendUrl = getBackendUrl();
+    try {
+      const res = await fetch(`${backendUrl}/api/whatsapp/flows/${flowId}/graph`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.nodes && data.nodes.length > 0) {
+          setItem(`${STORAGE_KEYS.FLOW_NODES_PREFIX}${flowId}`, data.nodes);
+          return data.nodes;
+        }
+      }
+    } catch {}
+
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.from('flow_nodes').select('*').eq('flow_id', flowId);
@@ -331,6 +367,18 @@ export const StorageService = {
   },
 
   async getFlowEdges(flowId: string): Promise<FlowEdge[]> {
+    const backendUrl = getBackendUrl();
+    try {
+      const res = await fetch(`${backendUrl}/api/whatsapp/flows/${flowId}/graph`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.edges && data.edges.length > 0) {
+          setItem(`${STORAGE_KEYS.FLOW_EDGES_PREFIX}${flowId}`, data.edges);
+          return data.edges;
+        }
+      }
+    } catch {}
+
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.from('flow_edges').select('*').eq('flow_id', flowId);
@@ -357,8 +405,18 @@ export const StorageService = {
   },
 
   async saveFlowGraph(flowId: string, nodes: FlowNode[], edges: FlowEdge[]): Promise<void> {
+    const backendUrl = getBackendUrl();
     setItem(`${STORAGE_KEYS.FLOW_NODES_PREFIX}${flowId}`, nodes);
     setItem(`${STORAGE_KEYS.FLOW_EDGES_PREFIX}${flowId}`, edges);
+
+    // Save directly to WhatsApp Server
+    try {
+      await fetch(`${backendUrl}/api/whatsapp/flows/${flowId}/graph`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nodes, edges }),
+      });
+    } catch {}
 
     if (isSupabaseConfigured && supabase) {
       try {
@@ -384,9 +442,9 @@ export const StorageService = {
               flow_id: flowId,
               source_node_id: e.source,
               target_node_id: e.target,
-              source_handle: e.sourceHandle,
-              target_handle: e.targetHandle,
-              condition: e.data,
+              source_handle: e.sourceHandle || null,
+              target_handle: e.targetHandle || null,
+              condition: e.data || null,
             }))
           );
         }
