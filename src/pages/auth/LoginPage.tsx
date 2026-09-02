@@ -9,8 +9,8 @@ export const LoginPage: React.FC = () => {
   const { loginWithPhone, isLoading } = useAuth();
   const { error: toastError, success: toastSuccess } = useToast();
 
-  const [phone, setPhone] = useState('81996138924');
-  const [password, setPassword] = useState('199425');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -119,13 +119,6 @@ export const LoginPage: React.FC = () => {
               Entrar na Plataforma
             </Button>
           </form>
-
-          {/* Quick Demo Access Helper */}
-          <div className="pt-4 border-t border-white/5 text-center space-y-2">
-            <p className="text-[11px] text-slate-500">
-              Ambiente de Demonstração — Credenciais pré-preenchidas para teste rápido
-            </p>
-          </div>
         </div>
 
         {/* Security Footer Notice */}

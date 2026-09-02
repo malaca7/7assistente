@@ -4,6 +4,7 @@ export const initialAdminProfile: AdminProfile = {
   id: 'admin-001',
   phone: '81996138924',
   name: 'Talvane Barber',
+  password: 'admin',
   avatar_url: '',
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
