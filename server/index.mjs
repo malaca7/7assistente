@@ -725,16 +725,27 @@ app.get('/api/whatsapp/agenda/available-slots', (req, res) => {
 // 10. Sync Flows
 app.post('/api/whatsapp/sync-flows', (req, res) => {
   try {
-    const { flows, nodes, edges, botProfile } = req.body;
+    const { flows, nodes, edges, botProfile, agendaSettings } = req.body;
     const db = loadDb();
 
     if (flows) db.flows = flows;
     if (nodes) db.nodes = { ...db.nodes, ...nodes };
     if (edges) db.edges = { ...db.edges, ...edges };
     if (botProfile) db.botProfile = { ...db.botProfile, ...botProfile };
+    if (agendaSettings) db.agendaSettings = { ...db.agendaSettings, ...agendaSettings };
 
     saveDb(db);
-    console.log('[WhatsApp Server] ✅ Fluxos e nós sincronizados com sucesso do Painel Administrativo!');
+    console.log('[WhatsApp Server] ✅ Fluxos, nós, identidade e agenda sincronizados com sucesso do Painel!');
+
+    if (supabaseServer && botProfile) {
+      supabaseServer.from('settings').upsert({
+        id: 'default',
+        bot_profile: botProfile,
+        business_name: botProfile.company_name || 'Talvane Barber',
+        updated_at: new Date().toISOString(),
+      }).catch(() => {});
+    }
+
     res.json({ success: true, message: 'Fluxos atualizados no motor do WhatsApp' });
   } catch (err) {
     console.error('[WhatsApp Server] Erro ao sincronizar fluxos:', err);

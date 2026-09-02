@@ -17,10 +17,6 @@ import {
   initialAdminProfile, 
   initialSettings, 
   sampleFlows, 
-  sampleContacts, 
-  sampleConversations, 
-  sampleMessages, 
-  initialKPIs,
   initialFlowNodes,
   initialFlowEdges,
   defaultBotProfile
@@ -36,7 +32,21 @@ const STORAGE_KEYS = {
   CONVERSATIONS: '7assistente_conversations',
   MESSAGES_PREFIX: '7assistente_msgs_',
   AUTH_TOKEN: '7assistente_auth_session',
+  AGENDA_SETTINGS: '7assistente_agenda_settings',
+  APPOINTMENTS: '7assistente_appointments',
 };
+
+export function getBackendUrl(): string {
+  if (typeof window !== 'undefined') {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:3001';
+    }
+    if (window.location.hostname.includes('discloud.app')) {
+      return window.location.origin;
+    }
+  }
+  return 'https://talvanebarber.discloud.app';
+}
 
 // Helper for localStorage
 function getItem<T>(key: string, defaultValue: T): T {
@@ -56,25 +66,33 @@ function setItem<T>(key: string, value: T): void {
   }
 }
 
-async function syncWithWhatsAppServer(): Promise<void> {
+export async function syncWithWhatsAppServer(): Promise<void> {
   try {
-    let backendUrl = 'https://talvanebarber.discloud.app';
-    if (typeof window !== 'undefined') {
-      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        backendUrl = `http://${window.location.hostname}:3001`;
-      } else if (window.location.hostname.includes('discloud.app')) {
-        backendUrl = window.location.origin;
-      }
-    }
-
+    const backendUrl = getBackendUrl();
     const flows = getItem<Flow[]>(STORAGE_KEYS.FLOWS, sampleFlows);
     const settings = getItem<Settings>(STORAGE_KEYS.SETTINGS, initialSettings);
+    const agendaSettings = getItem<AgendaSettings>(STORAGE_KEYS.AGENDA_SETTINGS, {
+      business_days: ['1', '2', '3', '4', '5', '6'],
+      start_time: '08:00',
+      end_time: '19:00',
+      slot_duration_minutes: 30,
+      break_start_time: '12:00',
+      break_end_time: '13:00',
+      services: [
+        { id: 'srv-1', name: 'Corte Tradicional', duration_minutes: 30, price: 35 },
+        { id: 'srv-2', name: 'Barba Completa', duration_minutes: 30, price: 25 },
+        { id: 'srv-3', name: 'Corte + Barba (Combo)', duration_minutes: 60, price: 55 },
+        { id: 'srv-4', name: 'Sobrancelha', duration_minutes: 15, price: 15 },
+        { id: 'srv-5', name: 'Pigmentação', duration_minutes: 20, price: 25 },
+      ],
+    });
+
     const nodesMap: Record<string, FlowNode[]> = {};
     const edgesMap: Record<string, FlowEdge[]> = {};
 
     for (const f of flows) {
-      nodesMap[f.id] = getItem<FlowNode[]>(`${STORAGE_KEYS.FLOW_NODES_PREFIX}${f.id}`, (f.id === 'flow-1788033465058' || f.id === 'flow-001') ? (initialFlowNodes as FlowNode[]) : []);
-      edgesMap[f.id] = getItem<FlowEdge[]>(`${STORAGE_KEYS.FLOW_EDGES_PREFIX}${f.id}`, (f.id === 'flow-1788033465058' || f.id === 'flow-001') ? (initialFlowEdges as FlowEdge[]) : []);
+      nodesMap[f.id] = getItem<FlowNode[]>(`${STORAGE_KEYS.FLOW_NODES_PREFIX}${f.id}`, (f.id === 'flow-1788033465058') ? (initialFlowNodes as FlowNode[]) : []);
+      edgesMap[f.id] = getItem<FlowEdge[]>(`${STORAGE_KEYS.FLOW_EDGES_PREFIX}${f.id}`, (f.id === 'flow-1788033465058') ? (initialFlowEdges as FlowEdge[]) : []);
     }
 
     await fetch(`${backendUrl}/api/whatsapp/sync-flows`, {
@@ -85,6 +103,7 @@ async function syncWithWhatsAppServer(): Promise<void> {
         nodes: nodesMap,
         edges: edgesMap,
         botProfile: settings.bot_profile,
+        agendaSettings,
       }),
     });
   } catch (e) {
@@ -143,12 +162,16 @@ export const StorageService = {
     const updated = { ...current, ...settings, updated_at: new Date().toISOString() };
     if (isSupabaseConfigured && supabase) {
       try {
-        await supabase.from('settings').upsert(updated);
+        await supabase.from('settings').upsert({
+          id: updated.id || 'default',
+          ...updated,
+        });
       } catch (e) {
         console.warn('Supabase settings upsert fallback:', e);
       }
     }
     setItem(STORAGE_KEYS.SETTINGS, updated);
+    syncWithWhatsAppServer();
     return updated;
   },
 
@@ -169,17 +192,17 @@ export const StorageService = {
   async getBotVariables(): Promise<Record<string, string>> {
     const profile = await this.getBotProfile();
     return {
-      'bot_nome': profile.name || '7 Assistente',
-      'empresa': profile.company_name || 'Minha Empresa',
+      'bot_nome': profile.name || 'Talvane Barber Bot',
+      'empresa': profile.company_name || 'Talvane Barber',
       'bot_genero': profile.gender === 'female' ? 'Feminino' : profile.gender === 'male' ? 'Masculino' : 'Neutro',
       'bot_tom': profile.tone || 'Amigável',
       'bot_foto': profile.avatar_url || '',
-      'ramo_empresa': profile.company_segment || '',
-      'suporte_email': profile.support_email || '',
-      'suporte_telefone': profile.support_phone || '',
-      'horario_atendimento': profile.business_hours || '08h às 18h',
-      'site_empresa': profile.website_url || '',
-      'mensagem_boas_vindas': profile.welcome_message || '',
+      'ramo_empresa': profile.company_segment || 'Barbearia e Estética Masculina',
+      'suporte_email': profile.support_email || 'contato@talvanebarber.com.br',
+      'suporte_telefone': profile.support_phone || '81996138924',
+      'horario_atendimento': profile.business_hours || '08:00 às 19:00',
+      'site_empresa': profile.website_url || 'https://talvane.malaca.com.br',
+      'mensagem_boas_vindas': profile.welcome_message || 'Olá! Seja bem-vindo à Talvane Barber.',
     };
   },
 
@@ -192,7 +215,6 @@ export const StorageService = {
     const activeFlows = flows.filter(f => f.status === 'published').length;
     const waitingHuman = conversations.filter(c => c.status === 'waiting_human').length;
     const activeConversations = conversations.filter(c => c.status === 'bot' || c.status === 'human').length;
-    const messagesCount = conversations.length;
 
     return {
       totalContacts: contacts.length,
@@ -200,7 +222,7 @@ export const StorageService = {
       activeConversations: activeConversations,
       activeFlows: activeFlows,
       waitingHuman: waitingHuman,
-      messagesSentToday: messagesCount,
+      messagesSentToday: conversations.length,
     };
   },
 
@@ -292,9 +314,9 @@ export const StorageService = {
           return data.map(d => ({
             id: d.id,
             flow_id: d.flow_id,
-            type: d.node_type,
-            position: { x: Number(d.position_x), y: Number(d.position_y) },
-            data: d.data,
+            type: d.node_type || d.type,
+            position: { x: Number(d.position_x || 0), y: Number(d.position_y || 0) },
+            data: d.data || {},
           })) as FlowNode[];
         }
       } catch (e) {
@@ -316,11 +338,11 @@ export const StorageService = {
           return data.map(e => ({
             id: e.id,
             flow_id: e.flow_id,
-            source: e.source_node_id,
-            target: e.target_node_id,
-            sourceHandle: e.source_handle,
-            targetHandle: e.target_handle,
-            data: e.condition,
+            source: e.source_node_id || e.source,
+            target: e.target_node_id || e.target,
+            sourceHandle: e.source_handle || e.sourceHandle,
+            targetHandle: e.target_handle || e.targetHandle,
+            data: e.condition || e.data,
           })) as FlowEdge[];
         }
       } catch (e) {
@@ -344,6 +366,7 @@ export const StorageService = {
         if (nodes.length > 0) {
           await supabase.from('flow_nodes').insert(
             nodes.map(n => ({
+              id: n.id,
               flow_id: flowId,
               node_type: n.data?.nodeType || n.type,
               position_x: n.position.x,
@@ -357,6 +380,7 @@ export const StorageService = {
         if (edges.length > 0) {
           await supabase.from('flow_edges').insert(
             edges.map(e => ({
+              id: e.id,
               flow_id: flowId,
               source_node_id: e.source,
               target_node_id: e.target,
@@ -375,9 +399,10 @@ export const StorageService = {
 
   // Contacts
   async getContacts(): Promise<Contact[]> {
+    const backendUrl = getBackendUrl();
     let serverContacts: Contact[] = [];
     try {
-      const res = await fetch('http://localhost:3001/api/whatsapp/contacts');
+      const res = await fetch(`${backendUrl}/api/whatsapp/contacts`);
       if (res.ok) {
         serverContacts = await res.json();
       }
@@ -389,9 +414,8 @@ export const StorageService = {
       try {
         const { data, error } = await supabase.from('contacts').select('*').order('created_at', { ascending: false });
         if (data && data.length > 0 && !error) {
-          const combined = [...serverContacts, ...data as Contact[]];
-          const unique = Array.from(new Map(combined.map(item => [item.phone, item])).values());
-          return unique;
+          const combined = [...data, ...serverContacts];
+          return Array.from(new Map(combined.map(c => [c.phone, c])).values()) as Contact[];
         }
       } catch (e) {
         console.warn('Supabase contacts fetch fallback:', e);
@@ -400,98 +424,54 @@ export const StorageService = {
 
     const localContacts = getItem<Contact[]>(STORAGE_KEYS.CONTACTS, []);
     const combined = [...serverContacts, ...localContacts];
-    const unique = Array.from(new Map(combined.map(item => [item.phone, item])).values());
-    return unique;
+    return Array.from(new Map(combined.map(c => [c.phone, c])).values()) as Contact[];
+  },
+
+  async getContactById(id: string): Promise<Contact | null> {
+    const contacts = await this.getContacts();
+    return contacts.find(c => c.id === id || c.phone === id) || null;
   },
 
   async saveContact(contact: Contact): Promise<Contact> {
     const contacts = await this.getContacts();
     const index = contacts.findIndex(c => c.id === contact.id || c.phone === contact.phone);
     const updated = { ...contact, updated_at: new Date().toISOString() };
-    
+
     if (index >= 0) {
       contacts[index] = updated;
     } else {
       contacts.unshift(updated);
     }
 
-    // Sync to live WhatsApp server
-    try {
-      await fetch('http://localhost:3001/api/whatsapp/contacts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated),
-      });
-    } catch {
-      // Ignore
-    }
-
     if (isSupabaseConfigured && supabase) {
       try {
-        await supabase.from('contacts').upsert(updated);
+        await supabase.from('contacts').upsert(updated, { onConflict: 'phone' });
       } catch (e) {
         console.warn('Supabase contact upsert fallback:', e);
       }
     }
+
     setItem(STORAGE_KEYS.CONTACTS, contacts);
     return updated;
   },
 
-  async deleteContact(id: string, phone?: string): Promise<void> {
-    const cleanId = id.replace('contact-', '');
-    const cleanDigits = (phone || id).replace(/\D/g, '');
-
-    // 1. Delete on server
-    try {
-      const url = `http://localhost:3001/api/whatsapp/contacts/${encodeURIComponent(id)}?phone=${encodeURIComponent(phone || cleanDigits)}`;
-      await fetch(url, { method: 'DELETE' });
-    } catch {
-      // Ignore
-    }
-
-    // 2. Delete in local storage
-    const currentList = getItem<Contact[]>(STORAGE_KEYS.CONTACTS, []);
-    const filtered = currentList.filter(
-      (c) => c.id !== id && c.id !== cleanId && c.phone !== id && c.phone !== cleanDigits && c.phone !== phone
-    );
-    setItem(STORAGE_KEYS.CONTACTS, filtered);
-
-    // 3. Delete in Supabase
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('contacts').delete().or(`id.eq.${id},phone.eq.${cleanDigits || id}`);
-      } catch (e) {
-        console.warn('Supabase contact delete fallback:', e);
-      }
-    }
-  },
-
   // Conversations
   async getConversations(): Promise<Conversation[]> {
+    const backendUrl = getBackendUrl();
     let serverConvs: Conversation[] = [];
     try {
-      const res = await fetch('http://localhost:3001/api/whatsapp/conversations');
+      const res = await fetch(`${backendUrl}/api/whatsapp/conversations`);
       if (res.ok) {
         serverConvs = await res.json();
       }
-    } catch {
-      // Ignore
-    }
+    } catch {}
 
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase.from('conversations').select('*, contacts(*)').order('last_message_at', { ascending: false });
+        const { data, error } = await supabase.from('conversations').select('*').order('last_message_at', { ascending: false });
         if (data && data.length > 0 && !error) {
-          const dbConvs = data.map(d => ({
-            ...d,
-            contact_name: d.contacts?.name || 'Cliente',
-            contact_phone: d.contacts?.phone || '',
-            contact: d.contacts
-          })) as Conversation[];
-          const combined = [...serverConvs, ...dbConvs];
-          const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
-          unique.sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
-          return unique;
+          const combined = [...data, ...serverConvs];
+          return Array.from(new Map(combined.map(c => [c.id, c])).values()) as Conversation[];
         }
       } catch (e) {
         console.warn('Supabase conversations fetch fallback:', e);
@@ -500,53 +480,46 @@ export const StorageService = {
 
     const localConvs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, []);
     const combined = [...serverConvs, ...localConvs];
-    const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
-    unique.sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
-    return unique;
+    return Array.from(new Map(combined.map(c => [c.id, c])).values()) as Conversation[];
   },
 
-  async saveConversation(conv: Conversation): Promise<Conversation> {
+  async getConversationById(id: string): Promise<Conversation | null> {
     const convs = await this.getConversations();
-    const index = convs.findIndex((c) => c.id === conv.id);
-    const updated = { ...conv, updated_at: new Date().toISOString() };
-    if (index >= 0) {
-      convs[index] = updated;
-    } else {
-      convs.unshift(updated);
-    }
+    return convs.find(c => c.id === id) || null;
+  },
+
+  async updateConversationStatus(id: string, status: Conversation['status']): Promise<Conversation | null> {
+    const convs = await this.getConversations();
+    const index = convs.findIndex(c => c.id === id);
+    if (index === -1) return null;
+
+    const updated = {
+      ...convs[index],
+      status,
+      updated_at: new Date().toISOString()
+    };
+    convs[index] = updated;
+
     if (isSupabaseConfigured && supabase) {
       try {
-        await supabase.from('conversations').upsert(updated);
+        await supabase.from('conversations').update({ status, updated_at: updated.updated_at }).eq('id', id);
       } catch (e) {
-        console.warn('Supabase conversation upsert fallback:', e);
+        console.warn('Supabase conversation update fallback:', e);
       }
     }
+
     setItem(STORAGE_KEYS.CONVERSATIONS, convs);
     return updated;
   },
 
-  async deleteConversation(id: string): Promise<void> {
-    try {
-      await fetch(`http://localhost:3001/api/whatsapp/conversations/${id}`, {
-        method: 'DELETE',
-      });
-    } catch {
-      // Ignore
-    }
-
-    const currentConvs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, []);
-    const filtered = currentConvs.filter((c) => c.id !== id);
-    setItem(STORAGE_KEYS.CONVERSATIONS, filtered);
-  },
-
+  // Messages
   async getMessages(conversationId: string): Promise<Message[]> {
+    const backendUrl = getBackendUrl();
+    let serverMsgs: Message[] = [];
     try {
-      const res = await fetch(`http://localhost:3001/api/whatsapp/messages/${conversationId}`);
+      const res = await fetch(`${backendUrl}/api/whatsapp/conversations/${conversationId}/messages`);
       if (res.ok) {
-        const serverMsgs = await res.json();
-        if (serverMsgs && serverMsgs.length > 0) {
-          return serverMsgs;
-        }
+        serverMsgs = await res.json();
       }
     } catch {
       // Ignore
@@ -555,16 +528,22 @@ export const StorageService = {
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.from('messages').select('*').eq('conversation_id', conversationId).order('created_at', { ascending: true });
-        if (data && data.length > 0 && !error) return data as Message[];
+        if (data && data.length > 0 && !error) {
+          const combined = [...serverMsgs, ...data];
+          return Array.from(new Map(combined.map(m => [m.id, m])).values()) as Message[];
+        }
       } catch (e) {
         console.warn('Supabase messages fetch fallback:', e);
       }
     }
     const key = `${STORAGE_KEYS.MESSAGES_PREFIX}${conversationId}`;
-    return getItem<Message[]>(key, []);
+    const localMsgs = getItem<Message[]>(key, []);
+    const combined = [...serverMsgs, ...localMsgs];
+    return Array.from(new Map(combined.map(m => [m.id, m])).values()) as Message[];
   },
 
   async sendMessage(conversationId: string, content: string): Promise<Message> {
+    const backendUrl = getBackendUrl();
     const messages = await this.getMessages(conversationId);
     const newMessage: Message = {
       id: `msg-${Date.now()}`,
@@ -577,10 +556,24 @@ export const StorageService = {
     };
     messages.push(newMessage);
 
+    // Send directly via backend WhatsApp API if conversation has phone
+    try {
+      const conv = await this.getConversationById(conversationId);
+      const cleanPhone = conv?.contact_phone || conv?.phone || conversationId.replace('conv-', '');
+      if (cleanPhone) {
+        await fetch(`${backendUrl}/api/whatsapp/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: cleanPhone, message: content }),
+        });
+      }
+    } catch {}
+
     if (isSupabaseConfigured && supabase) {
       try {
         await supabase.from('messages').insert(newMessage);
         await supabase.from('conversations').update({
+          last_message: content,
           last_message_at: new Date().toISOString(),
         }).eq('id', conversationId);
       } catch (e) {
@@ -594,58 +587,93 @@ export const StorageService = {
 
   // Agenda & Appointments
   async getAgendaSettings(): Promise<AgendaSettings> {
+    const backendUrl = getBackendUrl();
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('agenda_settings').select('*').limit(1).maybeSingle();
+        if (data && !error) return data as AgendaSettings;
+      } catch (e) {}
+    }
+
     try {
-      const res = await fetch('http://localhost:3001/api/whatsapp/agenda/settings');
+      const res = await fetch(`${backendUrl}/api/whatsapp/agenda/settings`);
       if (res.ok) {
         return await res.json();
       }
     } catch {}
-    return getItem<AgendaSettings>('7assistente_agenda_settings', {
-      business_days: ['1', '2', '3', '4', '5'],
+
+    return getItem<AgendaSettings>(STORAGE_KEYS.AGENDA_SETTINGS, {
+      business_days: ['1', '2', '3', '4', '5', '6'],
       start_time: '08:00',
-      end_time: '18:00',
+      end_time: '19:00',
       slot_duration_minutes: 30,
       break_start_time: '12:00',
       break_end_time: '13:00',
       services: [
-        { id: 'srv-1', name: 'Atendimento Especialista', duration_minutes: 30, price: 150 },
-        { id: 'srv-2', name: 'Demonstração da Plataforma', duration_minutes: 45, price: 0 },
-        { id: 'srv-3', name: 'Suporte & Configuração', duration_minutes: 30, price: 80 },
+        { id: 'srv-1', name: 'Corte Tradicional', duration_minutes: 30, price: 35 },
+        { id: 'srv-2', name: 'Barba Completa', duration_minutes: 30, price: 25 },
+        { id: 'srv-3', name: 'Corte + Barba (Combo)', duration_minutes: 60, price: 55 },
+        { id: 'srv-4', name: 'Sobrancelha', duration_minutes: 15, price: 15 },
+        { id: 'srv-5', name: 'Pigmentação', duration_minutes: 20, price: 25 },
       ],
     });
   },
 
   async updateAgendaSettings(settings: Partial<AgendaSettings>): Promise<AgendaSettings> {
+    const backendUrl = getBackendUrl();
     const current = await this.getAgendaSettings();
-    const updated = { ...current, ...settings };
+    const updated = { ...current, ...settings, updated_at: new Date().toISOString() };
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('agenda_settings').upsert({ id: 'default', ...updated });
+      } catch (e) {}
+    }
+
     try {
-      await fetch('http://localhost:3001/api/whatsapp/agenda/settings', {
+      await fetch(`${backendUrl}/api/whatsapp/agenda/settings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updated),
       });
     } catch {}
-    setItem('7assistente_agenda_settings', updated);
+
+    setItem(STORAGE_KEYS.AGENDA_SETTINGS, updated);
+    syncWithWhatsAppServer();
     return updated;
   },
 
   async getAppointments(): Promise<Appointment[]> {
+    const backendUrl = getBackendUrl();
     let serverApts: Appointment[] = [];
     try {
-      const res = await fetch('http://localhost:3001/api/whatsapp/agenda/appointments');
+      const res = await fetch(`${backendUrl}/api/whatsapp/agenda/appointments`);
       if (res.ok) {
         serverApts = await res.json();
       }
     } catch {}
 
-    const localApts = getItem<Appointment[]>('7assistente_appointments', []);
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('appointments').select('*').order('created_at', { ascending: false });
+        if (data && data.length > 0 && !error) {
+          const combined = [...serverApts, ...data];
+          const unique = Array.from(new Map(combined.map((item) => [item.id, item])).values());
+          unique.sort((a, b) => new Date(`${b.appointment_date || b.date}T${b.appointment_time || b.time || '00:00'}`).getTime() - new Date(`${a.appointment_date || a.date}T${a.appointment_time || a.time || '00:00'}`).getTime());
+          return unique;
+        }
+      } catch (e) {}
+    }
+
+    const localApts = getItem<Appointment[]>(STORAGE_KEYS.APPOINTMENTS, []);
     const combined = [...serverApts, ...localApts];
     const unique = Array.from(new Map(combined.map((item) => [item.id, item])).values());
-    unique.sort((a, b) => new Date(`${b.appointment_date}T${b.appointment_time || '00:00'}`).getTime() - new Date(`${a.appointment_date}T${a.appointment_time || '00:00'}`).getTime());
+    unique.sort((a, b) => new Date(`${b.appointment_date || b.date}T${b.appointment_time || b.time || '00:00'}`).getTime() - new Date(`${a.appointment_date || a.date}T${a.appointment_time || a.time || '00:00'}`).getTime());
     return unique;
   },
 
   async saveAppointment(appointment: Appointment): Promise<Appointment> {
+    const backendUrl = getBackendUrl();
     const apts = await this.getAppointments();
     const index = apts.findIndex((a) => a.id === appointment.id);
     const updated = { ...appointment, created_at: appointment.created_at || new Date().toISOString() };
@@ -654,53 +682,78 @@ export const StorageService = {
     } else {
       apts.unshift(updated);
     }
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('appointments').upsert(updated);
+      } catch (e) {}
+    }
+
     try {
-      await fetch('http://localhost:3001/api/whatsapp/agenda/appointments', {
+      await fetch(`${backendUrl}/api/whatsapp/agenda/appointments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updated),
       });
     } catch {}
-    setItem('7assistente_appointments', apts);
+
+    setItem(STORAGE_KEYS.APPOINTMENTS, apts);
     return updated;
   },
 
   async updateAppointmentStatus(id: string, status: Appointment['status']): Promise<void> {
+    const backendUrl = getBackendUrl();
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('appointments').update({ status, updated_at: new Date().toISOString() }).eq('id', id);
+      } catch (e) {}
+    }
+
     try {
-      await fetch(`http://localhost:3001/api/whatsapp/agenda/appointments/${id}`, {
+      await fetch(`${backendUrl}/api/whatsapp/agenda/appointments/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       });
     } catch {}
+
     const apts = await this.getAppointments();
     const idx = apts.findIndex((a) => a.id === id);
     if (idx >= 0) {
       apts[idx].status = status;
-      setItem('7assistente_appointments', apts);
+      setItem(STORAGE_KEYS.APPOINTMENTS, apts);
     }
   },
 
   async deleteAppointment(id: string): Promise<void> {
+    const backendUrl = getBackendUrl();
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('appointments').delete().eq('id', id);
+      } catch (e) {}
+    }
+
     try {
-      await fetch(`http://localhost:3001/api/whatsapp/agenda/appointments/${id}`, {
+      await fetch(`${backendUrl}/api/whatsapp/agenda/appointments/${id}`, {
         method: 'DELETE',
       });
     } catch {}
+
     const apts = await this.getAppointments();
     const filtered = apts.filter((a) => a.id !== id);
-    setItem('7assistente_appointments', filtered);
+    setItem(STORAGE_KEYS.APPOINTMENTS, filtered);
   },
 
   async getAvailableSlots(dateStr: string): Promise<string[]> {
+    const backendUrl = getBackendUrl();
     try {
-      const res = await fetch(`http://localhost:3001/api/whatsapp/agenda/available-slots?date=${dateStr}`);
+      const res = await fetch(`${backendUrl}/api/whatsapp/agenda/available-slots?date=${dateStr}`);
       if (res.ok) {
         const data = await res.json();
         return data.available_slots || [];
       }
     } catch {}
-    return ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'];
+    return ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00'];
   },
 
   // Session
