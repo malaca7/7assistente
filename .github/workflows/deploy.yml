@@ -1,4 +1,4 @@
-name: Deploy Production (Discloud & GitHub Pages)
+name: Deploy Production (GitHub Pages & Discloud)
 
 on:
   push:
@@ -42,7 +42,6 @@ jobs:
           touch dist/.nojekyll
 
       - name: Upload Pages Artifact
-        if: github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3
         with:
           path: './dist'
@@ -62,13 +61,15 @@ jobs:
 
   deploy-discloud:
     name: Deploy to Discloud
-    if: secrets.DISCLOUD_TOKEN != ''
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Deploy to Discloud
+      - name: Check Discloud Secret & Deploy
+        if: ${{ env.DISCLOUD_TOKEN != '' }}
+        env:
+          DISCLOUD_TOKEN: ${{ secrets.DISCLOUD_TOKEN }}
         continue-on-error: true
         uses: discloud/deploy-action@v1
         with:
