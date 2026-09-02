@@ -815,6 +815,8 @@ if (validDistPath) {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`[WhatsApp Server] Servidor de Conexão e Motor de Fluxos rodando na porta ${PORT} (0.0.0.0)`);
-  startWhatsApp();
+  startWhatsApp().catch((err) => {
+    console.error('[WhatsApp Server] Erro capturado ao iniciar WhatsApp:', err?.message || err);
+  });
 });
 
