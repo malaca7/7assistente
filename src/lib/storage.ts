@@ -73,8 +73,8 @@ async function syncWithWhatsAppServer(): Promise<void> {
     const edgesMap: Record<string, FlowEdge[]> = {};
 
     for (const f of flows) {
-      nodesMap[f.id] = getItem<FlowNode[]>(`${STORAGE_KEYS.FLOW_NODES_PREFIX}${f.id}`, f.id === 'flow-001' ? (initialFlowNodes as FlowNode[]) : []);
-      edgesMap[f.id] = getItem<FlowEdge[]>(`${STORAGE_KEYS.FLOW_EDGES_PREFIX}${f.id}`, f.id === 'flow-001' ? (initialFlowEdges as FlowEdge[]) : []);
+      nodesMap[f.id] = getItem<FlowNode[]>(`${STORAGE_KEYS.FLOW_NODES_PREFIX}${f.id}`, (f.id === 'flow-1788033465058' || f.id === 'flow-001') ? (initialFlowNodes as FlowNode[]) : []);
+      edgesMap[f.id] = getItem<FlowEdge[]>(`${STORAGE_KEYS.FLOW_EDGES_PREFIX}${f.id}`, (f.id === 'flow-1788033465058' || f.id === 'flow-001') ? (initialFlowEdges as FlowEdge[]) : []);
     }
 
     await fetch(`${backendUrl}/api/whatsapp/sync-flows`, {
@@ -301,7 +301,7 @@ export const StorageService = {
         console.warn('Supabase flow_nodes fetch fallback:', e);
       }
     }
-    if (flowId === 'flow-001') {
+    if (flowId === 'flow-1788033465058' || flowId === 'flow-001') {
       const stored = getItem<FlowNode[] | null>(`${STORAGE_KEYS.FLOW_NODES_PREFIX}${flowId}`, null);
       return stored || initialFlowNodes as FlowNode[];
     }
@@ -327,7 +327,7 @@ export const StorageService = {
         console.warn('Supabase flow_edges fetch fallback:', e);
       }
     }
-    if (flowId === 'flow-001') {
+    if (flowId === 'flow-1788033465058' || flowId === 'flow-001') {
       const stored = getItem<FlowEdge[] | null>(`${STORAGE_KEYS.FLOW_EDGES_PREFIX}${flowId}`, null);
       return stored || initialFlowEdges as FlowEdge[];
     }

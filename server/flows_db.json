@@ -13,59 +13,6 @@
     }
   ],
   "nodes": {
-    "flow-001": [
-      {
-        "id": "node-trigger",
-        "type": "trigger",
-        "data": {
-          "label": "Gatilho: Qualquer Mensagem",
-          "nodeType": "trigger",
-          "config": {
-            "eventType": "any_message"
-          }
-        }
-      },
-      {
-        "id": "node-msg-1",
-        "type": "message",
-        "data": {
-          "label": "Boas-Vindas",
-          "nodeType": "message",
-          "config": {
-            "text": "Olá, {{nome_cliente}}! 👋\n\nSou a {{bot_nome}}, assistente virtual da {{empresa}}.\n\nComo posso te ajudar hoje?"
-          }
-        }
-      },
-      {
-        "id": "node-buttons-1",
-        "type": "buttons",
-        "data": {
-          "label": "Menu de Opções",
-          "nodeType": "buttons",
-          "config": {
-            "bodyText": "Escolha uma das opções abaixo digitando o número correspondente:",
-            "buttons": [
-              {
-                "id": "1",
-                "title": "1️⃣ Conhecer Nossos Serviços"
-              },
-              {
-                "id": "2",
-                "title": "2️⃣ Planos & Preços"
-              },
-              {
-                "id": "3",
-                "title": "3️⃣ Horário de Atendimento"
-              },
-              {
-                "id": "4",
-                "title": "4️⃣ Falar com Atendente Humano"
-              }
-            ]
-          }
-        }
-      }
-    ],
     "flow-1788033465058": [
       {
         "id": "node-trigger-1788033748050",
@@ -317,18 +264,6 @@
     ]
   },
   "edges": {
-    "flow-001": [
-      {
-        "id": "edge-1",
-        "source": "node-trigger",
-        "target": "node-msg-1"
-      },
-      {
-        "id": "edge-2",
-        "source": "node-msg-1",
-        "target": "node-buttons-1"
-      }
-    ],
     "flow-1788033465058": [
       {
         "animated": true,
@@ -448,128 +383,19 @@
     ]
   },
   "botProfile": {
-    "name": "Malaca",
-    "company_name": "Malaca Group",
+    "name": "Talvane Barber Bot",
+    "company_name": "Talvane Barber",
     "gender": "male",
-    "tone": "friendly",
-    "support_phone": "+55 81 99613-8924",
-    "business_hours": "Segunda a Sexta, das 08h às 18h",
-    "welcome_message": "Olá! Sou a Malaca, assistente virtual da Malaca Group. Como posso te ajudar hoje?",
-    "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
-    "company_segment": "Developers",
-    "support_email": "malaca@malaca.com.br",
-    "website_url": "https://malaca.com.br"
+    "tone": "Amigável e Profissional",
+    "support_phone": "81996138924",
+    "business_hours": "08:00 às 19:00",
+    "welcome_message": "Olá! Seja bem-vindo à Talvane Barber. Como podemos te ajudar hoje?",
+    "avatar_url": "",
+    "company_segment": "Barbearia e Estética Masculina",
+    "support_email": "contato@talvanebarber.com.br",
+    "website_url": "https://talvane.malaca.com.br"
   },
-  "sessions": {
-    "168650497613858": {
-      "flowId": "flow-1788033465058",
-      "currentNodeId": "node-services_catalog-1788105189425",
-      "variables": {
-        "nome_cliente": "Rogerio",
-        "telefone_cliente": "558196138924",
-        "ultima_mensagem": "Oi",
-        "opcao_selecionada": "🕒 08:30",
-        "botao_id": "slot_08:30",
-        "telefone_whatsapp": "558196138924",
-        "is_primeiro_contato": false,
-        "is_novo_contato": false,
-        "tipo_cliente": "recorrente",
-        "tags_contato": "Cliente, Agendado",
-        "total_agendamentos": 2,
-        "data_agendamento": "2026-08-30",
-        "servico_selecionado": "{{servico_selecionado}}",
-        "horario_agendamento": "08:30",
-        "servico_agendado": "{{servico_selecionado}}"
-      },
-      "waitingForVar": null,
-      "activeButtons": [
-        {
-          "id": "srv_srv-1788102781953",
-          "title": "Corte Cabelo (R$30)",
-          "fullService": {
-            "id": "srv-1788102781953",
-            "name": "Corte Cabelo",
-            "duration_minutes": 45,
-            "price": 30
-          }
-        },
-        {
-          "id": "srv_srv-1788102793887",
-          "title": "Barba (R$20)",
-          "fullService": {
-            "id": "srv-1788102793887",
-            "name": "Barba",
-            "duration_minutes": 20,
-            "price": 20
-          }
-        },
-        {
-          "id": "srv_srv-1788102815219",
-          "title": "Corte Cabelo +  (R$45)",
-          "fullService": {
-            "id": "srv-1788102815219",
-            "name": "Corte Cabelo + Barba (Promoção)",
-            "duration_minutes": 50,
-            "price": 45
-          }
-        }
-      ]
-    },
-    "558196138924": {
-      "flowId": "flow-1788033465058",
-      "currentNodeId": "node-services_catalog-1788105189425",
-      "variables": {
-        "nome_cliente": "Rogerio",
-        "telefone_cliente": "558196138924",
-        "ultima_mensagem": "Oi",
-        "opcao_selecionada": "🕒 08:30",
-        "botao_id": "slot_08:30",
-        "telefone_whatsapp": "558196138924",
-        "is_primeiro_contato": false,
-        "is_novo_contato": false,
-        "tipo_cliente": "recorrente",
-        "tags_contato": "Cliente, Agendado",
-        "total_agendamentos": 2,
-        "data_agendamento": "2026-08-30",
-        "servico_selecionado": "{{servico_selecionado}}",
-        "horario_agendamento": "08:30",
-        "servico_agendado": "{{servico_selecionado}}"
-      },
-      "waitingForVar": null,
-      "activeButtons": [
-        {
-          "id": "srv_srv-1788102781953",
-          "title": "Corte Cabelo (R$30)",
-          "fullService": {
-            "id": "srv-1788102781953",
-            "name": "Corte Cabelo",
-            "duration_minutes": 45,
-            "price": 30
-          }
-        },
-        {
-          "id": "srv_srv-1788102793887",
-          "title": "Barba (R$20)",
-          "fullService": {
-            "id": "srv-1788102793887",
-            "name": "Barba",
-            "duration_minutes": 20,
-            "price": 20
-          }
-        },
-        {
-          "id": "srv_srv-1788102815219",
-          "title": "Corte Cabelo +  (R$45)",
-          "fullService": {
-            "id": "srv-1788102815219",
-            "name": "Corte Cabelo + Barba (Promoção)",
-            "duration_minutes": 50,
-            "price": 45
-          }
-        }
-      ]
-    }
-  },
+  "sessions": {},
   "appointments": [
     {
       "id": "apt-1788043578235",

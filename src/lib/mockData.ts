@@ -1,26 +1,26 @@
-import { Flow, Contact, Conversation, Message, Settings, AdminProfile, DashboardKPIs, BotProfile } from '../types';
+import { Flow, Contact, Conversation, Settings, AdminProfile, DashboardKPIs, BotProfile } from '../types';
 
 export const initialAdminProfile: AdminProfile = {
   id: 'admin-001',
   phone: '81996138924',
-  name: 'Administrador 7 Assistente',
-  avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+  name: 'Talvane Barber',
+  avatar_url: '',
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
 };
 
 export const defaultBotProfile: BotProfile = {
-  name: 'Sofia',
-  company_name: '7 Assistente Tech',
-  gender: 'female',
-  tone: 'friendly',
-  avatar_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80',
-  company_segment: 'SaaS & Automação de WhatsApp',
-  support_email: 'suporte@7assistente.com.br',
-  support_phone: '+55 81 99613-8924',
-  business_hours: 'Segunda a Sexta, das 08h às 18h',
-  website_url: 'https://7assistente.com.br',
-  welcome_message: 'Olá! Sou a Sofia, assistente virtual da 7 Assistente. Como posso te ajudar hoje?',
+  name: 'Talvane Barber Bot',
+  company_name: 'Talvane Barber',
+  gender: 'male',
+  tone: 'Amigável e Profissional',
+  avatar_url: '',
+  company_segment: 'Barbearia e Estética Masculina',
+  support_email: 'contato@talvanebarber.com.br',
+  support_phone: '81996138924',
+  business_hours: '08:00 às 19:00',
+  website_url: 'https://talvane.malaca.com.br',
+  welcome_message: 'Olá! Seja bem-vindo à Talvane Barber. Como podemos te ajudar hoje?',
 };
 
 export const initialSettings: Settings = {
@@ -43,191 +43,41 @@ export const initialKPIs: DashboardKPIs = {
   totalContacts: 1420,
   totalConversations: 3840,
   activeConversations: 42,
-  activeFlows: 6,
-  waitingHuman: 3,
+  activeFlows: 1,
+  waitingHuman: 0,
   messagesSentToday: 1890,
 };
 
 export const sampleFlows: Flow[] = [
   {
-    id: 'flow-001',
-    name: 'Atendimento Inicial & Qualificação de Leads',
-    description: 'Fluxo principal acionado ao receber qualquer mensagem inicial de novos clientes.',
+    id: 'flow-1788033465058',
+    name: 'Atendimento & Agendamento Talvane Barber',
+    description: 'Fluxo oficial com verificação de cliente, catálogo de serviços e reserva automática de horários.',
     status: 'published',
-    version: 3,
-    node_count: 8,
+    version: 7,
+    node_count: 10,
     trigger_type: 'Mensagem recebida',
-    created_at: '2026-08-20T10:00:00Z',
-    updated_at: '2026-08-28T14:30:00Z',
-  },
-  {
-    id: 'flow-002',
-    name: 'Triagem com IA (Suporte & FAQ Inteligente)',
-    description: 'Agente de IA que consulta a base de conhecimento e responde dúvidas técnicas 24/7.',
-    status: 'published',
-    version: 2,
-    node_count: 6,
-    trigger_type: 'Palavra-chave: #ajuda, #suporte',
-    created_at: '2026-08-22T11:20:00Z',
-    updated_at: '2026-08-27T09:15:00Z',
-  },
-  {
-    id: 'flow-003',
-    name: 'Agendamento de Demonstração / Reunião',
-    description: 'Coleta preferências de horário e conecta com webhook para criar agendamento.',
-    status: 'draft',
-    version: 1,
-    node_count: 5,
-    trigger_type: 'Botão: Agendar Demo',
-    created_at: '2026-08-26T16:40:00Z',
-    updated_at: '2026-08-28T18:00:00Z',
-  },
-  {
-    id: 'flow-004',
-    name: 'Pesquisa de Satisfação (NPS)',
-    description: 'Disparado 15 minutos após encerramento do atendimento humano.',
-    status: 'paused',
-    version: 1,
-    node_count: 4,
-    trigger_type: 'Evento: Atendimento Encerrado',
-    created_at: '2026-08-15T08:00:00Z',
-    updated_at: '2026-08-25T11:10:00Z',
+    created_at: '2026-08-29T19:57:45.058Z',
+    updated_at: '2026-08-30T15:53:39.736Z',
   }
 ];
 
-export const sampleContacts: Contact[] = [
-  {
-    id: 'contact-001',
-    phone: '5511987654321',
-    name: 'Mariana Silveira',
-    profile_picture_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
-    status: 'active',
-    tags: ['Lead Quente', 'SaaS', 'Empresarial'],
-    metadata: { empresa: 'TechSoluções', cargo: 'Diretora Comercial' },
-    created_at: '2026-08-28T09:00:00Z',
-    updated_at: '2026-08-29T15:20:00Z',
-  },
-  {
-    id: 'contact-002',
-    phone: '5521976543210',
-    name: 'Carlos Eduardo Ramos',
-    profile_picture_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    status: 'active',
-    tags: ['Suporte', 'Aguardando Humano'],
-    metadata: { plano: 'Enterprise', ticketId: 'TCK-892' },
-    created_at: '2026-08-27T14:15:00Z',
-    updated_at: '2026-08-29T15:45:00Z',
-  },
-  {
-    id: 'contact-003',
-    phone: '5531998877665',
-    name: 'Beatriz Vasconcelos',
-    profile_picture_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
-    status: 'active',
-    tags: ['Financeiro', 'Fatura'],
-    metadata: { clienteDesde: '2025' },
-    created_at: '2026-08-25T10:30:00Z',
-    updated_at: '2026-08-29T12:10:00Z',
-  },
-  {
-    id: 'contact-004',
-    phone: '5541988776655',
-    name: 'Roberto Fernandes',
-    profile_picture_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-    status: 'active',
-    tags: ['Novo'],
-    metadata: {},
-    created_at: '2026-08-29T11:00:00Z',
-    updated_at: '2026-08-29T11:05:00Z',
-  }
-];
+export const sampleContacts: Contact[] = [];
 
-export const sampleConversations: Conversation[] = [
-  {
-    id: 'conv-001',
-    contact_id: 'contact-002',
-    contact: sampleContacts[1],
-    status: 'waiting_human',
-    assigned_to: null,
-    started_at: '2026-08-29T15:30:00Z',
-    last_message_at: '2026-08-29T15:45:00Z',
-    unread_count: 2,
-    last_message: 'Preciso falar com alguém do suporte sobre a integração da API.',
-    created_at: '2026-08-29T15:30:00Z',
-    updated_at: '2026-08-29T15:45:00Z',
-  },
-  {
-    id: 'conv-002',
-    contact_id: 'contact-001',
-    contact: sampleContacts[0],
-    status: 'bot',
-    assigned_to: null,
-    started_at: '2026-08-29T15:10:00Z',
-    last_message_at: '2026-08-29T15:20:00Z',
-    unread_count: 0,
-    last_message: 'Perfeito! Gostaria de receber a proposta comercial por e-mail.',
-    created_at: '2026-08-29T15:10:00Z',
-    updated_at: '2026-08-29T15:20:00Z',
-  },
-  {
-    id: 'conv-003',
-    contact_id: 'contact-003',
-    contact: sampleContacts[2],
-    status: 'human',
-    assigned_to: 'Administrador 7 Assistente',
-    started_at: '2026-08-29T11:45:00Z',
-    last_message_at: '2026-08-29T12:10:00Z',
-    unread_count: 0,
-    last_message: 'Boleto enviado com sucesso. Muito obrigado!',
-    created_at: '2026-08-29T11:45:00Z',
-    updated_at: '2026-08-29T12:10:00Z',
-  }
-];
+export const sampleConversations: Conversation[] = [];
 
-export const sampleMessages: Record<string, Message[]> = {
-  'conv-001': [
-    {
-      id: 'msg-1',
-      conversation_id: 'conv-001',
-      direction: 'inbound',
-      message_type: 'text',
-      content: 'Olá, estou tentando configurar o webhook mas está retornando erro 403.',
-      whatsapp_message_id: 'wamid.HBgLNTUxMTk4NzY1NDMyMQ==',
-      status: 'read',
-      created_at: '2026-08-29T15:30:00Z',
-    },
-    {
-      id: 'msg-2',
-      conversation_id: 'conv-001',
-      direction: 'outbound',
-      message_type: 'text',
-      content: 'Olá Carlos! Sou o 7 Assistente virtual. Você já verificou se o token de verificação (Verify Token) no Meta Developers coincide com o configurado no painel?',
-      status: 'delivered',
-      created_at: '2026-08-29T15:30:10Z',
-    },
-    {
-      id: 'msg-3',
-      conversation_id: 'conv-001',
-      direction: 'inbound',
-      message_type: 'text',
-      content: 'Sim, já conferi. Preciso falar com alguém do suporte sobre a integração da API.',
-      whatsapp_message_id: 'wamid.HBgLNTUxMTk4NzY1NDMyMg==',
-      status: 'read',
-      created_at: '2026-08-29T15:45:00Z',
-    }
-  ]
-};
+export const sampleMessages: Record<string, any[]> = {};
 
-// Initial nodes and edges for the demo flow
+// Initial nodes and edges for Talvane Barber flow
 export const initialFlowNodes = [
   {
-    id: 'node-trigger',
+    id: 'node-trigger-1788033748050',
     type: 'trigger',
-    position: { x: 80, y: 180 },
+    position: { x: 80, y: 225 },
     data: {
-      label: 'Mensagem Recebida',
+      label: 'Gatilho',
       nodeType: 'trigger',
-      description: 'Dispara quando um contato envia mensagem',
+      description: 'Inicia o fluxo ao receber mensagens ou eventos.',
       isConfigured: true,
       config: {
         eventType: 'any_message',
@@ -237,68 +87,144 @@ export const initialFlowNodes = [
     }
   },
   {
-    id: 'node-message-welcome',
+    id: 'node-check_contact-1788102919201',
+    type: 'check_contact',
+    position: { x: 470, y: 225 },
+    data: {
+      label: 'Verificar Contato (Novo vs Salvo)',
+      nodeType: 'check_contact',
+      description: 'Verifica se é o primeiro contato do cliente ou contato existente e cria variáveis.',
+      isConfigured: true,
+      config: {}
+    }
+  },
+  {
+    id: 'node-message-1788033773183',
     type: 'message',
-    position: { x: 420, y: 180 },
+    position: { x: 860, y: 120 },
     data: {
-      label: 'Boas-vindas',
+      label: 'Enviar Mensagem',
       nodeType: 'message',
-      description: 'Envia mensagem com saudação',
+      description: 'Envia texto com suporte a variáveis dinâmicas.',
       isConfigured: true,
       config: {
-        text: 'Olá! 👋 Bem-vindo ao *7 Assistente*. Como podemos te ajudar hoje?',
-        previewUrl: true
+        text: 'Olá, me chamo *{{bot_nome}}*. e sou assistente de atendimento da *{{empresa}}*! e vou lhe auxiliar para ter um melhor atendimento',
+        previewUrl: false
       }
     }
   },
   {
-    id: 'node-buttons-menu',
-    type: 'buttons',
-    position: { x: 760, y: 180 },
+    id: 'node-question-1788033927695',
+    type: 'question',
+    position: { x: 1250, y: 120 },
     data: {
-      label: 'Menu de Opções',
-      nodeType: 'buttons',
-      description: 'Apresenta 3 botões interativos',
+      label: 'Pergunta & Resposta',
+      nodeType: 'question',
+      description: 'Faz uma pergunta e armazena a resposta em variável.',
       isConfigured: true,
       config: {
-        bodyText: 'Selecione uma das opções abaixo:',
-        buttons: [
-          { id: 'btn_1', title: '🚀 Conhecer Planos' },
-          { id: 'btn_2', title: '🤖 Suporte com IA' },
-          { id: 'btn_3', title: '👤 Falar com Humano' }
-        ]
+        questionText: 'Por favor, informe seu nome:',
+        expectedType: 'text',
+        variableName: 'nome_cliente'
       }
     }
   },
   {
-    id: 'node-ai-agent',
-    type: 'ai_agent',
-    position: { x: 1150, y: 100 },
+    id: 'node-update_contact-1788041687381',
+    type: 'update_contact',
+    position: { x: 1640, y: 120 },
     data: {
-      label: 'Agente de IA',
-      nodeType: 'ai_agent',
-      description: 'Responde dúvidas com IA e Base de Conhecimento',
+      label: 'Salvar / Vincular Dados',
+      nodeType: 'update_contact',
+      description: 'Salva nome, tags e campos personalizados direto no WhatsApp do cliente.',
       isConfigured: true,
       config: {
-        model: 'gemini-1.5-pro',
-        temperature: 0.4,
-        persona: 'Assistente consultivo especialista em produtos',
-        systemPrompt: 'Você é o 7 Assistente. Responda de forma clara, educada e concisa.'
+        contactName: 'nome_cliente',
+        tags: 'Cliente',
+        customFieldKey: 'interesse_principal',
+        customFieldValue: 'opcao_selecionada'
       }
     }
   },
   {
-    id: 'node-handoff',
-    type: 'human_handoff',
-    position: { x: 1150, y: 340 },
+    id: 'node-message-1788102948794',
+    type: 'message',
+    position: { x: 885, y: 450 },
     data: {
-      label: 'Transferir para Humano',
-      nodeType: 'human_handoff',
-      description: 'Pausa a automação e notifica a equipe',
+      label: 'Enviar Mensagem',
+      nodeType: 'message',
+      description: 'Envia texto com suporte a variáveis dinâmicas.',
       isConfigured: true,
       config: {
-        department: 'Suporte Geral',
-        notifyMessage: 'Um atendente humano foi notificado e responderá em breve.'
+        text: 'Olá {{nome_cliente}}, me chamo *{{bot_nome}}*. e sou assistente de atendimento da *{{empresa}}*! e vou lhe auxiliar para ter um melhor atendimento',
+        previewUrl: false
+      }
+    }
+  },
+  {
+    id: 'node-ask_date-1788104674417',
+    type: 'ask_date',
+    position: { x: 2010, y: 360 },
+    data: {
+      label: '1. Escolher Dia do Agendamento',
+      nodeType: 'ask_date',
+      description: 'Oferece botões rápidos (Hoje, Amanhã) ou permite o cliente digitar uma data (ex: 25/08).',
+      isConfigured: true,
+      config: {
+        questionText: '*{{nome_cliente}}*, para qual dia você gostaria de agendar seu atendimento?',
+        dateVariable: 'data_agendamento',
+        allowCustomDate: true
+      }
+    }
+  },
+  {
+    id: 'node-services_catalog-1788105189425',
+    type: 'services_catalog',
+    position: { x: 2370, y: 165 },
+    data: {
+      label: '2. Catálogo de Serviços & Preços',
+      nodeType: 'services_catalog',
+      description: 'Puxa serviços e preços da Agenda e envia em botões interativos para escolha.',
+      isConfigured: true,
+      config: {
+        displayFormat: 'buttons',
+        introMessage: '*{{nome_cliente}}*, qual serviço você deseja?',
+        footerText: 'Toque no serviço desejado para agendar:',
+        serviceVarName: 'servico_selecionado',
+        priceVarName: 'valor_servico',
+        durationVarName: 'duracao_servico'
+      }
+    }
+  },
+  {
+    id: 'node-schedule_contact-1788104743355',
+    type: 'schedule_contact',
+    position: { x: 2810, y: 120 },
+    data: {
+      label: '3. Horários Livres da Agenda',
+      nodeType: 'schedule_contact',
+      description: 'Calcula horários realmente livres para a data e serviço, enviando opções para o cliente.',
+      isConfigured: true,
+      config: {
+        mode: 'show_slots',
+        dateType: 'variable',
+        dateVariable: 'data_agendamento',
+        serviceName: '{{servico_selecionado}}',
+        introMessage: 'Estes são os horários disponíveis para agendamento. Toque no seu horário preferido:'
+      }
+    }
+  },
+  {
+    id: 'node-confirm_booking-1788104787175',
+    type: 'confirm_booking',
+    position: { x: 3200, y: 120 },
+    data: {
+      label: '4. Confirmar & Gravar Agendamento',
+      nodeType: 'confirm_booking',
+      description: 'Exibe resumo com serviço, valor, data e horário, grava na Agenda e adiciona tag Agendado.',
+      isConfigured: true,
+      config: {
+        confirmMessage: '✅ Perfeito {{nome_cliente}}! Seu agendamento de *{{servico_selecionado}}* foi confirmado para o dia *{{data_agendamento}}* às *{{horario_agendamento}}*!'
       }
     }
   }
@@ -306,31 +232,83 @@ export const initialFlowNodes = [
 
 export const initialFlowEdges = [
   {
-    id: 'e-trigger-welcome',
-    source: 'node-trigger',
-    target: 'node-message-welcome',
+    id: 'xy-edge__node-trigger-1788033748050-node-check_contact-1788102919201',
+    source: 'node-trigger-1788033748050',
+    target: 'node-check_contact-1788102919201',
+    type: 'smoothstep',
     animated: true,
+    style: { stroke: '#06b6d4', strokeWidth: 2.5 }
   },
   {
-    id: 'e-welcome-menu',
-    source: 'node-message-welcome',
-    target: 'node-buttons-menu',
+    id: 'xy-edge__node-check_contact-1788102919201is_new-node-message-1788033773183',
+    source: 'node-check_contact-1788102919201',
+    sourceHandle: 'is_new',
+    target: 'node-message-1788033773183',
+    type: 'smoothstep',
     animated: true,
+    style: { stroke: '#06b6d4', strokeWidth: 2.5 }
   },
   {
-    id: 'e-menu-ai',
-    source: 'node-buttons-menu',
-    target: 'node-ai-agent',
-    sourceHandle: 'btn_2',
-    label: 'Suporte com IA',
+    id: 'xy-edge__node-check_contact-1788102919201is_existing-node-message-1788102948794',
+    source: 'node-check_contact-1788102919201',
+    sourceHandle: 'is_existing',
+    target: 'node-message-1788102948794',
+    type: 'smoothstep',
     animated: true,
+    style: { stroke: '#06b6d4', strokeWidth: 2.5 }
   },
   {
-    id: 'e-menu-handoff',
-    source: 'node-buttons-menu',
-    target: 'node-handoff',
-    sourceHandle: 'btn_3',
-    label: 'Falar com Humano',
+    id: 'xy-edge__node-message-1788033773183-node-question-1788033927695',
+    source: 'node-message-1788033773183',
+    target: 'node-question-1788033927695',
     animated: true,
+    style: { stroke: '#6366f1', strokeWidth: 2.5 }
+  },
+  {
+    id: 'xy-edge__node-question-1788033927695-node-update_contact-1788041687381',
+    source: 'node-question-1788033927695',
+    target: 'node-update_contact-1788041687381',
+    animated: true,
+    style: { stroke: '#6366f1', strokeWidth: 2.5 }
+  },
+  {
+    id: 'xy-edge__node-update_contact-1788041687381-node-ask_date-1788104674417',
+    source: 'node-update_contact-1788041687381',
+    target: 'node-ask_date-1788104674417',
+    type: 'smoothstep',
+    animated: true,
+    style: { stroke: '#06b6d4', strokeWidth: 2.5 }
+  },
+  {
+    id: 'xy-edge__node-message-1788102948794-node-ask_date-1788104674417',
+    source: 'node-message-1788102948794',
+    target: 'node-ask_date-1788104674417',
+    type: 'smoothstep',
+    animated: true,
+    style: { stroke: '#06b6d4', strokeWidth: 2.5 }
+  },
+  {
+    id: 'xy-edge__node-ask_date-1788104674417-node-services_catalog-1788105189425',
+    source: 'node-ask_date-1788104674417',
+    target: 'node-services_catalog-1788105189425',
+    type: 'smoothstep',
+    animated: true,
+    style: { stroke: '#06b6d4', strokeWidth: 2.5 }
+  },
+  {
+    id: 'xy-edge__node-services_catalog-1788105189425-node-schedule_contact-1788104743355',
+    source: 'node-services_catalog-1788105189425',
+    target: 'node-schedule_contact-1788104743355',
+    type: 'smoothstep',
+    animated: true,
+    style: { stroke: '#06b6d4', strokeWidth: 2.5 }
+  },
+  {
+    id: 'xy-edge__node-schedule_contact-1788104743355-node-confirm_booking-1788104787175',
+    source: 'node-schedule_contact-1788104743355',
+    target: 'node-confirm_booking-1788104787175',
+    type: 'smoothstep',
+    animated: true,
+    style: { stroke: '#06b6d4', strokeWidth: 2.5 }
   }
 ];
