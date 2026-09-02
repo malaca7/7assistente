@@ -397,6 +397,84 @@ export function getLiveContacts() {
   return contacts;
 }
 
+// Function to fetch latest flow, nodes, and edges dynamically with Supabase fallback
+export async function getActiveFlowAndGraph(db) {
+  let flows = db.flows || [];
+  
+  if ((!flows || flows.length === 0) && supabaseClient) {
+    try {
+      const { data } = await supabaseClient.from('flows').select('*');
+      if (data && data.length > 0) {
+        db.flows = data;
+        flows = data;
+        saveDb(db);
+      }
+    } catch (e) {
+      console.warn('[FlowRunner] Falha ao carregar fluxos do Supabase:', e?.message || e);
+    }
+  }
+
+  let publishedFlow = (flows || []).find((f) => f.status === 'published') || flows?.[0];
+  if (!publishedFlow) return { publishedFlow: null, nodes: [], edges: [] };
+
+  const flowId = publishedFlow.id;
+  let nodes = db.nodes?.[flowId] || [];
+  let edges = db.edges?.[flowId] || [];
+
+  if ((!nodes || nodes.length === 0) && supabaseClient) {
+    try {
+      const [nodesRes, edgesRes] = await Promise.all([
+        supabaseClient.from('flow_nodes').select('*').eq('flow_id', flowId),
+        supabaseClient.from('flow_edges').select('*').eq('flow_id', flowId)
+      ]);
+
+      if (nodesRes.data && nodesRes.data.length > 0) {
+        nodes = nodesRes.data.map((d) => ({
+          id: d.id,
+          flow_id: d.flow_id,
+          type: d.node_type || d.type,
+          position: { x: Number(d.position_x || 0), y: Number(d.position_y || 0) },
+          data: d.data || {},
+        }));
+        if (!db.nodes) db.nodes = {};
+        db.nodes[flowId] = nodes;
+      }
+
+      if (edgesRes.data && edgesRes.data.length > 0) {
+        edges = edgesRes.data.map((e) => ({
+          id: e.id,
+          flow_id: e.flow_id,
+          source: e.source_node_id || e.source,
+          target: e.target_node_id || e.target,
+          sourceHandle: e.source_handle || e.sourceHandle,
+          targetHandle: e.target_handle || e.targetHandle,
+          data: e.condition || e.data,
+        }));
+        if (!db.edges) db.edges = {};
+        db.edges[flowId] = edges;
+      }
+
+      if (nodes.length > 0) {
+        saveDb(db);
+        console.log(`[FlowRunner] 📥 Nós do fluxo "${publishedFlow.name}" carregados com sucesso do Supabase!`);
+      }
+    } catch (e) {
+      console.warn('[FlowRunner] Falha ao carregar nós do Supabase:', e?.message || e);
+    }
+  }
+
+  // Fallback to flow-001 or first available node set if specific flowId had 0 nodes
+  if ((!nodes || nodes.length === 0) && db.nodes) {
+    const firstKey = Object.keys(db.nodes)[0];
+    if (firstKey && db.nodes[firstKey]?.length > 0) {
+      nodes = db.nodes[firstKey];
+      edges = db.edges?.[firstKey] || [];
+    }
+  }
+
+  return { publishedFlow, nodes, edges };
+}
+
 // Execute published flow
 export async function executePublishedFlow(senderJid, messageText, pushName, realPhoneNumber = null, profilePicUrl = null) {
   const db = loadDb();
@@ -408,9 +486,8 @@ export async function executePublishedFlow(senderJid, messageText, pushName, rea
   // Record incoming message in real database
   recordRealMessage(cleanPhone, senderName, 'inbound', cleanInput, null, profilePicUrl);
 
-  // Find published flow
-  const publishedFlows = (db.flows || []).filter((f) => f.status === 'published');
-  const publishedFlow = publishedFlows[0] || db.flows?.[0];
+  // Dynamically resolve published flow, nodes, and edges
+  const { publishedFlow, nodes, edges } = await getActiveFlowAndGraph(db);
 
   if (!publishedFlow) {
     const defaultReply = `Olá, *${senderName}*! Recebi sua mensagem: "${cleanInput}".\n\nNo momento, não há nenhum fluxo ativo publicado no painel administrativo.`;
@@ -419,10 +496,8 @@ export async function executePublishedFlow(senderJid, messageText, pushName, rea
   }
 
   const flowId = publishedFlow.id;
-  const nodes = db.nodes?.[flowId] || [];
-  const edges = db.edges?.[flowId] || [];
 
-  if (nodes.length === 0) {
+  if (!nodes || nodes.length === 0) {
     const noNodesReply = `Olá! O fluxo *${publishedFlow.name}* está publicado, mas ainda não possui nós configurados.`;
     recordRealMessage(cleanPhone, senderName, 'outbound', noNodesReply);
     return [noNodesReply];
@@ -483,10 +558,17 @@ function parseCustomDateString(input) {
   const isReset =
     cleanInput.toLowerCase() === 'menu' ||
     cleanInput.toLowerCase() === 'inicio' ||
+    cleanInput.toLowerCase() === 'início' ||
     cleanInput.toLowerCase() === 'reiniciar' ||
     cleanInput.toLowerCase() === 'oi' ||
     cleanInput.toLowerCase() === 'olá' ||
     cleanInput.toLowerCase() === 'ola' ||
+    cleanInput.toLowerCase() === 'bom dia' ||
+    cleanInput.toLowerCase() === 'boa tarde' ||
+    cleanInput.toLowerCase() === 'boa noite' ||
+    cleanInput.toLowerCase() === 'comecar' ||
+    cleanInput.toLowerCase() === 'começar' ||
+    cleanInput.toLowerCase() === 'start' ||
     !session.currentNodeId;
 
   let currentNode = null;
@@ -677,8 +759,21 @@ function parseCustomDateString(input) {
     const nodeType = currentNode.data?.nodeType || currentNode.type;
     const config = currentNode.data?.config || {};
 
+    // 0. Trigger Node
+    if (nodeType === 'trigger') {
+      const outgoing = edges.find((e) => e.source === currentNode.id);
+      if (outgoing) {
+        currentNode = nodes.find((n) => n.id === outgoing.target);
+        if (currentNode) {
+          session.currentNodeId = currentNode.id;
+          continue;
+        }
+      }
+      break;
+    }
+
     // 1. Message Node
-    if (nodeType === 'message') {
+    else if (nodeType === 'message') {
       const text = replaceVars(config.text || 'Olá!', session.variables, botProfile);
       replies.push(text);
     }
