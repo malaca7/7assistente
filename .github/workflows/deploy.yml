@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - source
   workflow_dispatch:
 
 permissions:
@@ -39,6 +40,23 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build React Admin Panel
+        run: npm run build
+
+      - name: Setup CNAME and SPA Routing
+        run: |
+          echo "talvane.malaca.com.br" > dist/CNAME
+          cp dist/index.html dist/404.html
+          touch dist/.nojekyll
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
