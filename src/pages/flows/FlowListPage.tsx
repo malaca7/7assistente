@@ -28,7 +28,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Input, Textarea } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
 import { useToast } from '../../contexts/ToastContext';
-import { StorageService } from '../../lib/storage';
+import { StorageService, getBackendUrl } from '../../lib/storage';
 import { Flow, FlowStatus } from '../../types';
 import { formatDate } from '../../lib/utils';
 
@@ -212,8 +212,29 @@ export const FlowListPage: React.FC<FlowListPageProps> = ({ onNavigate }) => {
   const handleToggleStatus = async (flow: Flow, e: React.MouseEvent) => {
     e.stopPropagation();
     const newStatus: FlowStatus = flow.status === 'published' ? 'paused' : 'published';
+
+    // If publishing, pause any other active flow
+    if (newStatus === 'published') {
+      const allFlows = await StorageService.getFlows();
+      for (const f of allFlows) {
+        if (f.id !== flow.id && f.status === 'published') {
+          await StorageService.saveFlow({ ...f, status: 'paused' });
+        }
+      }
+    }
+
     const updated = await StorageService.saveFlow({ ...flow, status: newStatus });
-    setFlows((prev) => prev.map((f) => (f.id === flow.id ? updated : f)));
+    
+    // Notify backend server to publish immediately
+    const backendUrl = getBackendUrl();
+    try {
+      if (newStatus === 'published') {
+        await fetch(`${backendUrl}/api/whatsapp/flows/${flow.id}/publish`, { method: 'POST' });
+      }
+    } catch {}
+
+    const freshFlows = await StorageService.getFlows();
+    setFlows(freshFlows);
     success(
       newStatus === 'published' ? 'Fluxo Publicado' : 'Fluxo Pausado',
       `O fluxo "${flow.name}" agora está ${newStatus === 'published' ? 'Publicado e Ativo no WhatsApp' : 'Pausado'}.`
