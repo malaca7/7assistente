@@ -13,14 +13,15 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "deployments"
-  cancel-in-progress: false
+  group: "pages-${{ github.ref }}"
+  cancel-in-progress: true
 
 jobs:
   deploy-discloud:
     name: Deploy to Discloud
     runs-on: ubuntu-latest
-    if: ${{ secrets.DISCLOUD_TOKEN != '' }}
+    continue-on-error: true
+    if: "${{ secrets.DISCLOUD_TOKEN != '' }}"
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -31,12 +32,9 @@ jobs:
           token: ${{ secrets.DISCLOUD_TOKEN }}
           app_id: "talvanebarber"
 
-  deploy-pages:
-    name: Deploy to GitHub Pages
+  build-and-deploy-pages:
+    name: Build & Deploy to GitHub Pages
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -59,13 +57,16 @@ jobs:
           touch dist/.nojekyll
 
       - name: Setup Pages
+        if: github.ref == 'refs/heads/main'
         uses: actions/configure-pages@v5
 
       - name: Upload Artifact
+        if: github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3
         with:
           path: './dist'
 
       - name: Deploy to GitHub Pages
+        if: github.ref == 'refs/heads/main'
         id: deployment
         uses: actions/deploy-pages@v4
