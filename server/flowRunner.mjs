@@ -1,10 +1,109 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createClient } from '@supabase/supabase-js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DB_PATH = path.resolve(__dirname, 'flows_db.json');
+
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://nskflvulclgwqqasdntq.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5za2ZsdnVsY2xnd3FxYXNkbnRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwMTQ0NjQsImV4cCI6MjEwMzU5MDQ2NH0.mL82cgH4MadNi_sTeKKgYmRAuhmp7HqImuAs9hTrTZI';
+
+export const supabaseClient = (SUPABASE_URL && SUPABASE_ANON_KEY) ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+// Async Supabase Sync Helpers
+export async function syncContactToSupabase(contact) {
+  if (!supabaseClient || !contact) return;
+  try {
+    const cleanPhone = String(contact.phone || '').replace(/\D/g, '');
+    if (!cleanPhone) return;
+    const payload = {
+      id: contact.id || `contact-${cleanPhone}`,
+      name: contact.name || 'Cliente WhatsApp',
+      phone: cleanPhone,
+      email: contact.email || null,
+      status: contact.status || 'lead',
+      tags: contact.tags || ['WhatsApp'],
+      custom_fields: contact.custom_fields || contact.metadata || {},
+      last_interaction: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    await supabaseClient.from('contacts').upsert(payload, { onConflict: 'phone' });
+  } catch (err) {
+    // Non-blocking
+  }
+}
+
+export async function syncConversationToSupabase(conv) {
+  if (!supabaseClient || !conv) return;
+  try {
+    const cleanPhone = String(conv.contact_phone || conv.phone || '').replace(/\D/g, '');
+    const payload = {
+      id: conv.id || `conv-${cleanPhone}`,
+      contact_id: conv.contact_id || `contact-${cleanPhone}`,
+      phone: cleanPhone,
+      contact_name: conv.contact_name || 'Cliente',
+      last_message: typeof conv.last_message === 'string' ? conv.last_message : (conv.last_message?.body || 'Mensagem'),
+      last_message_at: conv.last_message_at || new Date().toISOString(),
+      status: conv.status || 'bot',
+      unread_count: conv.unread_count || 0,
+      tags: conv.tags || ['WhatsApp'],
+      updated_at: new Date().toISOString(),
+    };
+    await supabaseClient.from('conversations').upsert(payload, { onConflict: 'id' });
+  } catch (err) {
+    // Non-blocking
+  }
+}
+
+export async function syncMessageToSupabase(msg, phone) {
+  if (!supabaseClient || !msg) return;
+  try {
+    const cleanPhone = String(phone || '').replace(/\D/g, '');
+    const payload = {
+      id: msg.id,
+      conversation_id: msg.conversation_id || `conv-${cleanPhone}`,
+      contact_id: `contact-${cleanPhone}`,
+      phone: cleanPhone,
+      sender: msg.direction === 'inbound' ? 'user' : (msg.sender || 'bot'),
+      text: typeof msg.content === 'string' ? msg.content : (msg.content?.body || 'Mensagem'),
+      type: msg.message_type || 'text',
+      status: msg.status || 'delivered',
+      timestamp: msg.created_at || new Date().toISOString(),
+      created_at: msg.created_at || new Date().toISOString(),
+    };
+    await supabaseClient.from('messages').upsert(payload, { onConflict: 'id' });
+  } catch (err) {
+    // Non-blocking
+  }
+}
+
+export async function syncAppointmentToSupabase(apt) {
+  if (!supabaseClient || !apt) return;
+  try {
+    const cleanPhone = String(apt.contact_phone || apt.phone || '').replace(/\D/g, '');
+    const payload = {
+      id: apt.id || `apt-${Date.now()}`,
+      contact_id: apt.contact_id || `contact-${cleanPhone}`,
+      contact_name: apt.contact_name || 'Cliente',
+      phone: cleanPhone,
+      service_name: apt.service_name || 'Atendimento Especialista',
+      professional_name: apt.professional_name || 'Talvane',
+      date: apt.appointment_date || apt.date || new Date().toISOString().split('T')[0],
+      time: apt.appointment_time || apt.time || '08:00',
+      duration_minutes: apt.duration_minutes || 30,
+      price: apt.price || 0,
+      status: apt.status || 'confirmed',
+      notes: apt.notes || null,
+      updated_at: new Date().toISOString(),
+    };
+    await supabaseClient.from('appointments').upsert(payload, { onConflict: 'id' });
+  } catch (err) {
+    // Non-blocking
+  }
+}
+
 
 const DEFAULT_AGENDA_SETTINGS = {
   business_days: ['1', '2', '3', '4', '5'], // Monday to Friday
@@ -263,6 +362,12 @@ export function recordRealMessage(phone, senderName, direction, content, explici
   db.messages[convId].push(msgObj);
 
   saveDb(db);
+
+  // Real-time sync to Supabase Database
+  syncContactToSupabase(existingContact);
+  syncConversationToSupabase(existingConv);
+  syncMessageToSupabase(msgObj, cleanPhone);
+
   return { contact: existingContact, conversation: existingConv, message: msgObj };
 }
 
@@ -398,6 +503,15 @@ function parseCustomDateString(input) {
         if (db.contacts[cleanPhone]) db.contacts[cleanPhone].name = cleanInput;
         if (db.conversations[`conv-${cleanPhone}`]) db.conversations[`conv-${cleanPhone}`].contact_name = cleanInput;
       }
+      if (varKey.includes('email')) {
+        session.variables.email_cliente = cleanInput;
+        if (db.contacts[cleanPhone]) db.contacts[cleanPhone].email = cleanInput;
+      }
+      if (db.contacts[cleanPhone]) {
+        if (!db.contacts[cleanPhone].custom_fields) db.contacts[cleanPhone].custom_fields = {};
+        db.contacts[cleanPhone].custom_fields[varKey] = cleanInput;
+        syncContactToSupabase(db.contacts[cleanPhone]);
+      }
 
       const nextEdge = edges.find((e) => e.source === prevNode.id);
       if (nextEdge) {
@@ -471,7 +585,10 @@ function parseCustomDateString(input) {
           if (db.contacts[cleanPhone]) {
             const curTags = db.contacts[cleanPhone].tags || [];
             if (!curTags.includes('Agendado')) db.contacts[cleanPhone].tags = [...curTags, 'Agendado'];
+            syncContactToSupabase(db.contacts[cleanPhone]);
           }
+
+          syncAppointmentToSupabase(newApt);
 
           session.variables['data_agendamento'] = selectedDate;
           session.variables['horario_agendamento'] = selectedTime;

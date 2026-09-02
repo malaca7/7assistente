@@ -91,6 +91,21 @@ async function syncStateToSupabase() {
   }
 }
 
+async function hydrateFromSupabase() {
+  if (!supabaseServer) return;
+  try {
+    const db = loadDb();
+    const { data: flowsData } = await supabaseServer.from('flows').select('*');
+    if (flowsData && flowsData.length > 0) {
+      db.flows = flowsData;
+      saveDb(db);
+      console.log(`[WhatsApp Server] 📥 ${flowsData.length} fluxos sincronizados do Supabase na inicialização.`);
+    }
+  } catch (err) {
+    // Non-fatal
+  }
+}
+
 // Send message (supports text, native buttons, and rich media)
 async function sendWhatsAppMessage(jid, reply) {
   if (!sock) return;
@@ -820,6 +835,7 @@ if (validDistPath) {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`[WhatsApp Server] Servidor de Conexão e Motor de Fluxos rodando na porta ${PORT} (0.0.0.0)`);
+  hydrateFromSupabase();
   startWhatsApp().catch((err) => {
     console.error('[WhatsApp Server] Erro capturado ao iniciar WhatsApp:', err?.message || err);
   });
