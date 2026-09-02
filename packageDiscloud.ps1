@@ -1,4 +1,11 @@
 $ErrorActionPreference = "Stop"
+
+if (-not (Test-Path "dist\index.html")) {
+    git archive --format=tar main dist -o dist_temp.tar
+    tar -xf dist_temp.tar
+    Remove-Item dist_temp.tar -Force -ErrorAction SilentlyContinue
+}
+
 $stage = Join-Path $env:TEMP "7assistente_deploy_stage"
 if (Test-Path $stage) { 
     Remove-Item $stage -Recurse -Force 
@@ -6,6 +13,9 @@ if (Test-Path $stage) {
 New-Item -ItemType Directory -Path $stage | Out-Null
 
 Copy-Item "discloud.config" -Destination $stage
+if (Test-Path ".discloudignore") { 
+    Copy-Item ".discloudignore" -Destination $stage 
+}
 Copy-Item "index.mjs" -Destination $stage
 if (Test-Path "index.js") { 
     Copy-Item "index.js" -Destination $stage 
