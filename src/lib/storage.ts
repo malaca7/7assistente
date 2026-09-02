@@ -58,13 +58,14 @@ function setItem<T>(key: string, value: T): void {
 
 async function syncWithWhatsAppServer(): Promise<void> {
   try {
-    let backendUrl = '';
+    let backendUrl = 'https://talvanebarber.discloud.app';
     if (typeof window !== 'undefined') {
       if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         backendUrl = `http://${window.location.hostname}:3001`;
+      } else if (window.location.hostname.includes('discloud.app')) {
+        backendUrl = window.location.origin;
       }
     }
-    if (!backendUrl) return;
 
     const flows = getItem<Flow[]>(STORAGE_KEYS.FLOWS, sampleFlows);
     const settings = getItem<Settings>(STORAGE_KEYS.SETTINGS, initialSettings);

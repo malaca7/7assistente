@@ -25,6 +25,9 @@ const getBackendUrl = (): string => {
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     return `http://${window.location.hostname}:3001`;
   }
+  if (window.location.hostname.includes('discloud.app')) {
+    return window.location.origin;
+  }
   try {
     const raw = localStorage.getItem('7assistente_settings');
     if (raw) {

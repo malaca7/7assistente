@@ -84,11 +84,22 @@ try {
 execSync('git push origin main', { stdio: 'inherit' });
 
 console.log('=== [5/5] Gerando Pacote 7assistente.zip para Discloud ===');
-if (fs.existsSync('7assistente.zip')) fs.rmSync('7assistente.zip', { force: true });
-execSync(`powershell -Command "Compress-Archive -Path '${stageDir}/*' -DestinationPath '7assistente.zip' -Force"`, { stdio: 'inherit' });
+const targetZip = path.resolve('7assistente.zip');
+if (fs.existsSync(targetZip)) fs.rmSync(targetZip, { force: true });
+
+try {
+  // Use tar.exe with zip format so entries have forward-slashes (required for Linux/Discloud)
+  execSync(`tar.exe -a -cf "${targetZip}" -C "${stageDir}" .`, { stdio: 'inherit' });
+  console.log('📦 Arquivo 7assistente.zip gerado com sucesso via tar (padrão POSIX / Linux)!');
+} catch (e) {
+  console.warn('⚠️ tar.exe falhou, tentando fallback com PowerShell...', e.message);
+  execSync(`powershell -Command "Compress-Archive -Path '${stageDir}/*' -DestinationPath '${targetZip}' -Force"`, { stdio: 'inherit' });
+}
+
 fs.rmSync(stageDir, { recursive: true, force: true });
 
 // Return to source branch
 execSync('git checkout -f source', { stdio: 'inherit' });
 
 console.log('🎉 TODOS OS DEPLOYS CONCLUÍDOS COM SUCESSO!');
+
