@@ -969,6 +969,183 @@
         "status": "delivered",
         "created_at": "2026-08-30T15:54:58.044Z"
       }
+    ],
+    "conv-5581999991234": [
+      {
+        "id": "msg-1788455847494-sjqeg",
+        "conversation_id": "conv-5581999991234",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-09-03T17:17:27.494Z"
+      },
+      {
+        "id": "msg-1788455847495-a96r1",
+        "conversation_id": "conv-5581999991234",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Por favor, informe seu nome:",
+        "status": "delivered",
+        "created_at": "2026-09-03T17:17:27.495Z"
+      },
+      {
+        "id": "msg-1788455848410-cmcyt",
+        "conversation_id": "conv-5581999991234",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "📅 *Escolha a Data do Agendamento*\n\n*Carlos Silva*, para qual dia você gostaria de agendar seu atendimento?",
+        "status": "delivered",
+        "created_at": "2026-09-03T17:17:28.410Z"
+      },
+      {
+        "id": "msg-1788455848900-8hibk",
+        "conversation_id": "conv-5581999991234",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá Carlos Silva, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-09-03T17:17:28.900Z"
+      },
+      {
+        "id": "msg-1788455848901-3kq5e",
+        "conversation_id": "conv-5581999991234",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "📅 *Escolha a Data do Agendamento*\n\n*Carlos Silva*, para qual dia você gostaria de agendar seu atendimento?",
+        "status": "delivered",
+        "created_at": "2026-09-03T17:17:28.901Z"
+      }
+    ],
+    "conv-5581999995555": [
+      {
+        "id": "msg-1788455867612-3b2yp",
+        "conversation_id": "conv-5581999995555",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-09-03T17:17:47.612Z"
+      },
+      {
+        "id": "msg-1788455867613-dt065",
+        "conversation_id": "conv-5581999995555",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Por favor, informe seu nome:",
+        "status": "delivered",
+        "created_at": "2026-09-03T17:17:47.613Z"
+      },
+      {
+        "id": "msg-1788455869123-7i8en",
+        "conversation_id": "conv-5581999995555",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-09-03T17:17:49.123Z"
+      },
+      {
+        "id": "msg-1788455869124-sixs8",
+        "conversation_id": "conv-5581999995555",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Por favor, informe seu nome:",
+        "status": "delivered",
+        "created_at": "2026-09-03T17:17:49.124Z"
+      }
+    ],
+    "conv-5581988880001": [
+      {
+        "id": "msg-1788456052144-c4owv",
+        "conversation_id": "conv-5581988880001",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-09-03T17:20:52.144Z"
+      },
+      {
+        "id": "msg-1788456052145-ctdpc",
+        "conversation_id": "conv-5581988880001",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Por favor, informe seu nome:",
+        "status": "delivered",
+        "created_at": "2026-09-03T17:20:52.145Z"
+      },
+      {
+        "id": "msg-1788456053044-jn62u",
+        "conversation_id": "conv-5581988880001",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "📅 *Escolha a Data do Agendamento*\n\n*Matheus Silva*, para qual dia você gostaria de agendar seu atendimento?",
+        "status": "delivered",
+        "created_at": "2026-09-03T17:20:53.044Z"
+      },
+      {
+        "id": "msg-1788456053872-vygfo",
+        "conversation_id": "conv-5581988880001",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá Me chamo Matheus Silva, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-09-03T17:20:53.872Z"
+      },
+      {
+        "id": "msg-1788456053873-3bohv",
+        "conversation_id": "conv-5581988880001",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "📅 *Escolha a Data do Agendamento*\n\n*Me chamo Matheus Silva*, para qual dia você gostaria de agendar seu atendimento?",
+        "status": "delivered",
+        "created_at": "2026-09-03T17:20:53.873Z"
+      },
+      {
+        "id": "msg-1788456102320-k8i14",
+        "conversation_id": "conv-5581988880001",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá Matheus Silva, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-09-03T17:21:42.320Z"
+      },
+      {
+        "id": "msg-1788456102321-bse43",
+        "conversation_id": "conv-5581988880001",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "📅 *Escolha a Data do Agendamento*\n\n*Matheus Silva*, para qual dia você gostaria de agendar seu atendimento?",
+        "status": "delivered",
+        "created_at": "2026-09-03T17:21:42.321Z"
+      },
+      {
+        "id": "msg-1788456102859-57mll",
+        "conversation_id": "conv-5581988880001",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "✂️ *Escolha o Serviço:*\n\n*Matheus Silva*, qual serviço você deseja?",
+        "status": "delivered",
+        "created_at": "2026-09-03T17:21:42.859Z"
+      },
+      {
+        "id": "msg-1788456103362-kwbvf",
+        "conversation_id": "conv-5581988880001",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá Matheus Silva, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-09-03T17:21:43.361Z"
+      },
+      {
+        "id": "msg-1788456103363-bdcbp",
+        "conversation_id": "conv-5581988880001",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "📅 *Escolha a Data do Agendamento*\n\n*Matheus Silva*, para qual dia você gostaria de agendar seu atendimento?",
+        "status": "delivered",
+        "created_at": "2026-09-03T17:21:43.363Z"
+      }
     ]
   },
   "agendaSettings": {
