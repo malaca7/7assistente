@@ -15,6 +15,7 @@ import { FlowToolbar } from '../../components/flow-builder/FlowToolbar';
 import { NodePalette, NodeDefinition } from '../../components/flow-builder/NodePalette';
 import { NodeInspector } from '../../components/flow-builder/NodeInspector';
 import { FlowSimulator } from '../../components/flow-builder/FlowSimulator';
+import { MobileFlowBuilder } from '../../components/flow-builder/MobileFlowBuilder';
 import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
 import { useToast } from '../../contexts/ToastContext';
@@ -46,6 +47,9 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
   const [isDirty, setIsDirty] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMobileView, setIsMobileView] = useState<boolean>(() => {
+    return typeof window !== 'undefined' && window.innerWidth < 768;
+  });
 
   // Line style state
   const [edgeType, setEdgeType] = useState<'smoothstep' | 'default' | 'straight' | 'step'>('smoothstep');
@@ -720,6 +724,32 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
     );
   }
 
+  // 📱 Mobile Step-by-Step View
+  if (isMobileView) {
+    return (
+      <MobileFlowBuilder
+        flow={flow}
+        nodes={nodes as unknown as FlowNode[]}
+        edges={edges as unknown as FlowEdge[]}
+        onUpdateNodes={(updatedNodes) => {
+          setNodes(updatedNodes as unknown as Node[]);
+          pushHistory(updatedNodes as unknown as Node[], edges);
+        }}
+        onUpdateEdges={(updatedEdges) => {
+          setEdges(updatedEdges as unknown as Edge[]);
+          pushHistory(nodes, updatedEdges as unknown as Edge[]);
+        }}
+        onSave={() => handleSave(false)}
+        onToggleStatus={handleToggleStatus}
+        isSaving={isSaving}
+        isDirty={isDirty}
+        onOpenSimulator={() => setIsSimulatorOpen(true)}
+        onBack={() => onNavigate('/fluxos')}
+        onSwitchToCanvas={() => setIsMobileView(false)}
+      />
+    );
+  }
+
   return (
     <div className="h-screen w-screen flex flex-col bg-dark-950 overflow-hidden select-none">
       {/* Top Bar */}
@@ -729,6 +759,7 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
         onSave={() => handleSave(false)}
         onToggleStatus={handleToggleStatus}
         onTestFlow={() => setIsSimulatorOpen(true)}
+        onSwitchToMobileMode={() => setIsMobileView(true)}
         isSaving={isSaving}
         canUndo={canUndo}
         canRedo={canRedo}
