@@ -38,7 +38,8 @@ import {
   CalendarDays,
   TrendingUp,
   Tag,
-  AlertTriangle
+  AlertTriangle,
+  History
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -81,10 +82,12 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     return new Date().toISOString().split('T')[0];
   });
   const [searchTerm, setSearchTerm] = useState('');
+  const [showHistory, setShowHistory] = useState(false);
 
   // Drag & Drop State
   const [draggedAptId, setDraggedAptId] = useState<string | null>(null);
@@ -560,6 +563,63 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
     return result;
   }, [slotsForSelectedDate, filteredAppointments, settings.slot_duration_minutes]);
 
+  // Split schedule into past vs upcoming slots
+  const { pastSlots, upcomingSlots } = useMemo(() => {
+    const now = new Date();
+    const currentMin = now.getHours() * 60 + now.getMinutes();
+    const past: typeof unifiedSchedule = [];
+    const upcoming: typeof unifiedSchedule = [];
+
+    unifiedSchedule.forEach((slot) => {
+      const [sh, sm] = slot.startTime.split(':').map(Number);
+      const startMin = (sh || 0) * 60 + (sm || 0);
+      const endMin = startMin + slot.durationMinutes;
+      const isPast = selectedDate < todayStr || (selectedDate === todayStr && endMin <= currentMin);
+
+      // Keep active appointment if in progress
+      if (slot.appointment?.status === 'in_progress') {
+        upcoming.push(slot);
+      } else if (isPast) {
+        past.push(slot);
+      } else {
+        upcoming.push(slot);
+      }
+    });
+
+    return { pastSlots: past, upcomingSlots: upcoming };
+  }, [unifiedSchedule, selectedDate, todayStr]);
+
+  const visibleSchedule = useMemo(() => {
+    if (showHistory) return unifiedSchedule;
+    return upcomingSlots;
+  }, [showHistory, unifiedSchedule, upcomingSlots]);
+
+  const { pastAppointmentsCount, visibleAppointmentsList } = useMemo(() => {
+    const now = new Date();
+    const currentMin = now.getHours() * 60 + now.getMinutes();
+
+    let pastCount = 0;
+    const list: Appointment[] = [];
+
+    filteredAppointments.forEach((apt) => {
+      const [sh, sm] = (apt.appointment_time || '09:00').split(':').map(Number);
+      const dur = Number(apt.duration_minutes) || 30;
+      const endMin = (sh || 0) * 60 + (sm || 0) + dur;
+      const isPast = selectedDate < todayStr || (selectedDate === todayStr && endMin <= currentMin);
+
+      if (apt.status === 'in_progress') {
+        list.push(apt);
+      } else if (isPast) {
+        pastCount++;
+        if (showHistory) list.push(apt);
+      } else {
+        list.push(apt);
+      }
+    });
+
+    return { pastAppointmentsCount: pastCount, visibleAppointmentsList: list };
+  }, [filteredAppointments, showHistory, selectedDate, todayStr]);
+
   const weekDaysLabels = [
     { id: '0', label: 'Dom', full: 'Domingo' },
     { id: '1', label: 'Seg', full: 'Segunda-feira' },
@@ -753,6 +813,29 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
             </div>
           </div>
 
+          {/* History Toggle Bar if there are past slots */}
+          {pastSlots.length > 0 && (
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-dark-900/60 border border-white/5 shadow-sm">
+              <div className="flex items-center gap-2 text-xs text-slate-400">
+                <History className="w-4 h-4 text-brand-400" />
+                <span>
+                  {showHistory
+                    ? `Exibindo histórico completo (${pastSlots.length} horários anteriores)`
+                    : `${pastSlots.length} horário(s) anterior(es) oculto(s)`}
+                </span>
+              </div>
+              <Button
+                variant={showHistory ? 'outline' : 'brand'}
+                size="sm"
+                onClick={() => setShowHistory(!showHistory)}
+                className="text-xs h-8 flex items-center gap-1.5"
+              >
+                <History className="w-3.5 h-3.5" />
+                <span>{showHistory ? 'Ocultar Histórico' : `Ver Histórico (${pastSlots.length})`}</span>
+              </Button>
+            </div>
+          )}
+
           {/* Appointments Grid or List View */}
           {slotsForSelectedDate.length === 0 ? (
             <Card className="p-12 text-center space-y-2 bg-dark-900/40 border-white/5">
@@ -763,13 +846,33 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
               </p>
             </Card>
           ) : viewMode === 'grid' ? (
-            <div className="flex flex-col space-y-3">
-              {unifiedSchedule.map((slot) => {
-                const timeSlot = slot.startTime;
-                const aptForSlot = slot.appointment;
-                const isOver = dragOverSlot === timeSlot;
-                const isMultiSlot = slot.slotsCount > 1;
-                const totalDuration = aptForSlot?.duration_minutes || slot.durationMinutes;
+            visibleSchedule.length === 0 ? (
+              <Card className="p-8 text-center space-y-3 bg-dark-900/40 border-white/5 rounded-3xl">
+                <Clock className="w-8 h-8 text-slate-600 mx-auto" />
+                <h3 className="text-sm font-bold text-white">Sem horários futuros restantes para hoje</h3>
+                <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                  Os horários anteriores foram ocultados para manter sua visão limpa. Clique abaixo para ver o histórico.
+                </p>
+                {pastSlots.length > 0 && (
+                  <Button
+                    variant="brand"
+                    size="sm"
+                    onClick={() => setShowHistory(true)}
+                    className="text-xs mx-auto"
+                    leftIcon={<History className="w-3.5 h-3.5" />}
+                  >
+                    Ver Histórico ({pastSlots.length} horários)
+                  </Button>
+                )}
+              </Card>
+            ) : (
+              <div className="flex flex-col space-y-3">
+                {visibleSchedule.map((slot) => {
+                  const timeSlot = slot.startTime;
+                  const aptForSlot = slot.appointment;
+                  const isOver = dragOverSlot === timeSlot;
+                  const isMultiSlot = slot.slotsCount > 1;
+                  const totalDuration = aptForSlot?.duration_minutes || slot.durationMinutes;
 
                 return (
                   <div
@@ -924,7 +1027,7 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
                 );
               })}
             </div>
-          ) : (
+          )) : (
             <Card className="bg-dark-900/70 border-white/5 overflow-hidden rounded-3xl">
               <table className="w-full text-left text-xs text-slate-300">
                 <thead className="bg-dark-950 text-[11px] text-slate-400 font-semibold border-b border-white/5 uppercase">
@@ -939,14 +1042,29 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {filteredAppointments.length === 0 ? (
+                  {visibleAppointmentsList.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="p-8 text-center text-slate-500">
-                        Nenhum agendamento encontrado para a data e filtros selecionados.
+                        {pastAppointmentsCount > 0 && !showHistory ? (
+                          <div className="space-y-2">
+                            <p className="text-slate-400">Os {pastAppointmentsCount} agendamento(s) anterior(es) de hoje estão oculto(s).</p>
+                            <Button
+                              variant="brand"
+                              size="sm"
+                              onClick={() => setShowHistory(true)}
+                              className="text-xs mx-auto"
+                              leftIcon={<History className="w-3.5 h-3.5" />}
+                            >
+                              Ver Histórico ({pastAppointmentsCount} anteriores)
+                            </Button>
+                          </div>
+                        ) : (
+                          'Nenhum agendamento encontrado para a data e filtros selecionados.'
+                        )}
                       </td>
                     </tr>
                   ) : (
-                    filteredAppointments.map(apt => (
+                    visibleAppointmentsList.map(apt => (
                       <tr key={apt.id} className="hover:bg-white/[0.02]">
                         <td className="p-4 font-mono font-bold text-brand-400">
                           {apt.appointment_time}{apt.end_time ? ` às ${apt.end_time}` : ''}

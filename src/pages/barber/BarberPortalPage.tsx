@@ -21,7 +21,8 @@ import {
   Check,
   TrendingUp,
   Tag,
-  LogOut
+  LogOut,
+  History
 } from 'lucide-react';
 import { StorageService } from '../../lib/storage';
 import { Appointment, AgendaSettings, SystemUser } from '../../types';
@@ -54,6 +55,7 @@ export const BarberPortalPage: React.FC<BarberPortalPageProps> = ({ onNavigate }
     const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   });
+  const [showHistory, setShowHistory] = useState(false);
 
   // Modal Novo Encaixe
   const [isWalkInModalOpen, setIsWalkInModalOpen] = useState(false);
@@ -149,6 +151,37 @@ export const BarberPortalPage: React.FC<BarberPortalPageProps> = ({ onNavigate }
       .filter((a) => a.appointment_date === selectedDate)
       .sort((a, b) => a.appointment_time.localeCompare(b.appointment_time));
   }, [appointments, selectedDate]);
+
+  // Split appointments into past vs upcoming
+  const { pastAppointments, upcomingAppointments } = useMemo(() => {
+    const now = new Date();
+    const currentMin = now.getHours() * 60 + now.getMinutes();
+    const past: Appointment[] = [];
+    const upcoming: Appointment[] = [];
+
+    filteredAppointments.forEach((apt) => {
+      const [sh, sm] = (apt.appointment_time || '09:00').split(':').map(Number);
+      const dur = Number(apt.duration_minutes) || 30;
+      const endMin = (sh || 0) * 60 + (sm || 0) + dur;
+      const isPast = selectedDate < todayStr || (selectedDate === todayStr && endMin <= currentMin);
+
+      // Keep active in-chair appointments in upcoming
+      if (apt.status === 'in_progress') {
+        upcoming.push(apt);
+      } else if (isPast) {
+        past.push(apt);
+      } else {
+        upcoming.push(apt);
+      }
+    });
+
+    return { pastAppointments: past, upcomingAppointments: upcoming };
+  }, [filteredAppointments, selectedDate, todayStr]);
+
+  const visibleAppointments = useMemo(() => {
+    if (showHistory) return filteredAppointments;
+    return upcomingAppointments;
+  }, [showHistory, filteredAppointments, upcomingAppointments]);
 
   // Daily statistics
   const stats = useMemo(() => {
@@ -478,13 +511,36 @@ export const BarberPortalPage: React.FC<BarberPortalPageProps> = ({ onNavigate }
               <span>Atendimentos do Dia ({selectedDate})</span>
             </h2>
             <span className="text-xs text-slate-400">
-              {filteredAppointments.length} agendamento(s)
+              {showHistory ? `${filteredAppointments.length} agendamento(s)` : `${visibleAppointments.length} restante(s)`}
             </span>
           </div>
 
-          {filteredAppointments.length > 0 ? (
+          {/* History Toggle Bar if there are past appointments */}
+          {pastAppointments.length > 0 && (
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-dark-900/60 border border-white/10 shadow-sm">
+              <div className="flex items-center gap-2 text-xs text-slate-400">
+                <History className="w-4 h-4 text-brand-400" />
+                <span>
+                  {showHistory
+                    ? `Exibindo histórico completo (${pastAppointments.length} atendimentos anteriores)`
+                    : `${pastAppointments.length} atendimento(s) anterior(es) oculto(s)`}
+                </span>
+              </div>
+              <Button
+                variant={showHistory ? 'outline' : 'brand'}
+                size="sm"
+                onClick={() => setShowHistory(!showHistory)}
+                className="text-xs h-8 flex items-center gap-1.5"
+              >
+                <History className="w-3.5 h-3.5" />
+                <span>{showHistory ? 'Ocultar Histórico' : `Ver Histórico (${pastAppointments.length})`}</span>
+              </Button>
+            </div>
+          )}
+
+          {visibleAppointments.length > 0 ? (
             <div className="space-y-3">
-              {filteredAppointments.map((apt) => {
+              {visibleAppointments.map((apt) => {
                 const isCurrent = apt.status === 'in_progress';
                 const isDone = apt.status === 'completed';
                 const isMissed = apt.status === 'no_show';
@@ -637,18 +693,36 @@ export const BarberPortalPage: React.FC<BarberPortalPageProps> = ({ onNavigate }
           ) : (
             <div className="p-8 rounded-3xl bg-dark-900/60 border border-white/10 text-center space-y-3">
               <Calendar className="w-8 h-8 text-slate-500 mx-auto" />
-              <p className="text-sm font-bold text-white">Nenhum agendamento para esta data.</p>
-              <p className="text-xs text-slate-400">
-                Adicione um novo cliente que chegou direto no balcão usando o botão abaixo:
+              <p className="text-sm font-bold text-white">
+                {pastAppointments.length > 0 && !showHistory
+                  ? 'Todos os agendamentos anteriores de hoje foram ocultados.'
+                  : 'Nenhum agendamento para esta data.'}
               </p>
-              <Button
-                variant="brand"
-                size="sm"
-                onClick={() => setIsWalkInModalOpen(true)}
-                leftIcon={<Plus className="w-4 h-4" />}
-              >
-                Cadastrar Encaixe
-              </Button>
+              <p className="text-xs text-slate-400">
+                {pastAppointments.length > 0 && !showHistory
+                  ? 'Clique em "Ver Histórico" para conferir os atendimentos realizados hoje, ou adicione um novo encaixe:'
+                  : 'Adicione um novo cliente que chegou direto no balcão usando o botão abaixo:'}
+              </p>
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                {pastAppointments.length > 0 && !showHistory && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowHistory(true)}
+                    leftIcon={<History className="w-4 h-4" />}
+                  >
+                    Ver Histórico ({pastAppointments.length})
+                  </Button>
+                )}
+                <Button
+                  variant="brand"
+                  size="sm"
+                  onClick={() => setIsWalkInModalOpen(true)}
+                  leftIcon={<Plus className="w-4 h-4" />}
+                >
+                  Cadastrar Encaixe
+                </Button>
+              </div>
             </div>
           )}
         </div>
