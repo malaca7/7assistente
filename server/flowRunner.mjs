@@ -509,7 +509,7 @@ export async function getActiveFlowAndGraph(db) {
   if (supabaseClient) {
     try {
       const { data, error } = await supabaseClient.from('flows').select('*').order('updated_at', { ascending: false });
-      if (data && data.length > 0 && !error) {
+      if (data && Array.isArray(data) && data.length > 0 && !error) {
         db.flows = data;
         flows = data;
         saveDb(db);
@@ -519,7 +519,11 @@ export async function getActiveFlowAndGraph(db) {
     }
   }
 
+  // 1. Find explicitly published flow, or fall back to the first available flow
   let publishedFlow = (flows || []).find((f) => f.status === 'published');
+  if (!publishedFlow && flows.length > 0) {
+    publishedFlow = flows[0];
+  }
   if (!publishedFlow) {
     return { publishedFlow: null, nodes: [], edges: [] };
   }
@@ -606,7 +610,7 @@ export async function executePublishedFlow(senderJid, messageText, pushName, rea
     variables: {},
   };
 
-  if (session.flowId !== flowId) {
+  if (session.flowId !== flowId || (session.currentNodeId && !nodes.some(n => n.id === session.currentNodeId))) {
     session.flowId = flowId;
     session.currentNodeId = null;
   }

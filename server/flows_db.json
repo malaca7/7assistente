@@ -403,26 +403,6 @@
       "contact_phone": "81996138924",
       "service_name": "Corte Cabelo + Barba",
       "appointment_date": "2026-08-30",
-      "appointment_time": "15:00",
-      "status": "confirmed",
-      "created_at": "2026-08-29T22:46:18.240Z"
-    },
-    {
-      "id": "apt-1788043578235",
-      "contact_name": "malaquias",
-      "contact_phone": "81996138924",
-      "service_name": "Corte Cabelo + Barba",
-      "appointment_date": "2026-08-30",
-      "appointment_time": "14:45",
-      "status": "confirmed",
-      "created_at": "2026-08-29T22:48:07.007Z"
-    },
-    {
-      "id": "apt-1788043578235",
-      "contact_name": "malaquias",
-      "contact_phone": "81996138924",
-      "service_name": "Corte Cabelo + Barba",
-      "appointment_date": "2026-08-30",
       "appointment_time": "14:30",
       "status": "confirmed",
       "created_at": "2026-08-29T23:14:30.301Z"
