@@ -117,7 +117,11 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
         onPaneClick={onPaneClick}
         onEdgeClick={onEdgeClick}
         onEdgeDoubleClick={onEdgeDoubleClick}
-        deleteKeyCode={['Backspace', 'Delete']}
+        deleteKeyCode="Delete"
+        panActivationKeyCode={null}
+        multiSelectionKeyCode={null}
+        zoomActivationKeyCode={null}
+        preventScrolling={false}
         edgesFocusable={true}
         edgesReconnectable={true}
         fitView
