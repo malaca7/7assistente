@@ -912,10 +912,9 @@ export const StorageService = {
   },
 
   async sendMessage(conversationId: string, content: string): Promise<Message> {
-    const backendUrl = getBackendUrl();
     const messages = await this.getMessages(conversationId);
     const newMessage: Message = {
-      id: `msg-${Date.now()}`,
+      id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       conversation_id: conversationId,
       direction: 'outbound',
       message_type: 'text',
@@ -924,19 +923,6 @@ export const StorageService = {
       created_at: new Date().toISOString(),
     };
     messages.push(newMessage);
-
-    // Send directly via backend WhatsApp API if conversation has phone
-    try {
-      const conv = await this.getConversationById(conversationId);
-      const cleanPhone = conv?.contact_phone || conv?.phone || conversationId.replace('conv-', '');
-      if (cleanPhone) {
-        await fetch(`${backendUrl}/api/whatsapp/send`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: cleanPhone, message: content }),
-        });
-      }
-    } catch {}
 
     if (isSupabaseConfigured && supabase) {
       try {
@@ -952,6 +938,52 @@ export const StorageService = {
 
     setItem(`${STORAGE_KEYS.MESSAGES_PREFIX}${conversationId}`, messages);
     return newMessage;
+  },
+
+  async clearMessages(conversationId: string): Promise<void> {
+    const backendUrl = getBackendUrl();
+    const cleanPhone = conversationId.replace('conv-', '').replace(/\D/g, '');
+
+    localStorage.removeItem(`${STORAGE_KEYS.MESSAGES_PREFIX}${conversationId}`);
+    if (cleanPhone) {
+      localStorage.removeItem(`${STORAGE_KEYS.MESSAGES_PREFIX}conv-${cleanPhone}`);
+      localStorage.removeItem(`${STORAGE_KEYS.MESSAGES_PREFIX}${cleanPhone}`);
+    }
+
+    try {
+      await fetch(`${backendUrl}/api/whatsapp/conversations/${conversationId}/messages`, {
+        method: 'DELETE',
+      });
+    } catch {}
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase
+          .from('messages')
+          .delete()
+          .or(`conversation_id.eq.${conversationId},conversation_id.eq.conv-${cleanPhone},conversation_id.eq.${cleanPhone}`);
+      } catch {}
+    }
+  },
+
+  async deleteMessage(conversationId: string, messageId: string): Promise<void> {
+    const backendUrl = getBackendUrl();
+    const key = `${STORAGE_KEYS.MESSAGES_PREFIX}${conversationId}`;
+    const msgs = getItem<Message[]>(key, []);
+    const filtered = msgs.filter((m) => m.id !== messageId);
+    setItem(key, filtered);
+
+    try {
+      await fetch(`${backendUrl}/api/whatsapp/messages/${messageId}?convId=${conversationId}`, {
+        method: 'DELETE',
+      });
+    } catch {}
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('messages').delete().eq('id', messageId);
+      } catch {}
+    }
   },
 
   async sendInternalNote(conversationId: string, content: string, authorName: string): Promise<Message> {
