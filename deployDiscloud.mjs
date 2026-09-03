@@ -22,8 +22,9 @@ async function main() {
     process.exit(0);
   }
 
-  console.log(`🚀 [1/3] Enviando commit do arquivo 7assistente.zip para Discloud (${APP_ID})...`);
+  console.log(`🚀 [1/3] Preparando container e enviando commit do arquivo 7assistente.zip para Discloud (${APP_ID})...`);
 
+  // 1. Send commit
   const fileBuffer = fs.readFileSync(ZIP_PATH);
   const blob = new Blob([fileBuffer], { type: 'application/zip' });
   const formData = new FormData();
@@ -41,8 +42,8 @@ async function main() {
     const commitJson = await commitRes.json();
     console.log('✅ Resposta do Commit na Discloud:', JSON.stringify(commitJson));
 
-    console.log('⏳ [2/3] Aguardando 10 segundos para descompactação dos arquivos...');
-    await new Promise((resolve) => setTimeout(resolve, 10000));
+    console.log('⏳ [2/3] Aguardando 12 segundos para descompactação dos arquivos...');
+    await new Promise((resolve) => setTimeout(resolve, 12000));
 
     console.log(`🔄 [3/3] Reiniciando bot na Discloud (${APP_ID})...`);
     const restartRes = await fetch(`https://api.discloud.app/v2/app/${APP_ID}/restart`, {

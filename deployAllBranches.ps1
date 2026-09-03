@@ -4,7 +4,7 @@ param (
 
 $ErrorActionPreference = "Stop"
 
-$env:PATH = "C:\Program Files\nodejs;$env:PATH"
+$env:PATH = "d:\dev\web\7assistente\node_modules\.bin;C:\Program Files\nodejs;$env:PATH"
 $nodeExe = "C:\Program Files\nodejs\node.exe"
 $npmCmd = "C:\Program Files\nodejs\npm.cmd"
 
@@ -60,7 +60,7 @@ $ghPagesStatus = git status --porcelain
 if ($ghPagesStatus) {
     git commit -m "deploy: update GitHub Pages production release"
 }
-git push origin gh-pages
+git push --force origin gh-pages
 Write-Host "Branch GH-PAGES enviada para o GitHub com sucesso!" -ForegroundColor Green
 
 # Return to source branch
