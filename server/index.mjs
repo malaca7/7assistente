@@ -726,6 +726,12 @@ app.get('/api/whatsapp/conversations/:convId/messages', (req, res) => {
   res.json(msgs);
 });
 
+function getLiveContacts() {
+  const db = loadDb();
+  if (!db.contacts) return [];
+  return Object.values(db.contacts).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+}
+
 // 7. Get Real Registered Contacts
 app.get('/api/whatsapp/contacts', async (req, res) => {
   const db = loadDb();
@@ -753,22 +759,55 @@ app.post('/api/whatsapp/contacts', async (req, res) => {
   const contact = req.body;
   const db = loadDb();
   if (!db.contacts) db.contacts = {};
-  const cleanPhone = (contact.phone || '').replace(/\D/g, '');
+  const cleanPhone = (contact.phone || contact.id || '').replace(/\D/g, '');
   if (cleanPhone) {
-    db.contacts[cleanPhone] = {
+    const savedContact = {
       ...contact,
+      id: contact.id || `contact-${cleanPhone}`,
       phone: cleanPhone,
       updated_at: new Date().toISOString(),
+      created_at: contact.created_at || new Date().toISOString(),
     };
+    db.contacts[cleanPhone] = savedContact;
     saveDb(db);
 
     if (supabaseServer) {
       try {
-        await supabaseServer.from('contacts').upsert(db.contacts[cleanPhone], { onConflict: 'phone' });
+        await supabaseServer.from('contacts').upsert(savedContact, { onConflict: 'phone' });
+      } catch (e) {
+        console.warn('[WhatsApp Server] Falha ao upsert no Supabase:', e.message);
+      }
+    }
+    return res.json({ success: true, contact: savedContact });
+  }
+  res.status(400).json({ error: 'Telefone inválido' });
+});
+
+app.put('/api/whatsapp/contacts/:id', async (req, res) => {
+  const { id } = req.params;
+  const contact = req.body;
+  const db = loadDb();
+  if (!db.contacts) db.contacts = {};
+  const cleanPhone = (contact.phone || id || '').replace(/\D/g, '');
+  if (cleanPhone) {
+    const updated = {
+      ...(db.contacts[cleanPhone] || {}),
+      ...contact,
+      id: id || contact.id || `contact-${cleanPhone}`,
+      phone: cleanPhone,
+      updated_at: new Date().toISOString(),
+    };
+    db.contacts[cleanPhone] = updated;
+    saveDb(db);
+
+    if (supabaseServer) {
+      try {
+        await supabaseServer.from('contacts').upsert(updated, { onConflict: 'phone' });
       } catch (e) {}
     }
+    return res.json({ success: true, contact: updated });
   }
-  res.json({ success: true, contact: db.contacts[cleanPhone] });
+  res.status(400).json({ error: 'Telefone inválido' });
 });
 
 app.delete('/api/whatsapp/contacts/:id', async (req, res) => {
@@ -789,7 +828,10 @@ app.delete('/api/whatsapp/contacts/:id', async (req, res) => {
       }
       for (const d of digits) {
         const alt = d.startsWith('55') ? d.substring(2) : `55${d}`;
-        await supabaseServer.from('contacts').delete().or(`phone.eq.${d},phone.eq.${alt},id.eq.contact-${d},id.eq.contact-${alt}`);
+        await supabaseServer.from('contacts').delete().eq('phone', d);
+        await supabaseServer.from('contacts').delete().eq('phone', alt);
+        await supabaseServer.from('contacts').delete().eq('id', `contact-${d}`);
+        await supabaseServer.from('contacts').delete().eq('id', `contact-${alt}`);
       }
     } catch (sbErr) {
       console.warn('[WhatsApp Server] Falha ao deletar contato no Supabase:', sbErr.message);
