@@ -577,8 +577,90 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
         )}
 
         {/* 10. Schedule Contact (Agenda & Horários Livres) */}
-        {/* 10. Ask / Select Date */}
-        {nodeType === 'ask_date' && (
+        {/* 10. Show Services (Exibir Catálogo de Serviços) */}
+        {nodeType === 'show_services' && (
+          <div className="space-y-4">
+            <div className="p-3 rounded-2xl bg-amber-950/40 border border-amber-500/30 text-xs text-amber-200 space-y-1">
+              <span className="font-bold flex items-center gap-1.5 text-amber-300">
+                <Sparkles className="w-3.5 h-3.5" />
+                Exibição do Catálogo de Serviços:
+              </span>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Gera e envia automaticamente uma mensagem com todos os <strong>serviços ativos, durações e preços</strong> da Agenda. Não bloqueia a conversa e avança para o próximo nó.
+              </p>
+            </div>
+
+            <Input
+              label="Título do Catálogo"
+              value={config.headerText || '💈 *Catálogo de Serviços & Preços*'}
+              onChange={(e) => handleConfigChange('headerText', e.target.value)}
+              placeholder="Ex: 💈 *Nossos Serviços e Valores:*"
+            />
+
+            <Input
+              label="Texto de Rodapé (Opcional)"
+              value={config.footerText || ''}
+              onChange={(e) => handleConfigChange('footerText', e.target.value)}
+              placeholder="Ex: _Valores sujeitos a alteração sem aviso prévio._"
+            />
+
+            <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-2">
+              <span className="text-xs font-semibold text-amber-400 block">
+                Variável Gerada no Contexto:
+              </span>
+              <div className="flex items-center gap-2">
+                <VariableBadge name="catalogo_servicos_texto" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 11. Select Service (Selecionar Serviço) */}
+        {(nodeType === 'select_service' || nodeType === 'services_catalog') && (
+          <div className="space-y-4">
+            <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-200 space-y-1">
+              <span className="font-bold flex items-center gap-1.5 text-emerald-300">
+                <Scissors className="w-3.5 h-3.5" />
+                Seleção Interativa de Serviço:
+              </span>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Puxa os serviços cadastrados na <strong>Agenda</strong> e apresenta como <strong>botões clicáveis no WhatsApp</strong> para o cliente escolher.
+              </p>
+            </div>
+
+            <Textarea
+              label="Mensagem de Escolha"
+              value={config.introMessage || 'Qual serviço você deseja agendar hoje?'}
+              onChange={(e) => handleConfigChange('introMessage', e.target.value)}
+              placeholder="Ex: Qual serviço você gostaria de realizar hoje?"
+              rows={2}
+            />
+
+            <Input
+              label="Texto de Rodapé dos Botões"
+              value={config.footerText || 'Toque no serviço desejado:'}
+              onChange={(e) => handleConfigChange('footerText', e.target.value)}
+              placeholder="Ex: Toque no serviço desejado:"
+            />
+
+            <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-emerald-400">
+                  Variáveis Salvas na Escolha:
+                </span>
+                <span className="text-[10px] text-emerald-400 font-mono">1-Clique Copiar</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                <VariableBadge name="servico_selecionado" />
+                <VariableBadge name="valor_servico" />
+                <VariableBadge name="duracao_minutos" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 12. Select Date (Escolher Data do Agendamento) */}
+        {(nodeType === 'select_date' || nodeType === 'ask_date') && (
           <div className="space-y-4">
             <div className="p-3 rounded-2xl bg-teal-950/40 border border-teal-500/30 text-xs text-teal-200 space-y-1">
               <span className="font-bold flex items-center gap-1.5 text-teal-300">
@@ -592,7 +674,7 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
 
             <Textarea
               label="Mensagem da Pergunta de Data"
-              value={config.questionText || ''}
+              value={config.questionText || 'Para qual dia você gostaria de agendar?'}
               onChange={(e) => handleConfigChange('questionText', e.target.value)}
               placeholder="Ex: Para qual dia você gostaria de agendar seu atendimento?"
               rows={2}
@@ -603,7 +685,7 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
               value={config.dateVariable || 'data_agendamento'}
               onChange={(e) => handleConfigChange('dateVariable', e.target.value)}
               placeholder="data_agendamento"
-              hint="Salva a data selecionada/digitada no formato AAAA-MM-DD para consultar horários."
+              hint="Salva a data selecionada no formato AAAA-MM-DD para consultar horários livres."
             />
 
             <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-2">
@@ -618,43 +700,29 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
           </div>
         )}
 
-        {/* 11. Schedule Contact (Horários Livres da Agenda) */}
-        {nodeType === 'schedule_contact' && (
+        {/* 13. Select Time Slot (Escolher Horário Disponível) */}
+        {(nodeType === 'select_time_slot' || nodeType === 'schedule_contact') && (
           <div className="space-y-4">
             <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-200 space-y-1">
               <span className="font-bold flex items-center gap-1.5 text-emerald-300">
-                <Calendar className="w-3.5 h-3.5" />
-                Consulta de Horários Disponíveis:
+                <Clock className="w-3.5 h-3.5" />
+                Consulta & Escolha de Horários Livres:
               </span>
               <p className="text-[11px] text-slate-300 leading-relaxed">
-                Busca os horários livres na <strong>Agenda</strong> para o dia informado e a duração do serviço escolhido, enviando botões interativos para o cliente selecionar.
+                Calcula os horários livres na <strong>Agenda</strong> para a data selecionada e a duração do serviço, enviando como botões interativos no WhatsApp para o cliente escolher.
               </p>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-slate-300">Data da Consulta</label>
-              <select
-                value={config.dateType || 'variable'}
-                onChange={(e) => handleConfigChange('dateType', e.target.value)}
-                className="w-full rounded-xl bg-dark-850 border border-slate-700/60 px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              >
-                <option value="variable">Data informada em Variável ({'{{data_agendamento}}'})</option>
-                <option value="today">Hoje (Data Atual)</option>
-                <option value="tomorrow">Amanhã (+1 dia)</option>
-              </select>
-            </div>
-
-            {config.dateType === 'variable' && (
-              <Input
-                label="Nome da Variável com a Data"
-                value={config.dateVariable || 'data_agendamento'}
-                onChange={(e) => handleConfigChange('dateVariable', e.target.value)}
-                placeholder="data_agendamento"
-              />
-            )}
+            <Input
+              label="Nome da Variável com a Data"
+              value={config.dateVariable || 'data_agendamento'}
+              onChange={(e) => handleConfigChange('dateVariable', e.target.value)}
+              placeholder="data_agendamento"
+              hint="Variável que contém a data escolhida na etapa anterior."
+            />
 
             <Input
-              label="Serviço ou Variável de Duração"
+              label="Serviço ou Duração"
               value={config.serviceName || ''}
               onChange={(e) => handleConfigChange('serviceName', e.target.value)}
               placeholder="Ex: {{servico_selecionado}}"
@@ -663,7 +731,7 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
 
             <Textarea
               label="Texto de Apresentação dos Horários"
-              value={config.introMessage || ''}
+              value={config.introMessage || 'Estes são os horários livres para agendamento. Toque no seu horário preferido:'}
               onChange={(e) => handleConfigChange('introMessage', e.target.value)}
               placeholder="Ex: Estes são os horários livres disponíveis para esta data. Toque no seu horário desejado:"
               rows={2}
@@ -671,7 +739,7 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
 
             <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-2">
               <span className="text-xs font-semibold text-emerald-400 block">
-                Variável Gerada ao Tocar no Horário:
+                Variável Salva ao Clicar no Horário:
               </span>
               <div className="flex items-center gap-2">
                 <VariableBadge name="horario_agendamento" />
@@ -681,7 +749,7 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
           </div>
         )}
 
-        {/* 12. Confirm Booking (Confirmar & Gravar na Agenda) */}
+        {/* 14. Confirm Booking (Confirmar & Gravar na Agenda) */}
         {nodeType === 'confirm_booking' && (
           <div className="space-y-4">
             <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-200 space-y-1">
@@ -712,62 +780,6 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
                 <VariableBadge name="valor_servico" />
                 <VariableBadge name="data_agendamento" />
                 <VariableBadge name="horario_agendamento" />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 11. Services Catalog */}
-        {nodeType === 'services_catalog' && (
-          <div className="space-y-4">
-            <div className="p-3 rounded-2xl bg-amber-950/40 border border-amber-500/30 text-xs text-amber-200 space-y-1">
-              <span className="font-bold flex items-center gap-1.5 text-amber-300">
-                <DollarSign className="w-3.5 h-3.5" />
-                Catálogo Dinâmico da Agenda:
-              </span>
-              <p className="text-[11px] text-slate-300 leading-relaxed">
-                Puxa automaticamente os <strong>serviços, preços e durações</strong> cadastrados na aba <strong>Agenda</strong> do painel.
-              </p>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-slate-300">Formato de Exibição no WhatsApp</label>
-              <select
-                value={config.displayFormat || 'buttons'}
-                onChange={(e) => handleConfigChange('displayFormat', e.target.value)}
-                className="w-full rounded-xl bg-dark-850 border border-slate-700/60 px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
-              >
-                <option value="buttons">🔘 Menu de Opções / Botões Interativos (com Nome e Preço)</option>
-                <option value="text_list">📋 Lista de Preços e Serviços em Texto</option>
-              </select>
-            </div>
-
-            <Textarea
-              label="Mensagem de Introdução"
-              value={config.introMessage || ''}
-              onChange={(e) => handleConfigChange('introMessage', e.target.value)}
-              placeholder="Ex: Conheça nossos serviços e valores disponíveis:"
-              rows={2}
-            />
-
-            <Input
-              label="Texto de Rodapé (Opcional)"
-              value={config.footerText || ''}
-              onChange={(e) => handleConfigChange('footerText', e.target.value)}
-              placeholder="Ex: Toque no serviço desejado para agendar:"
-            />
-
-            <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-amber-400">
-                  Variáveis Criadas na Escolha:
-                </span>
-                <span className="text-[10px] text-emerald-400 font-mono">1-Clique Copiar</span>
-              </div>
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                <VariableBadge name="servico_selecionado" />
-                <VariableBadge name="valor_servico" />
-                <VariableBadge name="duracao_servico" />
               </div>
             </div>
           </div>

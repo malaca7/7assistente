@@ -765,8 +765,17 @@ function parseCustomDateString(input) {
       }
     }
 
-    // 2. Buttons / Available slots / Services Catalog selection
-    else if (prevNode && (prevType === 'buttons' || prevType === 'schedule_contact' || prevType === 'services_catalog')) {
+    // 2. Buttons / Available slots / Services Catalog / Date selection
+    else if (
+      prevNode &&
+      (prevType === 'buttons' ||
+        prevType === 'select_service' ||
+        prevType === 'services_catalog' ||
+        prevType === 'select_date' ||
+        prevType === 'ask_date' ||
+        prevType === 'select_time_slot' ||
+        prevType === 'schedule_contact')
+    ) {
       const btnConfig = prevNode.data?.config || {};
       const buttons = session.activeButtons || btnConfig.buttons || [];
       let matchedBtnIndex = -1;
@@ -783,54 +792,48 @@ function parseCustomDateString(input) {
         );
       }
 
-      if (matchedBtnIndex >= 0) {
+      // Date input typing (if user typed DD/MM or a custom date on a date node)
+      if (matchedBtnIndex === -1 && (prevType === 'select_date' || prevType === 'ask_date')) {
+        const parsedDate = parseCustomDateString(cleanInput);
+        session.variables['data_agendamento'] = parsedDate;
+        session.variables['data_formatada'] = parsedDate.split('-').reverse().join('/');
+        console.log(`[FlowRunner] 📅 Data digitada pelo cliente: ${parsedDate}`);
+
+        const nextEdge = edges.find((e) => e.source === prevNode.id);
+        if (nextEdge) {
+          currentNode = nodes.find((n) => n.id === nextEdge.target);
+          session.currentNodeId = currentNode?.id || null;
+        }
+      } else if (matchedBtnIndex >= 0) {
         const matchedBtn = buttons[matchedBtnIndex];
         session.variables['opcao_selecionada'] = matchedBtn.title;
         session.variables['botao_id'] = matchedBtn.id;
 
-        // If from schedule slot selection
-        if (prevType === 'schedule_contact' && matchedBtn.id.startsWith('slot_')) {
-          const selectedTime = matchedBtn.slotTime || matchedBtn.title.replace('🕒', '').trim();
-          const selectedDate = session.variables['data_agendamento'] || new Date().toISOString().split('T')[0];
-          const srvName = prevNode.data?.config?.serviceName || session.variables['servico_selecionado'] || 'Atendimento Especialista';
-
-          const srv = (db.agendaSettings?.services || []).find((s) => s.name?.toLowerCase().trim() === srvName.toLowerCase().trim());
-          const srvDur = srv?.duration_minutes || session.variables['duracao_minutos'] || (srvName.toLowerCase().includes('barba') ? 55 : 30);
-
-          const newApt = {
-            id: `apt-${Date.now()}`,
-            contact_phone: cleanPhone,
-            contact_name: session.variables.nome_cliente || senderName,
-            service_name: srvName,
-            duration_minutes: srvDur,
-            appointment_date: selectedDate,
-            appointment_time: selectedTime,
-            status: 'confirmed',
-            created_at: new Date().toISOString(),
-          };
-          if (!db.appointments) db.appointments = [];
-          db.appointments.push(newApt);
-
-          // Add tag
-          if (db.contacts[cleanPhone]) {
-            const curTags = db.contacts[cleanPhone].tags || [];
-            if (!curTags.includes('Agendado')) db.contacts[cleanPhone].tags = [...curTags, 'Agendado'];
-            syncContactToSupabase(db.contacts[cleanPhone]);
+        // If from date button selection (Hoje / Amanhã)
+        if (prevType === 'select_date' || prevType === 'ask_date') {
+          let chosenDate = '';
+          if (matchedBtn.id === 'date_tomorrow' || matchedBtn.title.toLowerCase().includes('amanh')) {
+            const tm = new Date();
+            tm.setDate(tm.getDate() + 1);
+            chosenDate = tm.toISOString().split('T')[0];
+          } else {
+            chosenDate = new Date().toISOString().split('T')[0];
           }
-
-          syncAppointmentToSupabase(newApt);
-
-          session.variables['data_agendamento'] = selectedDate;
-          session.variables['horario_agendamento'] = selectedTime;
-          session.variables['servico_agendado'] = srvName;
-
-          const defaultMsg = `✅ *Agendamento Confirmado com Sucesso!*\n\n• *Serviço:* ${srvName}\n• *Data:* ${selectedDate}\n• *Horário:* ${selectedTime}\n\nSeu horário foi reservado em nossa Agenda.`;
-          const confirmMsg = prevNode.data?.config?.confirmMessage ? replaceVars(prevNode.data.config.confirmMessage, session.variables, botProfile) : defaultMsg;
-          replies.push(confirmMsg);
+          session.variables['data_agendamento'] = chosenDate;
+          session.variables['data_formatada'] = chosenDate.split('-').reverse().join('/');
+          console.log(`[FlowRunner] 📅 Data selecionada via botão: ${chosenDate}`);
         }
 
-        // If from services_catalog button selection
-        if (prevType === 'services_catalog') {
+        // If from schedule slot selection
+        if ((prevType === 'select_time_slot' || prevType === 'schedule_contact') && (matchedBtn.id.startsWith('slot_') || matchedBtn.slotTime)) {
+          const selectedTime = matchedBtn.slotTime || matchedBtn.title.replace('🕒', '').trim();
+          session.variables['horario_agendamento'] = selectedTime;
+          session.variables['horario_escolhido'] = selectedTime;
+          console.log(`[FlowRunner] 🕒 Horário selecionado pelo cliente: "${selectedTime}"`);
+        }
+
+        // If from select_service / services_catalog button selection
+        if (prevType === 'select_service' || prevType === 'services_catalog') {
           const srv =
             matchedBtn.fullService ||
             (db.agendaSettings?.services || []).find(
@@ -991,16 +994,47 @@ function parseCustomDateString(input) {
       break;
     }
 
-    // 5. Services Catalog Node (Todos os Serviços e Valores da Agenda)
-    else if (nodeType === 'services_catalog') {
+    // 5. Show Services Node (Apenas Exibição / Leitura do Catálogo)
+    else if (nodeType === 'show_services') {
       const services = (db.agendaSettings?.services && db.agendaSettings.services.length > 0) ? db.agendaSettings.services : [
         { id: 'srv-1', name: 'Corte de Cabelo', duration_minutes: 30, price: 35 },
         { id: 'srv-2', name: 'Barba Terapia', duration_minutes: 45, price: 40 },
         { id: 'srv-3', name: 'Combo Cabelo + Barba', duration_minutes: 60, price: 70 },
       ];
 
-      const intro = replaceVars(config.introMessage || 'Conheça nossos serviços e valores disponíveis:', session.variables, botProfile);
-      const footer = config.footerText ? replaceVars(config.footerText, session.variables, botProfile) : 'Toque no serviço desejado ou digite o número para escolher:';
+      const header = replaceVars(config.headerText || '💈 *Catálogo de Serviços & Preços*', session.variables, botProfile);
+      const footer = config.footerText ? `\n\n_${replaceVars(config.footerText, session.variables, botProfile)}_` : '';
+
+      const serviceLines = services
+        .map((s, idx) => `*${idx + 1}️⃣* *${s.name}*\n   💰 R$ ${Number(s.price || 0).toFixed(2).replace('.', ',')} • ⏱️ ${s.duration_minutes || 30} min`)
+        .join('\n\n');
+
+      const fullCatalogText = `${header}\n\n${serviceLines}${footer}`;
+      session.variables['catalogo_servicos_texto'] = fullCatalogText;
+      replies.push(fullCatalogText);
+
+      // Continues straight to the next connected node
+      const outgoing = edges.find((e) => e.source === currentNode.id);
+      if (outgoing) {
+        currentNode = nodes.find((n) => n.id === outgoing.target);
+        if (currentNode) {
+          session.currentNodeId = currentNode.id;
+          continue;
+        }
+      }
+      break;
+    }
+
+    // 5.2 Select Service Node (Escolha de Serviço via Botões Interativos)
+    else if (nodeType === 'select_service' || nodeType === 'services_catalog') {
+      const services = (db.agendaSettings?.services && db.agendaSettings.services.length > 0) ? db.agendaSettings.services : [
+        { id: 'srv-1', name: 'Corte de Cabelo', duration_minutes: 30, price: 35 },
+        { id: 'srv-2', name: 'Barba Terapia', duration_minutes: 45, price: 40 },
+        { id: 'srv-3', name: 'Combo Cabelo + Barba', duration_minutes: 60, price: 70 },
+      ];
+
+      const intro = replaceVars(config.introMessage || 'Qual serviço você deseja agendar hoje?', session.variables, botProfile);
+      const footer = config.footerText ? replaceVars(config.footerText, session.variables, botProfile) : 'Toque no serviço desejado:';
 
       const serviceButtons = services.map((s, idx) => ({
         id: `srv_${s.id || idx + 1}`,
@@ -1017,7 +1051,7 @@ function parseCustomDateString(input) {
       if (services.length <= 3) {
         replies.push({
           type: 'buttons',
-          body: `🏷️ *Catálogo de Serviços*\n\n${intro}`,
+          body: `✂️ *Escolha o Serviço:*\n\n${intro}`,
           footer,
           buttons: serviceButtons.map((b) => ({
             id: b.id,
@@ -1031,8 +1065,8 @@ function parseCustomDateString(input) {
 
         replies.push({
           type: 'buttons',
-          body: `🏷️ *Catálogo de Serviços*\n\n${intro}\n\n${listLines}`,
-          footer: '👉 Digite o número correspondente ao serviço desejado:',
+          body: `✂️ *Escolha o Serviço:*\n\n${intro}\n\n${listLines}`,
+          footer: '👉 Toque no botão ou digite o número correspondente:',
           buttons: serviceButtons.slice(0, 3).map((b) => ({
             id: b.id,
             title: b.title.length > 20 ? b.title.substring(0, 20) : b.title,
@@ -1042,91 +1076,9 @@ function parseCustomDateString(input) {
       break;
     }
 
-    // 6. Schedule Contact & Available Slots Node (Agenda Integrada)
-    else if (nodeType === 'schedule_contact') {
-      const mode = config.mode || 'show_slots';
-
-      // Date resolution
-      let dateVal = '';
-      if (config.dateType === 'tomorrow') {
-        const tm = new Date();
-        tm.setDate(tm.getDate() + 1);
-        dateVal = tm.toISOString().split('T')[0];
-      } else if (config.dateType === 'variable' && config.dateVariable) {
-        dateVal = session.variables[config.dateVariable] || new Date().toISOString().split('T')[0];
-      } else {
-        dateVal = new Date().toISOString().split('T')[0];
-      }
-
-      const srvName = config.serviceName ? replaceVars(config.serviceName, session.variables, botProfile) : (session.variables['servico_selecionado'] || 'Atendimento Especializado');
-
-      if (mode === 'confirm_booking') {
-        const timeVal = session.variables[config.timeVariable || 'horario_agendamento'] || session.variables['horario_escolhido'] || '09:00';
-        const srvObj = (db.agendaSettings?.services || []).find((s) => s.name?.toLowerCase().trim() === srvName.toLowerCase().trim());
-        const srvDur = srvObj?.duration_minutes || session.variables['duracao_minutos'] || (srvName.toLowerCase().includes('barba') ? 55 : 30);
-
-        const newApt = {
-          id: `apt-${Date.now()}`,
-          contact_phone: cleanPhone,
-          contact_name: session.variables.nome_cliente || senderName,
-          service_name: srvName,
-          duration_minutes: srvDur,
-          appointment_date: dateVal,
-          appointment_time: timeVal,
-          status: 'confirmed',
-          created_at: new Date().toISOString(),
-        };
-
-        if (!db.appointments) db.appointments = [];
-        db.appointments.push(newApt);
-
-        if (db.contacts[cleanPhone]) {
-          const curTags = db.contacts[cleanPhone].tags || [];
-          if (!curTags.includes('Agendado')) db.contacts[cleanPhone].tags = [...curTags, 'Agendado'];
-        }
-
-        session.variables['data_agendamento'] = dateVal;
-        session.variables['horario_agendamento'] = timeVal;
-        session.variables['servico_agendado'] = srvName;
-
-        const defaultConfirm = `✅ *Agendamento Confirmado com Sucesso!*\n\n• *Serviço:* ${srvName}\n• *Data:* ${dateVal}\n• *Horário:* ${timeVal}\n\nSeu horário foi reservado em nossa Agenda.`;
-        const confirmText = config.confirmMessage ? replaceVars(config.confirmMessage, session.variables, botProfile) : defaultConfirm;
-        replies.push(confirmText);
-      } else {
-        // Mode 'show_slots': Check available slots
-        const slots = getAvailableSlots(dateVal, db);
-
-        if (slots.length === 0) {
-          replies.push(`📅 *Agenda Lotada para ${dateVal}*\n\nInfelizmente não temos mais horários disponíveis para esta data. Por favor, digite outra data.`);
-          session.currentNodeId = currentNode.id;
-          break;
-        }
-
-        // Present top 3 available slots as Native Clickable Buttons
-        const slotButtons = slots.slice(0, 3).map((slot) => ({
-          id: `slot_${slot}`,
-          title: `🕒 ${slot}`,
-          slotTime: slot,
-        }));
-
-        session.activeButtons = slotButtons;
-        session.variables['data_agendamento'] = dateVal;
-        session.variables['servico_selecionado'] = srvName;
-        session.currentNodeId = currentNode.id;
-
-        replies.push({
-          type: 'buttons',
-          body: `📅 *Horários Disponíveis na Agenda (${dateVal}):*\n\nServiço: *${srvName}*\n\nEscolha o melhor horário:`,
-          footer: 'Toque no horário desejado para confirmar:',
-          buttons: slotButtons,
-        });
-        break;
-      }
-    }
-
-    // 4.3 Ask Date Node
-    else if (nodeType === 'ask_date') {
-      const qText = config.questionText ? replaceVars(config.questionText, session.variables, botProfile) : 'Para qual dia você gostaria de agendar seu atendimento?';
+    // 6. Select Date Node (Escolha de Data do Agendamento)
+    else if (nodeType === 'select_date' || nodeType === 'ask_date') {
+      const qText = config.questionText ? replaceVars(config.questionText, session.variables, botProfile) : 'Para qual dia você gostaria de agendar?';
       const todayStr = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
       const tomDate = new Date();
       tomDate.setDate(tomDate.getDate() + 1);
@@ -1135,7 +1087,7 @@ function parseCustomDateString(input) {
       const dateButtons = [
         { id: 'date_today', title: `Hoje (${todayStr})` },
         { id: 'date_tomorrow', title: `Amanhã (${tomStr})` },
-        { id: 'date_custom', title: 'Outra Data (Digitar)' },
+        { id: 'date_custom', title: 'Outra Data' },
       ];
 
       session.activeButtons = dateButtons;
@@ -1144,8 +1096,45 @@ function parseCustomDateString(input) {
       replies.push({
         type: 'buttons',
         body: `📅 *Escolha a Data do Agendamento*\n\n${qText}`,
-        footer: 'Toque em uma das opções ou digite a data:',
+        footer: 'Toque em uma das opções ou digite a data desejada (ex: 25/08):',
         buttons: dateButtons,
+      });
+      break;
+    }
+
+    // 6.2 Select Time Slot Node (Escolha de Horário Disponível na Data)
+    else if (nodeType === 'select_time_slot' || nodeType === 'schedule_contact') {
+      const dateVar = config.dateVariable || 'data_agendamento';
+      const dateVal = session.variables[dateVar] || session.variables['data_agendamento'] || new Date().toISOString().split('T')[0];
+      const srvName = config.serviceName ? replaceVars(config.serviceName, session.variables, botProfile) : (session.variables['servico_selecionado'] || 'Atendimento Especializado');
+
+      const slots = getAvailableSlots(dateVal, db);
+
+      if (slots.length === 0) {
+        replies.push(`📅 *Agenda Completa para ${dateVal}*\n\nNão encontramos horários livres disponíveis para esta data. Por favor, envie outra data para agendar.`);
+        session.currentNodeId = currentNode.id;
+        break;
+      }
+
+      // Present available slots as Native Clickable Buttons
+      const slotButtons = slots.slice(0, 3).map((slot) => ({
+        id: `slot_${slot}`,
+        title: `🕒 ${slot}`,
+        slotTime: slot,
+      }));
+
+      session.activeButtons = slotButtons;
+      session.variables['data_agendamento'] = dateVal;
+      session.variables['servico_selecionado'] = srvName;
+      session.currentNodeId = currentNode.id;
+
+      const intro = config.introMessage ? replaceVars(config.introMessage, session.variables, botProfile) : 'Estes são os horários livres para agendamento. Toque no seu horário preferido:';
+
+      replies.push({
+        type: 'buttons',
+        body: `🕒 *Horários Livres na Agenda (${dateVal}):*\n\n• Serviço: *${srvName}*\n\n${intro}`,
+        footer: 'Toque no horário desejado para agendar:',
+        buttons: slotButtons,
       });
       break;
     }
