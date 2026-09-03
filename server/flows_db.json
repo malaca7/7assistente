@@ -10,6 +10,17 @@
       "trigger_type": "Mensagem recebida",
       "created_at": "2026-08-29T19:57:45.058Z",
       "updated_at": "2026-08-30T15:53:39.736Z"
+    },
+    {
+      "id": "flow-1788452126641",
+      "name": "Atendimento Talvane Barber Shop (Agendamento)",
+      "description": "Fluxo de atendimento automatizado",
+      "status": "published",
+      "version": 1,
+      "node_count": 8,
+      "trigger_type": "Mensagem recebida",
+      "created_at": "2026-09-03T16:15:26.641Z",
+      "updated_at": "2026-09-03T20:21:22.156Z"
     }
   ],
   "nodes": {

@@ -132,3 +132,38 @@
   animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Mobile Native App Utilities */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes barberStripes {
+  0% { background-position: 0 0; }
+  100% { background-position: 56px 56px; }
+}
+
+.barber-ribbon {
+  background: repeating-linear-gradient(
+    -45deg,
+    #e11d48,
+    #e11d48 10px,
+    #f8fafc 10px,
+    #f8fafc 20px,
+    #2563eb 20px,
+    #2563eb 30px,
+    #f8fafc 30px,
+    #f8fafc 40px
+  );
+  background-size: 56px 56px;
+  animation: barberStripes 3s linear infinite;
+}
+
