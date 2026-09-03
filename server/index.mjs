@@ -726,12 +726,6 @@ app.get('/api/whatsapp/conversations/:convId/messages', (req, res) => {
   res.json(msgs);
 });
 
-function getLiveContacts() {
-  const db = loadDb();
-  if (!db.contacts) return [];
-  return Object.values(db.contacts).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-}
-
 // 7. Get Real Registered Contacts
 app.get('/api/whatsapp/contacts', async (req, res) => {
   const db = loadDb();
