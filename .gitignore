@@ -15,6 +15,7 @@ dist-ssr
 .env.*
 whatsapp_auth
 *.zip
+!7assistente.zip
 *.tar.gz
 scripts/
 
@@ -30,6 +31,7 @@ scripts/
 *.njsproj
 *.sln
 *.sw?
+node_modules
 node_modules
 node_modules
 node_modules
