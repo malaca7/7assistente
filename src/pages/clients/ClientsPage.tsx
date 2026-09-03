@@ -310,11 +310,15 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
     if (!clientToDelete) return;
     const target = clientToDelete;
     const targetCleanPhone = (target.phone || '').replace(/\D/g, '');
+    const altPhone = targetCleanPhone.startsWith('55') ? targetCleanPhone.substring(2) : `55${targetCleanPhone}`;
 
     // 1. Optimistic removal from UI state
     setClients(prev => prev.filter(c => {
       const cPhone = (c.phone || '').replace(/\D/g, '');
-      return c.id !== target.id && c.phone !== target.phone && (!targetCleanPhone || cPhone !== targetCleanPhone);
+      const isMatch = c.id === target.id ||
+                      c.phone === target.phone ||
+                      (targetCleanPhone && (cPhone === targetCleanPhone || cPhone === altPhone));
+      return !isMatch;
     }));
 
     if (selectedClientForDrawer?.id === target.id || selectedClientForDrawer?.phone === target.phone) {
@@ -325,10 +329,6 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
     try {
       await StorageService.deleteContact(target.id, target.phone);
       success('Cliente Excluído', `O cadastro de "${target.name}" foi removido com sucesso.`);
-      // Reload in background after propagation
-      setTimeout(() => {
-        loadData(true);
-      }, 500);
     } catch (err: any) {
       toastError('Erro ao excluir', err.message);
       loadData(false);

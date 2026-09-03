@@ -537,25 +537,45 @@ export const StorageService = {
   },
 
   async saveContact(contact: Contact): Promise<Contact> {
-    const contacts = await this.getContacts();
-    const index = contacts.findIndex(c => c.id === contact.id || c.phone === contact.phone);
-    const updated = { ...contact, updated_at: new Date().toISOString() };
+    const backendUrl = getBackendUrl();
+    const cleanPhone = (contact.phone || contact.id || '').replace(/\D/g, '');
+    const updated: Contact = { 
+      ...contact, 
+      id: contact.id || `contact-${cleanPhone}`,
+      phone: cleanPhone,
+      updated_at: new Date().toISOString() 
+    };
 
+    // 1. Update Local Storage Cache
+    const contacts = getItem<Contact[]>(STORAGE_KEYS.CONTACTS, []);
+    const index = contacts.findIndex(c => c.id === updated.id || c.phone === updated.phone || (c.phone && cleanPhone && c.phone.replace(/\D/g, '') === cleanPhone));
     if (index >= 0) {
       contacts[index] = updated;
     } else {
       contacts.unshift(updated);
     }
+    setItem(STORAGE_KEYS.CONTACTS, contacts);
 
+    // 2. Sync directly with Supabase Cloud DB
     if (isSupabaseConfigured && supabase) {
       try {
         await supabase.from('contacts').upsert(updated, { onConflict: 'phone' });
       } catch (e) {
-        console.warn('Supabase contact upsert fallback:', e);
+        console.warn('Supabase contact upsert error:', e);
       }
     }
 
-    setItem(STORAGE_KEYS.CONTACTS, contacts);
+    // 3. Sync with WhatsApp Backend Server
+    try {
+      await fetch(`${backendUrl}/api/whatsapp/contacts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      });
+    } catch {
+      // Ignore if offline
+    }
+
     return updated;
   },
 
@@ -564,15 +584,23 @@ export const StorageService = {
     const cleanPhone = (phone || id || '').replace(/\D/g, '');
     const altPhone = cleanPhone.startsWith('55') ? cleanPhone.substring(2) : `55${cleanPhone}`;
 
-    // 1. Remove from local storage
+    // 1. Immediately purge from Local Storage Cache
     const contacts = getItem<Contact[]>(STORAGE_KEYS.CONTACTS, []);
     const filtered = contacts.filter(c => {
       const cPhone = (c.phone || '').replace(/\D/g, '');
-      return c.id !== id && c.phone !== phone && c.phone !== cleanPhone && cPhone !== cleanPhone && cPhone !== altPhone;
+      const isMatch = c.id === id || 
+                      c.id === `contact-${cleanPhone}` || 
+                      c.id === `contact-${altPhone}` ||
+                      c.phone === phone || 
+                      c.phone === cleanPhone || 
+                      c.phone === altPhone || 
+                      cPhone === cleanPhone || 
+                      cPhone === altPhone;
+      return !isMatch;
     });
     setItem(STORAGE_KEYS.CONTACTS, filtered);
 
-    // 2. Remove from Supabase
+    // 2. Immediately delete from Supabase Database
     if (isSupabaseConfigured && supabase) {
       try {
         if (id) {
@@ -581,14 +609,15 @@ export const StorageService = {
         if (cleanPhone) {
           await supabase.from('contacts').delete().eq('phone', cleanPhone);
           await supabase.from('contacts').delete().eq('phone', altPhone);
-          await supabase.from('contacts').delete().or(`phone.eq.${cleanPhone},phone.eq.${altPhone},id.eq.contact-${cleanPhone},id.eq.contact-${altPhone}`);
+          await supabase.from('contacts').delete().eq('id', `contact-${cleanPhone}`);
+          await supabase.from('contacts').delete().eq('id', `contact-${altPhone}`);
         }
       } catch (e) {
         console.warn('Supabase contact delete fallback:', e);
       }
     }
 
-    // 3. Remove from WhatsApp Backend Server
+    // 3. Immediately delete from WhatsApp Backend Server (Baileys memory)
     try {
       const target = cleanPhone || id;
       await fetch(`${backendUrl}/api/whatsapp/contacts/${encodeURIComponent(target)}?phone=${encodeURIComponent(cleanPhone)}`, {
