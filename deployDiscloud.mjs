@@ -31,6 +31,16 @@ async function main() {
   formData.append('file', blob, '7assistente.zip');
 
   try {
+    // 0. Stop app gracefully to release Docker container locks
+    try {
+      console.log(`⏹️ Parando aplicação temporariamente para liberar container Docker na Discloud...`);
+      await fetch(`https://api.discloud.app/v2/app/${APP_ID}/stop`, {
+        method: 'PUT',
+        headers: { 'api-token': DISCLOUD_TOKEN },
+      });
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    } catch {}
+
     const commitRes = await fetch(`https://api.discloud.app/v2/app/${APP_ID}/commit`, {
       method: 'PUT',
       headers: {
