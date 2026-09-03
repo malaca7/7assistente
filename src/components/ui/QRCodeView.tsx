@@ -12,11 +12,12 @@ import {
   Zap
 } from 'lucide-react';
 import { Button } from './Button';
+import { useWhatsApp } from '../../contexts/WhatsAppContext';
 
 export interface QRCodeViewProps {
-  value: string;
+  value?: string;
   qrDataUrl?: string | null;
-  onRefresh: () => void;
+  onRefresh?: () => void;
   onConnect?: (phone?: string) => Promise<void>;
   onRequestPairingCode?: (phone: string) => Promise<{ success: boolean; code?: string; error?: string }>;
   isLoading?: boolean;
@@ -31,6 +32,17 @@ export const QRCodeView: React.FC<QRCodeViewProps> = ({
   isLoading = false,
   adminPhone = '81996138924',
 }) => {
+  let whatsAppCtx: any = null;
+  try {
+    whatsAppCtx = useWhatsApp();
+  } catch {}
+
+  const effectiveValue = value ?? (whatsAppCtx?.rawQR || whatsAppCtx?.session?.qrCode || '');
+  const effectiveQrDataUrl = qrDataUrl !== undefined ? qrDataUrl : (whatsAppCtx?.qrDataUrl || null);
+  const effectiveLoading = isLoading || whatsAppCtx?.isConnecting || false;
+  const effectiveOnRefresh = onRefresh || (() => whatsAppCtx?.generateQRCode?.());
+  const effectivePairingCodeReq = onRequestPairingCode || ((phone: string) => whatsAppCtx?.requestPairingCode?.(phone) || Promise.resolve({ success: false, error: 'Contexto não disponível' }));
+
   const [activeMode, setActiveMode] = useState<'qr' | 'code'>('qr');
   const [timeLeft, setTimeLeft] = useState(45);
   const [pairingPhone, setPairingPhone] = useState(adminPhone);
@@ -41,14 +53,21 @@ export const QRCodeView: React.FC<QRCodeViewProps> = ({
 
   // Check if we have an authentic QR Code received from the active Baileys server
   const isAuthenticServerQR = Boolean(
-    qrDataUrl?.startsWith('data:image/') ||
-    (value && value.includes('@') && value.includes(',') && !value.includes('7assistente_') && !value.includes('pairing_v2026'))
+    effectiveQrDataUrl?.startsWith('data:image/') ||
+    (effectiveValue && effectiveValue.length > 15 && !effectiveValue.includes('7assistente_') && !effectiveValue.includes('pairing_v2026'))
   );
 
   const refreshQR = useCallback(() => {
     setTimeLeft(45);
-    onRefresh();
-  }, [onRefresh]);
+    effectiveOnRefresh();
+  }, [effectiveOnRefresh]);
+
+  // Auto-refresh once on mount if QR is missing
+  useEffect(() => {
+    if (!isAuthenticServerQR && effectiveOnRefresh) {
+      effectiveOnRefresh();
+    }
+  }, []);
 
   // Expiration countdown
   useEffect(() => {
@@ -78,8 +97,8 @@ export const QRCodeView: React.FC<QRCodeViewProps> = ({
     setPairingError(null);
     setIsGeneratingCode(true);
 
-    if (onRequestPairingCode) {
-      const res = await onRequestPairingCode(cleanPhone);
+    if (effectivePairingCodeReq) {
+      const res = await effectivePairingCodeReq(cleanPhone);
       if (res.success && res.code) {
         setPairingCode(res.code);
       } else {
@@ -139,22 +158,22 @@ export const QRCodeView: React.FC<QRCodeViewProps> = ({
 
             <div className="w-60 h-60 sm:w-68 sm:h-68 bg-white flex items-center justify-center relative rounded-2xl overflow-hidden p-2">
               {isAuthenticServerQR ? (
-                qrDataUrl ? (
+                effectiveQrDataUrl ? (
                   <img
-                    src={qrDataUrl}
+                    src={effectiveQrDataUrl}
                     alt="WhatsApp QR Code Oficial"
                     className={`w-full h-full object-contain transition-all duration-300 ${
-                      isExpired || isLoading ? 'opacity-15 blur-[2px]' : 'opacity-100'
+                      isExpired || effectiveLoading ? 'opacity-15 blur-[2px]' : 'opacity-100'
                     }`}
                   />
                 ) : (
                   <QRCodeSVG
-                    value={value}
+                    value={effectiveValue}
                     size={240}
                     level="M"
                     includeMargin={false}
                     className={`transition-all duration-300 ${
-                      isExpired || isLoading ? 'opacity-15 blur-[2px]' : 'opacity-100'
+                      isExpired || effectiveLoading ? 'opacity-15 blur-[2px]' : 'opacity-100'
                     }`}
                     imageSettings={{
                       src: 'https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg',

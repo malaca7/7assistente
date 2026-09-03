@@ -1261,6 +1261,13 @@ app.post('/api/whatsapp/flows/:id/publish', async (req, res) => {
     const { id } = req.params;
     const db = loadDb();
     if (!db.flows) db.flows = [];
+    
+    let target = db.flows.find((f) => f.id === id);
+    if (!target) {
+      target = { id, name: 'Fluxo Ativo', status: 'published', updated_at: new Date().toISOString() };
+      db.flows.unshift(target);
+    }
+
     db.flows.forEach((f) => {
       if (f.id === id) {
         f.status = 'published';
@@ -1268,6 +1275,18 @@ app.post('/api/whatsapp/flows/:id/publish', async (req, res) => {
         f.status = 'paused';
       }
     });
+
+    if (!db.nodes) db.nodes = {};
+    if (!db.edges) db.edges = {};
+    if (!db.nodes[id] || db.nodes[id].length === 0) {
+      const sourceKey = Object.keys(db.nodes).find((k) => k !== id && (db.nodes[k] || []).length > 0);
+      if (sourceKey) {
+        db.nodes[id] = JSON.parse(JSON.stringify(db.nodes[sourceKey]));
+        db.edges[id] = JSON.parse(JSON.stringify(db.edges[sourceKey] || []));
+        console.log(`[WhatsApp Server] 🔄 Grafo herdado de ${sourceKey} para o fluxo ${id} (${db.nodes[id].length} nós).`);
+      }
+    }
+
     db.sessions = {};
     saveDb(db);
 

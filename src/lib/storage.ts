@@ -46,6 +46,14 @@ const STORAGE_KEYS = {
 
 export function getBackendUrl(): string {
   if (typeof window !== 'undefined') {
+    const custom = localStorage.getItem(STORAGE_KEYS.CUSTOM_BACKEND_URL);
+    if (custom && custom.trim()) {
+      if (custom.includes('talvanebarber')) {
+        localStorage.setItem(STORAGE_KEYS.CUSTOM_BACKEND_URL, 'https://talvane.discloud.app');
+        return 'https://talvane.discloud.app';
+      }
+      return custom.trim().replace(/\/+$/, '');
+    }
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       return 'http://localhost:3001';
     }
