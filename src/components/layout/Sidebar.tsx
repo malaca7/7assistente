@@ -13,7 +13,8 @@ import {
   Zap,
   PhoneCall,
   Calendar as CalendarIcon,
-  Scissors
+  Scissors,
+  UserCog
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWhatsApp } from '../../contexts/WhatsAppContext';
@@ -83,6 +84,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Sparkles,
       badge: 'NOVO',
       badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+    },
+    {
+      id: 'users',
+      label: 'Usuários',
+      path: '/usuarios',
+      icon: UserCog,
+      badge: 'NOVO',
+      badgeColor: 'bg-brand-500/20 text-brand-300 border-brand-500/30',
     },
     {
       id: 'settings',

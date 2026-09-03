@@ -332,6 +332,43 @@ export function getAvailableSlots(dateStr, db) {
   return slots;
 }
 
+export function isSlotBooked(dateStr, timeStr, durationMinutes = 30, db) {
+  if (!db || !db.appointments) return false;
+  const sHour = parseInt(timeStr.split(':')[0], 10) || 0;
+  const sMin = parseInt(timeStr.split(':')[1] || '0', 10) || 0;
+  const targetStart = sHour * 60 + sMin;
+  const targetEnd = targetStart + durationMinutes;
+
+  return db.appointments.some((a) => {
+    if (a.appointment_date !== dateStr) return false;
+    if (a.status === 'cancelled' || a.status === 'no_show') return false;
+
+    const aHour = parseInt(a.appointment_time.split(':')[0], 10) || 0;
+    const aMin = parseInt(a.appointment_time.split(':')[1] || '0', 10) || 0;
+    const aDur = Number(a.duration_minutes) || 30;
+    const aStart = aHour * 60 + aMin;
+    const aEnd = aStart + aDur;
+
+    return targetStart < aEnd && targetEnd > aStart;
+  });
+}
+
+export function getNextAvailableSlot(dateStr, requestedTime, db) {
+  const slots = getAvailableSlots(dateStr, db);
+  if (slots.length === 0) return null;
+  const rHour = parseInt(requestedTime.split(':')[0], 10) || 0;
+  const rMin = parseInt(requestedTime.split(':')[1] || '0', 10) || 0;
+  const reqMinutes = rHour * 60 + rMin;
+
+  const nextSlot = slots.find((slot) => {
+    const h = parseInt(slot.split(':')[0], 10) || 0;
+    const m = parseInt(slot.split(':')[1] || '0', 10) || 0;
+    return h * 60 + m > reqMinutes;
+  });
+
+  return nextSlot || slots[0];
+}
+
 // Substitute template variables {{var_name}}
 export function replaceVars(text, vars = {}, botProfile = {}) {
   if (!text) return '';
@@ -1419,6 +1456,43 @@ function parseCustomDateString(input) {
 
       const srvObj = (db.agendaSettings?.services || []).find((s) => s.name?.toLowerCase().trim() === srvName.toLowerCase().trim());
       const srvDur = srvObj?.duration_minutes || session.variables['duracao_minutos'] || (srvName.toLowerCase().includes('barba') ? 55 : 30);
+
+      // Check for slot collision: do not allow booking if slot is already occupied!
+      const isOccupied = isSlotBooked(dateVal, timeVal, srvDur, db);
+      if (isOccupied) {
+        const nextSlot = getNextAvailableSlot(dateVal, timeVal, db);
+        const freeSlots = getAvailableSlots(dateVal, db);
+        const suggestedSlots = freeSlots.slice(0, 3).map((slot) => ({
+          id: `slot_${slot}`,
+          title: `🕒 ${slot}`,
+          slotTime: slot,
+        }));
+
+        session.activeButtons = suggestedSlots;
+        session.variables['data_agendamento'] = dateVal;
+        session.currentNodeId = currentNode.id;
+
+        recordLiveLog(
+          'appointment_status',
+          `Conflito Evitado: ${timeVal}`,
+          `Cliente ${clientName} tentou agendar ${timeVal} que já estava ocupado. Sugerido: ${nextSlot || 'outro dia'}.`,
+          cleanPhone,
+          clientName,
+          { attemptedTime: timeVal, date: dateVal, suggestedSlot: nextSlot }
+        );
+
+        if (suggestedSlots.length > 0) {
+          replies.push({
+            type: 'buttons',
+            body: `⚠️ *Horário das ${timeVal} já está Ocupado!*\n\nOlá *${clientName}*, o horário das *${timeVal}* no dia *${dateVal}* já foi reservado por outro cliente.\n\n👉 *Sugerimos o próximo horário livre disponível:* *${nextSlot || suggestedSlots[0].slotTime}*`,
+            footer: 'Toque em um dos horários livres abaixo para agendar:',
+            buttons: suggestedSlots,
+          });
+        } else {
+          replies.push(`⚠️ *Agenda Lotada para ${dateVal}*\n\nOlá *${clientName}*, o horário das *${timeVal}* já foi reservado e não há outros horários disponíveis nesta data. Por favor, digite outra data para agendamento.`);
+        }
+        break;
+      }
 
       const newApt = {
         id: `apt-${Date.now()}`,

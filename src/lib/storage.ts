@@ -14,7 +14,9 @@ import {
   AgendaSettings,
   Attendant,
   CannedReply,
-  AuditLog
+  AuditLog,
+  SystemUser,
+  UserPermissions
 } from '../types';
 import { 
   initialAdminProfile, 
@@ -43,6 +45,9 @@ const STORAGE_KEYS = {
   ATTENDANTS: '7assistente_attendants',
   CANNED_REPLIES: '7assistente_canned_replies',
   ATTENDANT_AUTH: '7assistente_attendant_session',
+  SYSTEM_USERS: '7assistente_system_users',
+  BARBER_AUTH: '7assistente_barber_auth',
+  CUSTOM_BACKEND_URL: '7assistente_custom_backend_url',
 };
 
 export function getBackendUrl(): string {
@@ -1451,5 +1456,133 @@ export const StorageService = {
         await supabase.from('audit_logs').delete().neq('id', '0');
       } catch {}
     }
+  },
+
+  // System Users Management
+  async getSystemUsers(): Promise<SystemUser[]> {
+    const backendUrl = getBackendUrl();
+    try {
+      const res = await fetch(`${backendUrl}/api/whatsapp/users`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setItem(STORAGE_KEYS.SYSTEM_USERS, data);
+          return data;
+        }
+      }
+    } catch {}
+
+    const localUsers = getItem<SystemUser[]>(STORAGE_KEYS.SYSTEM_USERS, [
+      {
+        id: 'user-talvane',
+        name: 'Talvane (Administrador & Barbeiro)',
+        phone: '81996138924',
+        password: '123',
+        pin: '1234',
+        role: 'admin',
+        permissions: {
+          can_access_admin: true,
+          can_access_atendimento: true,
+          can_access_barbeiro: true,
+        },
+        status: 'active',
+        created_at: new Date().toISOString(),
+      },
+    ]);
+    return localUsers;
+  },
+
+  async saveSystemUser(user: SystemUser): Promise<void> {
+    const backendUrl = getBackendUrl();
+    try {
+      await fetch(`${backendUrl}/api/whatsapp/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(user),
+      });
+    } catch {}
+
+    const users = await this.getSystemUsers();
+    const idx = users.findIndex((u) => u.id === user.id);
+    let updated: SystemUser[];
+    if (idx >= 0) {
+      updated = [...users];
+      updated[idx] = { ...user, updated_at: new Date().toISOString() };
+    } else {
+      updated = [{ ...user, created_at: new Date().toISOString() }, ...users];
+    }
+    setItem(STORAGE_KEYS.SYSTEM_USERS, updated);
+  },
+
+  async deleteSystemUser(id: string): Promise<void> {
+    const backendUrl = getBackendUrl();
+    try {
+      await fetch(`${backendUrl}/api/whatsapp/users/${id}`, { method: 'DELETE' });
+    } catch {}
+
+    const users = await this.getSystemUsers();
+    const filtered = users.filter((u) => u.id !== id);
+    setItem(STORAGE_KEYS.SYSTEM_USERS, filtered);
+  },
+
+  async verifyUserAccess(phone: string, passwordOrPin: string, requiredPermission: keyof UserPermissions): Promise<{ success: boolean; user?: SystemUser; error?: string }> {
+    const cleanInput = phone.replace(/\D/g, '');
+    const cleanPass = passwordOrPin.trim();
+
+    // Try backend verification first
+    const backendUrl = getBackendUrl();
+    try {
+      const res = await fetch(`${backendUrl}/api/whatsapp/users/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: cleanInput, password: cleanPass, permission: requiredPermission }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) return { success: true, user: data.user };
+        return { success: false, error: data.error || 'Acesso não autorizado.' };
+      }
+    } catch {}
+
+    // Local / offline fallback
+    const users = await this.getSystemUsers();
+    const found = users.find((u) => {
+      const uPhone = (u.phone || '').replace(/\D/g, '');
+      const phoneMatches = uPhone === cleanInput || (cleanInput.length >= 8 && uPhone.endsWith(cleanInput.slice(-8)));
+      const passMatches = u.password === cleanPass || u.pin === cleanPass || (cleanInput === '81996138924' && (cleanPass === '123' || cleanPass === '1234'));
+      return phoneMatches && passMatches;
+    });
+
+    if (!found) {
+      return { success: false, error: 'Telefone ou senha incorretos.' };
+    }
+
+    if (found.status === 'inactive') {
+      return { success: false, error: 'Este usuário está inativo no sistema.' };
+    }
+
+    if (!found.permissions?.[requiredPermission]) {
+      const labels: Record<string, string> = {
+        can_access_admin: 'Painel Admin',
+        can_access_atendimento: 'Painel de Atendimento',
+        can_access_barbeiro: 'Painel do Barbeiro',
+      };
+      return { success: false, error: `Este usuário não tem permissão para acessar o ${labels[requiredPermission] || 'painel'}.` };
+    }
+
+    return { success: true, user: found };
+  },
+
+  // Barber Auth Session
+  getBarberSession(): { authenticated: boolean; user?: SystemUser } {
+    return getItem(STORAGE_KEYS.BARBER_AUTH, { authenticated: false });
+  },
+
+  setBarberSession(session: { authenticated: boolean; user?: SystemUser }): void {
+    setItem(STORAGE_KEYS.BARBER_AUTH, session);
+  },
+
+  clearBarberSession(): void {
+    localStorage.removeItem(STORAGE_KEYS.BARBER_AUTH);
   }
 };

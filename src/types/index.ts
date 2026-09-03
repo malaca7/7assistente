@@ -130,6 +130,25 @@ export interface AuditLog {
   created_at: string;
 }
 
+export interface UserPermissions {
+  can_access_admin: boolean;
+  can_access_atendimento: boolean;
+  can_access_barbeiro: boolean;
+}
+
+export interface SystemUser {
+  id: string;
+  name: string;
+  phone: string;
+  password: string;
+  pin?: string;
+  role: 'admin' | 'barber' | 'attendant' | 'custom';
+  permissions: UserPermissions;
+  status: 'active' | 'inactive';
+  created_at: string;
+  updated_at?: string;
+}
+
 export interface AgendaServiceItem {
   id: string;
   name: string;
