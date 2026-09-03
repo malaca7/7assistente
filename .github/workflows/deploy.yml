@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: "pages"
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build-and-deploy-pages:
@@ -39,14 +39,6 @@ jobs:
           echo "talvane.malaca.com.br" > dist/CNAME
           cp dist/index.html dist/404.html
           touch dist/.nojekyll
-
-      - name: Push to gh-pages Branch
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          publish_branch: gh-pages
-          cname: talvane.malaca.com.br
 
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
@@ -92,14 +84,9 @@ jobs:
 
       - name: Deploy via Discloud API & Restart Bot
         env:
-          DISCLOUD_TOKEN: ${{ secrets.DISCLOUD_TOKEN }}
+          DISCLOUD_TOKEN: ${{ secrets.DISCLOUD_TOKEN || 'eyJhbGciOiJIUzI1NiJ9.eyJpZCI6IjI4ODUxOTI1OTYyMDgiLCJrZXkiOiIzMTE1ZTQwYTY3ODY0MDg3NmRlYzZhOTk4YTYwIn0.y3RYPKpF9VdbnO-Qhry-84k-1bP3bhpWeQ7AfjqLXqk' }}
         run: |
-          if [ -z "$DISCLOUD_TOKEN" ]; then
-            echo "⚠️ DISCLOUD_TOKEN secret não configurado no repositório GitHub."
-            echo "ℹ️ Para auto-deploy na Discloud via GitHub Actions, adicione DISCLOUD_TOKEN em Settings > Secrets and variables > Actions."
-            echo "ℹ️ Ou ative a integração nativa do GitHub no painel da Discloud apontando para a branch main."
-          else
-            echo "🚀 Enviando commit de atualização para Discloud App talvanebarber..."
+          echo "🚀 Enviando commit de atualização para Discloud App talvanebarber..."
             RESPONSE=$(curl -s -X PUT "https://api.discloud.app/v2/app/talvanebarber/commit" \
               -H "api-token: $DISCLOUD_TOKEN" \
               -F "file=@7assistente.zip")
