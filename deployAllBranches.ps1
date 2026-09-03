@@ -41,6 +41,7 @@ Write-Host "[2/4] Sincronizando e enviando branch MAIN..." -ForegroundColor Cyan
 powershell -ExecutionPolicy Bypass -File .\syncMainBranch.ps1
 git checkout main
 git push origin main
+git checkout source
 Write-Host "Branch MAIN enviada para o GitHub com sucesso!" -ForegroundColor Green
 
 # 3. Branch GH-PAGES (Deploy Static Site)
