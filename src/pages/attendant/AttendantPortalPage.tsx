@@ -183,6 +183,14 @@ export const AttendantPortalPage: React.FC<AttendantPortalPageProps> = ({ onNavi
         success('Nota Interna Salva', 'A anotação privada foi registrada com sucesso.');
       } else {
         // Send Real WhatsApp Message
+        if (!isConnected) {
+          toastError(
+            'WhatsApp Desconectado',
+            'O envio de mensagens para clientes está bloqueado pois o WhatsApp não está conectado. Conecte o aparelho no Painel Admin.'
+          );
+          return;
+        }
+
         const newMsg = await StorageService.sendMessage(selectedConv.id, text);
         setMessages((prev) => [...prev, newMsg]);
 
@@ -683,6 +691,25 @@ export const AttendantPortalPage: React.FC<AttendantPortalPageProps> = ({ onNavi
               </div>
             </div>
 
+            {/* WhatsApp Disconnected Banner */}
+            {!isConnected && (
+              <div className="p-3 bg-rose-950/80 border-b border-rose-500/40 text-xs text-rose-300 flex items-center justify-between gap-3 shadow-md animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                  <span>
+                    <strong>WhatsApp Desconectado:</strong> O envio de mensagens para clientes está temporariamente bloqueado. Conecte o aparelho no painel admin para restabelecer o atendimento.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('/configuracoes')}
+                  className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs whitespace-nowrap shadow-sm transition-all"
+                >
+                  Conectar Aparelho
+                </button>
+              </div>
+            )}
+
             {/* Chat Body */}
             <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#0b141a] bg-opacity-95 custom-scrollbar">
               {messages.length === 0 ? (
@@ -850,15 +877,20 @@ export const AttendantPortalPage: React.FC<AttendantPortalPageProps> = ({ onNavi
               >
                 <input
                   type="text"
+                  disabled={!isConnected && messageMode === 'whatsapp'}
                   placeholder={
-                    messageMode === 'note'
+                    !isConnected && messageMode === 'whatsapp'
+                      ? '🔒 WhatsApp desconectado. Conecte o aparelho no Painel Admin para conversar...'
+                      : messageMode === 'note'
                       ? 'Escreva uma nota interna visível apenas para a equipe...'
                       : 'Digite sua mensagem no WhatsApp...'
                   }
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   className={`flex-1 px-4 py-2.5 rounded-xl border text-xs focus:outline-none transition-all ${
-                    messageMode === 'note'
+                    !isConnected && messageMode === 'whatsapp'
+                      ? 'bg-rose-950/20 border-rose-500/30 text-rose-300 placeholder-rose-400/50 cursor-not-allowed'
+                      : messageMode === 'note'
                       ? 'bg-amber-950/30 border-amber-500/40 text-amber-100 placeholder-amber-400/50 focus:border-amber-400'
                       : 'bg-[#111b21] border-white/10 text-white placeholder-slate-500 focus:border-emerald-500'
                   }`}
@@ -866,10 +898,11 @@ export const AttendantPortalPage: React.FC<AttendantPortalPageProps> = ({ onNavi
 
                 <Button
                   type="submit"
+                  disabled={isSending || !inputText.trim() || (!isConnected && messageMode === 'whatsapp')}
                   variant={messageMode === 'note' ? 'outline' : 'primary'}
                   size="md"
-                  disabled={isSending || !inputText.trim()}
-                  className={`rounded-xl px-4 ${messageMode === 'note' ? 'text-amber-300 border-amber-500/40 bg-amber-500/10' : ''}`}
+                  className={`rounded-xl px-4 ${messageMode === 'note' ? 'text-amber-300 border-amber-500/40 bg-amber-500/10' : ''} ${!isConnected && messageMode === 'whatsapp' ? 'opacity-40 cursor-not-allowed' : ''}`}
+                  title={!isConnected && messageMode === 'whatsapp' ? 'WhatsApp Desconectado' : 'Enviar'}
                   leftIcon={<Send className="w-4 h-4" />}
                 >
                   {messageMode === 'note' ? 'Gravar Nota' : 'Enviar'}

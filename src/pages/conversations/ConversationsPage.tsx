@@ -203,6 +203,14 @@ export const ConversationsPage: React.FC = () => {
         setMessages((prev) => [...prev, newNote]);
         success('Nota Interna Salva', 'Anotação registrada com sucesso para a equipe.');
       } else {
+        if (!isConnected) {
+          toastError(
+            'WhatsApp Desconectado',
+            'O envio de mensagens para clientes está bloqueado pois o WhatsApp não está conectado. Conecte o aparelho em Configurações.'
+          );
+          return;
+        }
+
         const newMsg = await StorageService.sendMessage(selectedConv.id, text);
         setMessages((prev) => [...prev, newMsg]);
 
@@ -379,6 +387,10 @@ export const ConversationsPage: React.FC = () => {
 
   // Trigger Flow Manually
   const handleTriggerFlow = async (flow: Flow) => {
+    if (!isConnected) {
+      toastError('WhatsApp Desconectado', 'Não é possível disparar o fluxo com o WhatsApp desconectado. Conecte o aparelho em Configurações.');
+      return;
+    }
     if (!selectedConv) return;
     const backendUrl = getBackendUrl();
     const targetPhone = (selectedConv.contact_phone || selectedConv.contact?.phone || selectedConv.id.replace('conv-', '')).replace(/\D/g, '');
@@ -717,6 +729,25 @@ export const ConversationsPage: React.FC = () => {
             </div>
           </div>
 
+          {/* WhatsApp Disconnected Banner */}
+          {!isConnected && (
+            <div className="p-3 bg-rose-950/80 border-b border-rose-500/40 text-xs text-rose-300 flex items-center justify-between gap-3 shadow-md animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                <span>
+                  <strong>WhatsApp Desconectado:</strong> O envio de mensagens para clientes está temporariamente bloqueado. Conecte o aparelho em Configurações.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => onNavigate('/configuracoes')}
+                className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs whitespace-nowrap shadow-sm transition-all"
+              >
+                Conectar Aparelho
+              </button>
+            </div>
+          )}
+
           {/* Chat Messages Body */}
           <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#0b141a] bg-opacity-95 custom-scrollbar">
             <div className="flex justify-center my-2">
@@ -926,8 +957,11 @@ export const ConversationsPage: React.FC = () => {
 
               <input
                 type="text"
+                disabled={!isConnected && messageMode === 'whatsapp'}
                 placeholder={
-                  messageMode === 'note'
+                  !isConnected && messageMode === 'whatsapp'
+                    ? '🔒 WhatsApp desconectado. Conecte o aparelho em Configurações para enviar mensagens...'
+                    : messageMode === 'note'
                     ? 'Escreva uma anotação privada visível apenas para os atendentes...'
                     : selectedConv.status === 'bot'
                     ? 'Digite sua mensagem no WhatsApp (Robô ativo)...'
@@ -936,17 +970,25 @@ export const ConversationsPage: React.FC = () => {
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 className={`flex-1 border-none rounded-xl px-4 py-2.5 text-xs text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 ${
-                  messageMode === 'note' ? 'bg-amber-950/40 focus:ring-amber-400 text-amber-100' : 'bg-[#2a3942] focus:ring-[#00a884]'
+                  !isConnected && messageMode === 'whatsapp'
+                    ? 'bg-rose-950/20 text-rose-300 placeholder:text-rose-400/50 cursor-not-allowed'
+                    : messageMode === 'note'
+                    ? 'bg-amber-950/40 focus:ring-amber-400 text-amber-100'
+                    : 'bg-[#2a3942] focus:ring-[#00a884]'
                 }`}
               />
 
               <button
                 type="submit"
-                disabled={isSending || !inputText.trim()}
-                className={`p-2.5 rounded-full text-white disabled:opacity-50 transition-colors shadow-md ${
-                  messageMode === 'note' ? 'bg-amber-600 hover:bg-amber-500' : 'bg-[#00a884] hover:bg-[#009172]'
+                disabled={isSending || !inputText.trim() || (!isConnected && messageMode === 'whatsapp')}
+                className={`p-2.5 rounded-full text-white disabled:opacity-40 transition-colors shadow-md ${
+                  !isConnected && messageMode === 'whatsapp'
+                    ? 'bg-rose-900/40 text-slate-500 cursor-not-allowed'
+                    : messageMode === 'note'
+                    ? 'bg-amber-600 hover:bg-amber-500'
+                    : 'bg-[#00a884] hover:bg-[#009172]'
                 }`}
-                title="Enviar Mensagem"
+                title={!isConnected && messageMode === 'whatsapp' ? 'WhatsApp Desconectado' : 'Enviar Mensagem'}
               >
                 <Send className="w-4 h-4" />
               </button>

@@ -1512,14 +1512,21 @@ export const StorageService = {
   async saveSystemUser(user: SystemUser): Promise<void> {
     const backendUrl = getBackendUrl();
     try {
-      await fetch(`${backendUrl}/api/whatsapp/users`, {
+      const res = await fetch(`${backendUrl}/api/whatsapp/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(user),
       });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.users && Array.isArray(data.users)) {
+          setItem(STORAGE_KEYS.SYSTEM_USERS, data.users);
+          return;
+        }
+      }
     } catch {}
 
-    const users = await this.getSystemUsers();
+    const users = getItem<SystemUser[]>(STORAGE_KEYS.SYSTEM_USERS, []);
     const idx = users.findIndex((u) => u.id === user.id);
     let updated: SystemUser[];
     if (idx >= 0) {
@@ -1537,7 +1544,7 @@ export const StorageService = {
       await fetch(`${backendUrl}/api/whatsapp/users/${id}`, { method: 'DELETE' });
     } catch {}
 
-    const users = await this.getSystemUsers();
+    const users = getItem<SystemUser[]>(STORAGE_KEYS.SYSTEM_USERS, []);
     const filtered = users.filter((u) => u.id !== id);
     setItem(STORAGE_KEYS.SYSTEM_USERS, filtered);
   },
