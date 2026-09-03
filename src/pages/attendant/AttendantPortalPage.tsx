@@ -50,6 +50,7 @@ import { Button } from '../../components/ui/Button';
 import { Input, Textarea } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
+import { AppointmentBookingModal } from '../../components/agenda/AppointmentBookingModal';
 
 interface AttendantPortalPageProps {
   onNavigate: (path: string) => void;
@@ -1076,63 +1077,19 @@ export const AttendantPortalPage: React.FC<AttendantPortalPageProps> = ({ onNavi
         </div>
       </Modal>
 
-      {/* Quick Appointment Modal */}
-      <Modal
+      {/* Quick Appointment Modal Unificado com Regras de Agenda */}
+      <AppointmentBookingModal
         isOpen={isQuickAptModalOpen}
         onClose={() => setIsQuickAptModalOpen(false)}
-        title="Novo Agendamento Rápido"
-      >
-        <form onSubmit={handleSaveQuickAppointment} className="space-y-3 text-xs">
-          <div className="space-y-1">
-            <label className="text-[11px] font-bold text-slate-400">Cliente</label>
-            <Input value={selectedConv?.contact_name || ''} disabled className="bg-dark-950 font-bold" />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[11px] font-bold text-slate-400">Serviço Desejado</label>
-            <select
-              value={quickService}
-              onChange={(e) => setQuickService(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-dark-950 border border-white/10 text-white text-xs"
-            >
-              <option value="Corte Tradicional">Corte Tradicional (R$ 35,00)</option>
-              <option value="Barba Terapia & Modelagem">Barba Terapia & Modelagem (R$ 25,00)</option>
-              <option value="Combo Cabelo + Barba">Combo Cabelo + Barba (R$ 55,00)</option>
-              <option value="Sobrancelha & Acabamento">Sobrancelha & Acabamento (R$ 15,00)</option>
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-400">Data</label>
-              <Input
-                type="date"
-                value={quickDate}
-                onChange={(e) => setQuickDate(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-400">Horário</label>
-              <Input
-                type="time"
-                value={quickTime}
-                onChange={(e) => setQuickTime(e.target.value)}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center justify-end gap-2 pt-3">
-            <Button size="sm" variant="ghost" type="button" onClick={() => setIsQuickAptModalOpen(false)}>
-              Cancelar
-            </Button>
-            <Button size="sm" variant="primary" type="submit" leftIcon={<CalendarCheck className="w-3.5 h-3.5" />}>
-              Confirmar & Notificar Cliente
-            </Button>
-          </div>
-        </form>
-      </Modal>
+        defaultClientName={selectedConv?.contact_name || 'Cliente'}
+        defaultClientPhone={selectedConv?.contact_phone || selectedConv?.contact?.phone || selectedConv?.id.replace('conv-', '') || ''}
+        onSuccess={async (appointment, confirmMessage) => {
+          if (confirmMessage && confirmMessage.trim()) {
+            await handleSendMessage(confirmMessage);
+          }
+          loadData(true);
+        }}
+      />
 
       {/* Modal: Confirmar Limpar Histórico de Mensagens */}
       <Modal
