@@ -53,7 +53,7 @@ export function getBackendUrl(): string {
       return window.location.origin;
     }
   }
-  return 'https://talvanebarber.discloud.app';
+  return 'https://talvane.discloud.app';
 }
 
 // Helper for localStorage

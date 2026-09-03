@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-const LIVE_URL = 'https://talvanebarber.discloud.app';
+const LIVE_URL = process.env.BACKEND_URL || 'https://talvane.discloud.app';
 const DB_PATH = path.resolve('server', 'flows_db.json');
 
 async function mergeLive() {

@@ -35,7 +35,7 @@ const getBackendUrl = (): string => {
       if (parsed?.backend_url) return parsed.backend_url;
     }
   } catch {}
-  return 'https://talvanebarber.discloud.app';
+  return 'https://talvane.discloud.app';
 };
 
 const defaultSession: WhatsAppSession = {

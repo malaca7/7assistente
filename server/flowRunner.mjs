@@ -1,9 +1,10 @@
 import './websocketPolyfill.mjs';
-import WebSocket from 'ws';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
+
+const WebSocketClient = globalThis.WebSocket;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,7 +16,7 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPA
 export const supabaseClient = (SUPABASE_URL && SUPABASE_ANON_KEY) 
   ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: { persistSession: false },
-      realtime: { transport: WebSocket }
+      realtime: WebSocketClient ? { transport: WebSocketClient } : undefined
     }) 
   : null;
 
