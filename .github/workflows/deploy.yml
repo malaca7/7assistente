@@ -61,6 +61,7 @@ jobs:
     name: Deploy to Discloud & Restart Bot
     needs: build-and-deploy-pages
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -84,6 +85,6 @@ jobs:
 
       - name: Deploy via Discloud API & Restart Bot
         env:
-          DISCLOUD_TOKEN: ${{ secrets.DISCLOUD_TOKEN || 'eyJhbGciOiJIUzI1NiJ9.eyJpZCI6IjI4ODUxOTI1OTYyMDgiLCJrZXkiOiIzMTE1ZTQwYTY3ODY0MDg3NmRlYzZhOTk4YTYwIn0.y3RYPKpF9VdbnO-Qhry-84k-1bP3bhpWeQ7AfjqLXqk' }}
+          DISCLOUD_TOKEN: ${{ secrets.DISCLOUD_TOKEN }}
         run: |
           node deployDiscloud.mjs "$DISCLOUD_TOKEN"

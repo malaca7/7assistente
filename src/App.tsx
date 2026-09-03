@@ -12,6 +12,10 @@ import { AiAgentsPage } from './pages/ai-agents/AiAgentsPage';
 import { AgendaPage } from './pages/agenda/AgendaPage';
 import { ServicesAndHoursPage } from './pages/services-hours/ServicesAndHoursPage';
 
+import { useAttendantAuth } from './contexts/AttendantAuthContext';
+import { AttendantLoginPage } from './pages/attendant/AttendantLoginPage';
+import { AttendantPortalPage } from './pages/attendant/AttendantPortalPage';
+
 const normalizePath = (rawPath: string) => {
   let clean = rawPath.replace(/^\/7assistente\/?/, '/');
   if (!clean.startsWith('/')) clean = `/${clean}`;
@@ -20,6 +24,7 @@ const normalizePath = (rawPath: string) => {
 
 export const App: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
+  const attendantAuth = useAttendantAuth();
   const [currentPath, setCurrentPath] = useState<string>(() => {
     return normalizePath(window.location.pathname || '/');
   });
@@ -40,7 +45,7 @@ export const App: React.FC = () => {
     setCurrentPath(normalizePath(path));
   };
 
-  if (isLoading) {
+  if (isLoading || attendantAuth.isLoading) {
     return (
       <div className="min-h-screen bg-dark-950 flex flex-col items-center justify-center text-slate-400 space-y-3">
         <div className="w-10 h-10 rounded-xl border-2 border-primary-500 border-t-transparent animate-spin" />
@@ -51,12 +56,26 @@ export const App: React.FC = () => {
     );
   }
 
-  // Not authenticated -> show Login
+  // 1. Attendant Portal Routes (/relacionamento or /atendente)
+  if (
+    currentPath === '/relacionamento' ||
+    currentPath === '/atendente' ||
+    currentPath === '/atendimento-equipe' ||
+    currentPath.startsWith('/relacionamento/') ||
+    currentPath.startsWith('/atendente/')
+  ) {
+    if (!attendantAuth.isAuthenticated) {
+      return <AttendantLoginPage onNavigate={navigate} />;
+    }
+    return <AttendantPortalPage onNavigate={navigate} />;
+  }
+
+  // 2. Admin Not authenticated -> show Admin Login
   if (!isAuthenticated) {
     return <LoginPage />;
   }
 
-  // Check if viewing flow editor (e.g. /fluxos/flow-001)
+  // 3. Check if viewing flow editor (e.g. /fluxos/flow-001)
   const flowEditorMatch = currentPath.match(/^\/fluxos\/(.+)$/);
   if (flowEditorMatch) {
     const flowId = flowEditorMatch[1];

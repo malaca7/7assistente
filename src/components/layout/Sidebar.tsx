@@ -60,8 +60,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'Atendimento',
       path: '/conversas',
       icon: MessageSquareText,
-      badge: '3',
-      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+      badge: null,
     },
     {
       id: 'clients',

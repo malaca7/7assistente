@@ -11,7 +11,9 @@ import {
   FlowEdge,
   BotProfile,
   Appointment,
-  AgendaSettings
+  AgendaSettings,
+  Attendant,
+  CannedReply
 } from '../types';
 import { 
   initialAdminProfile, 
@@ -19,7 +21,9 @@ import {
   sampleFlows, 
   initialFlowNodes,
   initialFlowEdges,
-  defaultBotProfile
+  defaultBotProfile,
+  initialAttendants,
+  defaultCannedReplies
 } from './mockData';
 
 const STORAGE_KEYS = {
@@ -35,6 +39,9 @@ const STORAGE_KEYS = {
   AGENDA_SETTINGS: '7assistente_agenda_settings',
   APPOINTMENTS: '7assistente_appointments',
   DELETED_CONTACTS: '7assistente_deleted_contacts_v2',
+  ATTENDANTS: '7assistente_attendants',
+  CANNED_REPLIES: '7assistente_canned_replies',
+  ATTENDANT_AUTH: '7assistente_attendant_session',
 };
 
 export function getBackendUrl(): string {
@@ -908,6 +915,209 @@ export const StorageService = {
 
     setItem(`${STORAGE_KEYS.MESSAGES_PREFIX}${conversationId}`, messages);
     return newMessage;
+  },
+
+  async sendInternalNote(conversationId: string, content: string, authorName: string): Promise<Message> {
+    const messages = await this.getMessages(conversationId);
+    const newNote: Message = {
+      id: `note-${Date.now()}`,
+      conversation_id: conversationId,
+      direction: 'outbound',
+      message_type: 'internal_note',
+      content,
+      status: 'sent',
+      author_name: authorName,
+      is_internal: true,
+      created_at: new Date().toISOString(),
+    };
+    messages.push(newNote);
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('messages').insert(newNote);
+      } catch (e) {
+        console.warn('Supabase internal note fallback:', e);
+      }
+    }
+
+    setItem(`${STORAGE_KEYS.MESSAGES_PREFIX}${conversationId}`, messages);
+    return newNote;
+  },
+
+  // Attendants Management (Perfis de Atendimento com Senha e Métricas)
+  async getAttendants(): Promise<Attendant[]> {
+    const backendUrl = getBackendUrl();
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('attendants').select('*').order('created_at', { ascending: false });
+        if (data && Array.isArray(data) && data.length > 0 && !error) {
+          setItem(STORAGE_KEYS.ATTENDANTS, data);
+          return data as Attendant[];
+        }
+      } catch (e) {}
+    }
+
+    try {
+      const res = await fetch(`${backendUrl}/api/whatsapp/attendants`, { signal: AbortSignal.timeout(3000) });
+      if (res.ok) {
+        const serverAttendants = await res.json();
+        if (Array.isArray(serverAttendants) && serverAttendants.length > 0) {
+          setItem(STORAGE_KEYS.ATTENDANTS, serverAttendants);
+          return serverAttendants;
+        }
+      }
+    } catch {}
+
+    return getItem<Attendant[]>(STORAGE_KEYS.ATTENDANTS, initialAttendants);
+  },
+
+  async saveAttendant(attendant: Attendant): Promise<Attendant> {
+    const backendUrl = getBackendUrl();
+    const attendants = await this.getAttendants();
+    const updated: Attendant = {
+      ...attendant,
+      id: attendant.id || `att-${Date.now()}`,
+      updated_at: new Date().toISOString(),
+      created_at: attendant.created_at || new Date().toISOString(),
+      metrics: attendant.metrics || {
+        chats_assigned: 0,
+        chats_resolved: 0,
+        messages_sent: 0,
+        avg_response_time_min: 0,
+        rating: 5.0,
+      }
+    };
+
+    const index = attendants.findIndex(a => a.id === updated.id);
+    if (index >= 0) {
+      attendants[index] = updated;
+    } else {
+      attendants.unshift(updated);
+    }
+
+    setItem(STORAGE_KEYS.ATTENDANTS, attendants);
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('attendants').upsert(updated);
+      } catch (e) {}
+    }
+
+    try {
+      await fetch(`${backendUrl}/api/whatsapp/attendants`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      });
+    } catch {}
+
+    return updated;
+  },
+
+  async deleteAttendant(id: string): Promise<void> {
+    const backendUrl = getBackendUrl();
+    const attendants = await this.getAttendants();
+    const filtered = attendants.filter(a => a.id !== id);
+    setItem(STORAGE_KEYS.ATTENDANTS, filtered);
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('attendants').delete().eq('id', id);
+      } catch (e) {}
+    }
+
+    try {
+      await fetch(`${backendUrl}/api/whatsapp/attendants/${id}`, { method: 'DELETE' });
+    } catch {}
+  },
+
+  // Canned Responses / Respostas Rápidas
+  async getCannedReplies(): Promise<CannedReply[]> {
+    return getItem<CannedReply[]>(STORAGE_KEYS.CANNED_REPLIES, defaultCannedReplies);
+  },
+
+  async saveCannedReply(item: CannedReply): Promise<CannedReply> {
+    const list = await this.getCannedReplies();
+    const updated: CannedReply = {
+      ...item,
+      id: item.id || `can-${Date.now()}`,
+    };
+    const index = list.findIndex(c => c.id === updated.id);
+    if (index >= 0) {
+      list[index] = updated;
+    } else {
+      list.push(updated);
+    }
+    setItem(STORAGE_KEYS.CANNED_REPLIES, list);
+    return updated;
+  },
+
+  async deleteCannedReply(id: string): Promise<void> {
+    const list = await this.getCannedReplies();
+    const filtered = list.filter(c => c.id !== id);
+    setItem(STORAGE_KEYS.CANNED_REPLIES, filtered);
+  },
+
+  // Conversation Assignment & Transfer
+  async assignConversation(conversationId: string, attendant: Attendant): Promise<Conversation | null> {
+    const conv = await this.getConversationById(conversationId);
+    if (!conv) return null;
+
+    const updated: Conversation = {
+      ...conv,
+      status: 'human',
+      assigned_to: attendant.id,
+      assigned_attendant_id: attendant.id,
+      assigned_attendant_name: attendant.name,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Update attendant metrics
+    if (attendant.metrics) {
+      attendant.metrics.chats_assigned = (attendant.metrics.chats_assigned || 0) + 1;
+      await this.saveAttendant(attendant);
+    }
+
+    await this.saveConversation(updated);
+    await this.sendInternalNote(
+      conversationId,
+      `🙋‍♂️ Atendimento assumido por ${attendant.name} (${attendant.department}).`,
+      'Sistema'
+    );
+    return updated;
+  },
+
+  async transferConversation(
+    conversationId: string, 
+    toAttendant: Attendant, 
+    fromAttendantName: string, 
+    transferNote?: string
+  ): Promise<Conversation | null> {
+    const conv = await this.getConversationById(conversationId);
+    if (!conv) return null;
+
+    const updated: Conversation = {
+      ...conv,
+      status: 'human',
+      assigned_to: toAttendant.id,
+      assigned_attendant_id: toAttendant.id,
+      assigned_attendant_name: toAttendant.name,
+      department: toAttendant.department,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (toAttendant.metrics) {
+      toAttendant.metrics.chats_assigned = (toAttendant.metrics.chats_assigned || 0) + 1;
+      await this.saveAttendant(toAttendant);
+    }
+
+    await this.saveConversation(updated);
+    const noteText = transferNote 
+      ? `🔄 Atendimento transferido de ${fromAttendantName} para ${toAttendant.name} (${toAttendant.department}).\n📝 Motivo: "${transferNote}"`
+      : `🔄 Atendimento transferido de ${fromAttendantName} para ${toAttendant.name} (${toAttendant.department}).`;
+    
+    await this.sendInternalNote(conversationId, noteText, 'Sistema');
+    return updated;
   },
 
   // Agenda, Business Hours & Services Catalog
