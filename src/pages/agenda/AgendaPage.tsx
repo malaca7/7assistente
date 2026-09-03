@@ -94,11 +94,40 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newClientName, setNewClientName] = useState('');
   const [newClientPhone, setNewClientPhone] = useState('');
-  const [newService, setNewService] = useState('Corte Tradicional');
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(['srv-1']);
   const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0]);
   const [newTime, setNewTime] = useState('09:00');
-  const [newPrice, setNewPrice] = useState<number | ''>(35);
+  const [newPrice, setNewPrice] = useState<number | ''>('');
   const [newNotes, setNewNotes] = useState('');
+
+  const selectedServicesList = useMemo(() => {
+    const list = (settings.services || []).filter(s => selectedServiceIds.includes(s.id));
+    return list.length > 0 ? list : (settings.services && settings.services.length > 0 ? [settings.services[0]] : []);
+  }, [settings.services, selectedServiceIds]);
+
+  const totalCalculatedDuration = useMemo(() => {
+    return selectedServicesList.reduce((acc, s) => acc + (Number(s.duration_minutes) || 30), 0);
+  }, [selectedServicesList]);
+
+  const totalCalculatedPrice = useMemo(() => {
+    return selectedServicesList.reduce((acc, s) => acc + (Number(s.price) || 0), 0);
+  }, [selectedServicesList]);
+
+  const combinedServiceName = useMemo(() => {
+    return selectedServicesList.map(s => s.name).join(' + ');
+  }, [selectedServicesList]);
+
+  const handleToggleSelectService = (srvId: string) => {
+    setSelectedServiceIds(prev => {
+      const exists = prev.includes(srvId);
+      if (exists) {
+        if (prev.length === 1) return prev;
+        return prev.filter(id => id !== srvId);
+      } else {
+        return [...prev, srvId];
+      }
+    });
+  };
 
   // Service Modal State (Catálogo)
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
@@ -257,16 +286,26 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
     }
 
     try {
-      const selectedSrvObj = settings.services?.find(s => s.name === newService);
-      const duration = selectedSrvObj?.duration_minutes || 30;
-      const price = newPrice === '' ? (selectedSrvObj?.price || 35) : Number(newPrice);
+      const duration = totalCalculatedDuration || 30;
+      const price = newPrice === '' ? totalCalculatedPrice : Number(newPrice);
+      const serviceNameCombined = combinedServiceName || 'Atendimento Geral';
+
+      const [sh, sm] = newTime.split(':').map(Number);
+      const endMin = (sh || 0) * 60 + (sm || 0) + duration;
+      const endH = Math.floor(endMin / 60);
+      const endM = endMin % 60;
+      const endTimeStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+      const baseSlot = settings.slot_duration_minutes || 30;
+      const slotsCount = Math.max(1, Math.ceil(duration / baseSlot));
 
       const newApt: Appointment = {
         id: `apt-${Date.now()}`,
         contact_name: newClientName.trim(),
         contact_phone: newClientPhone.replace(/\D/g, ''),
-        service_name: newService,
+        service_name: serviceNameCombined,
         duration_minutes: duration,
+        end_time: endTimeStr,
+        slots_count: slotsCount,
         price,
         appointment_date: newDate,
         appointment_time: newTime,
@@ -278,7 +317,7 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
       await StorageService.saveAppointment(newApt);
       await loadData();
       setIsAddModalOpen(false);
-      success('Agendamento Confirmado', `Horário reservado para ${newApt.contact_name} em ${formatDate(newDate)} às ${newTime}.`);
+      success('Agendamento Confirmado', `Horário reservado para ${newApt.contact_name} em ${formatDate(newDate)} às ${newTime} (${duration} min - ${slotsCount} slots unidos).`);
     } catch (err: any) {
       toastError('Erro ao agendar', err.message);
     }
@@ -1300,22 +1339,60 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1">Serviço *</label>
-            <select
-              value={newService}
-              onChange={(e) => {
-                setNewService(e.target.value);
-                const sObj = settings.services?.find(s => s.name === e.target.value);
-                if (sObj) setNewPrice(sObj.price ?? 35);
-              }}
-              className="w-full bg-dark-800 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
-            >
-              {(settings.services || []).map(s => (
-                <option key={s.id} value={s.name}>
-                  {s.name} (R$ {Number(s.price || 0).toFixed(2).replace('.', ',')})
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-semibold text-slate-300">
+                Selecione os Serviços * (Você pode marcar múltiplos serviços)
+              </label>
+              <span className="text-[11px] font-mono text-brand-300 font-bold">
+                {selectedServicesList.length} selecionado(s)
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 rounded-xl bg-dark-950 border border-white/10">
+              {(settings.services || []).map((s) => {
+                const isSelected = selectedServiceIds.includes(s.id);
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => handleToggleSelectService(s.id)}
+                    className={`p-2.5 rounded-xl border text-left transition-all flex items-start justify-between gap-2 ${
+                      isSelected
+                        ? 'bg-brand-500/20 border-brand-500/60 text-white shadow-sm ring-1 ring-brand-500/30'
+                        : 'bg-dark-900/60 border-white/5 text-slate-400 hover:border-white/15'
+                    }`}
+                  >
+                    <div className="space-y-0.5">
+                      <span className="text-xs font-bold block text-white">{s.name}</span>
+                      <span className="text-[10px] text-slate-400 block font-mono">
+                        ⏱️ {s.duration_minutes || 30} min • R$ {Number(s.price || 0).toFixed(2).replace('.', ',')}
+                      </span>
+                    </div>
+                    <div className={`w-4 h-4 rounded-md flex items-center justify-center text-[10px] font-bold border transition-colors mt-0.5 ${
+                      isSelected ? 'bg-brand-500 text-slate-950 border-brand-400' : 'border-white/20 bg-dark-950'
+                    }`}>
+                      {isSelected ? '✓' : ''}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Total Duration and Price Summary Banner */}
+            <div className="mt-2.5 p-3 rounded-xl bg-gradient-to-r from-brand-950/50 via-dark-900 to-brand-950/50 border border-brand-500/30 flex items-center justify-between text-xs">
+              <div className="space-y-0.5">
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">Serviços Selecionados:</span>
+                <span className="font-semibold text-white line-clamp-1">{combinedServiceName}</span>
+              </div>
+              <div className="text-right space-y-0.5 min-w-[120px]">
+                <span className="text-brand-300 font-mono font-bold block">
+                  ⏱️ Tempo Total: {totalCalculatedDuration} min
+                </span>
+                <span className="text-emerald-400 font-mono font-bold block">
+                  Valor Total: R$ {totalCalculatedPrice.toFixed(2).replace('.', ',')}
+                </span>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
