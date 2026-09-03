@@ -1,9 +1,10 @@
 import React from 'react';
 import { 
   LayoutDashboard, 
-  GitBranch, 
-  MessageSquare, 
-  Calendar, 
+  GitFork, 
+  MessageSquareText, 
+  Users,
+  Calendar as CalendarIcon, 
   Settings as SettingsIcon 
 } from 'lucide-react';
 
@@ -30,27 +31,34 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
       id: 'flows',
       label: 'Fluxos',
       path: '/fluxos',
-      icon: GitBranch,
+      icon: GitFork,
       isActive: currentPath.startsWith('/fluxos'),
     },
     {
       id: 'conversations',
-      label: 'Chat Ao Vivo',
+      label: 'Atendimento',
       path: '/conversas',
-      icon: MessageSquare,
-      isActive: currentPath === '/conversas',
+      icon: MessageSquareText,
+      isActive: currentPath === '/conversas' || currentPath === '/atendimento',
       badge: unreadCount > 0 ? unreadCount : undefined,
     },
     {
+      id: 'clients',
+      label: 'Clientes',
+      path: '/clientes',
+      icon: Users,
+      isActive: currentPath === '/clientes',
+    },
+    {
       id: 'agenda',
-      label: 'Agenda',
+      label: 'Agendamentos',
       path: '/agenda',
-      icon: Calendar,
-      isActive: currentPath === '/agenda',
+      icon: CalendarIcon,
+      isActive: currentPath === '/agenda' || currentPath === '/agendamentos',
     },
     {
       id: 'settings',
-      label: 'Config',
+      label: 'Configurações',
       path: '/configuracoes',
       icon: SettingsIcon,
       isActive: currentPath === '/configuracoes',
