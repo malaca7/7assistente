@@ -2,7 +2,11 @@ import './websocketPolyfill.mjs';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createClient } from '@supabase/supabase-js';
+let createClient = null;
+try {
+  const mod = await import('@supabase/supabase-js');
+  createClient = mod.createClient;
+} catch (e) {}
 
 const WebSocketClient = globalThis.WebSocket;
 
@@ -13,7 +17,7 @@ const DB_PATH = path.resolve(__dirname, 'flows_db.json');
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://nskflvulclgwqqasdntq.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5za2ZsdnVsY2xnd3FxYXNkbnRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwMTQ0NjQsImV4cCI6MjEwMzU5MDQ2NH0.mL82cgH4MadNi_sTeKKgYmRAuhmp7HqImuAs9hTrTZI';
 
-export const supabaseClient = (SUPABASE_URL && SUPABASE_ANON_KEY) 
+export const supabaseClient = (createClient && SUPABASE_URL && SUPABASE_ANON_KEY) 
   ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: { persistSession: false },
       realtime: WebSocketClient ? { transport: WebSocketClient } : undefined
@@ -429,6 +433,15 @@ export function recordRealMessage(phone, senderName, direction, content, explici
   syncConversationToSupabase(existingConv);
   syncMessageToSupabase(msgObj, cleanPhone);
 
+  recordLiveLog(
+    direction === 'inbound' ? 'message_inbound' : 'message_outbound',
+    direction === 'inbound' ? `Mensagem de ${senderName}` : `Resposta para ${senderName}`,
+    typeof content === 'string' ? (content.length > 90 ? content.substring(0, 90) + '...' : content) : 'Mensagem Interativa',
+    cleanPhone,
+    senderName,
+    { direction, messageId: msgObj.id }
+  );
+
   return { contact: existingContact, conversation: existingConv, message: msgObj };
 }
 
@@ -485,6 +498,90 @@ export function deleteLiveMessage(convId, messageId) {
     saveDb(db);
   }
   return deleted;
+}
+
+// 7. Audit & Event Logs System
+export function recordLiveLog(type, title, description, contactPhone = null, contactName = null, details = null) {
+  try {
+    const db = loadDb();
+    if (!db.logs) db.logs = [];
+
+    const newLog = {
+      id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      type, // 'appointment_created' | 'appointment_status' | 'bot_flow' | 'message_inbound' | 'message_outbound' | 'system'
+      title,
+      description,
+      contact_phone: contactPhone || '',
+      contact_name: contactName || '',
+      details: details || {},
+      created_at: new Date().toISOString(),
+    };
+
+    db.logs.unshift(newLog);
+    if (db.logs.length > 500) {
+      db.logs = db.logs.slice(0, 500);
+    }
+    saveDb(db);
+
+    if (supabaseClient) {
+      supabaseClient.from('audit_logs').insert(newLog).catch(() => {});
+    }
+
+    return newLog;
+  } catch (e) {
+    console.warn('[FlowRunner] Erro ao registrar log:', e?.message || e);
+    return null;
+  }
+}
+
+export function getLiveLogs() {
+  const db = loadDb();
+  let logs = db.logs || [];
+
+  if (logs.length === 0) {
+    const synthesized = [];
+    (db.appointments || []).forEach((apt) => {
+      synthesized.push({
+        id: `synth-apt-${apt.id}`,
+        type: apt.status === 'completed' || apt.status === 'in_progress' ? 'appointment_status' : 'appointment_created',
+        title: `Agendamento: ${apt.service_name || 'Serviço'}`,
+        description: `Cliente ${apt.contact_name || apt.contact_phone} para ${apt.appointment_date} às ${apt.appointment_time} (Status: ${apt.status})`,
+        contact_phone: apt.contact_phone,
+        contact_name: apt.contact_name,
+        details: apt,
+        created_at: apt.created_at || new Date().toISOString(),
+      });
+    });
+
+    Object.keys(db.messages || {}).forEach((key) => {
+      const msgs = db.messages[key] || [];
+      const recent = msgs.slice(-5);
+      recent.forEach((m) => {
+        synthesized.push({
+          id: `synth-msg-${m.id}`,
+          type: m.direction === 'inbound' ? 'message_inbound' : 'message_outbound',
+          title: m.direction === 'inbound' ? 'Mensagem Recebida do Cliente' : 'Resposta Enviada pelo WhatsApp',
+          description: m.content ? (m.content.length > 80 ? m.content.substring(0, 80) + '...' : m.content) : 'Mídia / Interativa',
+          contact_phone: m.sender_phone || key,
+          contact_name: m.sender_name || 'Cliente',
+          details: { messageId: m.id, status: m.status },
+          created_at: m.created_at || m.timestamp || new Date().toISOString(),
+        });
+      });
+    });
+
+    synthesized.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return synthesized.slice(0, 200);
+  }
+
+  return logs;
+}
+
+export function clearLiveLogs() {
+  const db = loadDb();
+  db.logs = [];
+  saveDb(db);
+  return true;
 }
 
 export function getLiveContacts() {
@@ -1337,6 +1434,15 @@ function parseCustomDateString(input) {
 
       if (!db.appointments) db.appointments = [];
       db.appointments.push(newApt);
+
+      recordLiveLog(
+        'appointment_created',
+        `Agendamento Confirmado: ${srvName}`,
+        `${clientName} agendou para ${dateVal} às ${timeVal}`,
+        cleanPhone,
+        clientName,
+        newApt
+      );
 
       if (db.contacts[cleanPhone]) {
         const curTags = db.contacts[cleanPhone].tags || [];

@@ -16,6 +16,11 @@ import { useAttendantAuth } from './contexts/AttendantAuthContext';
 import { AttendantLoginPage } from './pages/attendant/AttendantLoginPage';
 import { AttendantPortalPage } from './pages/attendant/AttendantPortalPage';
 
+// New Public Client Queue, Barber Portal & Audit Logs Pages
+import { ClientQueuePage } from './pages/public/ClientQueuePage';
+import { BarberPortalPage } from './pages/barber/BarberPortalPage';
+import { LogsPage } from './pages/logs/LogsPage';
+
 const normalizePath = (rawPath: string) => {
   let clean = rawPath.replace(/^\/7assistente\/?/, '/');
   if (!clean.startsWith('/')) clean = `/${clean}`;
@@ -56,7 +61,17 @@ export const App: React.FC = () => {
     );
   }
 
-  // 1. Attendant Portal Routes (/relacionamento or /atendente)
+  // 1. External Public Queue & Client Live Schedule Page (Root /)
+  if (currentPath === '/' || currentPath === '/fila' || currentPath === '/horarios') {
+    return <ClientQueuePage onNavigate={navigate} />;
+  }
+
+  // 2. Dedicated Barber Portal (/barbeiro)
+  if (currentPath === '/barbeiro' || currentPath.startsWith('/barbeiro/')) {
+    return <BarberPortalPage onNavigate={navigate} />;
+  }
+
+  // 3. Attendant Portal Routes (/relacionamento or /atendente)
   if (
     currentPath === '/relacionamento' ||
     currentPath === '/atendente' ||
@@ -70,19 +85,19 @@ export const App: React.FC = () => {
     return <AttendantPortalPage onNavigate={navigate} />;
   }
 
-  // 2. Admin Not authenticated -> show Admin Login
+  // 4. Admin Not authenticated -> show Admin Login
   if (!isAuthenticated) {
-    return <LoginPage />;
+    return <LoginPage onNavigate={navigate} />;
   }
 
-  // 3. Check if viewing flow editor (e.g. /fluxos/flow-001)
+  // 5. Flow editor route (e.g. /fluxos/flow-001)
   const flowEditorMatch = currentPath.match(/^\/fluxos\/(.+)$/);
   if (flowEditorMatch) {
     const flowId = flowEditorMatch[1];
     return <FlowEditorPage flowId={flowId} onNavigate={navigate} />;
   }
 
-  // Get current page details for AdminLayout
+  // 6. Admin Layout Pages (/admin, /fluxos, /conversas, /clientes, /agenda, /configuracoes, /logs)
   let title = 'Dashboard';
   let subtitle = 'Visão geral da plataforma de atendimento e automação';
   let pageContent = <DashboardPage onNavigate={navigate} />;
@@ -103,6 +118,10 @@ export const App: React.FC = () => {
     title = 'Agendamentos';
     subtitle = 'Gestão completa de horários marcados, catálogo de serviços e expediente de funcionamento';
     pageContent = <AgendaPage onNavigate={navigate} />;
+  } else if (currentPath === '/logs' || currentPath === '/auditoria' || currentPath === '/revisao') {
+    title = 'Logs & Auditoria';
+    subtitle = 'Monitoramento em tempo real de mensagens, agendamentos e execuções do robô';
+    pageContent = <LogsPage />;
   } else if (currentPath === '/configuracoes') {
     title = 'Configurações';
     subtitle = 'Perfil do assistente, integrações, banco de dados Supabase e preferências da plataforma';

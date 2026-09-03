@@ -393,9 +393,40 @@
     "avatar_url": "",
     "company_segment": "Barbearia e Estética Masculina",
     "support_email": "contato@talvanebarber.com.br",
-    "website_url": "https://talvane.malaca.com.br"
+    "website_url": "https://talvane.malaca.com.br",
+    "id": "default",
+    "updated_at": "2026-09-03T16:56:59.719Z"
   },
-  "settings": {},
+  "settings": {
+    "id": "settings-001",
+    "whatsapp_phone_number_id": "109876543210987",
+    "whatsapp_business_account_id": "209876543210987",
+    "whatsapp_access_token_encrypted": "EAAO...7assistente_token_secret_vault",
+    "webhook_verify_token": "7assistente_meta_webhook_token_2026",
+    "bot_profile": {
+      "name": "Talvane Barber Bot",
+      "company_name": "Talvane Barber Shop",
+      "gender": "male",
+      "tone": "Amigável e Profissional",
+      "avatar_url": "",
+      "company_segment": "Barbearia e Estética Masculina",
+      "support_email": "contato@talvanebarber.com.br",
+      "support_phone": "81996138924",
+      "business_hours": "08:00 às 19:00",
+      "website_url": "https://talvane.malaca.com.br",
+      "welcome_message": "Olá! Seja bem-vindo à Talvane Barber. Como podemos te ajudar hoje?",
+      "id": "default",
+      "updated_at": "2026-09-03T16:56:59.719Z"
+    },
+    "whatsapp_session": {
+      "status": "disconnected",
+      "phone": "",
+      "name": ""
+    },
+    "created_at": "2026-09-03T16:43:07.297Z",
+    "updated_at": "2026-09-03T18:19:57.748Z",
+    "backend_url": "https://talvane.discloud.app"
+  },
   "sessions": {
     "5581996138924": {
       "flowId": "flow-1788033465058",
@@ -1293,5 +1324,19 @@
         "price": 45
       }
     ]
-  }
+  },
+  "logs": [
+    {
+      "id": "log-1788464073074-8b8i8",
+      "type": "system",
+      "title": "Teste de Auditoria",
+      "description": "Verificando sistema de logs",
+      "contact_phone": "5581996138924",
+      "contact_name": "Rogerio",
+      "details": {
+        "test": true
+      },
+      "created_at": "2026-09-03T19:34:33.074Z"
+    }
+  ]
 }

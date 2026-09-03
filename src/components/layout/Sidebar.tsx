@@ -43,7 +43,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       id: 'dashboard',
       label: 'Dashboard',
-      path: '/',
+      path: '/admin',
       icon: LayoutDashboard,
       badge: null,
     },
@@ -75,6 +75,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       path: '/agenda',
       icon: CalendarIcon,
       badge: null,
+    },
+    {
+      id: 'logs',
+      label: 'Logs & Auditoria',
+      path: '/logs',
+      icon: Sparkles,
+      badge: 'NOVO',
+      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
     },
     {
       id: 'settings',
@@ -200,6 +208,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
             );
           })}
         </div>
+
+        {/* Quick Portal Shortcuts */}
+        {!collapsed && (
+          <div className="px-3 pb-2 space-y-1">
+            <button
+              type="button"
+              onClick={() => onNavigate('/')}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-semibold transition-all group"
+            >
+              <span className="flex items-center gap-2">
+                <Scissors className="w-3.5 h-3.5 text-brand-400" />
+                <span>Fila de Clientes (Público)</span>
+              </span>
+              <span className="text-[10px] text-slate-500 group-hover:text-brand-300">/</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onNavigate('/barbeiro')}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 text-brand-300 hover:text-brand-200 text-xs font-bold transition-all border border-brand-500/20 group"
+            >
+              <span className="flex items-center gap-2">
+                <Zap className="w-3.5 h-3.5 text-brand-400" />
+                <span>Painel do Barbeiro</span>
+              </span>
+              <span className="text-[10px] text-brand-400">/barbeiro</span>
+            </button>
+          </div>
+        )}
 
         {/* System Status Banner (Expanded only) */}
         {!collapsed && (
