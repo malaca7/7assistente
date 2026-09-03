@@ -440,7 +440,50 @@ export function getLiveConversations() {
 
 export function getLiveMessages(convId) {
   const db = loadDb();
-  return db.messages?.[convId] || [];
+  const cleanPhone = (convId || '').replace('conv-', '').replace(/\D/g, '');
+  return db.messages?.[convId] || db.messages?.[`conv-${cleanPhone}`] || db.messages?.[cleanPhone] || [];
+}
+
+export function clearLiveMessages(convId) {
+  const db = loadDb();
+  const cleanPhone = (convId || '').replace('conv-', '').replace(/\D/g, '');
+  if (db.messages) {
+    delete db.messages[convId];
+    if (cleanPhone) {
+      delete db.messages[`conv-${cleanPhone}`];
+      delete db.messages[cleanPhone];
+    }
+  }
+  const convKey = db.conversations?.[convId] ? convId : (db.conversations?.[`conv-${cleanPhone}`] ? `conv-${cleanPhone}` : null);
+  if (convKey && db.conversations[convKey]) {
+    db.conversations[convKey].last_message = '';
+    db.conversations[convKey].updated_at = new Date().toISOString();
+  }
+  saveDb(db);
+  return true;
+}
+
+export function deleteLiveMessage(convId, messageId) {
+  const db = loadDb();
+  const cleanPhone = (convId || '').replace('conv-', '').replace(/\D/g, '');
+  const targets = [convId, `conv-${cleanPhone}`, cleanPhone].filter(Boolean);
+
+  let deleted = false;
+  if (db.messages) {
+    for (const key of Object.keys(db.messages)) {
+      if (!convId || targets.includes(key)) {
+        const initialLen = db.messages[key].length;
+        db.messages[key] = db.messages[key].filter(m => m.id !== messageId);
+        if (db.messages[key].length < initialLen) {
+          deleted = true;
+        }
+      }
+    }
+  }
+  if (deleted) {
+    saveDb(db);
+  }
+  return deleted;
 }
 
 export function getLiveContacts() {

@@ -32,7 +32,9 @@ import {
   getLiveConversations, 
   getLiveMessages, 
   getLiveContacts,
-  getAvailableSlots
+  getAvailableSlots,
+  clearLiveMessages,
+  deleteLiveMessage
 } from './flowRunner.mjs';
 
 // Catch unhandled errors so Discloud never crashes
@@ -692,11 +694,13 @@ app.post('/api/whatsapp/disconnect', async (req, res) => {
   }
 });
 
-// 4. Send Message or Media from Web Frontend
+const recentSends = new Map();
+
+// 4. Send Message or Media from Web Frontend (Com Proteção Antiduplicação)
 app.post('/api/whatsapp/send', async (req, res) => {
   try {
     const { phone, text, message, mediaUrl, mediaType, caption, isPtt } = req.body;
-    const msgText = text || message || caption || '';
+    const msgText = (text || message || caption || '').trim();
 
     if (!sock || connectionState.status !== 'connected') {
       return res.status(400).json({ error: 'WhatsApp não está conectado' });
@@ -705,6 +709,24 @@ app.post('/api/whatsapp/send', async (req, res) => {
     if (!cleanPhone) {
       return res.status(400).json({ error: 'Telefone do destinatário não informado' });
     }
+
+    // Anti-Duplicate Shield: Bloqueia envio repetido da mesma mensagem para o mesmo telefone em menos de 2.5 segundos
+    const dedupKey = `${cleanPhone}:${msgText || mediaUrl}`;
+    const now = Date.now();
+    const lastSendTime = recentSends.get(dedupKey);
+    if (lastSendTime && now - lastSendTime < 2500) {
+      console.log(`[WhatsApp Server] 🛡️ Mensagem repetida interceptada e evitada para ${cleanPhone}: "${msgText.substring(0, 30)}..."`);
+      return res.json({ success: true, duplicate: true, message: 'Mensagem repetida ignorada' });
+    }
+    recentSends.set(dedupKey, now);
+
+    // Limpar entradas expiradas
+    if (recentSends.size > 200) {
+      for (const [k, time] of recentSends.entries()) {
+        if (now - time > 10000) recentSends.delete(k);
+      }
+    }
+
     const jid = cleanPhone.includes('@') ? cleanPhone : `${cleanPhone}@s.whatsapp.net`;
 
     let result;
@@ -791,6 +813,53 @@ app.get('/api/whatsapp/conversations/:convId/messages', (req, res) => {
   const { convId } = req.params;
   const msgs = getLiveMessages(convId);
   res.json(msgs);
+});
+
+// 6.1 Clear All Messages for Conversation (Limpar Histórico da Conversa)
+app.delete('/api/whatsapp/conversations/:convId/messages', async (req, res) => {
+  try {
+    const { convId } = req.params;
+    clearLiveMessages(convId);
+
+    const cleanPhone = (convId || '').replace('conv-', '').replace(/\D/g, '');
+    if (supabaseServer) {
+      try {
+        await supabaseServer
+          .from('messages')
+          .delete()
+          .or(`conversation_id.eq.${convId},conversation_id.eq.conv-${cleanPhone},conversation_id.eq.${cleanPhone}`);
+      } catch (sbErr) {
+        console.warn('[WhatsApp Server] Falha ao limpar mensagens no Supabase:', sbErr.message);
+      }
+    }
+
+    console.log(`[WhatsApp Server] 🧹 Histórico de mensagens limpo para ${convId}`);
+    res.json({ success: true, message: 'Histórico da conversa limpo com sucesso' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 6.2 Delete a Single Message (Excluir Mensagem Específica)
+app.delete('/api/whatsapp/messages/:msgId', async (req, res) => {
+  try {
+    const { msgId } = req.params;
+    const convId = req.query.convId || '';
+    const deleted = deleteLiveMessage(convId, msgId);
+
+    if (supabaseServer) {
+      try {
+        await supabaseServer.from('messages').delete().eq('id', msgId);
+      } catch (sbErr) {
+        console.warn('[WhatsApp Server] Falha ao excluir mensagem no Supabase:', sbErr.message);
+      }
+    }
+
+    console.log(`[WhatsApp Server] 🗑️ Mensagem ${msgId} excluída do histórico`);
+    res.json({ success: true, deleted, message: 'Mensagem excluída com sucesso' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // 7. Get Real Registered Contacts
