@@ -112,6 +112,10 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
         snapToGrid
         snapGrid={[15, 15]}
         connectionMode={ConnectionMode.Strict}
+        connectionRadius={45}
+        panOnDrag={[1, 2]}
+        zoomOnPinch={true}
+        zoomOnDoubleClick={false}
         connectionLineType={
           edgeType === 'smoothstep'
             ? ConnectionLineType.SmoothStep
@@ -121,7 +125,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
         }
         connectionLineStyle={{
           stroke: '#06b6d4',
-          strokeWidth: 2.5,
+          strokeWidth: 3,
           strokeDasharray: '6,6',
         }}
         defaultEdgeOptions={{

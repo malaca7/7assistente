@@ -5,14 +5,14 @@ import {
   addEdge, 
   Connection, 
   Edge, 
-  Node,
-  ReactFlowProvider,
-  useReactFlow
+  Node, 
+  ReactFlowProvider, 
+  useReactFlow 
 } from '@xyflow/react';
 
 import { FlowCanvas } from '../../components/flow-builder/FlowCanvas';
 import { FlowToolbar } from '../../components/flow-builder/FlowToolbar';
-import { NodePalette, NodeDefinition } from '../../components/flow-builder/NodePalette';
+import { NodePalette, NodeDefinition, NODE_DEFINITIONS, CATEGORY_INFO } from '../../components/flow-builder/NodePalette';
 import { NodeInspector } from '../../components/flow-builder/NodeInspector';
 import { FlowSimulator } from '../../components/flow-builder/FlowSimulator';
 import { MobileFlowBuilder } from '../../components/flow-builder/MobileFlowBuilder';
@@ -22,6 +22,22 @@ import { useToast } from '../../contexts/ToastContext';
 import { useWhatsApp } from '../../contexts/WhatsAppContext';
 import { StorageService, getBackendUrl } from '../../lib/storage';
 import { Flow, FlowNode, FlowEdge, FlowNodeData } from '../../types';
+import { 
+  Plus, 
+  Edit3, 
+  Link2, 
+  Trash2, 
+  Copy, 
+  Sparkles, 
+  X, 
+  ChevronRight, 
+  Smartphone, 
+  Layout, 
+  ArrowRight,
+  GitBranch,
+  Layers,
+  Search
+} from 'lucide-react';
 
 export interface FlowEditorPageProps {
   flowId: string;
@@ -47,9 +63,27 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
   const [isDirty, setIsDirty] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isMobileView, setIsMobileView] = useState<boolean>(() => {
-    return typeof window !== 'undefined' && window.innerWidth < 768;
-  });
+
+  // View Mode: Visual Canvas by default, with option to switch to Step List
+  const [isStepListView, setIsStepListView] = useState<boolean>(false);
+
+  // Mobile Tap-to-Connect State
+  const [connectingSource, setConnectingSource] = useState<{
+    node: FlowNode;
+    handleId?: string | null;
+    handleLabel?: string;
+  } | null>(null);
+
+  // Mobile Palette Bottom Sheet Modal
+  const [isMobilePaletteOpen, setIsMobilePaletteOpen] = useState(false);
+  const [mobilePaletteCategory, setMobilePaletteCategory] = useState<string>('all');
+  const [mobilePaletteSearch, setMobilePaletteSearch] = useState<string>('');
+
+  // Mobile Inspector Modal (Bottom Sheet Drawer)
+  const [isMobileInspectorOpen, setIsMobileInspectorOpen] = useState(false);
+
+  // Branch Selector Modal for nodes with multiple outputs (e.g. check_contact or buttons)
+  const [branchSelectorNode, setBranchSelectorNode] = useState<FlowNode | null>(null);
 
   // Line style state
   const [edgeType, setEdgeType] = useState<'smoothstep' | 'default' | 'straight' | 'step'>('smoothstep');
@@ -182,7 +216,7 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
     }
   }, [autoSaveMode, autoSaveIntervalSec, isDirty, handleSave]);
 
-  // Connect edges (Always attaches to Left/Target input handle of destination node)
+  // Connect edges
   const onConnect = useCallback(
     (params: Connection) => {
       const cleanParams: Connection = {
@@ -206,24 +240,66 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
     [nodes, edgeType, setEdges, pushHistory]
   );
 
-  // Node and Edge selection
-  const onNodeClick = useCallback((_e: React.MouseEvent, node: Node) => {
-    setSelectedNode(node as unknown as FlowNode);
-    setSelectedEdge(null);
-  }, []);
+  // Node Click: handles both normal selection and Tap-to-Connect
+  const onNodeClick = useCallback(
+    (_e: React.MouseEvent, node: Node) => {
+      const clickedFlowNode = node as unknown as FlowNode;
+
+      // 1. If in Tap-to-Connect Mode: Connect source to clicked target node!
+      if (connectingSource) {
+        if (connectingSource.node.id === node.id) {
+          warning('Conexão Inválida', 'Você não pode ligar um nó nele mesmo.');
+          return;
+        }
+
+        const newEdge: Edge = {
+          id: `xy-edge__${connectingSource.node.id}${connectingSource.handleId ? '-' + connectingSource.handleId : ''}-${node.id}`,
+          source: connectingSource.node.id,
+          target: node.id,
+          sourceHandle: connectingSource.handleId || null,
+          targetHandle: null,
+          type: edgeType,
+          animated: true,
+          style: { stroke: '#06b6d4', strokeWidth: 2.5 },
+        };
+
+        setEdges((eds) => {
+          const nextEdges = addEdge(newEdge, eds);
+          pushHistory(nodes, nextEdges);
+          return nextEdges;
+        });
+
+        success(
+          'Ligação Criada',
+          `Conectado: "${connectingSource.node.data.label}" ➡️ "${clickedFlowNode.data.label}".`
+        );
+        setConnectingSource(null);
+        setSelectedNode(clickedFlowNode);
+        return;
+      }
+
+      // 2. Normal Selection
+      setSelectedNode(clickedFlowNode);
+      setSelectedEdge(null);
+    },
+    [connectingSource, edgeType, nodes, setEdges, pushHistory, success, warning]
+  );
 
   const onPaneClick = useCallback(() => {
+    if (connectingSource) {
+      setConnectingSource(null);
+      info('Conexão Cancelada', 'Modo de ligação cancelado.');
+    }
     setSelectedNode(null);
     setSelectedEdge(null);
-  }, []);
+  }, [connectingSource, info]);
 
-  // Edge Selection and Double-click to Delete
+  // Edge Selection and Delete
   const onEdgeClick = useCallback((_e: React.MouseEvent, edge: Edge) => {
     setSelectedEdge(edge);
     setSelectedNode(null);
   }, []);
 
-  // Delete Edge function
   const handleDeleteEdge = useCallback(
     (edgeId: string) => {
       setEdges((eds) => {
@@ -243,6 +319,27 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
     },
     [handleDeleteEdge]
   );
+
+  // Start Tap-to-Connect helper
+  const handleStartConnecting = (node: FlowNode, handleId?: string | null, handleLabel?: string) => {
+    const nodeType = node.data?.nodeType || node.type;
+
+    if (nodeType === 'check_contact' && !handleId) {
+      setBranchSelectorNode(node);
+      return;
+    }
+
+    if (nodeType === 'buttons' && !handleId) {
+      const rawButtons = node.data?.config?.buttons || [];
+      if (rawButtons.length > 0) {
+        setBranchSelectorNode(node);
+        return;
+      }
+    }
+
+    setConnectingSource({ node, handleId: handleId || null, handleLabel });
+    info('Modo Conexão Ativo', `Toque no nó de destino para ligar "${node.data.label}".`);
+  };
 
   // Spawn node helper function
   const spawnNodeAtPosition = useCallback(
@@ -266,12 +363,13 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
       pushHistory(nextNodes, edges);
       setSelectedNode(newNode as unknown as FlowNode);
       setSelectedEdge(null);
+      setIsMobilePaletteOpen(false);
       success('Nó Adicionado', `Nó "${def.label}" inserido no fluxo.`);
     },
     [nodes, edges, setNodes, pushHistory, success]
   );
 
-  // Add new node from palette: Clicking spawns in the visual center of current viewport!
+  // Add new node from palette: Clicking spawns in the visual center of current viewport
   const handleAddNode = useCallback(
     (def: NodeDefinition) => {
       try {
@@ -316,7 +414,7 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
     [screenToFlowPosition, spawnNodeAtPosition]
   );
 
-  // Auto-Layout Algorithm (True Genealogical Tree / Organogram Hierarchy)
+  // Auto-Layout Algorithm (True Genealogical Tree Hierarchy)
   const handleAutoLayout = useCallback(() => {
     if (nodes.length === 0) return;
 
@@ -346,19 +444,12 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
     }
 
     const depthMap = new Map<string, number>();
-    const visited = new Set<string>();
 
     const assignDepth = (nodeId: string, currentDepth: number) => {
-      const existing = depthMap.get(nodeId) || 0;
-      if (currentDepth > existing) {
-        depthMap.set(nodeId, currentDepth);
-      } else if (!depthMap.has(nodeId)) {
+      const existingDepth = depthMap.get(nodeId) || 0;
+      if (currentDepth > existingDepth) {
         depthMap.set(nodeId, currentDepth);
       }
-
-      if (visited.has(nodeId)) return;
-      visited.add(nodeId);
-
       const children = childrenMap.get(nodeId) || [];
       children.forEach((childId) => {
         assignDepth(childId, (depthMap.get(nodeId) || currentDepth) + 1);
@@ -367,7 +458,6 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
 
     roots.forEach((r) => assignDepth(r.id, 0));
 
-    // Handle any unreachable / disconnected nodes
     nodes.forEach((n) => {
       if (!depthMap.has(n.id)) {
         depthMap.set(n.id, 0);
@@ -383,29 +473,26 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
       columns[d].push(n);
     });
 
-    // 2. Initial Y Placement (Hierarchical Center-Out from Parents)
-    const NODE_WIDTH = 300;
+    // 2. Initial Y Placement
+    const NODE_WIDTH = 320;
     const HORIZONTAL_GAP = 90;
-    const HORIZONTAL_STEP = NODE_WIDTH + HORIZONTAL_GAP; // 390px
-    const MIN_VERTICAL_GAP = 210; // Space per node row
+    const HORIZONTAL_STEP = NODE_WIDTH + HORIZONTAL_GAP;
+    const MIN_VERTICAL_GAP = 220;
     const START_X = 80;
     const START_Y = 120;
 
     const yPositions = new Map<string, number>();
 
-    // Position roots
     roots.forEach((r, idx) => {
       yPositions.set(r.id, START_Y + idx * (MIN_VERTICAL_GAP * 2));
     });
 
-    // Propagate Y positions from layer 0 to maxDepth
     for (let d = 0; d <= maxDepth; d++) {
       const colNodes = columns[d];
       
       colNodes.forEach((node) => {
         const parents = parentMap.get(node.id) || [];
         if (parents.length > 0 && !yPositions.has(node.id)) {
-          // Calculate mean Y of parents
           const parentYs = parents.map((pId) => yPositions.get(pId) ?? START_Y);
           const avgY = parentYs.reduce((a, b) => a + b, 0) / parentYs.length;
           yPositions.set(node.id, avgY);
@@ -413,7 +500,6 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
           yPositions.set(node.id, START_Y);
         }
 
-        // If node has multiple children in next layer, distribute them symmetrically around node's Y
         const children = childrenMap.get(node.id) || [];
         if (children.length > 1) {
           const totalSpan = (children.length - 1) * MIN_VERTICAL_GAP;
@@ -426,7 +512,6 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
         }
       });
 
-      // 3. Collision Resolution per column (Prevent overlapping nodes)
       colNodes.sort((a, b) => (yPositions.get(a.id) || 0) - (yPositions.get(b.id) || 0));
 
       for (let i = 1; i < colNodes.length; i++) {
@@ -441,35 +526,6 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
       }
     }
 
-    // 4. Center-align parent nodes relative to their children's actual spread (Bottom-Up Pass)
-    for (let d = maxDepth - 1; d >= 0; d--) {
-      const colNodes = columns[d];
-      colNodes.forEach((node) => {
-        const children = childrenMap.get(node.id) || [];
-        if (children.length > 0) {
-          const childYs = children.map((cId) => yPositions.get(cId) || 0);
-          const minChildY = Math.min(...childYs);
-          const maxChildY = Math.max(...childYs);
-          const centeredY = (minChildY + maxChildY) / 2;
-          yPositions.set(node.id, centeredY);
-        }
-      });
-
-      // Re-resolve any collisions created by centering
-      colNodes.sort((a, b) => (yPositions.get(a.id) || 0) - (yPositions.get(b.id) || 0));
-      for (let i = 1; i < colNodes.length; i++) {
-        const prevId = colNodes[i - 1].id;
-        const curId = colNodes[i].id;
-        const prevY = yPositions.get(prevId) || 0;
-        const curY = yPositions.get(curId) || 0;
-
-        if (curY < prevY + MIN_VERTICAL_GAP) {
-          yPositions.set(curId, prevY + MIN_VERTICAL_GAP);
-        }
-      }
-    }
-
-    // Generate final layouted nodes
     const layoutedNodes: Node[] = nodes.map((n) => {
       const depth = depthMap.get(n.id) || 0;
       const posX = START_X + depth * HORIZONTAL_STEP;
@@ -483,10 +539,10 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
 
     setNodes(layoutedNodes);
     pushHistory(layoutedNodes, edges);
-    success('Organograma Alinhado', 'Estrutura em árvore genealógica organizada com sucesso!');
+    success('Organograma Alinhado', 'Estrutura organizada com sucesso!');
 
     setTimeout(() => {
-      fitView({ padding: 0.18, duration: 800 });
+      fitView({ padding: 0.2, duration: 800 });
     }, 60);
   }, [nodes, edges, setNodes, pushHistory, fitView, success]);
 
@@ -520,6 +576,7 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
     setEdges(nextEdges);
     pushHistory(nextNodes, nextEdges);
     setSelectedNode(null);
+    setIsMobileInspectorOpen(false);
     info('Nó Removido', `O nó "${selectedNode.data.label}" foi excluído.`);
   }, [selectedNode, nodes, edges, setNodes, setEdges, pushHistory, info]);
 
@@ -588,82 +645,6 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
     }
   }, [setNodes, setEdges]);
 
-  // Keyboard Shortcuts Listener
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-      const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
-      const target = e.target as HTMLElement;
-      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
-
-      // 1. Ctrl + S -> Save Flow
-      if (cmdOrCtrl && e.key.toLowerCase() === 's') {
-        e.preventDefault();
-        handleSave(false);
-        return;
-      }
-
-      // 2. Ctrl + Z -> Undo
-      if (cmdOrCtrl && e.key.toLowerCase() === 'z' && !e.shiftKey) {
-        if (!isInput) {
-          e.preventDefault();
-          handleUndo();
-        }
-        return;
-      }
-
-      // 3. Ctrl + Y or Ctrl + Shift + Z -> Redo
-      if ((cmdOrCtrl && e.key.toLowerCase() === 'y') || (cmdOrCtrl && e.shiftKey && e.key.toLowerCase() === 'z')) {
-        if (!isInput) {
-          e.preventDefault();
-          handleRedo();
-        }
-        return;
-      }
-
-      // 4. Ctrl + D -> Duplicate Selected Node
-      if (cmdOrCtrl && e.key.toLowerCase() === 'd') {
-        if (!isInput && selectedNode) {
-          e.preventDefault();
-          handleDuplicateSelectedNode();
-        }
-        return;
-      }
-
-      // 5. Delete or Backspace -> Delete Selected Node OR Selected Edge
-      if ((e.key === 'Delete' || e.key === 'Backspace') && !isInput) {
-        if (selectedNode) {
-          e.preventDefault();
-          handleDeleteSelectedNode();
-          return;
-        }
-        if (selectedEdge) {
-          e.preventDefault();
-          handleDeleteEdge(selectedEdge.id);
-          return;
-        }
-      }
-
-      // 6. Escape -> Deselect
-      if (e.key === 'Escape') {
-        setSelectedNode(null);
-        setSelectedEdge(null);
-        setIsShortcutsModalOpen(false);
-        return;
-      }
-
-      // 7. F1 or ? -> Open Shortcuts Modal
-      if ((e.key === 'F1' || e.key === '?') && !isInput) {
-        e.preventDefault();
-        setIsShortcutsModalOpen(true);
-        return;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSave, handleUndo, handleRedo, handleDuplicateSelectedNode, handleDeleteSelectedNode, handleDeleteEdge, selectedNode, selectedEdge]);
-
   // Publish / Pause status toggle
   const handleToggleStatus = async () => {
     if (!flow) return;
@@ -724,8 +705,8 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
     );
   }
 
-  // 📱 Mobile Step-by-Step View
-  if (isMobileView) {
+  // 📱 Optional Step List View (If user explicitly taps "Modo Lista")
+  if (isStepListView) {
     return (
       <MobileFlowBuilder
         flow={flow}
@@ -745,21 +726,45 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
         isDirty={isDirty}
         onOpenSimulator={() => setIsSimulatorOpen(true)}
         onBack={() => onNavigate('/fluxos')}
-        onSwitchToCanvas={() => setIsMobileView(false)}
+        onSwitchToCanvas={() => setIsStepListView(false)}
       />
     );
   }
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-dark-950 overflow-hidden select-none">
-      {/* Top Bar */}
+    <div className="h-screen w-screen flex flex-col bg-dark-950 overflow-hidden select-none relative">
+      {/* Top Floating Connection Mode Banner */}
+      {connectingSource && (
+        <div className="absolute top-16 inset-x-3 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 z-50 animate-in slide-in-from-top-4">
+          <div className="bg-dark-900/95 backdrop-blur-2xl border-2 border-cyan-500/80 p-3 rounded-2xl shadow-2xl shadow-cyan-950/80 flex items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2.5">
+              <span className="w-3 h-3 rounded-full bg-cyan-400 animate-ping flex-shrink-0" />
+              <div>
+                <p className="font-bold text-white leading-tight">
+                  🔗 Modo Conectar: <span className="text-cyan-300">{connectingSource.node.data?.label}</span>
+                  {connectingSource.handleLabel && <span className="text-brand-300 ml-1">({connectingSource.handleLabel})</span>}
+                </p>
+                <p className="text-[10px] text-slate-400">Toque no nó de destino na tela para ligar os dois nós</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setConnectingSource(null)}
+              className="px-3 py-1.5 rounded-xl bg-dark-800 hover:bg-dark-700 text-slate-300 hover:text-white border border-white/10 font-bold active:scale-95 transition-all flex-shrink-0"
+            >
+              ✕ Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Top Studio Toolbar */}
       <FlowToolbar
         flow={flow}
         onBack={() => onNavigate('/fluxos')}
         onSave={() => handleSave(false)}
         onToggleStatus={handleToggleStatus}
         onTestFlow={() => setIsSimulatorOpen(true)}
-        onSwitchToMobileMode={() => setIsMobileView(true)}
+        onSwitchToMobileMode={() => setIsStepListView(true)}
         isSaving={isSaving}
         canUndo={canUndo}
         canRedo={canRedo}
@@ -779,9 +784,9 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
         onAutoLayout={handleAutoLayout}
       />
 
-      {/* Main Canvas Workspace */}
+      {/* Main Canvas Workspace (Identical Desktop Visual Organogram) */}
       <div className="flex-1 flex relative overflow-hidden">
-        {/* Left: Node Palette */}
+        {/* Left: Node Palette (Desktop Sidebar) */}
         <NodePalette
           onAddNode={handleAddNode}
           isOpen={isPaletteOpen}
@@ -808,19 +813,309 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
           />
         </div>
 
-        {/* Right: Node Inspector */}
+        {/* Right: Node Inspector (Desktop Sidebar) */}
         {selectedNode && (
-          <NodeInspector
-            node={selectedNode}
-            onUpdateConfig={handleUpdateConfig}
-            onDeleteNode={handleDeleteSelectedNode}
-            onDuplicateNode={handleDuplicateSelectedNode}
-            onClose={() => setSelectedNode(null)}
-            width={inspectorWidth}
-            onWidthChange={setInspectorWidth}
-          />
+          <div className="hidden md:block">
+            <NodeInspector
+              node={selectedNode}
+              onUpdateConfig={handleUpdateConfig}
+              onDeleteNode={handleDeleteSelectedNode}
+              onDuplicateNode={handleDuplicateSelectedNode}
+              onClose={() => setSelectedNode(null)}
+              width={inspectorWidth}
+              onWidthChange={setInspectorWidth}
+            />
+          </div>
         )}
       </div>
+
+      {/* 📱 Mobile Floating Quick Action Bar (When a Node is Selected) */}
+      {selectedNode && (
+        <div className="md:hidden fixed bottom-4 inset-x-3 z-40 animate-in slide-in-from-bottom-4">
+          <div className="bg-dark-900/95 backdrop-blur-2xl border border-white/15 rounded-3xl p-3 shadow-2xl shadow-black/80 space-y-2">
+            {/* Header: Node Info */}
+            <div className="flex items-center justify-between gap-2 px-1">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="w-2.5 h-2.5 rounded-full bg-brand-400 animate-pulse flex-shrink-0" />
+                <h4 className="text-xs font-bold text-white truncate">
+                  {selectedNode.data?.label || selectedNode.id}
+                </h4>
+              </div>
+              <button
+                onClick={() => setSelectedNode(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Quick Action Buttons */}
+            <div className="grid grid-cols-4 gap-1.5 pt-1">
+              <button
+                onClick={() => setIsMobileInspectorOpen(true)}
+                className="p-2.5 rounded-2xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-[11px] flex flex-col items-center gap-1 shadow-sm active:scale-95 transition-transform"
+              >
+                <Edit3 className="w-4 h-4" />
+                <span>Editar</span>
+              </button>
+
+              <button
+                onClick={() => handleStartConnecting(selectedNode)}
+                className="p-2.5 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[11px] flex flex-col items-center gap-1 shadow-sm active:scale-95 transition-transform"
+              >
+                <Link2 className="w-4 h-4" />
+                <span>Ligar Nó</span>
+              </button>
+
+              <button
+                onClick={handleDuplicateSelectedNode}
+                className="p-2.5 rounded-2xl bg-dark-800 hover:bg-dark-750 text-slate-200 text-[11px] font-medium flex flex-col items-center gap-1 border border-white/5 active:scale-95 transition-transform"
+              >
+                <Copy className="w-4 h-4" />
+                <span>Duplicar</span>
+              </button>
+
+              <button
+                onClick={handleDeleteSelectedNode}
+                className="p-2.5 rounded-2xl bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 text-[11px] font-medium flex flex-col items-center gap-1 border border-rose-800/40 active:scale-95 transition-transform"
+              >
+                <Trash2 className="w-4 h-4 text-rose-400" />
+                <span>Excluir</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 📱 Mobile Floating Edge Delete Pill (When an Edge is Selected) */}
+      {selectedEdge && (
+        <div className="fixed bottom-4 inset-x-4 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 z-40 animate-in slide-in-from-bottom-4">
+          <div className="bg-dark-900/95 backdrop-blur-2xl border border-cyan-500/50 px-4 py-2.5 rounded-2xl shadow-2xl flex items-center justify-between gap-3 text-xs">
+            <span className="text-slate-300 font-medium">Linha de Ligação Selecionada</span>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="danger"
+                leftIcon={<Trash2 className="w-3.5 h-3.5" />}
+                onClick={() => handleDeleteEdge(selectedEdge.id)}
+              >
+                Excluir Ligação
+              </Button>
+              <button
+                onClick={() => setSelectedEdge(null)}
+                className="p-1 text-slate-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 📱 Mobile Floating Action Button (+ Adicionar Nó) */}
+      <div className="md:hidden fixed bottom-4 right-4 z-30">
+        {!selectedNode && (
+          <button
+            onClick={() => setIsMobilePaletteOpen(true)}
+            className="px-4 py-3.5 rounded-2xl bg-gradient-to-r from-brand-500 to-primary-600 text-white font-bold text-xs flex items-center gap-2 shadow-2xl shadow-brand-500/40 border border-white/20 active:scale-95 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Adicionar Nó</span>
+          </button>
+        )}
+      </div>
+
+      {/* 📱 Mobile Node Palette Modal */}
+      <Modal
+        isOpen={isMobilePaletteOpen}
+        onClose={() => setIsMobilePaletteOpen(false)}
+        title="Catálogo de Nós do Fluxo"
+        subtitle="Toque em qualquer nó para adicionar no organograma visual"
+        maxWidth="lg"
+      >
+        <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+          {/* Category Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none">
+            <button
+              onClick={() => setMobilePaletteCategory('all')}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold flex-shrink-0 transition-colors ${
+                mobilePaletteCategory === 'all'
+                  ? 'bg-brand-500 text-white shadow-sm'
+                  : 'bg-dark-800 text-slate-400 hover:text-white border border-white/5'
+              }`}
+            >
+              Todos ({NODE_DEFINITIONS.length})
+            </button>
+            {(Object.keys(CATEGORY_INFO) as Array<keyof typeof CATEGORY_INFO>).map((catKey) => {
+              const cat = CATEGORY_INFO[catKey];
+              const isSelected = mobilePaletteCategory === catKey;
+              return (
+                <button
+                  key={catKey}
+                  onClick={() => setMobilePaletteCategory(catKey)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium flex-shrink-0 flex items-center gap-1.5 transition-colors ${
+                    isSelected
+                      ? 'bg-brand-500 text-white shadow-sm'
+                      : 'bg-dark-800 text-slate-400 hover:text-white border border-white/5'
+                  }`}
+                >
+                  {cat.icon}
+                  <span>{cat.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Node Types Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {NODE_DEFINITIONS.filter(
+              (def) => mobilePaletteCategory === 'all' || def.category === mobilePaletteCategory
+            ).map((def) => (
+              <button
+                key={def.type}
+                onClick={() => handleAddNode(def)}
+                className="p-3.5 rounded-2xl bg-dark-850 hover:bg-dark-800 border border-white/5 hover:border-brand-500/40 text-left transition-all active:scale-[0.98] flex items-start gap-3 group"
+              >
+                <div className={`p-2.5 rounded-xl text-white ${def.iconBg} shadow-sm flex-shrink-0 group-hover:scale-105 transition-transform`}>
+                  {def.icon}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-1">
+                    <h4 className="text-xs font-bold text-white group-hover:text-brand-300 transition-colors">
+                      {def.label}
+                    </h4>
+                    {def.badge && (
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30">
+                        {def.badge}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-2">
+                    {def.description}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </Modal>
+
+      {/* 📱 Mobile Node Inspector Modal / Drawer */}
+      {isMobileInspectorOpen && selectedNode && (
+        <div className="md:hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col justify-end animate-in fade-in">
+          <div className="bg-dark-900 border-t border-white/15 rounded-t-3xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-bottom-6">
+            {/* Drawer Header */}
+            <div className="p-4 border-b border-white/10 flex items-center justify-between bg-dark-850">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-brand-500 text-white">
+                  <Edit3 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">
+                    Editar: {selectedNode.data?.label || selectedNode.id}
+                  </h3>
+                  <p className="text-[10px] text-slate-400">Configure textos, parâmetros e variáveis da etapa</p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsMobileInspectorOpen(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-dark-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Inspector Form Body */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <NodeInspector
+                node={selectedNode}
+                onUpdateConfig={handleUpdateConfig}
+                onDeleteNode={handleDeleteSelectedNode}
+                onDuplicateNode={handleDuplicateSelectedNode}
+                onClose={() => setIsMobileInspectorOpen(false)}
+                width={600}
+              />
+            </div>
+
+            {/* Bottom Save & Close Button */}
+            <div className="p-3 bg-dark-850 border-t border-white/10 flex justify-end gap-2">
+              <Button
+                variant="brand"
+                onClick={() => setIsMobileInspectorOpen(false)}
+                className="w-full font-bold"
+              >
+                Concluir & Salvar Edição
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Branch Output Selector Modal (For check_contact or buttons) */}
+      {branchSelectorNode && (
+        <Modal
+          isOpen={Boolean(branchSelectorNode)}
+          onClose={() => setBranchSelectorNode(null)}
+          title="Escolha a Saída para Conectar"
+          subtitle={`Selecione qual caminho de "${branchSelectorNode.data.label}" você deseja ligar`}
+          maxWidth="sm"
+        >
+          <div className="space-y-2 pt-2">
+            {(branchSelectorNode.data?.nodeType || branchSelectorNode.type) === 'check_contact' ? (
+              <>
+                <button
+                  onClick={() => {
+                    const node = branchSelectorNode;
+                    setBranchSelectorNode(null);
+                    handleStartConnecting(node, 'is_new', 'Novo Cliente');
+                  }}
+                  className="w-full p-3 rounded-2xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 font-bold text-xs flex items-center justify-between text-left transition-all"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-3 h-3 rounded-full bg-emerald-400" />
+                    <span>🟢 Saída: Se for Novo Cliente</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    const node = branchSelectorNode;
+                    setBranchSelectorNode(null);
+                    handleStartConnecting(node, 'is_existing', 'Cliente Salvo');
+                  }}
+                  className="w-full p-3 rounded-2xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 font-bold text-xs flex items-center justify-between text-left transition-all"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-3 h-3 rounded-full bg-cyan-400" />
+                    <span>🔵 Saída: Se for Cliente Já Salvo</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </>
+            ) : (
+              (branchSelectorNode.data?.config?.buttons || []).map((b: any, idx: number) => (
+                <button
+                  key={b.id || idx}
+                  onClick={() => {
+                    const node = branchSelectorNode;
+                    setBranchSelectorNode(null);
+                    handleStartConnecting(node, b.id || `btn_${idx + 1}`, b.title || `Botão ${idx + 1}`);
+                  }}
+                  className="w-full p-3 rounded-2xl bg-brand-500/15 hover:bg-brand-500/25 border border-brand-500/30 text-brand-300 font-bold text-xs flex items-center justify-between text-left transition-all"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-3 h-3 rounded-full bg-brand-400" />
+                    <span>Saída: {b.title || `Opção ${idx + 1}`}</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              ))
+            )}
+          </div>
+        </Modal>
+      )}
 
       {/* Simulator Modal */}
       {isSimulatorOpen && (
