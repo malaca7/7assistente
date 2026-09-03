@@ -1,14 +1,22 @@
-import WebSocket from 'ws';
+let WS = (typeof globalThis !== 'undefined' && globalThis.WebSocket) ? globalThis.WebSocket : null;
 
-if (typeof globalThis !== 'undefined') {
-  globalThis.WebSocket = WebSocket;
-}
-if (typeof global !== 'undefined') {
-  global.WebSocket = WebSocket;
-}
-if (typeof window !== 'undefined') {
-  window.WebSocket = WebSocket;
+try {
+  const wsModule = await import('ws');
+  if (wsModule.default) {
+    WS = wsModule.default;
+  } else if (wsModule.WebSocket) {
+    WS = wsModule.WebSocket;
+  }
+} catch (e) {
+  // Use globalThis.WebSocket if ws package is not installed
 }
 
-export { WebSocket };
-export default WebSocket;
+if (typeof globalThis !== 'undefined' && WS) {
+  globalThis.WebSocket = WS;
+}
+if (typeof global !== 'undefined' && WS) {
+  global.WebSocket = WS;
+}
+
+export { WS as WebSocket };
+export default WS;

@@ -147,8 +147,30 @@ export const StorageService = {
     return updated;
   },
 
-  // Settings & Bot Profile
+  // Settings & Bot Profile (Sincronização em Tempo Real com Banco de Dados)
   async getSettings(): Promise<Settings> {
+    const backendUrl = getBackendUrl();
+    try {
+      const res = await fetch(`${backendUrl}/api/whatsapp/settings`, { signal: AbortSignal.timeout(4000) });
+      if (res.ok) {
+        const live = await res.json();
+        const current = getItem<Settings>(STORAGE_KEYS.SETTINGS, initialSettings);
+        const merged: Settings = {
+          ...current,
+          ...(live.settings || {}),
+          bot_profile: {
+            ...defaultBotProfile,
+            ...(current.bot_profile || {}),
+            ...(live.botProfile || {}),
+          },
+        };
+        setItem(STORAGE_KEYS.SETTINGS, merged);
+        return merged;
+      }
+    } catch (e) {
+      // Fallback to local / supabase
+    }
+
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.from('settings').select('*').limit(1).maybeSingle();
@@ -168,6 +190,22 @@ export const StorageService = {
   async updateSettings(settings: Partial<Settings>): Promise<Settings> {
     const current = await this.getSettings();
     const updated = { ...current, ...settings, updated_at: new Date().toISOString() };
+    setItem(STORAGE_KEYS.SETTINGS, updated);
+
+    const backendUrl = getBackendUrl();
+    try {
+      await fetch(`${backendUrl}/api/whatsapp/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          settings: updated,
+          botProfile: updated.bot_profile,
+        }),
+      });
+    } catch (e) {
+      console.warn('Falha ao persistir configurações no servidor WhatsApp:', e);
+    }
+
     if (isSupabaseConfigured && supabase) {
       try {
         await supabase.from('settings').upsert({
@@ -178,7 +216,6 @@ export const StorageService = {
         console.warn('Supabase settings upsert fallback:', e);
       }
     }
-    setItem(STORAGE_KEYS.SETTINGS, updated);
     syncWithWhatsAppServer();
     return updated;
   },

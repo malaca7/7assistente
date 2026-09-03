@@ -25,6 +25,16 @@ export interface BotProfile {
   business_hours?: string;
   website_url?: string;
   welcome_message?: string;
+  fallback_message?: string;
+  company_address?: string;
+  pix_key_type?: string;
+  pix_key?: string;
+  pix_owner?: string;
+  notify_new_bookings?: boolean;
+  notify_phone?: string;
+  play_audio_alerts?: boolean;
+  handoff_message?: string;
+  [key: string]: any;
 }
 
 export type WhatsAppConnectionState = 'disconnected' | 'connecting' | 'qrcode' | 'connected' | 'error';
