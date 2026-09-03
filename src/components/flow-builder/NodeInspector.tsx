@@ -883,6 +883,58 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
             </div>
           </div>
         )}
+
+        {/* 14. End Flow Node */}
+        {(nodeType === 'end_flow' || nodeType === 'finish_flow' || nodeType === 'end') && (
+          <div className="space-y-4">
+            <div className="p-3 rounded-2xl bg-rose-950/40 border border-rose-500/30 text-xs text-rose-200 space-y-1">
+              <span className="font-bold flex items-center gap-1.5 text-rose-300">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Encerramento do Fluxo:
+              </span>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Este nó é o <strong>ponto terminal</strong> da automação. Ele encerra a conversa, reseta a sessão do WhatsApp e envia a mensagem final de conclusão ao cliente.
+              </p>
+            </div>
+
+            <Textarea
+              label="Mensagem de Encerramento (Opcional)"
+              value={config.message ?? '🏁 *Atendimento finalizado com sucesso!*\n\nSe precisar de algo mais, basta nos enviar uma nova mensagem. Até logo!'}
+              onChange={(e) => handleConfigChange('message', e.target.value)}
+              rows={4}
+              placeholder="Mensagem de agradecimento / despedida..."
+              hint="Suporta variáveis como {{nome_cliente}}, {{empresa}}, {{chave_pix}}, etc."
+            />
+
+            <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold text-white block">Encerrar Conversa no Painel</span>
+                  <span className="text-[10px] text-slate-400">Marca o atendimento como fechado</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={config.closeConversation !== false}
+                  onChange={(e) => handleConfigChange('closeConversation', e.target.checked)}
+                  className="rounded bg-dark-900 border-white/10 text-brand-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                <div>
+                  <span className="text-xs font-semibold text-white block">Resetar Variáveis Temporárias</span>
+                  <span className="text-[10px] text-slate-400">Limpa variáveis de etapas para o próximo contato</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={config.clearVariables !== false}
+                  onChange={(e) => handleConfigChange('clearVariables', e.target.checked)}
+                  className="rounded bg-dark-900 border-white/10 text-brand-500"
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Footer Actions (Duplicate / Delete) */}

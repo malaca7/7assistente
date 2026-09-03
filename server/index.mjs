@@ -192,37 +192,99 @@ async function hydrateFromSupabase() {
 async function sendWhatsAppMessage(jid, reply) {
   if (!sock) return;
 
-  // 1. Interactive Button Message
+  // 1. Interactive Button Message (Native Clickable Buttons in WhatsApp)
   if (typeof reply === 'object' && reply.type === 'buttons') {
     const rawButtons = reply.buttons || [];
-    const buttonLines = rawButtons.map((b, idx) => `*${idx + 1}️⃣* ${b.title}`).join('\n');
-    const footerText = reply.footer ? `\n\n_${reply.footer}_` : '';
-    const fullButtonText = `${reply.body}\n\n${buttonLines}${footerText}\n\n_👉 Toque no botão ou digite o número correspondente._`;
+    const bodyText = reply.body || 'Por favor, selecione uma opção:';
+    const footerText = reply.footer || '7 Assistente';
+    const userJid = sock.user?.id || (sock.authState?.creds?.me?.id) || '';
 
     let sentNative = false;
 
-    // Try sending native Baileys template/quick-reply buttons
+    // A. WhatsApp Native Flow Interactive Buttons (Modern UI Buttons)
     try {
-      await sock.sendMessage(jid, {
-        text: `${reply.body}\n\n${buttonLines}${footerText}`,
-        footer: reply.footer || '7 Assistente',
-        buttons: rawButtons.map((b, idx) => ({
-          buttonId: b.id || `btn_${idx + 1}`,
-          buttonText: { displayText: b.title },
-          type: 1,
-        })),
-        headerType: 1,
-      });
+      const interactiveButtons = rawButtons.map((b, idx) => ({
+        name: 'quick_reply',
+        buttonParamsJson: JSON.stringify({
+          display_text: b.title || b.text || `Opção ${idx + 1}`,
+          id: b.id || `btn_${idx + 1}`,
+        }),
+      }));
+
+      const interactiveMessage = {
+        body: { text: bodyText },
+        footer: { text: footerText },
+        header: {
+          title: reply.header || '',
+          hasMediaAttachment: false,
+        },
+        nativeFlowMessage: {
+          buttons: interactiveButtons,
+        },
+      };
+
+      const msg = generateWAMessageFromContent(
+        jid,
+        {
+          viewOnceMessage: {
+            message: {
+              messageContextInfo: {
+                deviceListMetadata: {},
+                deviceListMetadataVersion: 2,
+              },
+              interactiveMessage,
+            },
+          },
+        },
+        { userJid }
+      );
+
+      await sock.relayMessage(jid, msg.message, { messageId: msg.key.id });
       sentNative = true;
-      console.log(`[WhatsApp Outbound] 🔘 Botões enviados para ${jid}: ${rawButtons.map((b) => b.title).join(' | ')}`);
+      console.log(`[WhatsApp Outbound] 🔘 Botões nativos interativos (Native Flow) enviados para ${jid}: ${rawButtons.map((b) => b.title).join(' | ')}`);
     } catch (err) {
-      console.warn('[WhatsApp Outbound] Envio de botões nativos falhou:', err.message);
+      console.warn('[WhatsApp Outbound] Envio de botões nativos via relayMessage falhou:', err.message);
     }
 
-    // If native buttons fail, send the rich formatted button message
+    // B. Template Buttons Fallback (if native flow fails on specific WhatsApp client)
     if (!sentNative) {
+      try {
+        const templateButtons = rawButtons.map((b, idx) => ({
+          index: idx + 1,
+          quickReplyButton: {
+            displayText: b.title || b.text || `Opção ${idx + 1}`,
+            id: b.id || `btn_${idx + 1}`,
+          },
+        }));
+
+        const templateMsg = generateWAMessageFromContent(
+          jid,
+          {
+            templateMessage: {
+              hydratedTemplate: {
+                hydratedContentText: bodyText,
+                hydratedFooterText: footerText,
+                hydratedButtons: templateButtons,
+              },
+            },
+          },
+          { userJid }
+        );
+
+        await sock.relayMessage(jid, templateMsg.message, { messageId: templateMsg.key.id });
+        sentNative = true;
+        console.log(`[WhatsApp Outbound] 🔘 Botões template enviados para ${jid}`);
+      } catch (err2) {
+        console.warn('[WhatsApp Outbound] Envio de templateButtons falhou:', err2.message);
+      }
+    }
+
+    // C. Clean Fallback only if recipient client cannot receive buttons
+    if (!sentNative) {
+      const buttonLines = rawButtons.map((b, idx) => `*${idx + 1}️⃣* ${b.title}`).join('\n');
+      const fullButtonText = `${bodyText}\n\n${buttonLines}\n\n_${footerText}_`;
       await sock.sendMessage(jid, { text: fullButtonText });
-      console.log(`[WhatsApp Outbound] 🔘 Menu de opções enviado com sucesso para ${jid}`);
+      console.log(`[WhatsApp Outbound] 🔘 Menu fallback texto enviado para ${jid}`);
     }
   }
 
@@ -388,12 +450,17 @@ async function startWhatsApp() {
               msg.message?.listResponseMessage?.singleSelectReply?.title ||
               '';
 
-            // Native flow interactive response
-            if (msg.message?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson) {
+            // Interactive response handling (Native Flow Quick Reply / List Reply)
+            const interactive = msg.message?.interactiveResponseMessage || 
+                                msg.message?.viewOnceMessage?.message?.interactiveResponseMessage;
+            if (interactive?.nativeFlowResponseMessage?.paramsJson) {
               try {
-                const params = JSON.parse(msg.message.interactiveResponseMessage.nativeFlowResponseMessage.paramsJson);
+                const params = JSON.parse(interactive.nativeFlowResponseMessage.paramsJson);
                 if (params.id) messageContent = params.id;
+                else if (params.display_text) messageContent = params.display_text;
               } catch {}
+            } else if (interactive?.body?.text) {
+              messageContent = interactive.body.text;
             }
 
             // Resolve real phone number

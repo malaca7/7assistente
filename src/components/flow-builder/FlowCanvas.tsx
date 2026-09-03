@@ -33,6 +33,7 @@ import {
   CheckContactNode,
   AskDateNode,
   ConfirmBookingNode,
+  EndFlowNode,
 } from './nodes/AdvancedNodes';
 
 export interface FlowCanvasProps {
@@ -84,6 +85,9 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
       confirm_booking: ConfirmBookingNode,
       update_contact: UpdateContactNode,
       check_contact: CheckContactNode,
+      end_flow: EndFlowNode,
+      finish_flow: EndFlowNode,
+      end: EndFlowNode,
     }),
     []
   );
