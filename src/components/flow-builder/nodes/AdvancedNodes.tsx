@@ -294,50 +294,6 @@ export const HumanHandoffNode: React.FC<NodeProps> = ({ id, selected, data }) =>
   );
 };
 
-export const ScheduleContactNode: React.FC<NodeProps> = ({ id, selected, data }) => {
-  const nodeData = data as unknown as FlowNodeData;
-  const config = nodeData.config || {};
-  const isShowSlotsMode = config.mode === 'show_slots';
-
-  return (
-    <BaseNode
-      id={id}
-      selected={selected}
-      title={nodeData.label || (isShowSlotsMode ? 'Ver Horários Livres' : 'Agendar na Agenda')}
-      subtitle={isShowSlotsMode ? 'Consulta & Envia Horários Disponíveis' : 'Confirma e Bloqueia Horário'}
-      icon={<Calendar className="w-4 h-4" />}
-      iconBg="bg-emerald-600"
-      accentColor="bg-emerald-500"
-      hasInput={true}
-      hasOutput={true}
-      isConfigured={Boolean(config.serviceName || config.dateVariable || config.mode)}
-    >
-      <div className="space-y-1.5 p-2.5 rounded-xl bg-dark-950/90 border border-emerald-500/20 text-[11px]">
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-            {isShowSlotsMode ? '🔍 Consultar Horários' : '✅ Confirmar Reserva'}
-          </span>
-          <span className="text-[10px] font-mono text-slate-400">
-            {config.dateType === 'tomorrow' ? (
-              'Amanhã'
-            ) : config.dateType === 'variable' ? (
-              <VariableBadge name={config.dateVariable || 'data_agendamento'} />
-            ) : (
-              'Hoje'
-            )}
-          </span>
-        </div>
-        <div className="flex items-center justify-between text-slate-200 pt-0.5">
-          <span className="font-semibold text-emerald-400">Serviço:</span>
-          <span className="truncate max-w-[130px] font-medium text-white">
-            {config.serviceName ? config.serviceName : <VariableBadge name="servico_selecionado" />}
-          </span>
-        </div>
-      </div>
-    </BaseNode>
-  );
-};
-
 // 1. Exibir Catálogo de Serviços (Apenas Exibição / Leitura)
 export const ShowServicesNode: React.FC<NodeProps> = ({ id, selected, data }) => {
   const nodeData = data as unknown as FlowNodeData;
