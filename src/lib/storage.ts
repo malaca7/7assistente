@@ -556,21 +556,27 @@ export const StorageService = {
 
   async deleteContact(id: string, phone?: string): Promise<void> {
     const backendUrl = getBackendUrl();
-    const cleanPhone = (phone || id).replace(/\D/g, '');
+    const cleanPhone = (phone || id || '').replace(/\D/g, '');
+    const altPhone = cleanPhone.startsWith('55') ? cleanPhone.substring(2) : `55${cleanPhone}`;
 
     // 1. Remove from local storage
     const contacts = getItem<Contact[]>(STORAGE_KEYS.CONTACTS, []);
-    const filtered = contacts.filter(c => c.id !== id && c.phone !== phone && c.phone !== cleanPhone);
+    const filtered = contacts.filter(c => {
+      const cPhone = (c.phone || '').replace(/\D/g, '');
+      return c.id !== id && c.phone !== phone && c.phone !== cleanPhone && cPhone !== cleanPhone && cPhone !== altPhone;
+    });
     setItem(STORAGE_KEYS.CONTACTS, filtered);
 
     // 2. Remove from Supabase
     if (isSupabaseConfigured && supabase) {
       try {
-        if (cleanPhone) {
-          await supabase.from('contacts').delete().eq('phone', cleanPhone);
-        }
         if (id) {
           await supabase.from('contacts').delete().eq('id', id);
+        }
+        if (cleanPhone) {
+          await supabase.from('contacts').delete().eq('phone', cleanPhone);
+          await supabase.from('contacts').delete().eq('phone', altPhone);
+          await supabase.from('contacts').delete().or(`phone.eq.${cleanPhone},phone.eq.${altPhone},id.eq.contact-${cleanPhone},id.eq.contact-${altPhone}`);
         }
       } catch (e) {
         console.warn('Supabase contact delete fallback:', e);
@@ -580,7 +586,7 @@ export const StorageService = {
     // 3. Remove from WhatsApp Backend Server
     try {
       const target = cleanPhone || id;
-      await fetch(`${backendUrl}/api/whatsapp/contacts/${target}?phone=${cleanPhone}`, {
+      await fetch(`${backendUrl}/api/whatsapp/contacts/${encodeURIComponent(target)}?phone=${encodeURIComponent(cleanPhone)}`, {
         method: 'DELETE',
       });
     } catch (e) {
