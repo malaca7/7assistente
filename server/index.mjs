@@ -553,22 +553,42 @@ app.post('/api/whatsapp/disconnect', async (req, res) => {
   }
 });
 
-// 4. Send Message from Web Frontend
+// 4. Send Message or Media from Web Frontend
 app.post('/api/whatsapp/send', async (req, res) => {
   try {
-    const { phone, text } = req.body;
+    const { phone, text, message, mediaUrl, mediaType, caption, isPtt } = req.body;
+    const msgText = text || message || caption || '';
+
     if (!sock || connectionState.status !== 'connected') {
       return res.status(400).json({ error: 'WhatsApp não está conectado' });
     }
-    const cleanPhone = phone.replace(/\D/g, '');
+    const cleanPhone = String(phone || '').replace(/\D/g, '');
+    if (!cleanPhone) {
+      return res.status(400).json({ error: 'Telefone do destinatário não informado' });
+    }
     const jid = cleanPhone.includes('@') ? cleanPhone : `${cleanPhone}@s.whatsapp.net`;
-    const result = await sock.sendMessage(jid, { text });
+
+    let result;
+    if (mediaUrl) {
+      if (mediaType === 'audio' || isPtt) {
+        result = await sock.sendMessage(jid, { audio: { url: mediaUrl }, ptt: isPtt !== false });
+      } else if (mediaType === 'video') {
+        result = await sock.sendMessage(jid, { video: { url: mediaUrl }, caption: msgText });
+      } else if (mediaType === 'document') {
+        result = await sock.sendMessage(jid, { document: { url: mediaUrl }, mimetype: 'application/pdf', fileName: 'documento.pdf' });
+      } else {
+        result = await sock.sendMessage(jid, { image: { url: mediaUrl }, caption: msgText });
+      }
+    } else {
+      result = await sock.sendMessage(jid, { text: msgText });
+    }
 
     // Record outbound human message to DB
-    recordRealMessage(cleanPhone, 'Admin', 'outbound', text);
+    recordRealMessage(cleanPhone, 'Atendente', 'outbound', msgText || mediaUrl || 'Mídia enviada');
 
     res.json({ success: true, result });
   } catch (err) {
+    console.error('[WhatsApp Server] Erro ao enviar mensagem:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -579,8 +599,56 @@ app.get('/api/whatsapp/conversations', (req, res) => {
   res.json(convs);
 });
 
-// 6. Get Real Live Messages for Conversation
+// 5.1 Update Conversation Status (Human takeover / Bot / Closed)
+app.post('/api/whatsapp/conversations/:id/status', (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  const db = loadDb();
+  if (!db.conversations) db.conversations = {};
+
+  const cleanPhone = id.replace('conv-', '').replace(/\D/g, '');
+  const convKey = db.conversations[id] ? id : (db.conversations[`conv-${cleanPhone}`] ? `conv-${cleanPhone}` : id);
+
+  if (db.conversations[convKey]) {
+    db.conversations[convKey].status = status || 'human';
+    db.conversations[convKey].updated_at = new Date().toISOString();
+  } else {
+    db.conversations[convKey] = {
+      id: convKey,
+      contact_id: `contact-${cleanPhone}`,
+      contact_name: 'Cliente',
+      contact_phone: cleanPhone,
+      status: status || 'human',
+      started_at: new Date().toISOString(),
+      last_message_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+  }
+
+  // If human takeover, pause active bot session
+  if (status === 'human') {
+    if (db.sessions && db.sessions[cleanPhone]) {
+      db.sessions[cleanPhone].pausedForHuman = true;
+    }
+  } else if (status === 'bot') {
+    if (db.sessions && db.sessions[cleanPhone]) {
+      db.sessions[cleanPhone].pausedForHuman = false;
+    }
+  }
+
+  saveDb(db);
+  syncConversationToSupabase(db.conversations[convKey]);
+  res.json({ success: true, conversation: db.conversations[convKey] });
+});
+
+// 6. Get Real Live Messages for Conversation (supporting both URL routes)
 app.get('/api/whatsapp/messages/:convId', (req, res) => {
+  const { convId } = req.params;
+  const msgs = getLiveMessages(convId);
+  res.json(msgs);
+});
+
+app.get('/api/whatsapp/conversations/:convId/messages', (req, res) => {
   const { convId } = req.params;
   const msgs = getLiveMessages(convId);
   res.json(msgs);

@@ -46,6 +46,8 @@ export const ContactsPage: React.FC<ContactsPageProps> = ({ onNavigate }) => {
 
   useEffect(() => {
     loadContacts();
+    const interval = setInterval(loadContacts, 3500);
+    return () => clearInterval(interval);
   }, []);
 
   const loadContacts = async () => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   MessageSquare, 
   Search, 
@@ -36,21 +36,26 @@ import {
   Download,
   Trash2,
   Edit3,
-  Copy
+  Copy,
+  Archive,
+  RotateCcw,
+  Image as ImageIcon,
+  Mic
 } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Input, Textarea } from '../../components/ui/Input';
+import { Modal } from '../../components/ui/Modal';
 import { useToast } from '../../contexts/ToastContext';
 import { useWhatsApp } from '../../contexts/WhatsAppContext';
-import { StorageService } from '../../lib/storage';
+import { StorageService, getBackendUrl } from '../../lib/storage';
 import { Conversation, Message, Contact, Flow } from '../../types';
 import { formatPhone, formatTimeAgo, formatDate } from '../../lib/utils';
 
 export const ConversationsPage: React.FC = () => {
   const { success, info, warning, error: toastError } = useToast();
-  const { isConnected, session } = useWhatsApp();
+  const { isConnected } = useWhatsApp();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConv, setSelectedConv] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -68,11 +73,22 @@ export const ConversationsPage: React.FC = () => {
   const [agentNote, setAgentNote] = useState('');
   const [showCannedMenu, setShowCannedMenu] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
+  const [mediaUrlInput, setMediaUrlInput] = useState('');
+  const [mediaTypeSelect, setMediaTypeSelect] = useState<'image' | 'video' | 'audio' | 'document'>('image');
+  const [mediaCaptionInput, setMediaCaptionInput] = useState('');
+
+  // Delete Conversation Modal
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const selectedConvIdRef = useRef<string | null>(null);
+  selectedConvIdRef.current = selectedConv?.id || null;
 
-  const loadData = async () => {
+  // Load Data with silent real-time refresh
+  const loadData = useCallback(async (silent = false) => {
     try {
+      if (!silent) setIsLoading(true);
       const [convs, allFlows] = await Promise.all([
         StorageService.getConversations(),
         StorageService.getFlows(),
@@ -80,28 +96,36 @@ export const ConversationsPage: React.FC = () => {
       setConversations(convs);
       setFlows(allFlows);
 
-      if (!selectedConv && convs.length > 0) {
-        handleSelectConv(convs[0]);
-      } else if (selectedConv) {
-        const msgs = await StorageService.getMessages(selectedConv.id);
+      const activeId = selectedConvIdRef.current;
+      if (activeId) {
+        const currentSelected = convs.find(c => c.id === activeId);
+        if (currentSelected) {
+          setSelectedConv(currentSelected);
+        }
+        const msgs = await StorageService.getMessages(activeId);
         setMessages(msgs);
+      } else if (convs.length > 0 && !silent) {
+        handleSelectConv(convs[0]);
       }
     } catch (err) {
       console.error('Error loading conversations:', err);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    loadData();
-    // Poll every 3s for incoming messages
-    const interval = setInterval(loadData, 3000);
+    loadData(false);
+    // Real-time polling every 2.5 seconds
+    const interval = setInterval(() => {
+      loadData(true);
+    }, 2500);
     return () => clearInterval(interval);
-  }, [selectedConv?.id]);
+  }, [loadData]);
 
   const handleSelectConv = async (conv: Conversation) => {
     setSelectedConv(conv);
+    selectedConvIdRef.current = conv.id;
     const msgs = await StorageService.getMessages(conv.id);
     setMessages(msgs);
 
@@ -132,12 +156,9 @@ export const ConversationsPage: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Send message
   const handleSendMessage = async (textToSend?: string) => {
     const text = textToSend || inputText;
-    if (!isConnected) {
-      warning('WhatsApp Desconectado', 'Escaneie o QR Code nas Configurações para enviar mensagens pelo WhatsApp.');
-      return;
-    }
     if (!text.trim() || !selectedConv) return;
 
     const content = text.trim();
@@ -146,14 +167,14 @@ export const ConversationsPage: React.FC = () => {
     setIsSending(true);
 
     try {
-      // 1. Send via storage
       const newMsg = await StorageService.sendMessage(selectedConv.id, content);
       setMessages((prev) => [...prev, newMsg]);
 
-      // 2. Real dispatch through WhatsApp Server
-      const targetPhone = selectedConv.contact_phone || selectedConv.contact?.phone;
+      // Real dispatch through WhatsApp Server
+      const backendUrl = getBackendUrl();
+      const targetPhone = (selectedConv.contact_phone || selectedConv.contact?.phone || selectedConv.id.replace('conv-', '')).replace(/\D/g, '');
       if (targetPhone) {
-        await fetch('http://localhost:3001/api/whatsapp/send', {
+        await fetch(`${backendUrl}/api/whatsapp/send`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -163,7 +184,7 @@ export const ConversationsPage: React.FC = () => {
         }).catch((err) => console.warn('WhatsApp direct send warning:', err));
       }
 
-      // 3. Update preview
+      // Update preview
       setConversations((prev) =>
         prev.map((c) =>
           c.id === selectedConv.id
@@ -178,23 +199,82 @@ export const ConversationsPage: React.FC = () => {
     }
   };
 
-  const handleToggleTakeover = async (newStatus: 'bot' | 'human') => {
-    if (!selectedConv) return;
+  // Send Media
+  const handleSendMedia = async () => {
+    if (!mediaUrlInput.trim() || !selectedConv) return;
+    const backendUrl = getBackendUrl();
+    const targetPhone = (selectedConv.contact_phone || selectedConv.contact?.phone || selectedConv.id.replace('conv-', '')).replace(/\D/g, '');
+
+    setIsSending(true);
     try {
-      const updated: Conversation = { ...selectedConv, status: newStatus };
+      await fetch(`${backendUrl}/api/whatsapp/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: targetPhone,
+          mediaUrl: mediaUrlInput.trim(),
+          mediaType: mediaTypeSelect,
+          caption: mediaCaptionInput.trim(),
+          isPtt: mediaTypeSelect === 'audio',
+        }),
+      });
+
+      const newMsg = await StorageService.sendMessage(selectedConv.id, mediaCaptionInput.trim() || `[${mediaTypeSelect.toUpperCase()}]: ${mediaUrlInput}`);
+      setMessages((prev) => [...prev, newMsg]);
+      setIsMediaModalOpen(false);
+      setMediaUrlInput('');
+      setMediaCaptionInput('');
+      success('Mídia Enviada', 'Arquivo transmitido com sucesso pelo WhatsApp.');
+    } catch (err: any) {
+      toastError('Erro ao enviar mídia', err.message || 'Falha no envio.');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // Toggle Takeover status (Human vs Bot vs Closed)
+  const handleToggleTakeover = async (newStatus: 'bot' | 'human' | 'closed') => {
+    if (!selectedConv) return;
+    const backendUrl = getBackendUrl();
+    try {
+      const updated: Conversation = { ...selectedConv, status: newStatus as any };
       await StorageService.saveConversation(updated);
       setSelectedConv(updated);
       setConversations((prev) =>
         prev.map((c) => (c.id === selectedConv.id ? updated : c))
       );
 
+      // Inform server
+      await fetch(`${backendUrl}/api/whatsapp/conversations/${selectedConv.id}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      }).catch(() => {});
+
       if (newStatus === 'human') {
-        success('Atendimento Humano Assumido', 'O robô foi pausado para este cliente. Você está no controle!');
-      } else {
+        success('Atendimento Humano Assumido', 'O robô foi pausado para este cliente. Você está no controle do chat!');
+      } else if (newStatus === 'bot') {
         info('Robô Reativado', 'A automação voltou a responder normalmente a este cliente.');
+      } else if (newStatus === 'closed') {
+        success('Atendimento Finalizado', 'Conversa arquivada como finalizada.');
       }
     } catch (err: any) {
       toastError('Erro ao alterar status', err.message);
+    }
+  };
+
+  // Delete Conversation
+  const handleDeleteConversation = async () => {
+    if (!selectedConv) return;
+    try {
+      await StorageService.deleteConversation(selectedConv.id);
+      const remaining = conversations.filter(c => c.id !== selectedConv.id);
+      setConversations(remaining);
+      setSelectedConv(remaining.length > 0 ? remaining[0] : null);
+      setIsDeleteModalOpen(false);
+      success('Conversa Excluída', 'O histórico de mensagens e atendimento foi removido.');
+    } catch (err: any) {
+      toastError('Erro ao excluir', err.message || 'Falha ao excluir a conversa.');
     }
   };
 
@@ -243,9 +323,10 @@ export const ConversationsPage: React.FC = () => {
     if (!selectedConv) return;
     const phone = selectedConv.contact_phone || selectedConv.contact?.phone;
     if (!phone) return;
+    const backendUrl = getBackendUrl();
 
     try {
-      await fetch('http://localhost:3001/api/whatsapp/sync-flows', {
+      await fetch(`${backendUrl}/api/whatsapp/sync-flows`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -262,15 +343,15 @@ export const ConversationsPage: React.FC = () => {
 
   // Canned Replies list
   const cannedReplies = [
-    { label: 'Boas-Vindas', cmd: '/ola', text: 'Olá! Seja bem-vindo(a) ao 7 Assistente. Como posso te ajudar hoje?' },
-    { label: 'Chave PIX', cmd: '/pix', text: 'Segue nossa chave PIX oficial para pagamento: 81996138924 (Chave Telefone — Malaca Group).' },
-    { label: 'Planos & Valores', cmd: '/planos', text: 'Conheça nossos planos:\n• *Start:* R$ 97/mês\n• *Pro:* R$ 197/mês (Mais Vendido)\n• *Enterprise:* R$ 397/mês\nTodos incluem construtor de fluxos e IA integrada!' },
-    { label: 'Agendamento', cmd: '/agendar', text: 'Perfeito! Qual seria o melhor dia e horário para realizarmos seu atendimento?' },
-    { label: 'Atendente Humano', cmd: '/humano', text: 'Olá! Me chamo Rogerio e sou o consultor responsável pelo seu atendimento. Como posso te auxiliar?' },
-    { label: 'Agradecimento', cmd: '/obrigado', text: 'Muito obrigado pelo seu contato! Caso precise de algo mais, estou à disposição.' },
+    { label: 'Boas-Vindas', cmd: '/ola', text: 'Olá! Seja bem-vindo à Talvane Barber. Como podemos te ajudar hoje?' },
+    { label: 'Chave PIX', cmd: '/pix', text: 'Segue nossa chave PIX oficial: 81996138924 (Chave Telefone — Talvane Barber).' },
+    { label: 'Serviços & Valores', cmd: '/servicos', text: 'Nossos principais serviços:\n• *Corte de Cabelo:* R$ 35,00\n• *Barba Terapia:* R$ 40,00\n• *Combo Cabelo + Barba:* R$ 70,00\n\nGostaria de agendar seu horário?' },
+    { label: 'Agendamento', cmd: '/agendar', text: 'Perfeito! Para qual dia e horário você prefere agendar seu atendimento?' },
+    { label: 'Atendente Humano', cmd: '/humano', text: 'Olá! Me chamo Talvane e sou o profissional responsável pelo seu atendimento. Como posso te auxiliar?' },
+    { label: 'Agradecimento', cmd: '/obrigado', text: 'Muito obrigado pelo seu contato! Seu horário foi reservado com sucesso.' },
   ];
 
-  const quickEmojis = ['👍', '👋', '😊', '🙏', '🚀', '✅', '📅', '💳', '⭐', '🔥'];
+  const quickEmojis = ['👍', '👋', '😊', '🙏', '🚀', '✅', '📅', '💳', '⭐', '🔥', '✂️', '💈'];
 
   const filteredConversations = conversations.filter((c) => {
     const cName = c.contact?.name || c.contact_name || '';
@@ -280,6 +361,7 @@ export const ConversationsPage: React.FC = () => {
       cPhone.includes(searchTerm);
     if (!matchesSearch) return false;
     if (filterStatus === 'all') return true;
+    if (filterStatus === 'closed') return c.status === 'closed' || c.status === 'finished';
     return c.status === filterStatus;
   });
 
@@ -294,17 +376,17 @@ export const ConversationsPage: React.FC = () => {
               <Bot className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-xs font-bold text-white tracking-tight">7 Assistente Chats</h2>
+              <h2 className="text-xs font-bold text-white tracking-tight">Atendimentos WhatsApp</h2>
               <p className="text-[10px] text-emerald-400 flex items-center gap-1 font-mono">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                {isConnected ? 'WhatsApp Online' : 'Desconectado'}
+                {isConnected ? 'WhatsApp Online' : 'Sincronizado'}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-1">
             <button
-              onClick={loadData}
+              onClick={() => loadData(false)}
               className="p-2 rounded-full text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
               title="Atualizar Conversas"
             >
@@ -319,7 +401,7 @@ export const ConversationsPage: React.FC = () => {
             <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400 pointer-events-none" />
             <input
               type="text"
-              placeholder="Pesquisar ou começar uma nova conversa"
+              placeholder="Pesquisar cliente ou telefone..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-[#202c33] border-none rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
@@ -327,12 +409,13 @@ export const ConversationsPage: React.FC = () => {
           </div>
 
           {/* Quick Filters */}
-          <div className="flex gap-1.5 mt-2 overflow-x-auto pb-0.5 no-scrollbar">
+          <div className="flex gap-1.5 mt-2 overflow-x-auto pb-0.5 scrollbar-none">
             {[
               { id: 'all', label: 'Todas' },
               { id: 'bot', label: 'Robô' },
               { id: 'waiting_human', label: 'Aguardando' },
               { id: 'human', label: 'Atendente' },
+              { id: 'closed', label: 'Finalizadas' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -384,6 +467,8 @@ export const ConversationsPage: React.FC = () => {
                           ? 'bg-emerald-400'
                           : conv.status === 'waiting_human'
                           ? 'bg-amber-400 animate-ping'
+                          : conv.status === 'closed'
+                          ? 'bg-slate-500'
                           : 'bg-brand-500'
                       }`}
                     />
@@ -413,10 +498,12 @@ export const ConversationsPage: React.FC = () => {
                             ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                             : conv.status === 'waiting_human'
                             ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse'
+                            : conv.status === 'closed'
+                            ? 'bg-slate-800 text-slate-400 border border-slate-700'
                             : 'bg-[#202c33] text-slate-300 border border-white/5'
                         }`}
                       >
-                        {conv.status === 'human' ? 'Atendente' : conv.status === 'waiting_human' ? 'Aguardando' : 'Robô'}
+                        {conv.status === 'human' ? 'Atendente' : conv.status === 'waiting_human' ? 'Aguardando' : conv.status === 'closed' ? 'Finalizada' : 'Robô'}
                       </span>
                       <span className="text-[10px] text-slate-400 font-mono">
                         {formatPhone(contactPhone)}
@@ -435,14 +522,14 @@ export const ConversationsPage: React.FC = () => {
         <div className="flex-1 flex flex-col bg-[#0b141a] relative overflow-hidden">
           {/* WhatsApp Chat Top Header */}
           <div className="p-3 bg-[#202c33] border-b border-white/5 flex items-center justify-between z-10">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#374248] border border-white/10 flex items-center justify-center text-white font-bold text-xs">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-full bg-[#374248] border border-white/10 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
                 {(selectedConv.contact?.name || selectedConv.contact_name || 'CL').substring(0, 2).toUpperCase()}
               </div>
-              <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2 truncate">
                   {selectedConv.contact?.name || selectedConv.contact_name || 'Cliente'}
-                  <span className="text-[10px] text-slate-400 font-mono font-normal">
+                  <span className="text-[10px] text-slate-400 font-mono font-normal hidden sm:inline">
                     ({formatPhone(selectedConv.contact?.phone || selectedConv.contact_phone || '')})
                   </span>
                 </h3>
@@ -454,7 +541,7 @@ export const ConversationsPage: React.FC = () => {
             </div>
 
             {/* Quick Action Buttons in Top Header */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 flex-shrink-0">
               {selectedConv.status === 'human' ? (
                 <Button
                   size="sm"
@@ -464,6 +551,16 @@ export const ConversationsPage: React.FC = () => {
                   onClick={() => handleToggleTakeover('bot')}
                 >
                   Reativar Robô
+                </Button>
+              ) : selectedConv.status === 'closed' ? (
+                <Button
+                  size="sm"
+                  variant="brand"
+                  className="text-xs py-1 h-8 bg-brand-600 hover:bg-brand-500"
+                  leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
+                  onClick={() => handleToggleTakeover('human')}
+                >
+                  Reabrir Atendimento
                 </Button>
               ) : (
                 <Button
@@ -477,6 +574,25 @@ export const ConversationsPage: React.FC = () => {
                 </Button>
               )}
 
+              {selectedConv.status !== 'closed' && (
+                <button
+                  onClick={() => handleToggleTakeover('closed')}
+                  className="p-2 rounded-xl bg-dark-800 hover:bg-dark-750 text-slate-300 hover:text-white border border-white/10 text-xs flex items-center gap-1"
+                  title="Finalizar e Arquivar Atendimento"
+                >
+                  <Archive className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="hidden sm:inline">Finalizar</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => setIsDeleteModalOpen(true)}
+                className="p-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/40 text-xs"
+                title="Excluir Histórico de Conversa"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+
               <button
                 onClick={() => setShowRightDrawer(!showRightDrawer)}
                 className={`p-2 rounded-xl border transition-colors ${
@@ -489,9 +605,8 @@ export const ConversationsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Chat Messages Body (WhatsApp Doodle Style Wallpaper) */}
+          {/* Chat Messages Body */}
           <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#0b141a] bg-opacity-95 custom-scrollbar">
-            {/* Security Alert Header */}
             <div className="flex justify-center my-2">
               <div className="px-3 py-1 rounded-lg bg-[#182229] border border-white/5 text-[10px] text-amber-200/80 flex items-center gap-1.5 shadow-sm max-w-md text-center">
                 <Lock className="w-3 h-3 text-amber-400 flex-shrink-0" />
@@ -549,7 +664,7 @@ export const ConversationsPage: React.FC = () => {
 
           {/* Quick Emoji Bar */}
           {showEmojiPicker && (
-            <div className="p-2 bg-[#202c33] border-t border-white/5 flex items-center gap-2 overflow-x-auto">
+            <div className="p-2 bg-[#202c33] border-t border-white/5 flex items-center gap-2 overflow-x-auto scrollbar-none">
               {quickEmojis.map((emoji, idx) => (
                 <button
                   key={idx}
@@ -587,7 +702,7 @@ export const ConversationsPage: React.FC = () => {
           {/* Bottom Chat Input Bar */}
           <div className="p-3 bg-[#202c33] border-t border-white/5">
             {/* Quick Canned Suggestions Chips */}
-            <div className="flex items-center gap-1.5 mb-2 overflow-x-auto no-scrollbar pb-0.5">
+            <div className="flex items-center gap-1.5 mb-2 overflow-x-auto scrollbar-none pb-0.5">
               <button
                 onClick={() => setShowCannedMenu(!showCannedMenu)}
                 className="px-2.5 py-1 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30 text-[10px] font-bold flex items-center gap-1 hover:bg-brand-500/30 whitespace-nowrap"
@@ -595,7 +710,7 @@ export const ConversationsPage: React.FC = () => {
                 <Zap className="w-3 h-3" />
                 Respostas Rápidas
               </button>
-              {cannedReplies.slice(0, 3).map((reply, idx) => (
+              {cannedReplies.slice(0, 4).map((reply, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleSendMessage(reply.text)}
@@ -618,9 +733,9 @@ export const ConversationsPage: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => info('Anexo', 'Selecione uma imagem ou documento para enviar no WhatsApp.')}
+                onClick={() => setIsMediaModalOpen(true)}
                 className="p-2 text-slate-400 hover:text-white transition-colors"
-                title="Anexar arquivo"
+                title="Enviar Mídia ou Anexo"
               >
                 <Paperclip className="w-5 h-5" />
               </button>
@@ -629,7 +744,7 @@ export const ConversationsPage: React.FC = () => {
                 type="text"
                 placeholder={
                   selectedConv.status === 'bot'
-                    ? 'Digite uma mensagem (Robô ativo no momento)...'
+                    ? 'Digite sua mensagem no WhatsApp (Robô ativo)...'
                     : 'Digite sua mensagem no WhatsApp...'
                 }
                 value={inputText}
@@ -653,9 +768,9 @@ export const ConversationsPage: React.FC = () => {
           <div className="w-16 h-16 rounded-full bg-[#202c33] flex items-center justify-center text-slate-500 mb-4">
             <MessageSquare className="w-8 h-8" />
           </div>
-          <h3 className="text-base font-bold text-white">7 Assistente WhatsApp Web</h3>
+          <h3 className="text-base font-bold text-white">Central de Atendimentos WhatsApp</h3>
           <p className="text-xs text-slate-400 max-w-sm mt-1">
-            Selecione uma conversa à esquerda para atender clientes, gerenciar tags e enviar mensagens em tempo real.
+            Selecione uma conversa à esquerda para atender clientes, gerenciar agendamentos e responder em tempo real.
           </p>
         </div>
       )}
@@ -776,6 +891,83 @@ export const ConversationsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Modal: Enviar Mídia */}
+      <Modal
+        isOpen={isMediaModalOpen}
+        onClose={() => setIsMediaModalOpen(false)}
+        title="Enviar Mídia / Anexo no WhatsApp"
+        subtitle="Informe a URL da imagem, vídeo, áudio ou PDF para envio"
+        maxWidth="md"
+      >
+        <div className="space-y-3 pt-2">
+          <div>
+            <label className="text-xs font-semibold text-slate-300 block mb-1">Tipo de Mídia</label>
+            <select
+              value={mediaTypeSelect}
+              onChange={(e) => setMediaTypeSelect(e.target.value as any)}
+              className="w-full bg-dark-800 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+            >
+              <option value="image">🖼️ Imagem (JPG, PNG)</option>
+              <option value="video">🎥 Vídeo (MP4)</option>
+              <option value="audio">🎙️ Áudio / Mensagem de Voz</option>
+              <option value="document">📄 Documento (PDF)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-slate-300 block mb-1">URL da Mídia</label>
+            <Input
+              type="url"
+              placeholder="https://exemplo.com/imagem.png"
+              value={mediaUrlInput}
+              onChange={(e) => setMediaUrlInput(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-slate-300 block mb-1">Legenda (Opcional)</label>
+            <Input
+              type="text"
+              placeholder="Digite a legenda da foto ou vídeo..."
+              value={mediaCaptionInput}
+              onChange={(e) => setMediaCaptionInput(e.target.value)}
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setIsMediaModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button variant="brand" onClick={handleSendMedia} disabled={!mediaUrlInput.trim() || isSending}>
+              Enviar no WhatsApp
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal: Confirmar Exclusão de Conversa */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Excluir Histórico de Conversa?"
+        subtitle="Todas as mensagens enviadas e recebidas com este contato serão apagadas"
+        maxWidth="sm"
+      >
+        <div className="space-y-4 pt-2">
+          <p className="text-xs text-slate-300">
+            Tem certeza que deseja apagar a conversa com <strong className="text-white">{selectedConv?.contact?.name || selectedConv?.contact_name || 'Cliente'}</strong>? Esta ação não pode ser desfeita.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button variant="danger" onClick={handleDeleteConversation}>
+              Confirmar Exclusão
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

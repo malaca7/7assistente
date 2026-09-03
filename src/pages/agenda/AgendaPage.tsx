@@ -87,8 +87,9 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
   const [newServiceDuration, setNewServiceDuration] = useState(30);
   const [newServicePrice, setNewServicePrice] = useState(0);
 
-  const loadData = async () => {
+  const loadData = async (silent = false) => {
     try {
+      if (!silent) setIsLoading(true);
       const [apts, agendaConfig] = await Promise.all([
         StorageService.getAppointments(),
         StorageService.getAgendaSettings(),
@@ -98,12 +99,16 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
     } catch (err) {
       console.error('Error loading agenda data:', err);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadData();
+    loadData(false);
+    const interval = setInterval(() => {
+      loadData(true);
+    }, 3500);
+    return () => clearInterval(interval);
   }, []);
 
   // Generate All Time Slots for the Day
