@@ -8,6 +8,8 @@ if (fs.existsSync(path.join(distPath, '.git'))) {
 }
 
 execSync('git init', { cwd: distPath });
+execSync('git config user.name "Malaca Bot"', { cwd: distPath });
+execSync('git config user.email "bot@malaca.com.br"', { cwd: distPath });
 execSync('git add -A', { cwd: distPath });
 execSync('git commit -m "deploy: live production build for talvane.malaca.com.br"', { cwd: distPath });
 execSync('git branch -M gh-pages', { cwd: distPath });

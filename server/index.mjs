@@ -1188,7 +1188,7 @@ app.delete('/api/whatsapp/users/:id', (req, res) => {
     db.systemUsers = db.systemUsers.filter((u) => u.id !== id);
     saveDb(db);
   }
-  res.json({ success: true });
+  res.json({ success: true, users: db.systemUsers || [] });
 });
 
 app.post('/api/whatsapp/users/verify', (req, res) => {

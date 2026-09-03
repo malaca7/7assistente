@@ -1541,7 +1541,14 @@ export const StorageService = {
   async deleteSystemUser(id: string): Promise<void> {
     const backendUrl = getBackendUrl();
     try {
-      await fetch(`${backendUrl}/api/whatsapp/users/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${backendUrl}/api/whatsapp/users/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.users && Array.isArray(data.users)) {
+          setItem(STORAGE_KEYS.SYSTEM_USERS, data.users);
+          return;
+        }
+      }
     } catch {}
 
     const users = getItem<SystemUser[]>(STORAGE_KEYS.SYSTEM_USERS, []);
