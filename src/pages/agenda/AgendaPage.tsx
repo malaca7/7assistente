@@ -696,121 +696,163 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
               </p>
             </Card>
           ) : viewMode === 'grid' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            <div className="flex flex-col space-y-3">
               {unifiedSchedule.map((slot) => {
                 const timeSlot = slot.startTime;
                 const aptForSlot = slot.appointment;
                 const isOver = dragOverSlot === timeSlot;
                 const isMultiSlot = slot.slotsCount > 1;
+                const totalDuration = aptForSlot?.duration_minutes || slot.durationMinutes;
 
                 return (
                   <div
                     key={slot.id}
                     onDragOver={(e) => handleDragOver(e, timeSlot)}
                     onDrop={() => handleDrop(timeSlot)}
-                    className={`p-3.5 rounded-2xl border transition-all duration-200 flex flex-col justify-between min-h-[115px] ${
-                      isOver ? 'border-brand-400 bg-brand-950/40 ring-2 ring-brand-500/20' :
-                      aptForSlot
+                    className={`w-full p-4 rounded-2xl border transition-all duration-200 flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+                      isOver
+                        ? 'border-brand-400 bg-brand-950/40 ring-2 ring-brand-500/30'
+                        : aptForSlot
                         ? aptForSlot.status === 'completed'
-                          ? 'bg-emerald-950/30 border-emerald-500/30'
+                          ? 'bg-emerald-950/20 border-emerald-500/30 shadow-sm'
                           : aptForSlot.status === 'cancelled'
                           ? 'bg-rose-950/20 border-rose-500/20 opacity-70'
                           : aptForSlot.status === 'no_show'
-                          ? 'bg-amber-950/30 border-amber-500/30'
+                          ? 'bg-amber-950/20 border-amber-500/30'
                           : isMultiSlot
-                          ? 'bg-dark-900/95 border-brand-500/60 shadow-lg shadow-brand-500/10 ring-1 ring-brand-500/30'
-                          : 'bg-dark-900/90 border-brand-500/30 shadow-md shadow-brand-500/5'
-                        : 'bg-dark-900/30 border-white/5 hover:border-white/10'
+                          ? 'bg-dark-900/95 border-brand-500/50 shadow-md shadow-brand-500/10 ring-1 ring-brand-500/20'
+                          : 'bg-dark-900/90 border-white/10 shadow-sm'
+                        : 'bg-dark-900/40 border-white/5 hover:border-white/15'
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex flex-col">
+                    {/* Left: Time & Total Duration Always Visible */}
+                    <div className="flex items-center gap-3.5 min-w-[260px]">
+                      <div className="p-2.5 rounded-xl bg-dark-950 border border-white/10 flex flex-col items-center justify-center min-w-[100px] text-center">
                         <span className="text-xs font-mono font-black text-brand-300 flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" />
-                          {isMultiSlot ? `${slot.startTime} às ${slot.endTime}` : slot.startTime}
+                          <Clock className="w-3.5 h-3.5 text-brand-400" />
+                          {isMultiSlot || aptForSlot?.end_time ? `${slot.startTime} às ${slot.endTime || aptForSlot?.end_time}` : slot.startTime}
                         </span>
-                        {isMultiSlot && aptForSlot && (
-                          <span className="text-[9px] font-bold text-brand-400">
-                            {slot.durationMinutes} min • {slot.slotsCount} slots unidos
+                        <span className="text-[10px] text-slate-500 font-mono mt-0.5">
+                          {aptForSlot ? 'Horário Marcado' : 'Horário Livre'}
+                        </span>
+                      </div>
+
+                      {/* Always show Total Service Time */}
+                      <div className="flex flex-col gap-1">
+                        {aptForSlot ? (
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="px-2.5 py-1 rounded-lg text-xs font-black bg-brand-500/20 text-brand-300 border border-brand-500/30 flex items-center gap-1.5 shadow-sm whitespace-nowrap">
+                              <Clock className="w-3.5 h-3.5 text-brand-400" />
+                              <span>Tempo Total: <strong>{totalDuration} min</strong></span>
+                            </span>
+                            {isMultiSlot && (
+                              <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20 whitespace-nowrap">
+                                {slot.slotsCount} slots unidos
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs font-mono text-slate-400 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse" />
+                            Slot de {slot.durationMinutes} min disponível
                           </span>
                         )}
                       </div>
+                    </div>
 
+                    {/* Middle: Client, Service, Price & Status */}
+                    <div className="flex-1 min-w-0">
                       {aptForSlot ? (
-                        <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider ${
-                          aptForSlot.status === 'completed' ? 'bg-emerald-500/20 text-emerald-300' :
-                          aptForSlot.status === 'cancelled' ? 'bg-rose-500/20 text-rose-300' :
-                          aptForSlot.status === 'no_show' ? 'bg-amber-500/20 text-amber-300' :
-                          'bg-brand-500/20 text-brand-300'
-                        }`}>
-                          {aptForSlot.status === 'completed' ? 'Realizado' :
-                           aptForSlot.status === 'cancelled' ? 'Cancelado' :
-                           aptForSlot.status === 'no_show' ? 'Faltou' : 'Confirmado'}
-                        </span>
+                        <div
+                          draggable
+                          onDragStart={() => handleDragStart(aptForSlot.id)}
+                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-grab active:cursor-grabbing p-2 rounded-xl hover:bg-white/[0.02]"
+                        >
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <GripVertical className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                              <h4 className="text-sm font-bold text-white">
+                                {aptForSlot.contact_name}
+                              </h4>
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                                aptForSlot.status === 'completed' ? 'bg-emerald-500/20 text-emerald-300' :
+                                aptForSlot.status === 'cancelled' ? 'bg-rose-500/20 text-rose-300' :
+                                aptForSlot.status === 'no_show' ? 'bg-amber-500/20 text-amber-300' :
+                                'bg-brand-500/20 text-brand-300'
+                              }`}>
+                                {aptForSlot.status === 'completed' ? 'Realizado' :
+                                 aptForSlot.status === 'cancelled' ? 'Cancelado' :
+                                 aptForSlot.status === 'no_show' ? 'Faltou' : 'Confirmado'}
+                              </span>
+                            </div>
+
+                            <p className="text-xs text-slate-300 flex items-center gap-2 pl-6 flex-wrap">
+                              <span className="font-semibold text-brand-300">✂️ {aptForSlot.service_name}</span>
+                              {aptForSlot.price ? (
+                                <span className="text-amber-400 font-bold">
+                                  (R$ {Number(aptForSlot.price).toFixed(2).replace('.', ',')})
+                                </span>
+                              ) : null}
+                              <span>•</span>
+                              <span className="text-slate-400 font-mono">
+                                📱 {formatPhone(aptForSlot.contact_phone)}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
                       ) : (
-                        <span className="text-[10px] text-slate-500 font-mono">Disponível</span>
+                        <div className="flex items-center justify-between py-1 text-slate-500 text-xs">
+                          <span>Nenhum agendamento marcado para esta faixa de horário.</span>
+                        </div>
                       )}
                     </div>
 
-                    {aptForSlot ? (
-                      <div
-                        draggable
-                        onDragStart={() => handleDragStart(aptForSlot.id)}
-                        className="mt-2 space-y-1 cursor-grab active:cursor-grabbing"
-                      >
-                        <h4 className="text-xs font-bold text-white truncate flex items-center gap-1.5">
-                          <GripVertical className="w-3 h-3 text-slate-500 flex-shrink-0" />
-                          {aptForSlot.contact_name}
-                        </h4>
-                        <p className="text-[11px] text-slate-400 truncate">
-                          ✂️ {aptForSlot.service_name} {aptForSlot.price ? `(R$ ${Number(aptForSlot.price).toFixed(2).replace('.', ',')})` : ''}
-                        </p>
-                        <p className="text-[10px] font-mono text-slate-500">
-                          📱 {formatPhone(aptForSlot.contact_phone)}
-                        </p>
-
-                        {/* Quick Status Buttons */}
-                        <div className="flex items-center justify-end gap-1 pt-2 mt-1 border-t border-white/5">
+                    {/* Right: Quick Action Buttons */}
+                    <div className="flex items-center justify-end gap-1.5 pt-2 md:pt-0 border-t md:border-t-0 border-white/5">
+                      {aptForSlot ? (
+                        <>
                           {aptForSlot.status !== 'completed' && (
                             <button
                               onClick={() => handleUpdateStatus(aptForSlot.id, 'completed')}
-                              className="p-1 rounded bg-emerald-950 text-emerald-400 hover:bg-emerald-900 text-[10px]"
-                              title="Marcar como Realizado / Concluído"
+                              className="px-3 py-1.5 rounded-xl bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-500/30 text-emerald-400 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                              title="Marcar como Concluído / Realizado"
                             >
                               <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Concluir</span>
                             </button>
                           )}
                           {aptForSlot.status !== 'no_show' && aptForSlot.status !== 'completed' && (
                             <button
                               onClick={() => handleUpdateStatus(aptForSlot.id, 'no_show')}
-                              className="p-1 rounded bg-amber-950 text-amber-400 hover:bg-amber-900 text-[10px]"
+                              className="px-3 py-1.5 rounded-xl bg-amber-950/70 hover:bg-amber-900 border border-amber-500/30 text-amber-400 text-xs font-semibold flex items-center gap-1.5 transition-colors"
                               title="Marcar como Não Compareceu"
                             >
                               <AlertTriangle className="w-3.5 h-3.5" />
+                              <span>Faltou</span>
                             </button>
                           )}
                           <button
                             onClick={() => handleDeleteAppointment(aptForSlot.id)}
-                            className="p-1 rounded bg-rose-950/40 text-rose-400 hover:bg-rose-900/60 text-[10px]"
-                            title="Remover"
+                            className="p-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/30 text-rose-400 transition-colors"
+                            title="Remover Agendamento"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setNewDate(selectedDate);
-                          setNewTime(timeSlot);
-                          setIsAddModalOpen(true);
-                        }}
-                        className="mt-3 w-full py-1 rounded-xl text-[11px] text-slate-500 hover:text-white hover:bg-white/5 border border-dashed border-white/10 flex items-center justify-center gap-1 transition-colors"
-                      >
-                        <Plus className="w-3 h-3" />
-                        Agendar Horário
-                      </button>
-                    )}
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setNewDate(selectedDate);
+                            setNewTime(timeSlot);
+                            setIsAddModalOpen(true);
+                          }}
+                          className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 flex items-center gap-1.5 transition-all"
+                        >
+                          <Plus className="w-3.5 h-3.5 text-brand-400" />
+                          <span>Agendar neste Horário</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -821,6 +863,7 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
                 <thead className="bg-dark-950 text-[11px] text-slate-400 font-semibold border-b border-white/5 uppercase">
                   <tr>
                     <th className="p-4">Horário</th>
+                    <th className="p-4">Tempo Total</th>
                     <th className="p-4">Cliente</th>
                     <th className="p-4">WhatsApp</th>
                     <th className="p-4">Serviço</th>
@@ -831,14 +874,21 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
                 <tbody className="divide-y divide-white/5">
                   {filteredAppointments.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="p-8 text-center text-slate-500">
+                      <td colSpan={7} className="p-8 text-center text-slate-500">
                         Nenhum agendamento encontrado para a data e filtros selecionados.
                       </td>
                     </tr>
                   ) : (
                     filteredAppointments.map(apt => (
                       <tr key={apt.id} className="hover:bg-white/[0.02]">
-                        <td className="p-4 font-mono font-bold text-brand-400">{apt.appointment_time}</td>
+                        <td className="p-4 font-mono font-bold text-brand-400">
+                          {apt.appointment_time}{apt.end_time ? ` às ${apt.end_time}` : ''}
+                        </td>
+                        <td className="p-4 font-mono">
+                          <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30">
+                            ⏱️ {apt.duration_minutes || 30} min
+                          </span>
+                        </td>
                         <td className="p-4 font-bold text-white">{apt.contact_name}</td>
                         <td className="p-4 font-mono text-slate-400">{formatPhone(apt.contact_phone)}</td>
                         <td className="p-4">
