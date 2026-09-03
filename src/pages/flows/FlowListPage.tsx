@@ -211,33 +211,38 @@ export const FlowListPage: React.FC<FlowListPageProps> = ({ onNavigate }) => {
 
   const handleToggleStatus = async (flow: Flow, e: React.MouseEvent) => {
     e.stopPropagation();
-    const newStatus: FlowStatus = flow.status === 'published' ? 'paused' : 'published';
+    // Toggle: published <-> draft/paused. Any non-published becomes published, published becomes draft.
+    const newStatus: FlowStatus = flow.status === 'published' ? 'draft' : 'published';
 
-    // If publishing, pause any other active flow
+    // If publishing, pause/deactivate all other flows first (only one active flow at a time)
     if (newStatus === 'published') {
       const allFlows = await StorageService.getFlows();
       for (const f of allFlows) {
         if (f.id !== flow.id && f.status === 'published') {
-          await StorageService.saveFlow({ ...f, status: 'paused' });
+          await StorageService.saveFlow({ ...f, status: 'draft' });
         }
       }
     }
 
     const updated = await StorageService.saveFlow({ ...flow, status: newStatus });
     
-    // Notify backend server to publish immediately
+    // Notify backend server to publish/sync immediately
     const backendUrl = getBackendUrl();
     try {
       if (newStatus === 'published') {
         await fetch(`${backendUrl}/api/whatsapp/flows/${flow.id}/publish`, { method: 'POST' });
       }
+      // Always sync full state
+      await fetch(`${backendUrl}/api/whatsapp/sync-flows`, { method: 'POST' });
     } catch {}
 
     const freshFlows = await StorageService.getFlows();
     setFlows(freshFlows);
     success(
-      newStatus === 'published' ? 'Fluxo Publicado' : 'Fluxo Pausado',
-      `O fluxo "${flow.name}" agora está ${newStatus === 'published' ? 'Publicado e Ativo no WhatsApp' : 'Pausado'}.`
+      newStatus === 'published' ? '🟢 Fluxo Ativado no Bot' : '⚪ Fluxo Desativado',
+      newStatus === 'published'
+        ? `O fluxo "${flow.name}" agora está ATIVO e rodando no WhatsApp. Os outros fluxos foram desativados.`
+        : `O fluxo "${flow.name}" foi desativado. O bot não vai mais executá-lo.`
     );
   };
 
@@ -269,7 +274,10 @@ export const FlowListPage: React.FC<FlowListPageProps> = ({ onNavigate }) => {
     const matchesSearch =
       f.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       f.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || f.status === filterStatus;
+    const matchesStatus =
+      filterStatus === 'all' ||
+      f.status === filterStatus ||
+      (filterStatus === 'draft' && (f.status === 'draft' || f.status === 'paused'));
     return matchesSearch && matchesStatus;
   });
 
@@ -314,9 +322,8 @@ export const FlowListPage: React.FC<FlowListPageProps> = ({ onNavigate }) => {
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto">
             {[
               { id: 'all', label: 'Todos os Fluxos' },
-              { id: 'published', label: 'Publicados (Ativos)' },
-              { id: 'draft', label: 'Rascunhos' },
-              { id: 'paused', label: 'Pausados' },
+              { id: 'published', label: '🟢 Ativos no Bot' },
+              { id: 'draft', label: '⚪ Inativos' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -361,24 +368,39 @@ export const FlowListPage: React.FC<FlowListPageProps> = ({ onNavigate }) => {
             <div
               key={flow.id}
               onClick={() => onNavigate(`/fluxos/${flow.id}`)}
-              className="p-5 rounded-3xl bg-dark-900 border border-white/5 hover:border-brand-500/40 cursor-pointer transition-all duration-200 space-y-4 shadow-xl hover:shadow-2xl relative group flex flex-col justify-between"
+              className={`p-5 rounded-3xl bg-dark-900 border cursor-pointer transition-all duration-200 space-y-4 shadow-xl hover:shadow-2xl relative group flex flex-col justify-between ${
+                flow.status === 'published'
+                  ? 'border-emerald-500/40 ring-1 ring-emerald-500/20'
+                  : 'border-white/5 hover:border-brand-500/40'
+              }`}
             >
               <div className="space-y-3">
-                {/* Top: Status Badge & Quick Actions */}
+                {/* Top: Toggle Switch & Quick Actions */}
                 <div className="flex items-center justify-between">
-                  <span
+                  {/* Active/Inactive Toggle */}
+                  <div
                     onClick={(e) => handleToggleStatus(flow, e)}
-                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-transform hover:scale-105 ${
-                      flow.status === 'published'
-                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
-                        : flow.status === 'paused'
-                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                        : 'bg-dark-800 text-slate-400 border border-white/10'
-                    }`}
-                    title="Clique para alternar o status do fluxo"
+                    className="flex items-center gap-2 cursor-pointer select-none"
+                    title={flow.status === 'published' ? 'Clique para DESATIVAR este fluxo no bot' : 'Clique para ATIVAR este fluxo no bot'}
                   >
-                    {flow.status === 'published' ? '● Publicado (Ativo)' : flow.status === 'paused' ? '❚❚ Pausado' : '○ Rascunho'}
-                  </span>
+                    {/* Toggle Switch */}
+                    <div className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${
+                      flow.status === 'published'
+                        ? 'bg-emerald-500 shadow-md shadow-emerald-500/30'
+                        : 'bg-dark-700 border border-white/10'
+                    }`}>
+                      <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                        flow.status === 'published' ? 'translate-x-[18px]' : 'translate-x-0.5'
+                      }`} />
+                    </div>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                      flow.status === 'published'
+                        ? 'text-emerald-300'
+                        : 'text-slate-500'
+                    }`}>
+                      {flow.status === 'published' ? '🟢 Ativo no Bot' : '⚪ Inativo'}
+                    </span>
+                  </div>
 
                   <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
                     <button
