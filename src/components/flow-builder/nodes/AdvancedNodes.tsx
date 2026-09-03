@@ -12,9 +12,9 @@ import {
   Calendar,
   DollarSign,
   UserPlus,
-  Users,
   CheckCircle2,
-  ListOrdered
+  ListOrdered,
+  OctagonX
 } from 'lucide-react';
 import { BaseNode } from './BaseNode';
 import { FlowNodeData } from '../../../types';
@@ -530,6 +530,41 @@ export const UpdateContactNode: React.FC<NodeProps> = ({ id, selected, data }) =
         {!config.contactName && !config.tags && !config.customFieldKey && (
           <span className="italic text-slate-500 text-[10px]">Clique para configurar os dados a vincular</span>
         )}
+      </div>
+    </BaseNode>
+  );
+};
+
+export const EndFlowNode: React.FC<NodeProps> = ({ id, selected, data }) => {
+  const nodeData = data as unknown as FlowNodeData;
+  const config = nodeData.config || {};
+
+  return (
+    <BaseNode
+      id={id}
+      selected={selected}
+      title={nodeData.label || 'Finalizar Fluxo'}
+      subtitle="Fim do atendimento"
+      icon={<OctagonX className="w-4 h-4" />}
+      iconBg="bg-rose-600"
+      accentColor="bg-rose-500"
+      hasInput={true}
+      hasOutput={false}
+      isConfigured={true}
+    >
+      <div className="space-y-1.5 p-2 rounded-xl bg-dark-950/80 border border-rose-500/20 text-[11px] text-slate-300">
+        <div className="flex items-center gap-1 text-[10px] text-rose-300 font-semibold">
+          <OctagonX className="w-3 h-3 text-rose-400" />
+          <span>Encerramento do Fluxo</span>
+        </div>
+        <p className="text-[10px] text-slate-400 line-clamp-2 italic">
+          {config.message || 'Atendimento finalizado com sucesso!'}
+        </p>
+        <div className="flex items-center gap-1 pt-1 border-t border-white/5">
+          <span className="px-1.5 py-0.5 rounded bg-rose-950/60 border border-rose-800/40 text-[9px] text-rose-300 font-mono">
+            Sessão Concluída
+          </span>
+        </div>
       </div>
     </BaseNode>
   );

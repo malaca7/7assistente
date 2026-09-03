@@ -87,7 +87,8 @@ export type NodeTypeEnum =
   | 'schedule_contact'
   | 'confirm_booking'
   | 'update_contact'
-  | 'check_contact';
+  | 'check_contact'
+  | 'end_flow';
 
 export interface Appointment {
   id: string;

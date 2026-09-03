@@ -311,6 +311,28 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
           },
         ]);
         break;
+      } else if (type === 'end_flow' || type === 'finish_flow' || type === 'end') {
+        const finalMsg = config.message
+          ? substituteVariables(config.message, activeVars, p || undefined)
+          : '🏁 *Atendimento finalizado com sucesso!*';
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg-${Date.now()}-${Math.random()}`,
+            sender: 'bot',
+            content: finalMsg,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            nodeId: nextNode.id,
+          },
+          {
+            id: `msg-end-${Date.now()}`,
+            sender: 'system',
+            content: '🔒 Fluxo finalizado e concluído.',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            nodeId: nextNode.id,
+          },
+        ]);
+        break;
       }
     }
 

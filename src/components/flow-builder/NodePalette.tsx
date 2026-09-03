@@ -24,7 +24,8 @@ import {
   CalendarCheck,
   Tag,
   Layers,
-  ChevronDown
+  ChevronDown,
+  OctagonX
 } from 'lucide-react';
 import { NodeTypeEnum } from '../../types';
 import { cn } from '../../lib/utils';
@@ -310,6 +311,21 @@ export const NODE_DEFINITIONS: NodeDefinition[] = [
     defaultConfig: {
       department: 'Atendimento Geral',
       notifyMessage: 'Você foi transferido para um de nossos atendentes humanos.',
+    },
+  },
+  {
+    type: 'end_flow',
+    label: 'Finalizar Fluxo',
+    category: 'AI & Support',
+    description: 'Encerra o atendimento atual, reseta o estado da sessão e envia mensagem de conclusão.',
+    icon: <OctagonX className="w-4 h-4" />,
+    iconBg: 'bg-rose-600',
+    accentColor: 'border-rose-500/40',
+    badge: 'Fim',
+    defaultConfig: {
+      message: '🏁 *Atendimento finalizado com sucesso!*\n\nSe precisar de algo mais, basta nos enviar uma nova mensagem. Até logo!',
+      closeConversation: true,
+      clearVariables: true,
     },
   },
 

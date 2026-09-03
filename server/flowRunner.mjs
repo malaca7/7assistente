@@ -1399,6 +1399,39 @@ function parseCustomDateString(input) {
       }
     }
 
+    // 10. End Flow Node (Finalizar Fluxo / Conclusão de Atendimento)
+    else if (nodeType === 'end_flow' || nodeType === 'finish_flow' || nodeType === 'end') {
+      const defaultMsg = '🏁 *Atendimento finalizado com sucesso!*\n\nSe precisar de algo mais, basta nos enviar uma nova mensagem. Até logo!';
+      const finalMsg = config.message !== undefined 
+        ? (config.message ? replaceVars(config.message, session.variables, botProfile) : '') 
+        : defaultMsg;
+
+      if (finalMsg) {
+        replies.push(finalMsg);
+      }
+
+      session.currentNodeId = null;
+      session.activeButtons = null;
+      session.waitingForVar = null;
+
+      if (config.clearVariables !== false) {
+        session.variables = {
+          whatsapp_pushname: senderName || '',
+          telefone_cliente: cleanPhone,
+          telefone_whatsapp: cleanPhone,
+        };
+      }
+
+      if (config.closeConversation !== false && db.conversations && db.conversations[`conv-${cleanPhone}`]) {
+        db.conversations[`conv-${cleanPhone}`].status = 'closed';
+        db.conversations[`conv-${cleanPhone}`].updated_at = new Date().toISOString();
+        syncConversationToSupabase(db.conversations[`conv-${cleanPhone}`]);
+      }
+
+      console.log(`[FlowRunner] 🏁 [Finalizar Fluxo] Atendimento concluído e sessão resetada para ${cleanPhone}.`);
+      break;
+    }
+
     // Move to next connected node
     const outgoing = edges.find((e) => e.source === currentNode.id);
     if (outgoing) {
