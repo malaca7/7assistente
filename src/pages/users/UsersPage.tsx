@@ -30,8 +30,23 @@ import { useToast } from '../../contexts/ToastContext';
 
 import { useAuth } from '../../contexts/AuthContext';
 
+const isSamePhone = (p1?: string, p2?: string): boolean => {
+  if (!p1 || !p2) return false;
+  const c1 = p1.replace(/\D/g, '');
+  const c2 = p2.replace(/\D/g, '');
+  if (!c1 || !c2) return false;
+  if (c1 === c2) return true;
+  const norm1 = c1.startsWith('55') && c1.length > 11 ? c1.slice(2) : c1;
+  const norm2 = c2.startsWith('55') && c2.length > 11 ? c2.slice(2) : c2;
+  if (norm1 === norm2) return true;
+  if (c1.length >= 8 && c2.length >= 8) {
+    if (c1.slice(-8) === c2.slice(-8)) return true;
+  }
+  return false;
+};
+
 export const UsersPage: React.FC = () => {
-  const { user: currentAdmin } = useAuth();
+  const { user: currentAdmin, isAuthenticated } = useAuth();
   const { success, error: toastError, info } = useToast();
   const [users, setUsers] = useState<SystemUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,13 +56,14 @@ export const UsersPage: React.FC = () => {
   // Check if current user is admin
   const session = StorageService.getSession();
   const currentPhone = (currentAdmin?.phone || session?.phone || '81996138924').replace(/\D/g, '');
-  const currentUserObj = users.find(u => (u.phone || '').replace(/\D/g, '') === currentPhone);
+  const currentUserObj = users.find((u) => isSamePhone(u.phone, currentPhone));
+
+  // Determine if user has admin privileges
   const isCurrentUserAdmin =
-    currentPhone === '81996138924' ||
+    isSamePhone(currentPhone, '81996138924') ||
     currentUserObj?.role === 'admin' ||
     currentUserObj?.permissions?.can_access_admin === true ||
-    currentAdmin?.role === 'admin' ||
-    !session || !session.phone;
+    (isAuthenticated && (currentUserObj ? currentUserObj.permissions?.can_access_admin !== false : true));
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -65,7 +81,9 @@ export const UsersPage: React.FC = () => {
   const fetchUsers = async () => {
     try {
       const data = await StorageService.getSystemUsers();
-      setUsers(data || []);
+      if (Array.isArray(data) && data.length > 0) {
+        setUsers(data);
+      }
     } catch (err) {
       console.error('Erro ao buscar usuários:', err);
     } finally {
@@ -140,7 +158,10 @@ export const UsersPage: React.FC = () => {
       toastError('Acesso Restrito', 'Apenas usuários com perfil Administrador podem salvar alterações de usuários.');
       return;
     }
-    const cleanPhone = userPhone.replace(/\D/g, '');
+    let cleanPhone = userPhone.replace(/\D/g, '');
+    if (cleanPhone.startsWith('55') && cleanPhone.length > 11) {
+      cleanPhone = cleanPhone.slice(2);
+    }
     if (!userName.trim()) {
       toastError('Aviso', 'Informe o nome do usuário.');
       return;
@@ -174,8 +195,17 @@ export const UsersPage: React.FC = () => {
       };
 
       await StorageService.saveSystemUser(newUser);
-      await fetchUsers();
+      setUsers((prev) => {
+        const idx = prev.findIndex((u) => u.id === newUser.id || isSamePhone(u.phone, newUser.phone));
+        if (idx >= 0) {
+          const copy = [...prev];
+          copy[idx] = newUser;
+          return copy;
+        }
+        return [newUser, ...prev];
+      });
       setIsModalOpen(false);
+      fetchUsers().catch(() => {});
       success('Usuário Salvo', `Permissões de ${newUser.name} atualizadas com sucesso!`);
     } catch (err) {
       toastError('Erro', 'Falha ao salvar usuário.');
@@ -189,7 +219,7 @@ export const UsersPage: React.FC = () => {
       toastError('Acesso Restrito', 'Apenas usuários com perfil Administrador podem excluir usuários.');
       return;
     }
-    if (user.phone.replace(/\D/g, '') === '81996138924' && users.length === 1) {
+    if (isSamePhone(user.phone, '81996138924') && users.length === 1) {
       toastError('Ação Bloqueada', 'O administrador principal não pode ser excluído.');
       return;
     }
@@ -197,7 +227,8 @@ export const UsersPage: React.FC = () => {
 
     try {
       await StorageService.deleteSystemUser(user.id);
-      await fetchUsers();
+      setUsers((prev) => prev.filter((u) => u.id !== user.id));
+      fetchUsers().catch(() => {});
       success('Usuário Removido', `O acesso de ${user.name} foi revogado.`);
     } catch (err) {
       toastError('Erro', 'Falha ao excluir usuário.');
