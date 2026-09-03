@@ -313,3 +313,72 @@ export const initialFlowEdges = [
     style: { stroke: '#06b6d4', strokeWidth: 2.5 }
   }
 ];
+
+export const initialAttendants: import('../types').Attendant[] = [
+  {
+    id: 'att-1',
+    name: 'Talvane',
+    email: 'talvane@barber.com',
+    phone: '81996138924',
+    password: '123',
+    role: 'admin',
+    department: 'Geral',
+    avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    status: 'online',
+    metrics: {
+      chats_assigned: 38,
+      chats_resolved: 35,
+      messages_sent: 142,
+      avg_response_time_min: 1.8,
+      rating: 4.9,
+    },
+    created_at: '2026-08-01T10:00:00.000Z',
+  },
+  {
+    id: 'att-2',
+    name: 'Sofia Atendimento',
+    email: 'sofia@barber.com',
+    phone: '81988887777',
+    password: '123',
+    role: 'attendant',
+    department: 'Comercial & Vendas',
+    avatar_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+    status: 'online',
+    metrics: {
+      chats_assigned: 29,
+      chats_resolved: 27,
+      messages_sent: 118,
+      avg_response_time_min: 2.1,
+      rating: 4.8,
+    },
+    created_at: '2026-08-10T10:00:00.000Z',
+  },
+  {
+    id: 'att-3',
+    name: 'Lucas Relacionamento',
+    email: 'lucas@barber.com',
+    phone: '81977776666',
+    password: '123',
+    role: 'attendant',
+    department: 'Suporte & Recepção',
+    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    status: 'busy',
+    metrics: {
+      chats_assigned: 21,
+      chats_resolved: 19,
+      messages_sent: 84,
+      avg_response_time_min: 2.5,
+      rating: 4.7,
+    },
+    created_at: '2026-08-15T10:00:00.000Z',
+  },
+];
+
+export const defaultCannedReplies: import('../types').CannedReply[] = [
+  { id: 'can-1', label: '👋 Boas-Vindas', cmd: '/oi', text: 'Olá! Como posso ajudar você hoje? Fique à vontade para tirar qualquer dúvida.', category: 'Geral' },
+  { id: 'can-2', label: '📅 Agendamento', cmd: '/agenda', text: 'Você gostaria de reservar um horário hoje ou para outro dia? Temos vagas disponíveis!', category: 'Agendamento' },
+  { id: 'can-3', label: '💳 Chave PIX', cmd: '/pix', text: 'Nossa chave PIX para pagamentos é: 81996138924 (Telefone - Talvane Barber). Ao realizar o pagamento, nos envie o comprovante!', category: 'Financeiro' },
+  { id: 'can-4', label: '📍 Localização', cmd: '/onde', text: 'Estamos localizados na Rua Principal, 100 - Centro. Temos estacionamento no local!', category: 'Informações' },
+  { id: 'can-5', label: '⏳ Aguarde um instante', cmd: '/aguarde', text: 'Estou verificando seu pedido em nosso sistema, só um momento por favor!', category: 'Atendimento' },
+  { id: 'can-6', label: '✅ Finalizar com Agradecimento', cmd: '/obrigado', text: 'Foi um prazer te atender! Se precisar de mais alguma coisa, estamos à disposição. Um ótimo dia!', category: 'Fechamento' },
+];

@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from 'react';
 import { 
   Settings as SettingsIcon, 
   Bot, 
@@ -31,17 +30,24 @@ import {
   ExternalLink,
   Sliders,
   CheckCheck,
-  Server
+  Server,
+  Headphones,
+  UserPlus,
+  Trash2,
+  Edit3,
+  Star,
+  MessageSquare
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input, Textarea } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
+import { Modal } from '../../components/ui/Modal';
 import { QRCodeView } from '../../components/ui/QRCodeView';
 import { useToast } from '../../contexts/ToastContext';
 import { useWhatsApp } from '../../contexts/WhatsAppContext';
 import { StorageService, isSupabaseConfigured } from '../../lib/storage';
-import { BotProfile, BotGender, BotTone } from '../../types';
+import { BotProfile, BotGender, BotTone, Attendant } from '../../types';
 import { defaultBotProfile } from '../../lib/mockData';
 import { formatPhone, formatDate } from '../../lib/utils';
 
@@ -101,6 +107,18 @@ export const SettingsPage: React.FC = () => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [customServerInput, setCustomServerInput] = useState(backendUrl || 'https://talvanebarber.discloud.app');
   const [isTestingServer, setIsTestingServer] = useState(false);
+
+  // Attendants Management State
+  const [attendants, setAttendants] = useState<Attendant[]>([]);
+  const [isAttendantModalOpen, setIsAttendantModalOpen] = useState(false);
+  const [editingAttendant, setEditingAttendant] = useState<Attendant | null>(null);
+  const [attName, setAttName] = useState('');
+  const [attEmail, setAttEmail] = useState('');
+  const [attPhone, setAttPhone] = useState('');
+  const [attPassword, setAttPassword] = useState('123');
+  const [attRole, setAttRole] = useState<'attendant' | 'supervisor' | 'admin'>('attendant');
+  const [attDepartment, setAttDepartment] = useState('Comercial & Vendas');
+  const [attAvatar, setAttAvatar] = useState('');
 
   // Bot Profile form state
   const [botName, setBotName] = useState(defaultBotProfile.name);
@@ -227,6 +245,93 @@ export const SettingsPage: React.FC = () => {
     success('Senha Atualizada', 'A senha de acesso administrativo foi alterada com sucesso.');
   };
 
+  // Load attendants
+  useEffect(() => {
+    const loadAttendants = async () => {
+      try {
+        const list = await StorageService.getAttendants();
+        setAttendants(list);
+      } catch (e) {
+        console.error('Error loading attendants:', e);
+      }
+    };
+    loadAttendants();
+  }, []);
+
+  const handleOpenNewAttendantModal = () => {
+    setEditingAttendant(null);
+    setAttName('');
+    setAttEmail('');
+    setAttPhone('');
+    setAttPassword('123');
+    setAttRole('attendant');
+    setAttDepartment('Comercial & Vendas');
+    setAttAvatar('');
+    setIsAttendantModalOpen(true);
+  };
+
+  const handleOpenEditAttendantModal = (att: Attendant) => {
+    setEditingAttendant(att);
+    setAttName(att.name);
+    setAttEmail(att.email);
+    setAttPhone(att.phone || '');
+    setAttPassword(att.password || '123');
+    setAttRole(att.role || 'attendant');
+    setAttDepartment(att.department || 'Comercial & Vendas');
+    setAttAvatar(att.avatar_url || '');
+    setIsAttendantModalOpen(true);
+  };
+
+  const handleSaveAttendant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!attName.trim() || !attEmail.trim()) {
+      toastError('Campos obrigatórios', 'Preencha o nome e o e-mail do atendente.');
+      return;
+    }
+
+    try {
+      const updated: Attendant = {
+        id: editingAttendant?.id || `att-${Date.now()}`,
+        name: attName.trim(),
+        email: attEmail.trim().toLowerCase(),
+        phone: attPhone.trim().replace(/\D/g, ''),
+        password: attPassword.trim() || '123',
+        role: attRole,
+        department: attDepartment,
+        avatar_url: attAvatar.trim(),
+        status: editingAttendant?.status || 'online',
+        metrics: editingAttendant?.metrics || {
+          chats_assigned: 0,
+          chats_resolved: 0,
+          messages_sent: 0,
+          avg_response_time_min: 0,
+          rating: 5.0,
+        },
+        created_at: editingAttendant?.created_at || new Date().toISOString(),
+      };
+
+      await StorageService.saveAttendant(updated);
+      const list = await StorageService.getAttendants();
+      setAttendants(list);
+      setIsAttendantModalOpen(false);
+      success('Atendente Salvo', `Perfil de "${updated.name}" registrado com sucesso.`);
+    } catch (err: any) {
+      toastError('Erro ao salvar atendente', err.message);
+    }
+  };
+
+  const handleDeleteAttendant = async (id: string, name: string) => {
+    if (!confirm(`Deseja realmente remover o perfil de "${name}"?`)) return;
+    try {
+      await StorageService.deleteAttendant(id);
+      const list = await StorageService.getAttendants();
+      setAttendants(list);
+      success('Atendente Removido', `O perfil de ${name} foi excluído.`);
+    } catch (err: any) {
+      toastError('Erro ao excluir', err.message);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-200">
       {/* Header */}
@@ -268,6 +373,18 @@ export const SettingsPage: React.FC = () => {
         >
           <QrCode className="w-4 h-4" />
           <span>Conexão WhatsApp</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('attendants')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+            activeTab === 'attendants'
+              ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Headphones className="w-4 h-4" />
+          <span>Equipe & Atendentes</span>
         </button>
 
         <button
@@ -400,7 +517,144 @@ export const SettingsPage: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 2: BOT PROFILE & PERSONALITY */}
+      {/* TAB: ATTENDANTS & RELATIONSHIP TEAM (EQUIPE & PERFIS COM SENHA) */}
+      {/* ========================================================================= */}
+      {activeTab === 'attendants' && (
+        <div className="space-y-6 animate-in fade-in">
+          {/* Header Banner */}
+          <Card className="p-6 rounded-3xl bg-dark-900/70 border-white/10 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Headphones className="w-4 h-4 text-brand-400" />
+                  Perfis de Atendentes & Métricas Individuais
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Gerencie operadores com login e senha próprios, departamentos e acompanhe o desempenho de cada um
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <a
+                  href="/relacionamento"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 border border-purple-500/30 text-xs font-bold transition-all shadow-glow-primary"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Abrir Portal do Atendente (/relacionamento)
+                </a>
+
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={handleOpenNewAttendantModal}
+                  leftIcon={<UserPlus className="w-3.5 h-3.5" />}
+                  className="font-bold shadow-glow-brand"
+                >
+                  Novo Atendente
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          {/* Attendants Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {attendants.map((att) => (
+              <Card key={att.id} className="p-5 rounded-3xl bg-dark-900/80 border-white/5 hover:border-brand-500/30 transition-all space-y-4 relative group">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl overflow-hidden bg-brand-500/20 border border-brand-500/30 flex items-center justify-center font-bold text-sm text-brand-300 flex-shrink-0">
+                      {att.avatar_url ? (
+                        <img src={att.avatar_url} alt={att.name} className="w-full h-full object-cover" />
+                      ) : (
+                        att.name.substring(0, 2).toUpperCase()
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                        {att.name}
+                        {att.role === 'admin' && (
+                          <Badge variant="brand" className="text-[9px] py-0 px-1.5">Admin</Badge>
+                        )}
+                      </h4>
+                      <p className="text-xs text-slate-400">{att.department || 'Geral'}</p>
+                    </div>
+                  </div>
+
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    att.status === 'online' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                    att.status === 'busy' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
+                    'bg-slate-800 text-slate-400'
+                  }`}>
+                    {att.status === 'online' ? '🟢 Online' : att.status === 'busy' ? '🟡 Ocupado' : '⚪ Pausa'}
+                  </span>
+                </div>
+
+                {/* Details */}
+                <div className="p-3 bg-dark-950/80 rounded-2xl border border-white/5 space-y-1.5 text-xs text-slate-300">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400 flex items-center gap-1.5"><Mail className="w-3 h-3 text-brand-400" /> E-mail:</span>
+                    <span className="font-mono text-white text-[11px] truncate max-w-[140px]">{att.email}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400 flex items-center gap-1.5"><Phone className="w-3 h-3 text-emerald-400" /> WhatsApp:</span>
+                    <span className="font-mono text-white text-[11px]">{formatPhone(att.phone || '') || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400 flex items-center gap-1.5"><Lock className="w-3 h-3 text-amber-400" /> Senha:</span>
+                    <span className="font-mono text-slate-400 text-[11px]">•••••• ({att.password || '123'})</span>
+                  </div>
+                </div>
+
+                {/* Performance Metrics */}
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-dark-950/60 p-2 rounded-xl border border-white/5">
+                    <p className="text-xs font-bold text-white">{att.metrics?.chats_assigned || 0}</p>
+                    <p className="text-[9px] text-slate-400">Assumidos</p>
+                  </div>
+                  <div className="bg-dark-950/60 p-2 rounded-xl border border-white/5">
+                    <p className="text-xs font-bold text-emerald-400">{att.metrics?.chats_resolved || 0}</p>
+                    <p className="text-[9px] text-slate-400">Resolvidos</p>
+                  </div>
+                  <div className="bg-dark-950/60 p-2 rounded-xl border border-white/5">
+                    <p className="text-xs font-bold text-amber-300 flex items-center justify-center gap-0.5">
+                      <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                      {att.metrics?.rating || 5.0}
+                    </p>
+                    <p className="text-[9px] text-slate-400">Avaliação</p>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/5">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleOpenEditAttendantModal(att)}
+                    leftIcon={<Edit3 className="w-3.5 h-3.5 text-brand-400" />}
+                    className="text-xs py-1 h-7"
+                  >
+                    Editar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleDeleteAttendant(att.id, att.name)}
+                    leftIcon={<Trash2 className="w-3.5 h-3.5 text-rose-400" />}
+                    className="text-xs py-1 h-7 text-rose-400 hover:text-rose-300"
+                  >
+                    Excluir
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 3: BOT PROFILE & PERSONALITY */}
       {/* ========================================================================= */}
       {activeTab === 'profile' && (
         <form onSubmit={handleSaveProfile} className="space-y-6 animate-in fade-in">
@@ -808,6 +1062,90 @@ export const SettingsPage: React.FC = () => {
           </form>
         </Card>
       )}
+
+      {/* Modal: Novo / Editar Atendente */}
+      <Modal
+        isOpen={isAttendantModalOpen}
+        onClose={() => setIsAttendantModalOpen(false)}
+        title={editingAttendant ? 'Editar Perfil de Atendente' : 'Novo Perfil de Atendente'}
+      >
+        <form onSubmit={handleSaveAttendant} className="space-y-4 text-xs">
+          <div>
+            <label className="text-[11px] font-bold text-slate-400 block mb-1">Nome Completo *</label>
+            <Input
+              value={attName}
+              onChange={(e) => setAttName(e.target.value)}
+              placeholder="Ex: Sofia Atendimento"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] font-bold text-slate-400 block mb-1">E-mail de Login *</label>
+              <Input
+                type="email"
+                value={attEmail}
+                onChange={(e) => setAttEmail(e.target.value)}
+                placeholder="sofia@barber.com"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-slate-400 block mb-1">WhatsApp / Telefone</label>
+              <Input
+                value={attPhone}
+                onChange={(e) => setAttPhone(e.target.value)}
+                placeholder="81988887777"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] font-bold text-slate-400 block mb-1">Senha de Acesso *</label>
+              <Input
+                type="text"
+                value={attPassword}
+                onChange={(e) => setAttPassword(e.target.value)}
+                placeholder="Senha do atendente"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-slate-400 block mb-1">Departamento / Setor</label>
+              <select
+                value={attDepartment}
+                onChange={(e) => setAttDepartment(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-white/10 text-white text-xs"
+              >
+                <option value="Comercial & Vendas">Comercial & Vendas</option>
+                <option value="Suporte & Recepção">Suporte & Recepção</option>
+                <option value="Agendamentos">Agendamentos</option>
+                <option value="Geral">Geral</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[11px] font-bold text-slate-400 block mb-1">URL da Foto de Perfil (Opcional)</label>
+            <Input
+              value={attAvatar}
+              onChange={(e) => setAttAvatar(e.target.value)}
+              placeholder="https://exemplo.com/avatar.jpg"
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/5">
+            <Button size="sm" variant="ghost" type="button" onClick={() => setIsAttendantModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button size="sm" variant="primary" type="submit" leftIcon={<Save className="w-3.5 h-3.5" />}>
+              Salvar Atendente
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

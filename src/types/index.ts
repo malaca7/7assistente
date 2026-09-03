@@ -178,6 +178,39 @@ export interface Contact {
 
 export type ConversationStatus = 'bot' | 'waiting_human' | 'human' | 'closed';
 
+export interface AttendantMetrics {
+  chats_assigned: number;
+  chats_resolved: number;
+  messages_sent: number;
+  avg_response_time_min: number;
+  rating: number;
+}
+
+export interface Attendant {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  password: string;
+  role: 'admin' | 'attendant' | 'supervisor';
+  department: string;
+  avatar_url?: string;
+  status: 'online' | 'busy' | 'offline';
+  metrics?: AttendantMetrics;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface CannedReply {
+  id: string;
+  label: string;
+  cmd: string;
+  text: string;
+  category?: string;
+}
+
+export type ConversationPriority = 'low' | 'normal' | 'high' | 'urgent';
+
 export interface Conversation {
   id: string;
   contact_id: string;
@@ -185,18 +218,28 @@ export interface Conversation {
   contact_phone?: string;
   contact?: Contact;
   status: ConversationStatus;
+  priority?: ConversationPriority;
+  department?: string;
   assigned_to?: string | null;
+  assigned_attendant_id?: string | null;
+  assigned_attendant_name?: string | null;
   started_at: string;
   last_message_at: string;
   unread_count?: number;
   last_message?: string;
+  internal_notes?: Array<{
+    id: string;
+    text: string;
+    author: string;
+    created_at: string;
+  }>;
   created_at: string;
   updated_at: string;
 }
 
 export type MessageDirection = 'inbound' | 'outbound';
 export type MessageStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
-export type MessageType = 'text' | 'image' | 'audio' | 'video' | 'document' | 'button' | 'interactive';
+export type MessageType = 'text' | 'image' | 'audio' | 'video' | 'document' | 'button' | 'interactive' | 'internal_note';
 
 export interface Message {
   id: string;
@@ -207,6 +250,8 @@ export interface Message {
   media_url?: string;
   whatsapp_message_id?: string;
   status: MessageStatus;
+  author_name?: string;
+  is_internal?: boolean;
   metadata?: Record<string, any>;
   created_at: string;
 }

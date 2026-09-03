@@ -82,6 +82,21 @@ async function mergeLive() {
       }
     }
 
+    // 4. Fetch Attendants
+    try {
+      const attRes = await fetch(`${LIVE_URL}/api/whatsapp/attendants`, { signal: AbortSignal.timeout(4000) });
+      if (attRes.ok) {
+        const liveAtts = await attRes.json();
+        if (Array.isArray(liveAtts) && liveAtts.length > 0) {
+          const attMap = new Map();
+          (localDb.attendants || []).forEach(a => attMap.set(a.id, a));
+          liveAtts.forEach(a => attMap.set(a.id, a));
+          localDb.attendants = Array.from(attMap.values());
+          console.log(`[MergeLive] ✅ ${localDb.attendants.length} atendentes sincronizados.`);
+        }
+      }
+    } catch {}
+
     // Save merged DB
     fs.writeFileSync(DB_PATH, JSON.stringify(localDb, null, 2), 'utf-8');
     console.log('[MergeLive] 🎉 Sincronização concluída com sucesso!');

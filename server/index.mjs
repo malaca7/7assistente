@@ -1261,7 +1261,48 @@ app.post('/api/whatsapp/sync-flows', async (req, res) => {
   }
 });
 
-// 11. Serve Frontend Production Build (Discloud / Cloud Hosting)
+// 12. Attendants Management (Central de Atendimento & Métricas)
+app.get('/api/whatsapp/attendants', (req, res) => {
+  const db = loadDb();
+  res.json(db.attendants || []);
+});
+
+app.post('/api/whatsapp/attendants', (req, res) => {
+  try {
+    const attendant = req.body;
+    if (!attendant || !attendant.id) {
+      return res.status(400).json({ error: 'Dados de atendente inválidos' });
+    }
+    const db = loadDb();
+    if (!db.attendants) db.attendants = [];
+    const index = db.attendants.findIndex((a) => a.id === attendant.id);
+    if (index >= 0) {
+      db.attendants[index] = { ...db.attendants[index], ...attendant, updated_at: new Date().toISOString() };
+    } else {
+      db.attendants.unshift({ ...attendant, created_at: new Date().toISOString() });
+    }
+    saveDb(db);
+    res.json({ success: true, attendant });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/whatsapp/attendants/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = loadDb();
+    if (db.attendants) {
+      db.attendants = db.attendants.filter((a) => a.id !== id);
+      saveDb(db);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 13. Serve Frontend Production Build (Discloud / Cloud Hosting)
 function healFlatExtractedFiles(baseDir) {
   try {
     if (!fs.existsSync(baseDir)) return;

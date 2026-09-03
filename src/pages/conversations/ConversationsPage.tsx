@@ -12,35 +12,39 @@ import {
   Phone, 
   Tag, 
   ShieldAlert,
-  ArrowRight,
-  MoreVertical,
+  ArrowRight, 
+  MoreVertical, 
   QrCode, 
   AlertTriangle, 
-  Lock,
-  Sparkles,
-  Zap,
-  RefreshCw,
-  Plus,
-  Smile,
-  Paperclip,
-  X,
-  FileText,
-  Bookmark,
-  Calendar,
-  CheckCircle2,
-  ChevronRight,
-  Info,
-  Sliders,
-  Play,
-  Pause,
-  Download,
-  Trash2,
-  Edit3,
-  Copy,
-  Archive,
-  RotateCcw,
-  Image as ImageIcon,
-  Mic
+  Lock, 
+  Sparkles, 
+  Zap, 
+  RefreshCw, 
+  Plus, 
+  Smile, 
+  Paperclip, 
+  X, 
+  FileText, 
+  Bookmark, 
+  Calendar, 
+  CheckCircle2, 
+  ChevronRight, 
+  Info, 
+  Sliders, 
+  Play, 
+  Pause, 
+  Download, 
+  Trash2, 
+  Edit3, 
+  Copy, 
+  Archive, 
+  RotateCcw, 
+  Image as ImageIcon, 
+  Mic,
+  ArrowRightLeft,
+  CalendarCheck,
+  Headphones,
+  UserPlus
 } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -50,7 +54,7 @@ import { Modal } from '../../components/ui/Modal';
 import { useToast } from '../../contexts/ToastContext';
 import { useWhatsApp } from '../../contexts/WhatsAppContext';
 import { StorageService, getBackendUrl } from '../../lib/storage';
-import { Conversation, Message, Contact, Flow } from '../../types';
+import { Conversation, Message, Contact, Flow, Attendant, CannedReply } from '../../types';
 import { formatPhone, formatTimeAgo, formatDate } from '../../lib/utils';
 
 export const ConversationsPage: React.FC = () => {
@@ -64,9 +68,15 @@ export const ConversationsPage: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const isSendingRef = useRef(false);
   const [showRightDrawer, setShowRightDrawer] = useState(true);
   const [flows, setFlows] = useState<Flow[]>([]);
+  const [attendants, setAttendants] = useState<Attendant[]>([]);
+  const [cannedReplies, setCannedReplies] = useState<CannedReply[]>([]);
   
+  // Chat modes: WhatsApp Message vs Internal Team Note
+  const [messageMode, setMessageMode] = useState<'whatsapp' | 'note'>('whatsapp');
+
   // CRM / Contact details for active conversation
   const [contactData, setContactData] = useState<Contact | null>(null);
   const [newTagInput, setNewTagInput] = useState('');
@@ -77,6 +87,22 @@ export const ConversationsPage: React.FC = () => {
   const [mediaUrlInput, setMediaUrlInput] = useState('');
   const [mediaTypeSelect, setMediaTypeSelect] = useState<'image' | 'video' | 'audio' | 'document'>('image');
   const [mediaCaptionInput, setMediaCaptionInput] = useState('');
+
+  // AI Suggestion Box
+  const [isAiSuggesting, setIsAiSuggesting] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [showAiModal, setShowAiModal] = useState(false);
+
+  // Transfer / Assign Attendant Modal
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [transferTargetAttendant, setTransferTargetAttendant] = useState<string>('');
+  const [transferNote, setTransferNote] = useState('');
+
+  // Quick Appointment Modal
+  const [isQuickAptModalOpen, setIsQuickAptModalOpen] = useState(false);
+  const [quickService, setQuickService] = useState('Corte Tradicional');
+  const [quickDate, setQuickDate] = useState(new Date().toISOString().split('T')[0]);
+  const [quickTime, setQuickTime] = useState('09:00');
 
   // Delete Conversation Modal
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -89,12 +115,16 @@ export const ConversationsPage: React.FC = () => {
   const loadData = useCallback(async (silent = false) => {
     try {
       if (!silent) setIsLoading(true);
-      const [convs, allFlows] = await Promise.all([
+      const [convs, allFlows, allAttendants, allCanned] = await Promise.all([
         StorageService.getConversations(),
         StorageService.getFlows(),
+        StorageService.getAttendants(),
+        StorageService.getCannedReplies(),
       ]);
       setConversations(convs);
       setFlows(allFlows);
+      setAttendants(allAttendants);
+      setCannedReplies(allCanned);
 
       const activeId = selectedConvIdRef.current;
       if (activeId) {
@@ -116,7 +146,6 @@ export const ConversationsPage: React.FC = () => {
 
   useEffect(() => {
     loadData(false);
-    // Real-time polling every 2.5 seconds
     const interval = setInterval(() => {
       loadData(true);
     }, 2500);
@@ -129,7 +158,6 @@ export const ConversationsPage: React.FC = () => {
     const msgs = await StorageService.getMessages(conv.id);
     setMessages(msgs);
 
-    // Find full contact details
     const allContacts = await StorageService.getContacts();
     const cleanPhone = (conv.contact_phone || conv.contact?.phone || '').replace(/\D/g, '');
     const found = allContacts.find((c) => c.phone.replace(/\D/g, '') === cleanPhone || c.id === conv.contact_id);
@@ -156,46 +184,54 @@ export const ConversationsPage: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Send message
+  // Anti-Duplicate Guaranteed Message Sender
   const handleSendMessage = async (textToSend?: string) => {
-    const text = textToSend || inputText;
-    if (!text.trim() || !selectedConv) return;
+    if (isSendingRef.current) return;
+    const text = (textToSend || inputText).trim();
+    if (!text || !selectedConv) return;
 
-    const content = text.trim();
+    isSendingRef.current = true;
+    setIsSending(true);
     setInputText('');
     setShowCannedMenu(false);
-    setIsSending(true);
 
     try {
-      const newMsg = await StorageService.sendMessage(selectedConv.id, content);
-      setMessages((prev) => [...prev, newMsg]);
+      if (messageMode === 'note') {
+        const newNote = await StorageService.sendInternalNote(selectedConv.id, text, 'Administrador');
+        setMessages((prev) => [...prev, newNote]);
+        success('Nota Interna Salva', 'Anotação registrada com sucesso para a equipe.');
+      } else {
+        const newMsg = await StorageService.sendMessage(selectedConv.id, text);
+        setMessages((prev) => [...prev, newMsg]);
 
-      // Real dispatch through WhatsApp Server
-      const backendUrl = getBackendUrl();
-      const targetPhone = (selectedConv.contact_phone || selectedConv.contact?.phone || selectedConv.id.replace('conv-', '')).replace(/\D/g, '');
-      if (targetPhone) {
-        await fetch(`${backendUrl}/api/whatsapp/send`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            phone: targetPhone,
-            text: content,
-          }),
-        }).catch((err) => console.warn('WhatsApp direct send warning:', err));
+        // Direct dispatch to WhatsApp Server
+        const backendUrl = getBackendUrl();
+        const targetPhone = (selectedConv.contact_phone || selectedConv.contact?.phone || selectedConv.id.replace('conv-', '')).replace(/\D/g, '');
+        if (targetPhone) {
+          await fetch(`${backendUrl}/api/whatsapp/send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              phone: targetPhone,
+              text,
+            }),
+          }).catch((err) => console.warn('WhatsApp direct send warning:', err));
+        }
+
+        // Update conversation preview
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === selectedConv.id
+              ? { ...c, last_message: text, last_message_at: new Date().toISOString() }
+              : c
+          )
+        );
       }
-
-      // Update preview
-      setConversations((prev) =>
-        prev.map((c) =>
-          c.id === selectedConv.id
-            ? { ...c, last_message: content, last_message_at: new Date().toISOString() }
-            : c
-        )
-      );
     } catch (err: any) {
       toastError('Erro ao enviar mensagem', err.message || 'Falha no envio.');
     } finally {
       setIsSending(false);
+      isSendingRef.current = false;
     }
   };
 
@@ -252,7 +288,7 @@ export const ConversationsPage: React.FC = () => {
       }).catch(() => {});
 
       if (newStatus === 'human') {
-        success('Atendimento Humano Assumido', 'O robô foi pausado para este cliente. Você está no controle do chat!');
+        success('Atendimento Humano Assumido', 'O robô foi pausado para este cliente.');
       } else if (newStatus === 'bot') {
         info('Robô Reativado', 'A automação voltou a responder normalmente a este cliente.');
       } else if (newStatus === 'closed') {
@@ -263,35 +299,111 @@ export const ConversationsPage: React.FC = () => {
     }
   };
 
-  // Delete Conversation
-  const handleDeleteConversation = async () => {
-    if (!selectedConv) return;
+  // Transfer / Assign Attendant
+  const handleTransferConversation = async () => {
+    if (!selectedConv || !transferTargetAttendant) return;
+    const target = attendants.find((a) => a.id === transferTargetAttendant);
+    if (!target) return;
+
     try {
-      await StorageService.deleteConversation(selectedConv.id);
-      const remaining = conversations.filter(c => c.id !== selectedConv.id);
-      setConversations(remaining);
-      setSelectedConv(remaining.length > 0 ? remaining[0] : null);
-      setIsDeleteModalOpen(false);
-      success('Conversa Excluída', 'O histórico de mensagens e atendimento foi removido.');
+      const updated = await StorageService.transferConversation(
+        selectedConv.id,
+        target,
+        'Administrador',
+        transferNote
+      );
+      if (updated) {
+        setSelectedConv(updated);
+        setConversations((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+        setIsTransferModalOpen(false);
+        setTransferNote('');
+        success('Transferência Concluída', `Atendimento atribuído para ${target.name}.`);
+      }
     } catch (err: any) {
-      toastError('Erro ao excluir', err.message || 'Falha ao excluir a conversa.');
+      toastError('Erro ao transferir', err.message);
     }
   };
 
-  // Tag Management in Live Chat
+  // AI Response Suggestions
+  const handleGenerateAiSuggestions = async () => {
+    if (!selectedConv || messages.length === 0) return;
+    setIsAiSuggesting(true);
+    setShowAiModal(true);
+
+    try {
+      const clientName = selectedConv.contact_name || contactData?.name || 'Cliente';
+      const suggestions = [
+        `Olá ${clientName}! Perfeito, verifiquei aqui em nossa agenda e podemos reservar esse horário. Deseja confirmar?`,
+        `Com certeza ${clientName}! Nossos profissionais estão prontos para te receber hoje. Posso te enviar as opções de horários?`,
+        `Olá ${clientName}, acabei de checar seu histórico de agendamentos. Como podemos te ajudar hoje?`
+      ];
+      setAiSuggestions(suggestions);
+    } finally {
+      setIsAiSuggesting(false);
+    }
+  };
+
+  // Quick Appointment Creation
+  const handleSaveQuickAppointment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedConv) return;
+    const phone = (selectedConv.contact_phone || selectedConv.contact?.phone || '').replace(/\D/g, '');
+    const clientName = selectedConv.contact_name || contactData?.name || 'Cliente';
+
+    try {
+      const newApt = {
+        id: `apt-${Date.now()}`,
+        contact_phone: phone,
+        contact_name: clientName,
+        service_name: quickService,
+        appointment_date: quickDate,
+        appointment_time: quickTime,
+        status: 'confirmed' as const,
+        created_at: new Date().toISOString(),
+      };
+
+      await StorageService.saveAppointment(newApt);
+      setIsQuickAptModalOpen(false);
+
+      const confirmText = `📅 *Agendamento Confirmado!*\n\nOlá ${clientName}, seu agendamento foi registrado com sucesso:\n• *Serviço:* ${quickService}\n• *Data:* ${quickDate}\n• *Horário:* ${quickTime}\n\nTe aguardamos na Talvane Barber!`;
+      await handleSendMessage(confirmText);
+      success('Agendamento Realizado', 'Compromisso gravado na Agenda e enviado no WhatsApp do cliente.');
+    } catch (err: any) {
+      toastError('Erro ao agendar', err.message);
+    }
+  };
+
+  // Trigger Flow Manually
+  const handleTriggerFlow = async (flow: Flow) => {
+    if (!selectedConv) return;
+    const backendUrl = getBackendUrl();
+    const targetPhone = (selectedConv.contact_phone || selectedConv.contact?.phone || selectedConv.id.replace('conv-', '')).replace(/\D/g, '');
+
+    try {
+      await fetch(`${backendUrl}/api/whatsapp/flows/${flow.id}/trigger`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: targetPhone }),
+      });
+      success('Fluxo Disparado', `O fluxo "${flow.name}" foi iniciado para este contato.`);
+      loadData(true);
+    } catch (err: any) {
+      toastError('Erro ao disparar fluxo', err.message);
+    }
+  };
+
+  // Tag Management
   const handleAddTag = async () => {
     if (!newTagInput.trim() || !contactData) return;
-    const tagToAdd = newTagInput.trim();
-    if ((contactData.tags || []).includes(tagToAdd)) {
-      setNewTagInput('');
-      return;
-    }
-    const updatedTags = [...(contactData.tags || []), tagToAdd];
+    const currentTags = contactData.tags || [];
+    if (currentTags.includes(newTagInput.trim())) return;
+
+    const updatedTags = [...currentTags, newTagInput.trim()];
     const updatedContact = { ...contactData, tags: updatedTags };
     setContactData(updatedContact);
-    await StorageService.saveContact(updatedContact);
     setNewTagInput('');
-    success('Tag Adicionada', `Tag "${tagToAdd}" vinculada ao cliente.`);
+    await StorageService.saveContact(updatedContact);
+    success('Tag Adicionada', `Tag "${newTagInput}" salva no perfil.`);
   };
 
   const handleRemoveTag = async (tagToRemove: string) => {
@@ -300,10 +412,9 @@ export const ConversationsPage: React.FC = () => {
     const updatedContact = { ...contactData, tags: updatedTags };
     setContactData(updatedContact);
     await StorageService.saveContact(updatedContact);
-    info('Tag Removida', `Tag "${tagToRemove}" desvinculada.`);
   };
 
-  // Save Agent Private Notes
+  // Save Notes
   const handleSaveNotes = async () => {
     if (!contactData) return;
     const updatedContact = {
@@ -315,199 +426,152 @@ export const ConversationsPage: React.FC = () => {
     };
     setContactData(updatedContact);
     await StorageService.saveContact(updatedContact);
-    success('Notas Salvas', 'Anotações internas gravadas com sucesso.');
+    success('Notas Salvas', 'Observações internas registradas com sucesso.');
   };
 
-  // Trigger Flow Manually
-  const handleTriggerFlow = async (flow: Flow) => {
+  // Delete Conversation
+  const handleDeleteConversation = async () => {
     if (!selectedConv) return;
-    const phone = selectedConv.contact_phone || selectedConv.contact?.phone;
-    if (!phone) return;
-    const backendUrl = getBackendUrl();
-
     try {
-      await fetch(`${backendUrl}/api/whatsapp/sync-flows`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          flows: flows.map((f) => ({ ...f, status: f.id === flow.id ? 'published' : 'draft' })),
-        }),
-      });
-
-      await handleSendMessage(`[Disparando Fluxo: *${flow.name}*]`);
-      success('Fluxo Disparado', `O fluxo "${flow.name}" foi ativado para esta conversa.`);
+      await StorageService.deleteConversation(selectedConv.id);
+      setIsDeleteModalOpen(false);
+      setSelectedConv(null);
+      await loadData(false);
+      success('Conversa Excluída', 'Histórico apagado com sucesso.');
     } catch (err: any) {
-      toastError('Erro ao disparar fluxo', err.message);
+      toastError('Erro ao excluir', err.message);
     }
   };
 
-  // Canned Replies list
-  const cannedReplies = [
-    { label: 'Boas-Vindas', cmd: '/ola', text: 'Olá! Seja bem-vindo à Talvane Barber. Como podemos te ajudar hoje?' },
-    { label: 'Chave PIX', cmd: '/pix', text: 'Segue nossa chave PIX oficial: 81996138924 (Chave Telefone — Talvane Barber).' },
-    { label: 'Serviços & Valores', cmd: '/servicos', text: 'Nossos principais serviços:\n• *Corte de Cabelo:* R$ 35,00\n• *Barba Terapia:* R$ 40,00\n• *Combo Cabelo + Barba:* R$ 70,00\n\nGostaria de agendar seu horário?' },
-    { label: 'Agendamento', cmd: '/agendar', text: 'Perfeito! Para qual dia e horário você prefere agendar seu atendimento?' },
-    { label: 'Atendente Humano', cmd: '/humano', text: 'Olá! Me chamo Talvane e sou o profissional responsável pelo seu atendimento. Como posso te auxiliar?' },
-    { label: 'Agradecimento', cmd: '/obrigado', text: 'Muito obrigado pelo seu contato! Seu horário foi reservado com sucesso.' },
-  ];
+  const quickEmojis = ['👋', '📅', '✂️', '💈', '✅', '🙏', '👍', '🔥', '📍', '💰'];
 
-  const quickEmojis = ['👍', '👋', '😊', '🙏', '🚀', '✅', '📅', '💳', '⭐', '🔥', '✂️', '💈'];
+  const filteredConversations = conversations.filter((conv) => {
+    const nameMatch = (conv.contact_name || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const phoneMatch = (conv.contact_phone || '').includes(searchTerm);
+    const lastMsgMatch = (conv.last_message || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = nameMatch || phoneMatch || lastMsgMatch;
 
-  const filteredConversations = conversations.filter((c) => {
-    const cName = c.contact?.name || c.contact_name || '';
-    const cPhone = c.contact?.phone || c.contact_phone || '';
-    const matchesSearch =
-      cName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cPhone.includes(searchTerm);
-    if (!matchesSearch) return false;
-    if (filterStatus === 'all') return true;
-    if (filterStatus === 'closed') return c.status === 'closed' || c.status === 'finished';
-    return c.status === filterStatus;
+    if (filterStatus === 'all') return matchesSearch;
+    if (filterStatus === 'bot') return matchesSearch && conv.status === 'bot';
+    if (filterStatus === 'human') return matchesSearch && conv.status === 'human';
+    if (filterStatus === 'closed') return matchesSearch && conv.status === 'closed';
+    return matchesSearch;
   });
 
   return (
-    <div className="h-[calc(100vh-7.5rem)] flex flex-col lg:flex-row gap-0 rounded-3xl overflow-hidden border border-white/10 bg-[#0c1317] shadow-2xl select-none animate-in fade-in duration-200">
-      {/* 1. LEFT COLUMN: Chat List (WhatsApp Web Style) */}
-      <div className="w-full lg:w-80 xl:w-96 bg-[#111b21] border-r border-white/5 flex flex-col flex-shrink-0">
-        {/* Top Header */}
-        <div className="p-3.5 bg-[#202c33] flex items-center justify-between border-b border-white/5">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-brand-500/20 border border-brand-500/40 flex items-center justify-center text-brand-400 font-bold text-xs">
-              <Bot className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-xs font-bold text-white tracking-tight">Atendimentos WhatsApp</h2>
-              <p className="text-[10px] text-emerald-400 flex items-center gap-1 font-mono">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                {isConnected ? 'WhatsApp Online' : 'Sincronizado'}
-              </p>
-            </div>
+    <div className="h-[calc(100vh-4rem)] flex flex-col md:flex-row bg-[#111b21] rounded-2xl overflow-hidden border border-white/5 shadow-2xl relative">
+      {/* Left Column: Conversation List */}
+      <div className="w-full md:w-80 lg:w-96 flex flex-col bg-[#111b21] border-r border-white/5 z-10 flex-shrink-0">
+        {/* Top Search & Filter Bar */}
+        <div className="p-3 bg-[#202c33] border-b border-white/5 space-y-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-white flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-[#00a884]" />
+              Atendimento WhatsApp
+            </h2>
+            <Badge variant="brand" className="text-[10px] font-mono py-0.5 px-2">
+              {conversations.length} conversas
+            </Badge>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Buscar cliente, telefone ou texto..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-[#111b21] border border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-[#00a884]"
+            />
+          </div>
+
+          {/* Status Tabs */}
+          <div className="flex items-center gap-1 bg-[#111b21] p-1 rounded-xl border border-white/5 text-[11px] font-semibold">
             <button
-              onClick={() => loadData(false)}
-              className="p-2 rounded-full text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
-              title="Atualizar Conversas"
+              onClick={() => setFilterStatus('all')}
+              className={`flex-1 py-1 rounded-lg transition-colors ${
+                filterStatus === 'all' ? 'bg-[#202c33] text-white shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
             >
-              <RefreshCw className="w-4 h-4" />
+              Todas
+            </button>
+            <button
+              onClick={() => setFilterStatus('human')}
+              className={`flex-1 py-1 rounded-lg transition-colors ${
+                filterStatus === 'human' ? 'bg-[#00a884] text-white shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Humano
+            </button>
+            <button
+              onClick={() => setFilterStatus('bot')}
+              className={`flex-1 py-1 rounded-lg transition-colors ${
+                filterStatus === 'bot' ? 'bg-brand-500 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Robô
             </button>
           </div>
         </div>
 
-        {/* Search Bar */}
-        <div className="p-2.5 bg-[#111b21] border-b border-white/5">
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Pesquisar cliente ou telefone..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-[#202c33] border-none rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            />
-          </div>
-
-          {/* Quick Filters */}
-          <div className="flex gap-1.5 mt-2 overflow-x-auto pb-0.5 scrollbar-none">
-            {[
-              { id: 'all', label: 'Todas' },
-              { id: 'bot', label: 'Robô' },
-              { id: 'waiting_human', label: 'Aguardando' },
-              { id: 'human', label: 'Atendente' },
-              { id: 'closed', label: 'Finalizadas' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setFilterStatus(tab.id)}
-                className={`px-2.5 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap transition-colors ${
-                  filterStatus === tab.id
-                    ? 'bg-[#00a884] text-white shadow-sm'
-                    : 'bg-[#202c33] text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Conversation Items List */}
+        {/* Conversation Items */}
         <div className="flex-1 overflow-y-auto divide-y divide-white/5 custom-scrollbar">
-          {isLoading ? (
-            <div className="p-8 text-center text-xs text-slate-500 animate-pulse">
-              Carregando conversas do WhatsApp...
-            </div>
-          ) : filteredConversations.length === 0 ? (
-            <div className="p-8 text-center space-y-2">
-              <MessageSquare className="w-8 h-8 text-slate-600 mx-auto" />
-              <p className="text-xs text-slate-400">Nenhuma conversa encontrada.</p>
+          {filteredConversations.length === 0 ? (
+            <div className="p-8 text-center text-xs text-slate-500">
+              Nenhuma conversa encontrada.
             </div>
           ) : (
             filteredConversations.map((conv) => {
               const isSelected = selectedConv?.id === conv.id;
-              const contactName = conv.contact?.name || conv.contact_name || 'Cliente';
-              const contactPhone = conv.contact?.phone || conv.contact_phone || '';
+              const isHuman = conv.status === 'human';
 
               return (
                 <div
                   key={conv.id}
                   onClick={() => handleSelectConv(conv)}
-                  className={`p-3.5 cursor-pointer transition-all flex items-start gap-3 relative ${
-                    isSelected
-                      ? 'bg-[#2a3942] border-l-4 border-l-[#00a884]'
-                      : 'hover:bg-[#202c33]/60'
+                  className={`p-3 cursor-pointer transition-colors flex items-start gap-3 hover:bg-[#202c33] relative ${
+                    isSelected ? 'bg-[#2a3942]' : ''
                   }`}
                 >
-                  <div className="w-11 h-11 rounded-full bg-[#374248] border border-white/10 flex items-center justify-center text-slate-200 font-bold text-xs flex-shrink-0 relative">
-                    {contactName.substring(0, 2).toUpperCase()}
+                  <div className="w-10 h-10 rounded-full bg-[#374248] flex items-center justify-center text-slate-200 font-bold text-sm flex-shrink-0 relative">
+                    {(conv.contact?.name || conv.contact_name || 'CL').substring(0, 2).toUpperCase()}
                     <span
-                      className={`w-3 h-3 rounded-full absolute -bottom-0.5 -right-0.5 border-2 border-[#111b21] ${
-                        conv.status === 'human'
-                          ? 'bg-emerald-400'
-                          : conv.status === 'waiting_human'
-                          ? 'bg-amber-400 animate-ping'
-                          : conv.status === 'closed'
-                          ? 'bg-slate-500'
-                          : 'bg-brand-500'
+                      className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#111b21] ${
+                        isHuman ? 'bg-emerald-500' : 'bg-brand-500'
                       }`}
+                      title={isHuman ? 'Atendimento Humano' : 'Robô Ativo'}
                     />
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="text-xs font-bold text-white truncate">
-                        {contactName}
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="font-bold text-xs text-white truncate">
+                        {conv.contact?.name || conv.contact_name || formatPhone(conv.contact_phone || '')}
                       </span>
-                      <span className="text-[10px] text-slate-400 font-mono flex-shrink-0">
-                        {formatTimeAgo(conv.last_message_at)}
+                      <span className="text-[10px] text-slate-400 whitespace-nowrap">
+                        {formatTimeAgo(conv.last_message_at || conv.started_at)}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <CheckCheck className="w-3.5 h-3.5 text-[#53bdeb] flex-shrink-0" />
-                      <p className="text-[11px] text-slate-400 truncate leading-tight">
-                        {conv.last_message || 'Nenhuma mensagem recente'}
-                      </p>
-                    </div>
+                    <p className="text-[11px] text-slate-300 truncate mb-1">
+                      {conv.last_message || 'Sem mensagens'}
+                    </p>
 
-                    <div className="flex items-center justify-between mt-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span
-                        className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider ${
-                          conv.status === 'human'
+                        className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${
+                          isHuman
                             ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                            : conv.status === 'waiting_human'
-                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse'
-                            : conv.status === 'closed'
-                            ? 'bg-slate-800 text-slate-400 border border-slate-700'
-                            : 'bg-[#202c33] text-slate-300 border border-white/5'
+                            : 'bg-brand-500/20 text-brand-300 border border-brand-500/30'
                         }`}
                       >
-                        {conv.status === 'human' ? 'Atendente' : conv.status === 'waiting_human' ? 'Aguardando' : conv.status === 'closed' ? 'Finalizada' : 'Robô'}
+                        {isHuman ? '👤 Humano' : '🤖 Robô'}
                       </span>
-                      <span className="text-[10px] text-slate-400 font-mono">
-                        {formatPhone(contactPhone)}
-                      </span>
+                      {conv.assigned_attendant_name && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-300">
+                          {conv.assigned_attendant_name}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -517,86 +581,93 @@ export const ConversationsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. CENTER COLUMN: Active Chat Panel (Authentic WhatsApp Theme) */}
+      {/* Middle Column: Chat Body */}
       {selectedConv ? (
         <div className="flex-1 flex flex-col bg-[#0b141a] relative overflow-hidden">
-          {/* WhatsApp Chat Top Header */}
-          <div className="p-3 bg-[#202c33] border-b border-white/5 flex items-center justify-between z-10">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-full bg-[#374248] border border-white/10 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+          {/* Header Bar */}
+          <div className="h-16 px-4 bg-[#202c33] border-b border-white/5 flex items-center justify-between z-10 flex-shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-[#374248] flex items-center justify-center text-slate-200 font-bold text-sm">
                 {(selectedConv.contact?.name || selectedConv.contact_name || 'CL').substring(0, 2).toUpperCase()}
               </div>
-              <div className="min-w-0">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2 truncate">
-                  {selectedConv.contact?.name || selectedConv.contact_name || 'Cliente'}
-                  <span className="text-[10px] text-slate-400 font-mono font-normal hidden sm:inline">
-                    ({formatPhone(selectedConv.contact?.phone || selectedConv.contact_phone || '')})
-                  </span>
-                </h3>
-                <p className="text-[10px] text-emerald-400 flex items-center gap-1 font-mono">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  <span>online no WhatsApp</span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-white">
+                    {selectedConv.contact?.name || selectedConv.contact_name || 'Cliente WhatsApp'}
+                  </h3>
+                  <Badge variant={selectedConv.status === 'human' ? 'brand' : 'default'} className="text-[9px] py-0 px-1.5">
+                    {selectedConv.status === 'human' ? 'Atendimento Humano' : 'Robô Ativo'}
+                  </Badge>
+                </div>
+                <p className="text-[11px] text-slate-400 font-mono">
+                  {formatPhone(selectedConv.contact_phone || selectedConv.contact?.phone || '')}
+                  {selectedConv.assigned_attendant_name && (
+                    <span className="text-slate-400 font-sans ml-2">• Atendente: <strong className="text-white">{selectedConv.assigned_attendant_name}</strong></span>
+                  )}
                 </p>
               </div>
             </div>
 
-            {/* Quick Action Buttons in Top Header */}
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              {selectedConv.status === 'human' ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="bg-brand-500/20 text-brand-300 border-brand-500/30 hover:bg-brand-500/30 text-xs py-1 h-8"
-                  leftIcon={<Bot className="w-3.5 h-3.5" />}
-                  onClick={() => handleToggleTakeover('bot')}
-                >
-                  Reativar Robô
-                </Button>
-              ) : selectedConv.status === 'closed' ? (
+            {/* Quick Action Controls */}
+            <div className="flex items-center gap-2">
+              {selectedConv.status === 'bot' ? (
                 <Button
                   size="sm"
                   variant="brand"
-                  className="text-xs py-1 h-8 bg-brand-600 hover:bg-brand-500"
-                  leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
                   onClick={() => handleToggleTakeover('human')}
+                  leftIcon={<UserCheck className="w-3.5 h-3.5" />}
+                  className="bg-[#00a884] hover:bg-[#009172] text-xs font-bold"
                 >
-                  Reabrir Atendimento
+                  Assumir Atendimento
                 </Button>
               ) : (
                 <Button
                   size="sm"
-                  variant="brand"
-                  className="text-xs py-1 h-8 bg-emerald-600 hover:bg-emerald-500"
-                  leftIcon={<UserCheck className="w-3.5 h-3.5" />}
-                  onClick={() => handleToggleTakeover('human')}
+                  variant="outline"
+                  onClick={() => handleToggleTakeover('bot')}
+                  leftIcon={<Bot className="w-3.5 h-3.5" />}
+                  className="text-xs"
                 >
-                  Assumir Conversa
+                  Devolver p/ Robô
                 </Button>
               )}
 
-              {selectedConv.status !== 'closed' && (
-                <button
-                  onClick={() => handleToggleTakeover('closed')}
-                  className="p-2 rounded-xl bg-dark-800 hover:bg-dark-750 text-slate-300 hover:text-white border border-white/10 text-xs flex items-center gap-1"
-                  title="Finalizar e Arquivar Atendimento"
-                >
-                  <Archive className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="hidden sm:inline">Finalizar</span>
-                </button>
-              )}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsTransferModalOpen(true)}
+                leftIcon={<ArrowRightLeft className="w-3.5 h-3.5" />}
+                className="text-xs"
+                title="Transferir para um atendente"
+              >
+                Transferir
+              </Button>
+
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsQuickAptModalOpen(true)}
+                leftIcon={<Calendar className="w-3.5 h-3.5 text-emerald-400" />}
+                className="text-xs text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/10"
+                title="Agendar horário na Agenda"
+              >
+                Agendar
+              </Button>
 
               <button
+                type="button"
                 onClick={() => setIsDeleteModalOpen(true)}
-                className="p-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/40 text-xs"
-                title="Excluir Histórico de Conversa"
+                className="p-2 text-slate-400 hover:text-rose-400 transition-colors"
+                title="Excluir Histórico"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-4 h-4" />
               </button>
 
               <button
+                type="button"
                 onClick={() => setShowRightDrawer(!showRightDrawer)}
-                className={`p-2 rounded-xl border transition-colors ${
-                  showRightDrawer ? 'bg-[#00a884] text-white border-transparent' : 'bg-[#202c33] text-slate-400 border-white/10 hover:text-white'
+                className={`p-2 rounded-xl transition-colors ${
+                  showRightDrawer ? 'bg-[#2a3942] text-white' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Abrir Painel CRM & Gestão do Cliente"
               >
@@ -610,7 +681,7 @@ export const ConversationsPage: React.FC = () => {
             <div className="flex justify-center my-2">
               <div className="px-3 py-1 rounded-lg bg-[#182229] border border-white/5 text-[10px] text-amber-200/80 flex items-center gap-1.5 shadow-sm max-w-md text-center">
                 <Lock className="w-3 h-3 text-amber-400 flex-shrink-0" />
-                <span>As mensagens desta conversa são protegidas com criptografia de ponta a ponta pelo WhatsApp.</span>
+                <span>As mensagens desta conversa são sincronizadas em tempo real com o WhatsApp e protegidas por criptografia.</span>
               </div>
             </div>
 
@@ -621,23 +692,29 @@ export const ConversationsPage: React.FC = () => {
             ) : (
               messages.map((msg, index) => {
                 const isOutbound = msg.direction === 'outbound';
-                const showAvatar =
-                  index === 0 || messages[index - 1].direction !== msg.direction;
+                const isInternal = msg.message_type === 'internal_note' || msg.is_internal;
+
+                if (isInternal) {
+                  return (
+                    <div key={msg.id || index} className="flex justify-center my-2">
+                      <div className="max-w-md w-full bg-amber-950/40 border border-amber-500/30 rounded-2xl p-3 text-xs text-amber-200 shadow-sm space-y-1">
+                        <div className="flex items-center justify-between text-[10px] text-amber-400 font-bold uppercase tracking-wider">
+                          <span className="flex items-center gap-1">
+                            <Lock className="w-3 h-3" /> Nota Interna Privada ({msg.author_name || 'Equipe'})
+                          </span>
+                          <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                      </div>
+                    </div>
+                  );
+                }
 
                 return (
                   <div
                     key={msg.id || index}
-                    className={`flex items-end gap-2 ${
-                      isOutbound ? 'justify-end' : 'justify-start'
-                    }`}
+                    className={`flex items-end gap-2 ${isOutbound ? 'justify-end' : 'justify-start'}`}
                   >
-                    {!isOutbound && showAvatar && (
-                      <div className="w-7 h-7 rounded-full bg-[#374248] flex items-center justify-center text-slate-200 font-bold text-[10px] flex-shrink-0">
-                        {(selectedConv.contact?.name || selectedConv.contact_name || 'CL').substring(0, 1)}
-                      </div>
-                    )}
-                    {!isOutbound && !showAvatar && <div className="w-7" />}
-
                     <div
                       className={`max-w-[75%] sm:max-w-[65%] rounded-2xl px-3.5 py-2 relative shadow-md text-xs leading-relaxed ${
                         isOutbound
@@ -668,6 +745,7 @@ export const ConversationsPage: React.FC = () => {
               {quickEmojis.map((emoji, idx) => (
                 <button
                   key={idx}
+                  type="button"
                   onClick={() => {
                     setInputText((prev) => prev + emoji);
                     setShowEmojiPicker(false);
@@ -685,9 +763,11 @@ export const ConversationsPage: React.FC = () => {
             <div className="p-3 bg-[#202c33] border-t border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-2 animate-in slide-in-from-bottom-2">
               {cannedReplies.map((item, idx) => (
                 <button
-                  key={idx}
+                  key={item.id || idx}
+                  type="button"
+                  disabled={isSending}
                   onClick={() => handleSendMessage(item.text)}
-                  className="p-2 rounded-xl bg-[#111b21] hover:bg-[#2a3942] border border-white/5 text-left transition-colors space-y-0.5"
+                  className="p-2 rounded-xl bg-[#111b21] hover:bg-[#2a3942] border border-white/5 text-left transition-colors space-y-0.5 disabled:opacity-50"
                 >
                   <div className="flex items-center justify-between text-xs font-bold text-white">
                     <span>{item.label}</span>
@@ -700,25 +780,64 @@ export const ConversationsPage: React.FC = () => {
           )}
 
           {/* Bottom Chat Input Bar */}
-          <div className="p-3 bg-[#202c33] border-t border-white/5">
-            {/* Quick Canned Suggestions Chips */}
-            <div className="flex items-center gap-1.5 mb-2 overflow-x-auto scrollbar-none pb-0.5">
+          <div className="p-3 bg-[#202c33] border-t border-white/5 space-y-2">
+            {/* Quick Canned Suggestions Chips & AI button */}
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
               <button
+                type="button"
+                onClick={handleGenerateAiSuggestions}
+                className="px-2.5 py-1 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-[10px] font-bold flex items-center gap-1 shadow-glow-primary hover:opacity-90 whitespace-nowrap"
+              >
+                <Sparkles className="w-3 h-3" />
+                Sugerir com IA
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setShowCannedMenu(!showCannedMenu)}
                 className="px-2.5 py-1 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30 text-[10px] font-bold flex items-center gap-1 hover:bg-brand-500/30 whitespace-nowrap"
               >
                 <Zap className="w-3 h-3" />
                 Respostas Rápidas
               </button>
+
               {cannedReplies.slice(0, 4).map((reply, idx) => (
                 <button
-                  key={idx}
+                  key={reply.id || idx}
+                  type="button"
+                  disabled={isSending}
                   onClick={() => handleSendMessage(reply.text)}
-                  className="px-2.5 py-1 rounded-full bg-[#111b21] text-slate-300 border border-white/5 text-[10px] hover:bg-[#2a3942] whitespace-nowrap"
+                  className="px-2.5 py-1 rounded-full bg-[#111b21] text-slate-300 border border-white/5 text-[10px] hover:bg-[#2a3942] whitespace-nowrap disabled:opacity-50"
                 >
                   {reply.label}
                 </button>
               ))}
+            </div>
+
+            {/* Mode Switcher */}
+            <div className="flex items-center justify-between text-[10px]">
+              <div className="flex items-center gap-1 bg-[#111b21] p-0.5 rounded-xl border border-white/5">
+                <button
+                  type="button"
+                  onClick={() => setMessageMode('whatsapp')}
+                  className={`px-2 py-0.5 rounded-lg font-bold transition-all ${
+                    messageMode === 'whatsapp' ? 'bg-[#005c4b] text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Mensagem WhatsApp
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMessageMode('note')}
+                  className={`px-2 py-0.5 rounded-lg font-bold transition-all flex items-center gap-1 ${
+                    messageMode === 'note' ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Lock className="w-3 h-3" /> Nota Interna Privada
+                </button>
+              </div>
+
+              <span className="text-slate-400 hidden sm:inline">Pressione Enter para enviar</span>
             </div>
 
             <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="flex items-center gap-2">
@@ -743,19 +862,25 @@ export const ConversationsPage: React.FC = () => {
               <input
                 type="text"
                 placeholder={
-                  selectedConv.status === 'bot'
+                  messageMode === 'note'
+                    ? 'Escreva uma anotação privada visível apenas para os atendentes...'
+                    : selectedConv.status === 'bot'
                     ? 'Digite sua mensagem no WhatsApp (Robô ativo)...'
                     : 'Digite sua mensagem no WhatsApp...'
                 }
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                className="flex-1 bg-[#2a3942] border-none rounded-xl px-4 py-2.5 text-xs text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#00a884]"
+                className={`flex-1 border-none rounded-xl px-4 py-2.5 text-xs text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 ${
+                  messageMode === 'note' ? 'bg-amber-950/40 focus:ring-amber-400 text-amber-100' : 'bg-[#2a3942] focus:ring-[#00a884]'
+                }`}
               />
 
               <button
                 type="submit"
                 disabled={isSending || !inputText.trim()}
-                className="p-2.5 rounded-full bg-[#00a884] hover:bg-[#009172] text-white disabled:opacity-50 transition-colors shadow-md"
+                className={`p-2.5 rounded-full text-white disabled:opacity-50 transition-colors shadow-md ${
+                  messageMode === 'note' ? 'bg-amber-600 hover:bg-amber-500' : 'bg-[#00a884] hover:bg-[#009172]'
+                }`}
                 title="Enviar Mensagem"
               >
                 <Send className="w-4 h-4" />
@@ -764,38 +889,33 @@ export const ConversationsPage: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-[#0b141a]">
-          <div className="w-16 h-16 rounded-full bg-[#202c33] flex items-center justify-center text-slate-500 mb-4">
-            <MessageSquare className="w-8 h-8" />
-          </div>
-          <h3 className="text-base font-bold text-white">Central de Atendimentos WhatsApp</h3>
-          <p className="text-xs text-slate-400 max-w-sm mt-1">
-            Selecione uma conversa à esquerda para atender clientes, gerenciar agendamentos e responder em tempo real.
-          </p>
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-500 space-y-3">
+          <MessageSquare className="w-12 h-12 text-slate-600 opacity-40" />
+          <h3 className="text-sm font-bold text-slate-300">Nenhuma conversa selecionada</h3>
+          <p className="text-xs max-w-sm">Escolha uma conversa na coluna à esquerda para visualizar as mensagens.</p>
         </div>
       )}
 
-      {/* 3. RIGHT COLUMN: Advanced CRM & Contact Management Panel (Toggleable) */}
-      {selectedConv && showRightDrawer && (
-        <div className="w-full lg:w-80 xl:w-88 bg-[#111b21] border-l border-white/5 flex flex-col flex-shrink-0 overflow-y-auto custom-scrollbar animate-in slide-in-from-right-3 duration-200">
-          {/* Header */}
-          <div className="p-3.5 bg-[#202c33] border-b border-white/5 flex items-center justify-between">
-            <span className="text-xs font-bold text-white flex items-center gap-1.5">
-              <User className="w-4 h-4 text-emerald-400" />
+      {/* Right Column: Customer CRM Drawer */}
+      {showRightDrawer && selectedConv && (
+        <div className="w-80 bg-[#111b21] border-l border-white/5 flex flex-col z-10 flex-shrink-0">
+          <div className="p-3 bg-[#202c33] border-b border-white/5 flex items-center justify-between">
+            <h3 className="text-xs font-bold text-white flex items-center gap-2">
+              <User className="w-4 h-4 text-[#00a884]" />
               Dados do Cliente & CRM
-            </span>
+            </h3>
             <button
               onClick={() => setShowRightDrawer(false)}
-              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5"
+              className="text-slate-400 hover:text-white"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="p-4 space-y-5">
-            {/* Contact Profile Card */}
-            <div className="text-center p-4 rounded-2xl bg-[#202c33] border border-white/5 space-y-2">
-              <div className="w-14 h-14 rounded-full bg-[#374248] border-2 border-emerald-500/40 mx-auto flex items-center justify-center text-white font-bold text-base">
+          <div className="flex-1 p-4 overflow-y-auto space-y-4 custom-scrollbar">
+            {/* Contact Header */}
+            <div className="text-center space-y-2 pb-3 border-b border-white/5">
+              <div className="w-16 h-16 rounded-full bg-[#202c33] border-2 border-[#00a884] mx-auto flex items-center justify-center font-bold text-lg text-white shadow-md">
                 {(contactData?.name || selectedConv.contact_name || 'CL').substring(0, 2).toUpperCase()}
               </div>
               <div>
@@ -821,6 +941,7 @@ export const ConversationsPage: React.FC = () => {
                   >
                     {tag}
                     <button
+                      type="button"
                       onClick={() => handleRemoveTag(tag)}
                       className="hover:text-rose-400"
                     >
@@ -846,16 +967,16 @@ export const ConversationsPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Internal Agent Notes (Private to operators) */}
+            {/* Internal Agent Notes */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-white flex items-center gap-1.5">
                 <Bookmark className="w-3.5 h-3.5 text-amber-400" />
-                Notas Internas do Atendente:
+                Notas do Perfil (Fixas):
               </label>
               <textarea
                 value={agentNote}
                 onChange={(e) => setAgentNote(e.target.value)}
-                placeholder="Escreva observações internas sobre este cliente (invisível para ele)..."
+                placeholder="Escreva observações internas sobre este cliente..."
                 rows={3}
                 className="w-full bg-[#202c33] border border-white/10 rounded-xl p-2.5 text-xs text-amber-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-400 font-sans resize-none"
               />
@@ -876,6 +997,7 @@ export const ConversationsPage: React.FC = () => {
                 {flows.slice(0, 3).map((f) => (
                   <button
                     key={f.id}
+                    type="button"
                     onClick={() => handleTriggerFlow(f)}
                     className="w-full p-2.5 rounded-xl bg-[#202c33] hover:bg-[#2a3942] border border-white/5 flex items-center justify-between text-left transition-colors"
                   >
@@ -891,6 +1013,159 @@ export const ConversationsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Modal: AI Suggestions */}
+      <Modal
+        isOpen={showAiModal}
+        onClose={() => setShowAiModal(false)}
+        title="Sugestões de Resposta Inteligente (IA)"
+      >
+        <div className="space-y-3 text-xs">
+          <p className="text-slate-300">
+            A IA analisou as mensagens recentes. Clique para aplicar o texto no campo de envio:
+          </p>
+
+          <div className="space-y-2">
+            {aiSuggestions.map((sug, i) => (
+              <div
+                key={i}
+                onClick={() => {
+                  setInputText(sug);
+                  setShowAiModal(false);
+                }}
+                className="p-3 rounded-2xl bg-[#202c33] hover:bg-[#2a3942] border border-white/5 hover:border-purple-500/40 cursor-pointer transition-all space-y-1 group"
+              >
+                <div className="flex items-center justify-between text-[10px] text-purple-400 font-bold uppercase">
+                  <span>Opção {i + 1}</span>
+                  <span className="text-slate-400 group-hover:text-purple-300">Usar no Chat ➡️</span>
+                </div>
+                <p className="text-slate-200">{sug}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal: Transferir Atendimento */}
+      <Modal
+        isOpen={isTransferModalOpen}
+        onClose={() => setIsTransferModalOpen(false)}
+        title="Transferir / Atribuir Atendente"
+      >
+        <div className="space-y-4 text-xs">
+          <p className="text-slate-300">
+            Selecione o atendente que será o responsável pela conversa com <strong>{selectedConv?.contact_name || 'Cliente'}</strong>:
+          </p>
+
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold text-slate-400 uppercase">Atendente Disponível</label>
+            <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto">
+              {attendants.map((att) => (
+                <div
+                  key={att.id}
+                  onClick={() => setTransferTargetAttendant(att.id)}
+                  className={`p-2.5 rounded-xl border cursor-pointer flex items-center justify-between transition-all ${
+                    transferTargetAttendant === att.id
+                      ? 'bg-brand-500/20 border-brand-500'
+                      : 'bg-dark-900 border-white/5 hover:bg-dark-850'
+                  }`}
+                >
+                  <div>
+                    <p className="font-bold text-white text-xs">{att.name}</p>
+                    <p className="text-[10px] text-slate-400">{att.department || 'Geral'}</p>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold text-emerald-400">
+                    {att.status === 'online' ? '🟢 Online' : '🟡 Ocupado'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-slate-400 uppercase">Nota de Transbordo</label>
+            <Textarea
+              placeholder="Instruções para o atendente..."
+              value={transferNote}
+              onChange={(e) => setTransferNote(e.target.value)}
+              rows={2}
+              className="text-xs"
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <Button size="sm" variant="ghost" onClick={() => setIsTransferModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              variant="primary"
+              disabled={!transferTargetAttendant}
+              onClick={handleTransferConversation}
+            >
+              Confirmar Atribuição
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal: Agendamento Rápido */}
+      <Modal
+        isOpen={isQuickAptModalOpen}
+        onClose={() => setIsQuickAptModalOpen(false)}
+        title="Novo Agendamento Rápido"
+      >
+        <form onSubmit={handleSaveQuickAppointment} className="space-y-3 text-xs">
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold text-slate-400">Cliente</label>
+            <Input value={selectedConv?.contact_name || ''} disabled className="bg-dark-950 font-bold" />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold text-slate-400">Serviço</label>
+            <select
+              value={quickService}
+              onChange={(e) => setQuickService(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl bg-dark-950 border border-white/10 text-white text-xs"
+            >
+              <option value="Corte Tradicional">Corte Tradicional (R$ 35,00)</option>
+              <option value="Barba Terapia & Modelagem">Barba Terapia & Modelagem (R$ 25,00)</option>
+              <option value="Combo Cabelo + Barba">Combo Cabelo + Barba (R$ 55,00)</option>
+              <option value="Sobrancelha & Acabamento">Sobrancelha & Acabamento (R$ 15,00)</option>
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-slate-400">Data</label>
+              <Input
+                type="date"
+                value={quickDate}
+                onChange={(e) => setQuickDate(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-slate-400">Horário</label>
+              <Input
+                type="time"
+                value={quickTime}
+                onChange={(e) => setQuickTime(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-3">
+            <Button size="sm" variant="ghost" type="button" onClick={() => setIsQuickAptModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button size="sm" variant="primary" type="submit" leftIcon={<CalendarCheck className="w-3.5 h-3.5" />}>
+              Confirmar & Notificar Cliente
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Modal: Enviar Mídia */}
       <Modal
