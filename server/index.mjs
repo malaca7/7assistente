@@ -731,8 +731,15 @@ app.get('/api/whatsapp/contacts', async (req, res) => {
   const db = loadDb();
   if (supabaseServer) {
     try {
-      const { data } = await supabaseServer.from('contacts').select('*').order('created_at', { ascending: false });
-      if (data && data.length > 0) {
+      const { data, error } = await supabaseServer.from('contacts').select('*').order('created_at', { ascending: false });
+      if (data && !error) {
+        const freshContacts = {};
+        for (const c of data) {
+          const p = (c.phone || c.id || '').replace(/\D/g, '');
+          if (p) freshContacts[p] = c;
+        }
+        db.contacts = freshContacts;
+        saveDb(db);
         return res.json(data);
       }
     } catch (e) {}
