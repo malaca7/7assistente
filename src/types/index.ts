@@ -95,9 +95,10 @@ export interface Appointment {
   contact_name: string;
   service_name: string;
   duration_minutes?: number;
+  price?: number;
   appointment_date: string;
   appointment_time: string;
-  status: 'confirmed' | 'pending' | 'cancelled' | 'completed';
+  status: 'confirmed' | 'pending' | 'cancelled' | 'completed' | 'no_show';
   notes?: string;
   created_at: string;
 }
@@ -159,10 +160,13 @@ export interface Contact {
   id: string;
   phone: string;
   name: string;
+  email?: string;
   profile_picture_url?: string;
   status: 'active' | 'blocked' | 'archived';
   tags: string[];
-  metadata: Record<string, any>;
+  notes?: string;
+  custom_fields?: Record<string, any>;
+  metadata?: Record<string, any>;
   created_at: string;
   updated_at: string;
 }

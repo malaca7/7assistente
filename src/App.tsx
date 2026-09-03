@@ -5,7 +5,7 @@ import { AdminLayout } from './components/layout/AdminLayout';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { FlowListPage } from './pages/flows/FlowListPage';
 import { FlowEditorPage } from './pages/flows/FlowEditorPage';
-import { ContactsPage } from './pages/contacts/ContactsPage';
+import { ClientsPage } from './pages/clients/ClientsPage';
 import { ConversationsPage } from './pages/conversations/ConversationsPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
 import { AiAgentsPage } from './pages/ai-agents/AiAgentsPage';
@@ -76,10 +76,10 @@ export const App: React.FC = () => {
     title = 'Conversas & Atendimento';
     subtitle = 'Histórico e transferências de atendimento no WhatsApp';
     pageContent = <ConversationsPage />;
-  } else if (currentPath === '/contatos') {
-    title = 'Contatos & Segmentos';
-    subtitle = 'Base unificada de contatos e tags';
-    pageContent = <ContactsPage onNavigate={navigate} />;
+  } else if (currentPath === '/clientes' || currentPath === '/contatos') {
+    title = 'Gestão de Clientes & CRM';
+    subtitle = 'Histórico completo de atendimentos, agendamentos realizados, serviços e preferências';
+    pageContent = <ClientsPage onNavigate={navigate} />;
   } else if (currentPath === '/agenda') {
     title = 'Agenda & Compromissos';
     subtitle = 'Gerenciador de horários marcados no WhatsApp';

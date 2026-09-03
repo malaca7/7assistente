@@ -64,13 +64,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
 
   const kpiCards = [
     {
-      title: 'Total de Contatos',
+      title: 'Total de Clientes',
       value: (kpis?.totalContacts || 0).toLocaleString('pt-BR'),
       change: 'Cadastrados no CRM',
       icon: Users,
       iconBg: 'bg-dark-800 text-slate-200 border-white/10',
       accentColor: 'from-white/10 to-transparent',
-      action: () => onNavigate('/contatos'),
+      action: () => onNavigate('/clientes'),
     },
     {
       title: 'Conversas Registradas',

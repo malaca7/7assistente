@@ -64,9 +64,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
       badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
     },
     {
-      id: 'contacts',
-      label: 'Contatos & Tags',
-      path: '/contatos',
+      id: 'clients',
+      label: 'Clientes',
+      path: '/clientes',
       icon: Users,
       badge: null,
     },
