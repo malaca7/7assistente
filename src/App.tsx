@@ -20,6 +20,7 @@ import { AttendantPortalPage } from './pages/attendant/AttendantPortalPage';
 import { ClientQueuePage } from './pages/public/ClientQueuePage';
 import { BarberPortalPage } from './pages/barber/BarberPortalPage';
 import { LogsPage } from './pages/logs/LogsPage';
+import { UsersPage } from './pages/users/UsersPage';
 
 const normalizePath = (rawPath: string) => {
   let clean = rawPath.replace(/^\/7assistente\/?/, '/');
@@ -122,6 +123,10 @@ export const App: React.FC = () => {
     title = 'Logs & Auditoria';
     subtitle = 'Monitoramento em tempo real de mensagens, agendamentos e execuções do robô';
     pageContent = <LogsPage />;
+  } else if (currentPath === '/usuarios' || currentPath === '/users') {
+    title = 'Usuários & Permissões';
+    subtitle = 'Gerenciamento de acessos aos painéis Admin, Atendimento e Barbeiro';
+    pageContent = <UsersPage />;
   } else if (currentPath === '/configuracoes') {
     title = 'Configurações';
     subtitle = 'Perfil do assistente, integrações, banco de dados Supabase e preferências da plataforma';

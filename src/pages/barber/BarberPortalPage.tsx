@@ -20,13 +20,15 @@ import {
   ShieldCheck,
   Check,
   TrendingUp,
-  Tag
+  Tag,
+  LogOut
 } from 'lucide-react';
 import { StorageService } from '../../lib/storage';
-import { Appointment, AgendaSettings } from '../../types';
+import { Appointment, AgendaSettings, SystemUser } from '../../types';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { useToast } from '../../contexts/ToastContext';
+import { BarberLoginPage } from './BarberLoginPage';
 
 interface BarberPortalPageProps {
   onNavigate: (path: string) => void;
@@ -34,6 +36,13 @@ interface BarberPortalPageProps {
 
 export const BarberPortalPage: React.FC<BarberPortalPageProps> = ({ onNavigate }) => {
   const { success, error: toastError, info } = useToast();
+  
+  // Barber Authentication State
+  const [loggedBarber, setLoggedBarber] = useState<SystemUser | null>(() => {
+    const session = StorageService.getBarberSession();
+    return session.authenticated && session.user ? session.user : null;
+  });
+
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [agendaSettings, setAgendaSettings] = useState<AgendaSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -157,6 +166,15 @@ export const BarberPortalPage: React.FC<BarberPortalPageProps> = ({ onNavigate }
       return;
     }
 
+    // Check if slot is already taken
+    const conflict = appointments.find(
+      (a) => a.appointment_date === selectedDate && a.appointment_time === walkInTime && a.status !== 'cancelled' && a.status !== 'no_show'
+    );
+    if (conflict) {
+      toastError('Horário Ocupado', `Já existe agendamento às ${walkInTime} (${conflict.contact_name}). Escolha outro horário para o encaixe.`);
+      return;
+    }
+
     setIsSavingWalkIn(true);
     try {
       const cleanPhone = walkInPhone.replace(/\D/g, '') || '5581999999999';
@@ -227,6 +245,21 @@ export const BarberPortalPage: React.FC<BarberPortalPageProps> = ({ onNavigate }
     }
   };
 
+  // If not logged in as a barber, show the Barber Login screen
+  if (!loggedBarber) {
+    return (
+      <BarberLoginPage
+        onSuccess={(user) => setLoggedBarber(user)}
+        onNavigate={onNavigate}
+      />
+    );
+  }
+
+  const handleLogout = () => {
+    StorageService.clearBarberSession();
+    setLoggedBarber(null);
+  };
+
   return (
     <div className="min-h-screen bg-dark-950 text-slate-100 flex flex-col relative pb-20">
       {/* Top Header */}
@@ -239,7 +272,7 @@ export const BarberPortalPage: React.FC<BarberPortalPageProps> = ({ onNavigate }
             <h1 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
               Painel do Barbeiro
               <span className="px-2 py-0.5 text-[10px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30 rounded-full">
-                Talvane
+                {loggedBarber?.name || 'Barbeiro'}
               </span>
             </h1>
             <p className="text-xs text-slate-400">Controle de cadeira e atendimentos em tempo real</p>
@@ -275,6 +308,16 @@ export const BarberPortalPage: React.FC<BarberPortalPageProps> = ({ onNavigate }
             className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-brand-300 transition-all"
           >
             <ExternalLink className="w-4 h-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            title="Sair / Trocar Barbeiro"
+            className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-rose-400 hover:border-rose-500/30 transition-all text-xs font-semibold flex items-center gap-1.5"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">Sair</span>
           </button>
         </div>
       </header>
