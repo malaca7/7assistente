@@ -287,6 +287,18 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
             nodeId: nextNode.id,
           },
         ]);
+      } else if (type === 'update_contact') {
+        const resolvedName = config.contactName
+          ? (activeVars[config.contactName.replace(/[{}]/g, '').trim()] || activeVars[config.contactName] || activeVars.nome_cliente)
+          : (activeVars.nome_cliente || 'Cliente');
+        if (resolvedName) {
+          activeVars.nome_cliente = resolvedName;
+        }
+        if (config.customFieldKey && config.customFieldValue) {
+          const fieldKey = config.customFieldKey.replace(/[{}]/g, '').trim();
+          const cleanVal = config.customFieldValue.replace(/[{}]/g, '').trim();
+          activeVars[fieldKey] = activeVars[cleanVal] || config.customFieldValue;
+        }
       } else if (type === 'human_handoff') {
         setMessages((prev) => [
           ...prev,
@@ -325,8 +337,14 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
     // Save variable if answering a question
     const activeNode = nodes.find(n => n.id === currentNodeId);
     if (activeNode && (activeNode.data?.nodeType || activeNode.type) === 'question') {
-      const varKey = activeNode.data?.config?.variableName || 'resposta_usuario';
-      setVariables(prev => ({ ...prev, [varKey]: userText, nome_cliente: varKey.includes('nome') ? userText : prev.nome_cliente }));
+      const rawVarKey = activeNode.data?.config?.variableName || 'resposta_usuario';
+      const cleanKey = rawVarKey.replace(/[{}]/g, '').trim();
+      setVariables(prev => ({
+        ...prev,
+        [cleanKey]: userText,
+        [rawVarKey]: userText,
+        nome_cliente: cleanKey.includes('nome') ? userText : prev.nome_cliente,
+      }));
     }
 
     if (currentNodeId) {
