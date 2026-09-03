@@ -213,12 +213,28 @@ export const BarberPortalPage: React.FC<BarberPortalPageProps> = ({ onNavigate }
     const baseSlot = agendaSettings?.slot_duration_minutes || 30;
     const slotsCount = Math.max(1, Math.ceil(duration / baseSlot));
 
-    // Check if slot is already taken
-    const conflict = appointments.find(
-      (a) => a.appointment_date === selectedDate && a.appointment_time === walkInTime && a.status !== 'cancelled' && a.status !== 'no_show'
-    );
+    // Check if slot is already taken (with full duration overlap)
+    const conflict = appointments.find((a) => {
+      if (a.appointment_date !== selectedDate) return false;
+      if (a.status === 'cancelled' || a.status === 'no_show') return false;
+      const [ah, am] = a.appointment_time.split(':').map(Number);
+      const aStart = (ah || 0) * 60 + (am || 0);
+      const aDur = Number(a.duration_minutes) || 30;
+      const aEnd = aStart + aDur;
+      return ((sh || 0) * 60 + (sm || 0)) < aEnd && endMin > aStart;
+    });
+
     if (conflict) {
-      toastError('Horário Ocupado', `Já existe agendamento às ${walkInTime} (${conflict.contact_name}). Escolha outro horário para o encaixe.`);
+      const nextSlot = await StorageService.getNextAvailableSlot(selectedDate, walkInTime, duration);
+      if (nextSlot) {
+        toastError(
+          'Horário Ocupado',
+          `Já existe agendamento às ${walkInTime} (${conflict.contact_name}). Sugerido próximo horário com tempo suficiente (${duration} min): ${nextSlot}.`
+        );
+        setWalkInTime(nextSlot);
+      } else {
+        toastError('Agenda Lotada', `Já existe agendamento às ${walkInTime} e não há outros horários com ${duration} min livres hoje.`);
+      }
       return;
     }
 
