@@ -1050,11 +1050,12 @@ app.post('/api/whatsapp/agenda/appointments', (req, res) => {
   // Prevent double booking if slot is already occupied
   if (dateStr && timeStr && isSlotBooked(dateStr, timeStr, dur, db)) {
     const nextSlot = getNextAvailableSlot(dateStr, timeStr, db, dur);
+    const displayStr = nextSlot?.displayFull || nextSlot?.time || nextSlot || 'consulte outra data';
     return res.status(400).json({
       success: false,
       error: 'Horário já reservado',
       nextAvailableSlot: nextSlot,
-      message: `O horário ${timeStr} já está reservado no dia ${dateStr}. Próximo horário livre: ${nextSlot || 'consulte outra data'}.`,
+      message: `O horário ${timeStr} já está reservado no dia ${dateStr}. Próximo horário livre disponível (${dur} min): ${displayStr}.`,
     });
   }
 

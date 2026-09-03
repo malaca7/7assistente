@@ -354,20 +354,110 @@ export function isSlotBooked(dateStr, timeStr, durationMinutes = 30, db) {
 }
 
 export function getNextAvailableSlot(dateStr, requestedTime, db, duration = 30) {
-  const slots = getAvailableSlots(dateStr, db, duration);
-  if (slots.length === 0) return null;
-  const rHour = parseInt(requestedTime.split(':')[0], 10) || 0;
-  const rMin = parseInt(requestedTime.split(':')[1] || '0', 10) || 0;
-  const reqMinutes = rHour * 60 + rMin;
+  const [rh, rm] = (requestedTime || '09:00').split(':').map(Number);
+  const reqMin = (rh || 0) * 60 + (rm || 0);
 
-  const nextSlot = slots.find((slot) => {
-    const timeStr = typeof slot === 'string' ? slot : slot.time;
-    const h = parseInt(timeStr.split(':')[0], 10) || 0;
-    const m = parseInt(timeStr.split(':')[1] || '0', 10) || 0;
-    return h * 60 + m > reqMinutes;
-  });
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const nowMin = now.getHours() * 60 + now.getMinutes();
 
-  return nextSlot || slots[0];
+  const dayNames = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+
+  // Search from requested date up to 14 days ahead
+  const [startYear, startMonth, startDay] = (dateStr || todayStr).split('-').map(Number);
+  const baseDate = new Date(startYear, startMonth - 1, startDay, 12, 0, 0);
+
+  for (let dayOffset = 0; dayOffset < 14; dayOffset++) {
+    const checkDate = new Date(baseDate);
+    checkDate.setDate(checkDate.getDate() + dayOffset);
+    const curDateStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
+
+    const slots = getAvailableSlots(curDateStr, db, duration);
+    if (!slots || slots.length === 0) continue;
+
+    const isCheckingToday = curDateStr === todayStr;
+    const validSlots = slots.filter((slot) => {
+      const timeStr = typeof slot === 'string' ? slot : slot.time;
+      if (!isCheckingToday) return true;
+      const [sh, sm] = timeStr.split(':').map(Number);
+      return (sh || 0) * 60 + (sm || 0) > nowMin + 5;
+    });
+
+    if (validSlots.length === 0) continue;
+
+    let chosenSlot = null;
+
+    if (dayOffset === 0) {
+      const laterSlots = validSlots.filter((slot) => {
+        const timeStr = typeof slot === 'string' ? slot : slot.time;
+        const [sh, sm] = timeStr.split(':').map(Number);
+        return (sh || 0) * 60 + (sm || 0) > reqMin;
+      });
+
+      if (laterSlots.length > 0) {
+        const slot = laterSlots[0];
+        chosenSlot = typeof slot === 'string' ? slot : slot.time;
+      } else {
+        const sorted = [...validSlots].sort((a, b) => {
+          const tA = typeof a === 'string' ? a : a.time;
+          const tB = typeof b === 'string' ? b : b.time;
+          const [ah, am] = tA.split(':').map(Number);
+          const [bh, bm] = tB.split(':').map(Number);
+          const distA = Math.abs((ah * 60 + am) - reqMin);
+          const distB = Math.abs((bh * 60 + bm) - reqMin);
+          return distA - distB;
+        });
+        const slot = sorted[0];
+        chosenSlot = typeof slot === 'string' ? slot : slot.time;
+      }
+    } else {
+      const sorted = [...validSlots].sort((a, b) => {
+        const tA = typeof a === 'string' ? a : a.time;
+        const tB = typeof b === 'string' ? b : b.time;
+        const [ah, am] = tA.split(':').map(Number);
+        const [bh, bm] = tB.split(':').map(Number);
+        const distA = Math.abs((ah * 60 + am) - reqMin);
+        const distB = Math.abs((bh * 60 + bm) - reqMin);
+        if (distA === distB) {
+          return (ah * 60 + am) - (bh * 60 + bm);
+        }
+        return distA - distB;
+      });
+      const slot = sorted[0];
+      chosenSlot = typeof slot === 'string' ? slot : slot.time;
+    }
+
+    if (chosenSlot) {
+      const d = checkDate.getDate();
+      const m = checkDate.getMonth() + 1;
+      const y = checkDate.getFullYear();
+      const dayOfWeek = dayNames[checkDate.getDay()];
+      const formattedDate = `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`;
+      const isSameDate = curDateStr === dateStr;
+      const isToday = curDateStr === todayStr;
+
+      const displayFull = isToday
+        ? `Hoje (${dayOfWeek}, ${formattedDate}) às ${chosenSlot}`
+        : `${dayOfWeek} (${formattedDate}) às ${chosenSlot}`;
+
+      const displayShort = isSameDate
+        ? `${chosenSlot}`
+        : `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')} às ${chosenSlot}`;
+
+      return {
+        date: curDateStr,
+        time: chosenSlot,
+        formattedDate,
+        dayOfWeek,
+        displayFull,
+        displayShort,
+        isSameDate,
+        toString() { return displayFull; }
+      };
+    }
+  }
+
+  return null;
 }
 
 // Substitute template variables {{var_name}}

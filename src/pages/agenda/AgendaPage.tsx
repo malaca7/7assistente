@@ -48,7 +48,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { useToast } from '../../contexts/ToastContext';
 import { StorageService, getBackendUrl } from '../../lib/storage';
-import { Appointment, AgendaSettings, AgendaServiceItem } from '../../types';
+import { Appointment, AgendaSettings, AgendaServiceItem, SlotSuggestion } from '../../types';
 import { formatPhone, formatDate } from '../../lib/utils';
 
 export interface AgendaPageProps {
@@ -102,7 +102,7 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
   const [newTime, setNewTime] = useState('09:00');
   const [newPrice, setNewPrice] = useState<number | ''>('');
   const [newNotes, setNewNotes] = useState('');
-  const [suggestedSlot, setSuggestedSlot] = useState<string | null>(null);
+  const [suggestedSlot, setSuggestedSlot] = useState<SlotSuggestion | null>(null);
 
   const selectedServicesList = useMemo(() => {
     const list = (settings.services || []).filter(s => selectedServiceIds.includes(s.id));
@@ -320,7 +320,7 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
         if (nextSlot) {
           toastError(
             'Horário Ocupado!',
-            `O horário das ${newTime} já está ocupado por ${conflict.contact_name}. Próximo horário livre disponível para ${duration} min: ${nextSlot}.`
+            `O horário das ${newTime} já está ocupado por ${conflict.contact_name}. Próximo horário livre disponível para ${duration} min: ${nextSlot.displayFull}.`
           );
           setSuggestedSlot(nextSlot);
         } else {
@@ -1574,25 +1574,29 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
           </div>
 
           {suggestedSlot && (
-            <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 text-xs text-amber-300 flex items-center justify-between gap-2 animate-in fade-in">
-              <div className="space-y-0.5">
-                <span className="font-bold flex items-center gap-1 text-amber-400">
-                  <AlertTriangle className="w-3.5 h-3.5" />
+            <div className="p-3.5 rounded-2xl bg-amber-950/50 border border-amber-500/40 text-xs text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in shadow-lg">
+              <div className="space-y-1">
+                <span className="font-bold flex items-center gap-1.5 text-amber-400">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                   Horário ocupado! Sugestão disponível:
                 </span>
-                <span className="text-[11px] text-slate-300">
-                  Próximo horário com tempo suficiente ({totalCalculatedDuration} min): <strong>{suggestedSlot}</strong>
-                </span>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  Próximo horário livre com tempo suficiente ({totalCalculatedDuration} min):{' '}
+                  <strong className="text-amber-300 font-bold underline decoration-amber-500/50">{suggestedSlot.displayFull}</strong>
+                </p>
               </div>
               <button
                 type="button"
                 onClick={() => {
-                  setNewTime(suggestedSlot);
+                  if (suggestedSlot.date) {
+                    setNewDate(suggestedSlot.date);
+                  }
+                  setNewTime(suggestedSlot.time);
                   setSuggestedSlot(null);
                 }}
-                className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-dark-950 font-bold text-xs whitespace-nowrap active:scale-95 transition-transform"
+                className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-dark-950 font-black text-xs whitespace-nowrap active:scale-95 transition-all shadow-md flex items-center justify-center gap-1.5 self-start sm:self-center"
               >
-                Usar {suggestedSlot}
+                Usar {suggestedSlot.displayShort}
               </button>
             </div>
           )}
