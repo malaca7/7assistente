@@ -77,5 +77,5 @@ Write-Host " TODOS OS DEPLOYS FORAM CONCLUIDOS COM SUCESSO!" -ForegroundColor Ma
 Write-Host " - Branch 'source': Sincronizada" -ForegroundColor Green
 Write-Host " - Branch 'main': Sincronizada" -ForegroundColor Green
 Write-Host " - Branch 'gh-pages': Publicada (talvane.malaca.com.br)" -ForegroundColor Green
-Write-Host " - Discloud (App: talvanebarber): Commit enviado e Bot reiniciado" -ForegroundColor Green
+Write-Host " - Discloud (App: talvane / talvane.discloud.app): Commit enviado e Bot reiniciado" -ForegroundColor Green
 Write-Host "==================================================" -ForegroundColor Magenta

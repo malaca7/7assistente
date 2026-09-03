@@ -395,7 +395,40 @@
     "support_email": "contato@talvanebarber.com.br",
     "website_url": "https://talvane.malaca.com.br"
   },
-  "sessions": {},
+  "settings": {},
+  "sessions": {
+    "5581996138924": {
+      "flowId": "flow-1788033465058",
+      "currentNodeId": "node-ask_date-1788104674417",
+      "variables": {
+        "whatsapp_pushname": "Teste",
+        "telefone_cliente": "5581996138924",
+        "telefone_whatsapp": "5581996138924",
+        "ultima_mensagem": "oi",
+        "nome_cliente": "Rogerio",
+        "is_primeiro_contato": false,
+        "is_novo_contato": false,
+        "tipo_cliente": "recorrente",
+        "cliente_nome": "Rogerio",
+        "nome": "Rogerio",
+        "tags_contato": "Cliente, Agendado"
+      },
+      "activeButtons": [
+        {
+          "id": "date_today",
+          "title": "Hoje (03/09)"
+        },
+        {
+          "id": "date_tomorrow",
+          "title": "Amanhã (04/09)"
+        },
+        {
+          "id": "date_custom",
+          "title": "Outra Data"
+        }
+      ]
+    }
+  },
   "appointments": [
     {
       "id": "apt-1788043578235",
@@ -458,6 +491,20 @@
       "metadata": {},
       "created_at": "2026-09-03T17:43:19.161Z",
       "updated_at": "2026-09-03T17:43:20.035Z"
+    },
+    "5581996138924": {
+      "id": "contact-5581996138924",
+      "phone": "5581996138924",
+      "name": "Teste",
+      "whatsapp_pushname": "Teste",
+      "status": "lead",
+      "tags": [
+        "Lead"
+      ],
+      "is_registered": false,
+      "metadata": {},
+      "created_at": "2026-09-03T17:58:33.868Z",
+      "updated_at": "2026-09-03T17:58:33.871Z"
     }
   },
   "conversations": {
@@ -473,6 +520,19 @@
       "last_message": "*Rogerio*, qual serviço você deseja?",
       "last_message_at": "2026-08-30T15:54:58.044Z",
       "updated_at": "2026-08-30T15:54:58.044Z"
+    },
+    "conv-5581996138924": {
+      "id": "conv-5581996138924",
+      "contact_id": "contact-5581996138924",
+      "contact_name": "Teste",
+      "contact_phone": "5581996138924",
+      "status": "bot",
+      "started_at": "2026-09-03T17:58:33.868Z",
+      "unread_count": 0,
+      "created_at": "2026-09-03T17:58:33.868Z",
+      "last_message": "📅 *Escolha a Data do Agendamento*\n\n*Rogerio*, para qual dia você gostaria de agendar seu atendimento?",
+      "last_message_at": "2026-09-03T17:58:33.871Z",
+      "updated_at": "2026-09-03T17:58:33.871Z"
     }
   },
   "messages": {
@@ -1158,8 +1218,29 @@
         "status": "delivered",
         "created_at": "2026-09-03T17:21:43.363Z"
       }
+    ],
+    "conv-5581996138924": [
+      {
+        "id": "msg-1788458313868-r989n",
+        "conversation_id": "conv-5581996138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá Rogerio, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber Shop*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-09-03T17:58:33.868Z"
+      },
+      {
+        "id": "msg-1788458313871-hs9kc",
+        "conversation_id": "conv-5581996138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "📅 *Escolha a Data do Agendamento*\n\n*Rogerio*, para qual dia você gostaria de agendar seu atendimento?",
+        "status": "delivered",
+        "created_at": "2026-09-03T17:58:33.871Z"
+      }
     ]
   },
+  "attendants": [],
   "agendaSettings": {
     "business_days": [
       "1",

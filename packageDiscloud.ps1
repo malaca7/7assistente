@@ -30,6 +30,9 @@ if (Test-Path "index.js") {
     Copy-Item "index.js" -Destination $stage 
 }
 Copy-Item "package.json" -Destination $stage
+if (Test-Path ".env") { 
+    Copy-Item ".env" -Destination $stage 
+}
 Copy-Item "dist" -Destination $stage -Recurse
 Copy-Item "server" -Destination $stage -Recurse
 
@@ -38,7 +41,7 @@ if (Test-Path $zipPath) {
     Remove-Item $zipPath -Force 
 }
 
-tar.exe -a -cf $zipPath -C $stage .
+Get-ChildItem -Path $stage -Force | Compress-Archive -DestinationPath $zipPath -Force
 
 [System.Reflection.Assembly]::LoadWithPartialName("System.IO.Compression.FileSystem") | Out-Null
 $zipObj = [System.IO.Compression.ZipFile]::OpenRead($zipPath)

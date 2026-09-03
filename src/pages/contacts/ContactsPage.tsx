@@ -121,7 +121,7 @@ export const ContactsPage: React.FC<ContactsPageProps> = ({ onNavigate }) => {
           (c) => c.id !== contact.id && c.phone !== contact.phone
         );
         localStorage.setItem('7assistente_contacts', JSON.stringify(localContacts));
-        const backendUrl = window.location.origin.includes('discloud') ? window.location.origin : 'https://talvanebarber.discloud.app';
+        const backendUrl = window.location.origin.includes('discloud') ? window.location.origin : 'https://talvane.discloud.app';
         const cleanPhone = (contact.phone || contact.id).replace(/\D/g, '');
         fetch(`${backendUrl}/api/whatsapp/contacts/${cleanPhone || contact.id}?phone=${cleanPhone}`, { method: 'DELETE' }).catch(() => {});
       }

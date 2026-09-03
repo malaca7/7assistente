@@ -9,7 +9,7 @@ const DEFAULT_DISCLOUD_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJpZCI6IjI4ODUxOTI1OTYyMDg
 const rawToken = process.env.DISCLOUD_TOKEN || process.argv[2] || '';
 const DISCLOUD_TOKEN = (rawToken && rawToken.trim().length > 20) ? rawToken.trim() : DEFAULT_DISCLOUD_TOKEN;
 
-const APP_ID = 'talvanebarber';
+const APP_ID = 'talvane';
 const ZIP_PATH = path.resolve(__dirname, '7assistente.zip');
 
 async function wait(ms) {
@@ -72,6 +72,22 @@ async function main() {
           break;
         } else {
           lastError = commitJson.message || 'Status não ok';
+          if (commitJson.message && (commitJson.message.includes('não encontrada') || commitJson.message.includes('not found'))) {
+            console.log('📦 Aplicação não encontrada para commit. Executando upload direto na Discloud...');
+            const uploadFormData = new FormData();
+            uploadFormData.append('file', blob, '7assistente.zip');
+            const uploadRes = await fetch('https://api.discloud.app/v2/upload', {
+              method: 'POST',
+              headers: { 'api-token': DISCLOUD_TOKEN },
+              body: uploadFormData,
+            });
+            const uploadJson = await uploadRes.json();
+            console.log('✅ Resposta do Upload na Discloud:', JSON.stringify(uploadJson));
+            if (uploadRes.ok || uploadJson.status === 'ok') {
+              commitSuccess = true;
+              break;
+            }
+          }
         }
       } catch (err) {
         lastError = err.message;

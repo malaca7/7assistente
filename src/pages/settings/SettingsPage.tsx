@@ -106,7 +106,7 @@ export const SettingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('whatsapp_qr');
   const [isSaving, setIsSaving] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [customServerInput, setCustomServerInput] = useState(backendUrl || 'https://talvanebarber.discloud.app');
+  const [customServerInput, setCustomServerInput] = useState(backendUrl || 'https://talvane.discloud.app');
   const [isTestingServer, setIsTestingServer] = useState(false);
 
   // Attendants Management State
@@ -491,7 +491,7 @@ export const SettingsPage: React.FC = () => {
                 <Input
                   value={customServerInput}
                   onChange={(e) => setCustomServerInput(e.target.value)}
-                  placeholder="https://talvanebarber.discloud.app"
+                  placeholder="https://talvane.discloud.app"
                   className="font-mono text-xs flex-1"
                 />
                 <Button
