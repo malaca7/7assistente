@@ -1523,12 +1523,12 @@ function parseCustomDateString(input) {
         if (suggestedSlots.length > 0) {
           replies.push({
             type: 'buttons',
-            body: `⚠️ *Horário das ${timeVal} já está Ocupado!*\n\nOlá *${clientName}*, o horário das *${timeVal}* no dia *${dateVal}* já foi reservado por outro cliente.\n\n👉 *Sugerimos o próximo horário livre disponível:* *${nextSlot || suggestedSlots[0].slotTime}*`,
+            body: `⚠️ *Horário das ${timeVal} já está Ocupado!*\n\nOlá *${clientName}*, o horário das *${timeVal}* no dia *${dateVal}* já foi reservado por outro cliente.\n\n👉 *Sugerimos o próximo horário livre disponível com tempo suficiente (${srvDur} min):* *${nextSlot || suggestedSlots[0].slotTime}*`,
             footer: 'Toque em um dos horários livres abaixo para agendar:',
             buttons: suggestedSlots,
           });
         } else {
-          replies.push(`⚠️ *Agenda Lotada para ${dateVal}*\n\nOlá *${clientName}*, o horário das *${timeVal}* já foi reservado e não há outros horários disponíveis nesta data. Por favor, digite outra data para agendamento.`);
+          replies.push(`⚠️ *Agenda Lotada para ${dateVal}*\n\nOlá *${clientName}*, o horário das *${timeVal}* já foi reservado e não há outros horários com ${srvDur} min disponíveis nesta data. Por favor, digite outra data para agendamento.`);
         }
         break;
       }

@@ -1395,16 +1395,33 @@ export const StorageService = {
     setItem(STORAGE_KEYS.APPOINTMENTS, filtered);
   },
 
-  async getAvailableSlots(dateStr: string): Promise<string[]> {
+  async getAvailableSlots(dateStr: string, duration?: number): Promise<string[]> {
     const backendUrl = getBackendUrl();
     try {
-      const res = await fetch(`${backendUrl}/api/whatsapp/agenda/available-slots?date=${dateStr}`);
+      const url = duration
+        ? `${backendUrl}/api/whatsapp/agenda/available-slots?date=${dateStr}&duration=${duration}`
+        : `${backendUrl}/api/whatsapp/agenda/available-slots?date=${dateStr}`;
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         return data.available_slots || [];
       }
     } catch {}
     return ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00'];
+  },
+
+  async getNextAvailableSlot(dateStr: string, requestedTime: string, duration: number = 30): Promise<string | null> {
+    const slots = await this.getAvailableSlots(dateStr, duration);
+    if (!slots || slots.length === 0) return null;
+    const [rh, rm] = requestedTime.split(':').map(Number);
+    const reqMin = (rh || 0) * 60 + (rm || 0);
+
+    const next = slots.find((s) => {
+      const [sh, sm] = s.split(':').map(Number);
+      return (sh || 0) * 60 + (sm || 0) > reqMin;
+    });
+
+    return next || slots[0] || null;
   },
 
   // Session

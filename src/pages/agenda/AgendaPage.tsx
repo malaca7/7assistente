@@ -99,6 +99,7 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
   const [newTime, setNewTime] = useState('09:00');
   const [newPrice, setNewPrice] = useState<number | ''>('');
   const [newNotes, setNewNotes] = useState('');
+  const [suggestedSlot, setSuggestedSlot] = useState<string | null>(null);
 
   const selectedServicesList = useMemo(() => {
     const list = (settings.services || []).filter(s => selectedServiceIds.includes(s.id));
@@ -291,12 +292,39 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
       const serviceNameCombined = combinedServiceName || 'Atendimento Geral';
 
       const [sh, sm] = newTime.split(':').map(Number);
-      const endMin = (sh || 0) * 60 + (sm || 0) + duration;
+      const startMin = (sh || 0) * 60 + (sm || 0);
+      const endMin = startMin + duration;
       const endH = Math.floor(endMin / 60);
       const endM = endMin % 60;
       const endTimeStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
       const baseSlot = settings.slot_duration_minutes || 30;
       const slotsCount = Math.max(1, Math.ceil(duration / baseSlot));
+
+      // Conflict detection: verify if requested time collides with existing appointments
+      const conflict = appointments.find((a) => {
+        if (a.appointment_date !== newDate) return false;
+        if (a.status === 'cancelled' || a.status === 'no_show') return false;
+        const [ah, am] = a.appointment_time.split(':').map(Number);
+        const aStart = (ah || 0) * 60 + (am || 0);
+        const aDur = Number(a.duration_minutes) || 30;
+        const aEnd = aStart + aDur;
+        return startMin < aEnd && endMin > aStart;
+      });
+
+      if (conflict) {
+        // Find next slot that can accommodate this exact duration
+        const nextSlot = await StorageService.getNextAvailableSlot(newDate, newTime, duration);
+        if (nextSlot) {
+          toastError(
+            'Horário Ocupado!',
+            `O horário das ${newTime} já está ocupado por ${conflict.contact_name}. Próximo horário livre disponível para ${duration} min: ${nextSlot}.`
+          );
+          setSuggestedSlot(nextSlot);
+        } else {
+          toastError('Agenda Lotada', `Não há outros horários com ${duration} min livres nesta data. Escolha outro dia.`);
+        }
+        return;
+      }
 
       const newApt: Appointment = {
         id: `apt-${Date.now()}`,
@@ -1426,6 +1454,30 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
               onChange={(e) => setNewNotes(e.target.value)}
             />
           </div>
+
+          {suggestedSlot && (
+            <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 text-xs text-amber-300 flex items-center justify-between gap-2 animate-in fade-in">
+              <div className="space-y-0.5">
+                <span className="font-bold flex items-center gap-1 text-amber-400">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  Horário ocupado! Sugestão disponível:
+                </span>
+                <span className="text-[11px] text-slate-300">
+                  Próximo horário com tempo suficiente ({totalCalculatedDuration} min): <strong>{suggestedSlot}</strong>
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setNewTime(suggestedSlot);
+                  setSuggestedSlot(null);
+                }}
+                className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-dark-950 font-bold text-xs whitespace-nowrap active:scale-95 transition-transform"
+              >
+                Usar {suggestedSlot}
+              </button>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-3 border-t border-white/5">
             <Button variant="outline" type="button" onClick={() => setIsAddModalOpen(false)}>
