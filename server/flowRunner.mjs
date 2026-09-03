@@ -519,61 +519,75 @@ export async function getActiveFlowAndGraph(db) {
     }
   }
 
-  // 1. Find explicitly published flow, or fall back to the first available flow
-  let publishedFlow = (flows || []).find((f) => f.status === 'published');
-  if (!publishedFlow && flows.length > 0) {
-    publishedFlow = flows[0];
-  }
-  if (!publishedFlow) {
+  // Filter only published/active flows (exclude draft and inactive)
+  const publishedFlows = (flows || []).filter((f) => f.status === 'published');
+  
+  if (publishedFlows.length === 0 && flows.length === 0) {
     return { publishedFlow: null, nodes: [], edges: [] };
   }
 
-  const flowId = publishedFlow.id;
-  let nodes = db.nodes?.[flowId] || [];
-  let edges = db.edges?.[flowId] || [];
+  // Try each published flow in order (newest first), looking for one with actual nodes
+  const candidateFlows = publishedFlows.length > 0 ? publishedFlows : [flows[0]];
+  
+  for (const candidateFlow of candidateFlows) {
+    const flowId = candidateFlow.id;
+    let nodes = db.nodes?.[flowId] || [];
+    let edges = db.edges?.[flowId] || [];
 
-  if (supabaseClient) {
-    try {
-      const [nodesRes, edgesRes] = await Promise.all([
-        supabaseClient.from('flow_nodes').select('*').eq('flow_id', flowId),
-        supabaseClient.from('flow_edges').select('*').eq('flow_id', flowId)
-      ]);
+    // Try Supabase for nodes/edges
+    if (supabaseClient) {
+      try {
+        const [nodesRes, edgesRes] = await Promise.all([
+          supabaseClient.from('flow_nodes').select('*').eq('flow_id', flowId),
+          supabaseClient.from('flow_edges').select('*').eq('flow_id', flowId)
+        ]);
 
-      if (nodesRes.data && nodesRes.data.length > 0) {
-        nodes = nodesRes.data.map((d) => ({
-          id: d.id,
-          flow_id: d.flow_id,
-          type: d.node_type || d.type,
-          position: { x: Number(d.position_x || 0), y: Number(d.position_y || 0) },
-          data: d.data || {},
-        }));
-        if (!db.nodes) db.nodes = {};
-        db.nodes[flowId] = nodes;
+        if (nodesRes.data && nodesRes.data.length > 0) {
+          nodes = nodesRes.data.map((d) => ({
+            id: d.id,
+            flow_id: d.flow_id,
+            type: d.node_type || d.type,
+            position: { x: Number(d.position_x || 0), y: Number(d.position_y || 0) },
+            data: d.data || {},
+          }));
+          if (!db.nodes) db.nodes = {};
+          db.nodes[flowId] = nodes;
+        }
+
+        if (edgesRes.data && edgesRes.data.length > 0) {
+          edges = edgesRes.data.map((e) => ({
+            id: e.id,
+            flow_id: e.flow_id,
+            source: e.source_node_id || e.source,
+            target: e.target_node_id || e.target,
+            sourceHandle: e.source_handle || e.sourceHandle,
+            targetHandle: e.target_handle || e.targetHandle,
+            data: e.condition || e.data,
+          }));
+          if (!db.edges) db.edges = {};
+          db.edges[flowId] = edges;
+        }
+
+        if (nodes.length > 0) {
+          saveDb(db);
+        }
+      } catch (e) {
+        console.warn('[FlowRunner] Falha ao carregar nós do Supabase:', e?.message || e);
       }
-
-      if (edgesRes.data && edgesRes.data.length > 0) {
-        edges = edgesRes.data.map((e) => ({
-          id: e.id,
-          flow_id: e.flow_id,
-          source: e.source_node_id || e.source,
-          target: e.target_node_id || e.target,
-          sourceHandle: e.source_handle || e.sourceHandle,
-          targetHandle: e.target_handle || e.targetHandle,
-          data: e.condition || e.data,
-        }));
-        if (!db.edges) db.edges = {};
-        db.edges[flowId] = edges;
-      }
-
-      if (nodes.length > 0) {
-        saveDb(db);
-      }
-    } catch (e) {
-      console.warn('[FlowRunner] Falha ao carregar nós do Supabase:', e?.message || e);
     }
+
+    // If this flow has nodes, use it!
+    if (nodes.length > 0) {
+      console.log(`[FlowRunner] ✅ Usando fluxo ativo: "${candidateFlow.name}" (${flowId}) com ${nodes.length} nós`);
+      return { publishedFlow: candidateFlow, nodes, edges };
+    }
+
+    console.warn(`[FlowRunner] ⚠️ Fluxo "${candidateFlow.name}" (${flowId}) publicado mas sem nós, tentando próximo...`);
   }
 
-  return { publishedFlow, nodes, edges };
+  // Last resort: return first published flow even without nodes (will show error message)
+  const fallback = publishedFlows[0] || flows[0];
+  return { publishedFlow: fallback || null, nodes: db.nodes?.[fallback?.id] || [], edges: db.edges?.[fallback?.id] || [] };
 }
 
 // Execute published flow
