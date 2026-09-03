@@ -111,9 +111,13 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
         fitView
         snapToGrid
         snapGrid={[15, 15]}
+        nodesDraggable={true}
+        nodesConnectable={true}
+        elementsSelectable={true}
         connectionMode={ConnectionMode.Strict}
         connectionRadius={45}
-        panOnDrag={[1, 2]}
+        panOnDrag={true}
+        zoomOnScroll={true}
         zoomOnPinch={true}
         zoomOnDoubleClick={false}
         connectionLineType={
