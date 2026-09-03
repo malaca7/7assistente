@@ -227,50 +227,91 @@ export const StorageService = {
     };
   },
 
-  // Flows (Supabase Single-Source-of-Truth)
+  // Flows (Resilient Single-Source-of-Truth with Smart Merge)
   async getFlows(): Promise<Flow[]> {
     const backendUrl = getBackendUrl();
+    const localFlows = getItem<Flow[]>(STORAGE_KEYS.FLOWS, []);
 
-    // 1. Prioritize Supabase Cloud Database
+    let incomingFlows: Flow[] = [];
+
+    // 1. Try Supabase Cloud Database
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.from('flows').select('*').order('updated_at', { ascending: false });
-        if (data && data.length > 0 && !error) {
-          setItem(STORAGE_KEYS.FLOWS, data);
-          return data as Flow[];
+        if (data && Array.isArray(data) && data.length > 0 && !error) {
+          incomingFlows = data as Flow[];
         }
       } catch (e) {
         console.warn('Supabase flows fetch fallback:', e);
       }
     }
 
-    // 2. Fallback to WhatsApp Backend Server
-    try {
-      const res = await fetch(`${backendUrl}/api/whatsapp/flows`);
-      if (res.ok) {
-        const serverFlows = await res.json();
-        if (Array.isArray(serverFlows) && serverFlows.length > 0) {
-          setItem(STORAGE_KEYS.FLOWS, serverFlows);
-          return serverFlows;
+    // 2. Try WhatsApp Backend Server
+    if (incomingFlows.length === 0) {
+      try {
+        const res = await fetch(`${backendUrl}/api/whatsapp/flows`, { signal: AbortSignal.timeout(4000) });
+        if (res.ok) {
+          const serverFlows = await res.json();
+          if (Array.isArray(serverFlows) && serverFlows.length > 0) {
+            incomingFlows = serverFlows;
+          }
+        }
+      } catch {}
+    }
+
+    // 3. Smart Merge: Union of Local + Server flows without ever losing user-created flows
+    const flowMap = new Map<string, Flow>();
+
+    // Put sample flows as baseline
+    sampleFlows.forEach((f) => flowMap.set(f.id, f));
+
+    // Layer incoming server flows
+    incomingFlows.forEach((f) => {
+      flowMap.set(f.id, f);
+    });
+
+    // Layer local flows (protects locally created/edited flows)
+    localFlows.forEach((local) => {
+      const existing = flowMap.get(local.id);
+      if (!existing) {
+        flowMap.set(local.id, local);
+        // Sync back up to server in background
+        try {
+          fetch(`${backendUrl}/api/whatsapp/flows`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(local),
+          }).catch(() => {});
+        } catch {}
+      } else {
+        // Compare timestamps
+        const localTime = new Date(local.updated_at || 0).getTime();
+        const serverTime = new Date(existing.updated_at || 0).getTime();
+        if (localTime >= serverTime) {
+          flowMap.set(local.id, local);
         }
       }
-    } catch {}
+    });
 
-    // 3. Fallback to LocalStorage
-    return getItem<Flow[]>(STORAGE_KEYS.FLOWS, sampleFlows);
+    const mergedFlows = Array.from(flowMap.values()).sort(
+      (a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime()
+    );
+
+    setItem(STORAGE_KEYS.FLOWS, mergedFlows);
+    return mergedFlows;
   },
 
   async getFlowById(id: string): Promise<Flow | null> {
     const flows = await this.getFlows();
-    return flows.find(f => f.id === id) || null;
+    return flows.find((f) => f.id === id) || null;
   },
 
   async saveFlow(flow: Flow): Promise<Flow> {
     const backendUrl = getBackendUrl();
-    const flows = await this.getFlows();
-    const index = flows.findIndex(f => f.id === flow.id);
-    const updated = { ...flow, updated_at: new Date().toISOString() };
-    
+    const flows = getItem<Flow[]>(STORAGE_KEYS.FLOWS, sampleFlows);
+    const index = flows.findIndex((f) => f.id === flow.id);
+    const updated: Flow = { ...flow, updated_at: new Date().toISOString() };
+
     if (index >= 0) {
       flows[index] = updated;
     } else {
@@ -303,8 +344,8 @@ export const StorageService = {
 
   async deleteFlow(id: string): Promise<void> {
     const backendUrl = getBackendUrl();
-    const flows = await this.getFlows();
-    const filtered = flows.filter(f => f.id !== id);
+    const flows = getItem<Flow[]>(STORAGE_KEYS.FLOWS, sampleFlows);
+    const filtered = flows.filter((f) => f.id !== id);
     setItem(STORAGE_KEYS.FLOWS, filtered);
     localStorage.removeItem(`${STORAGE_KEYS.FLOW_NODES_PREFIX}${id}`);
     localStorage.removeItem(`${STORAGE_KEYS.FLOW_EDGES_PREFIX}${id}`);
@@ -333,7 +374,7 @@ export const StorageService = {
   async duplicateFlow(id: string): Promise<Flow> {
     const flow = await this.getFlowById(id);
     if (!flow) throw new Error('Fluxo não encontrado');
-    
+
     const newId = `flow-${Date.now()}`;
     const newFlow: Flow = {
       ...flow,
@@ -352,16 +393,22 @@ export const StorageService = {
     return newFlow;
   },
 
-  // Flow Nodes & Edges
+  // Flow Nodes & Edges (Smart Local-First with Remote Backup)
   async getFlowNodes(flowId: string): Promise<FlowNode[]> {
     const backendUrl = getBackendUrl();
+    const localNodes = getItem<FlowNode[] | null>(`${STORAGE_KEYS.FLOW_NODES_PREFIX}${flowId}`, null);
+
+    // If we have local nodes in browser, prioritize them
+    if (localNodes && Array.isArray(localNodes) && localNodes.length > 0) {
+      return localNodes;
+    }
 
     // 1. Prioritize Supabase
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.from('flow_nodes').select('*').eq('flow_id', flowId);
         if (data && data.length > 0 && !error) {
-          const formatted = data.map(d => ({
+          const formatted = data.map((d) => ({
             id: d.id,
             flow_id: d.flow_id,
             type: d.node_type || d.type,
@@ -378,10 +425,10 @@ export const StorageService = {
 
     // 2. Fallback to WhatsApp Server
     try {
-      const res = await fetch(`${backendUrl}/api/whatsapp/flows/${flowId}/graph`);
+      const res = await fetch(`${backendUrl}/api/whatsapp/flows/${flowId}/graph`, { signal: AbortSignal.timeout(4000) });
       if (res.ok) {
         const data = await res.json();
-        if (data.nodes && data.nodes.length > 0) {
+        if (data.nodes && Array.isArray(data.nodes) && data.nodes.length > 0) {
           setItem(`${STORAGE_KEYS.FLOW_NODES_PREFIX}${flowId}`, data.nodes);
           return data.nodes;
         }
@@ -389,21 +436,25 @@ export const StorageService = {
     } catch {}
 
     if (flowId === 'flow-1788033465058' || flowId === 'flow-001') {
-      const stored = getItem<FlowNode[] | null>(`${STORAGE_KEYS.FLOW_NODES_PREFIX}${flowId}`, null);
-      return stored || initialFlowNodes as FlowNode[];
+      return (initialFlowNodes as FlowNode[]) || [];
     }
-    return getItem<FlowNode[]>(`${STORAGE_KEYS.FLOW_NODES_PREFIX}${flowId}`, []);
+    return [];
   },
 
   async getFlowEdges(flowId: string): Promise<FlowEdge[]> {
     const backendUrl = getBackendUrl();
+    const localEdges = getItem<FlowEdge[] | null>(`${STORAGE_KEYS.FLOW_EDGES_PREFIX}${flowId}`, null);
+
+    if (localEdges && Array.isArray(localEdges) && localEdges.length > 0) {
+      return localEdges;
+    }
 
     // 1. Prioritize Supabase
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.from('flow_edges').select('*').eq('flow_id', flowId);
         if (data && data.length > 0 && !error) {
-          const formatted = data.map(e => ({
+          const formatted = data.map((e) => ({
             id: e.id,
             flow_id: e.flow_id,
             source: e.source_node_id || e.source,
@@ -422,10 +473,10 @@ export const StorageService = {
 
     // 2. Fallback to WhatsApp Server
     try {
-      const res = await fetch(`${backendUrl}/api/whatsapp/flows/${flowId}/graph`);
+      const res = await fetch(`${backendUrl}/api/whatsapp/flows/${flowId}/graph`, { signal: AbortSignal.timeout(4000) });
       if (res.ok) {
         const data = await res.json();
-        if (data.edges && data.edges.length > 0) {
+        if (data.edges && Array.isArray(data.edges) && data.edges.length > 0) {
           setItem(`${STORAGE_KEYS.FLOW_EDGES_PREFIX}${flowId}`, data.edges);
           return data.edges;
         }
@@ -433,10 +484,9 @@ export const StorageService = {
     } catch {}
 
     if (flowId === 'flow-1788033465058' || flowId === 'flow-001') {
-      const stored = getItem<FlowEdge[] | null>(`${STORAGE_KEYS.FLOW_EDGES_PREFIX}${flowId}`, null);
-      return stored || initialFlowEdges as FlowEdge[];
+      return (initialFlowEdges as FlowEdge[]) || [];
     }
-    return getItem<FlowEdge[]>(`${STORAGE_KEYS.FLOW_EDGES_PREFIX}${flowId}`, []);
+    return [];
   },
 
   async saveFlowGraph(flowId: string, nodes: FlowNode[], edges: FlowEdge[]): Promise<void> {

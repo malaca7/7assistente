@@ -6,6 +6,15 @@ if (-not (Test-Path "dist\index.html")) {
     Remove-Item dist_temp.tar -Force -ErrorAction SilentlyContinue
 }
 
+$nodeExe = "C:\Program Files\nodejs\node.exe"
+if (Test-Path "server\mergeLiveDb.mjs") {
+    try {
+        & $nodeExe server\mergeLiveDb.mjs
+    } catch {
+        Write-Warning "Falha ao sincronizar live DB: $_"
+    }
+}
+
 $stage = Join-Path $env:TEMP "7assistente_deploy_stage"
 if (Test-Path $stage) { 
     Remove-Item $stage -Recurse -Force 
