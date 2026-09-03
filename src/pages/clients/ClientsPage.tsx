@@ -281,7 +281,7 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
         .filter(Boolean);
 
       const clientData: Contact = {
-        id: editingClient?.id || `contact-${Date.now()}`,
+        id: editingClient?.id || `contact-${cleanPhone}`,
         phone: cleanPhone,
         name: formName.trim() || 'Cliente WhatsApp',
         email: formEmail.trim() || undefined,

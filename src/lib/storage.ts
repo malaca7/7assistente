@@ -34,6 +34,7 @@ const STORAGE_KEYS = {
   AUTH_TOKEN: '7assistente_auth_session',
   AGENDA_SETTINGS: '7assistente_agenda_settings',
   APPOINTMENTS: '7assistente_appointments',
+  DELETED_CONTACTS: '7assistente_deleted_contacts_v2',
 };
 
 export function getBackendUrl(): string {
@@ -497,16 +498,40 @@ export const StorageService = {
   },
 
   // Contacts
+  getDeletedContactIds(): string[] {
+    return getItem<string[]>(STORAGE_KEYS.DELETED_CONTACTS, []);
+  },
+
+  isContactDeleted(contact: Contact | any): boolean {
+    const deletedList = this.getDeletedContactIds();
+    if (!deletedList || deletedList.length === 0) return false;
+    const cId = String(contact.id || '');
+    const cPhone = String(contact.phone || '').replace(/\D/g, '');
+    const altPhone = cPhone.startsWith('55') ? cPhone.substring(2) : `55${cPhone}`;
+    return deletedList.some(d => {
+      const cleanD = d.replace(/\D/g, '');
+      return d === cId || 
+             d === `contact-${cPhone}` || 
+             d === `contact-${altPhone}` ||
+             d === cPhone || 
+             d === altPhone || 
+             (cPhone && cleanD === cPhone) ||
+             (altPhone && cleanD === altPhone);
+    });
+  },
+
   async getContacts(): Promise<Contact[]> {
     const backendUrl = getBackendUrl();
+    const deletedList = this.getDeletedContactIds();
 
     // 1. Supabase Cloud Database is the primary Source of Truth
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.from('contacts').select('*').order('created_at', { ascending: false });
         if (data && !error) {
-          setItem(STORAGE_KEYS.CONTACTS, data);
-          return data as Contact[];
+          const valid = (data as Contact[]).filter(c => !this.isContactDeleted(c));
+          setItem(STORAGE_KEYS.CONTACTS, valid);
+          return valid;
         }
       } catch (e) {
         console.warn('Supabase contacts fetch fallback:', e);
@@ -518,9 +543,10 @@ export const StorageService = {
       const res = await fetch(`${backendUrl}/api/whatsapp/contacts`);
       if (res.ok) {
         const serverContacts = await res.json();
-        if (Array.isArray(serverContacts) && serverContacts.length > 0) {
-          setItem(STORAGE_KEYS.CONTACTS, serverContacts);
-          return serverContacts;
+        if (Array.isArray(serverContacts)) {
+          const valid = serverContacts.filter(c => !this.isContactDeleted(c));
+          setItem(STORAGE_KEYS.CONTACTS, valid);
+          return valid;
         }
       }
     } catch {
@@ -528,7 +554,8 @@ export const StorageService = {
     }
 
     // 3. Local Cache Fallback
-    return getItem<Contact[]>(STORAGE_KEYS.CONTACTS, []);
+    const cached = getItem<Contact[]>(STORAGE_KEYS.CONTACTS, []);
+    return cached.filter(c => !this.isContactDeleted(c));
   },
 
   async getContactById(id: string): Promise<Contact | null> {
@@ -539,6 +566,7 @@ export const StorageService = {
   async saveContact(contact: Contact): Promise<Contact> {
     const backendUrl = getBackendUrl();
     const cleanPhone = (contact.phone || contact.id || '').replace(/\D/g, '');
+    const altPhone = cleanPhone.startsWith('55') ? cleanPhone.substring(2) : `55${cleanPhone}`;
     const updated: Contact = { 
       ...contact, 
       id: contact.id || `contact-${cleanPhone}`,
@@ -546,7 +574,19 @@ export const StorageService = {
       updated_at: new Date().toISOString() 
     };
 
-    // 1. Update Local Storage Cache
+    // 1. Remove from deleted tombstones if being created or updated
+    const deleted = this.getDeletedContactIds();
+    const filteredDeleted = deleted.filter(d => 
+      d !== updated.id && 
+      d !== updated.phone && 
+      d !== cleanPhone && 
+      d !== altPhone && 
+      d !== `contact-${cleanPhone}` && 
+      d !== `contact-${altPhone}`
+    );
+    setItem(STORAGE_KEYS.DELETED_CONTACTS, filteredDeleted);
+
+    // 2. Update Local Storage Cache
     const contacts = getItem<Contact[]>(STORAGE_KEYS.CONTACTS, []);
     const index = contacts.findIndex(c => c.id === updated.id || c.phone === updated.phone || (c.phone && cleanPhone && c.phone.replace(/\D/g, '') === cleanPhone));
     if (index >= 0) {
@@ -556,7 +596,7 @@ export const StorageService = {
     }
     setItem(STORAGE_KEYS.CONTACTS, contacts);
 
-    // 2. Sync directly with Supabase Cloud DB
+    // 3. Sync directly with Supabase Cloud DB
     if (isSupabaseConfigured && supabase) {
       try {
         await supabase.from('contacts').upsert(updated, { onConflict: 'phone' });
@@ -565,7 +605,7 @@ export const StorageService = {
       }
     }
 
-    // 3. Sync with WhatsApp Backend Server
+    // 4. Sync with WhatsApp Backend Server
     try {
       await fetch(`${backendUrl}/api/whatsapp/contacts`, {
         method: 'POST',
@@ -584,7 +624,13 @@ export const StorageService = {
     const cleanPhone = (phone || id || '').replace(/\D/g, '');
     const altPhone = cleanPhone.startsWith('55') ? cleanPhone.substring(2) : `55${cleanPhone}`;
 
-    // 1. Immediately purge from Local Storage Cache
+    // 1. Mark as permanently deleted in persistent tombstone
+    const deleted = this.getDeletedContactIds();
+    const toAdd = [id, phone, cleanPhone, altPhone, `contact-${cleanPhone}`, `contact-${altPhone}`].filter(Boolean) as string[];
+    const newDeleted = Array.from(new Set([...deleted, ...toAdd]));
+    setItem(STORAGE_KEYS.DELETED_CONTACTS, newDeleted);
+
+    // 2. Immediately purge from Local Storage Cache
     const contacts = getItem<Contact[]>(STORAGE_KEYS.CONTACTS, []);
     const filtered = contacts.filter(c => {
       const cPhone = (c.phone || '').replace(/\D/g, '');
@@ -600,7 +646,7 @@ export const StorageService = {
     });
     setItem(STORAGE_KEYS.CONTACTS, filtered);
 
-    // 2. Immediately delete from Supabase Database
+    // 3. Immediately delete from Supabase Database
     if (isSupabaseConfigured && supabase) {
       try {
         if (id) {
@@ -617,7 +663,7 @@ export const StorageService = {
       }
     }
 
-    // 3. Immediately delete from WhatsApp Backend Server (Baileys memory)
+    // 4. Immediately delete from WhatsApp Backend Server (Baileys memory)
     try {
       const target = cleanPhone || id;
       await fetch(`${backendUrl}/api/whatsapp/contacts/${encodeURIComponent(target)}?phone=${encodeURIComponent(cleanPhone)}`, {
