@@ -38,8 +38,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    async function loadDashboardData() {
+    async function loadDashboardData(silent = false) {
       try {
+        if (!silent) setIsLoading(true);
         const [kpiData, convs, flowsData] = await Promise.all([
           StorageService.getKPIs(),
           StorageService.getConversations(),
@@ -51,10 +52,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
       } catch (err) {
         console.error('Error loading dashboard data:', err);
       } finally {
-        setIsLoading(false);
+        if (!silent) setIsLoading(false);
       }
     }
-    loadDashboardData();
+    loadDashboardData(false);
+    const interval = setInterval(() => {
+      loadDashboardData(true);
+    }, 3500);
+    return () => clearInterval(interval);
   }, []);
 
   const kpiCards = [

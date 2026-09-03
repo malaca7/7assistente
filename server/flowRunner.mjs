@@ -617,8 +617,8 @@ function parseCustomDateString(input) {
       }
     }
 
-    // 2. Buttons / Available slots selection
-    else if (prevNode && (prevType === 'buttons' || prevType === 'schedule_contact')) {
+    // 2. Buttons / Available slots / Services Catalog selection
+    else if (prevNode && (prevType === 'buttons' || prevType === 'schedule_contact' || prevType === 'services_catalog')) {
       const btnConfig = prevNode.data?.config || {};
       const buttons = session.activeButtons || btnConfig.buttons || [];
       let matchedBtnIndex = -1;
@@ -1131,10 +1131,48 @@ function parseCustomDateString(input) {
       break;
     }
 
+    // 6.5 Delay / Pause Node
+    else if (nodeType === 'delay') {
+      const waitSeconds = Math.min(Math.max(Number(config.amount || config.seconds || 2), 1), 10);
+      console.log(`[FlowRunner] ⏳ Pausa / Delay de ${waitSeconds}s no fluxo...`);
+      await new Promise((r) => setTimeout(r, waitSeconds * 1000));
+    }
+
     // 7. AI Agent Node
     else if (nodeType === 'ai_agent') {
-      const pName = botProfile.name || 'Sofia';
-      replies.push(`✨ *${pName}:* Entendi sua mensagem sobre "${cleanInput}". Como posso te ajudar a avançar?`);
+      const pName = botProfile.name || 'Talvane Barber Bot';
+      const company = botProfile.company_name || 'Talvane Barber';
+      const customReply = config.systemPrompt ? replaceVars(config.systemPrompt, session.variables, botProfile) : null;
+      const responseText = customReply || `✨ *${pName} (${company}):*\nRecebi sua mensagem: "${cleanInput}". Como posso te auxiliar a escolher o melhor horário para seu atendimento?`;
+      replies.push(responseText);
+    }
+
+    // 7.2 HTTP Request / Webhook Node
+    else if (nodeType === 'http_request' || nodeType === 'webhook') {
+      const targetUrl = replaceVars(config.url || config.webhookUrl || '', session.variables, botProfile);
+      if (targetUrl && targetUrl.startsWith('http')) {
+        try {
+          const method = (config.method || 'POST').toUpperCase();
+          const reqHeaders = { 'Content-Type': 'application/json', ...(config.headers || {}) };
+          const reqBody = (method !== 'GET' && method !== 'HEAD') ? JSON.stringify({
+            phone: cleanPhone,
+            variables: session.variables,
+            input: cleanInput,
+            ...(config.payload || {}),
+          }) : undefined;
+
+          console.log(`[FlowRunner] 🌐 Disparando ${method} para: ${targetUrl}`);
+          const apiResp = await fetch(targetUrl, { method, headers: reqHeaders, body: reqBody });
+          if (apiResp.ok) {
+            const jsonResp = await apiResp.json().catch(() => ({}));
+            if (config.responseVariable && typeof jsonResp === 'object') {
+              session.variables[config.responseVariable] = JSON.stringify(jsonResp);
+            }
+          }
+        } catch (apiErr) {
+          console.warn('[FlowRunner] Falha ao disparar HTTP/Webhook:', apiErr.message);
+        }
+      }
     }
 
     // 7.5 Media Node (Image, Video, Audio/PTT, Document)
@@ -1153,7 +1191,8 @@ function parseCustomDateString(input) {
 
     // 8. Human Handoff Node
     else if (nodeType === 'human_handoff') {
-      replies.push(`👨‍💼 *Atendimento Humano:*\n\n${config.notifyMessage || 'Você foi transferido para nossa equipe de atendimento. Um consultor responderá em breve!'}`);
+      const handoffText = config.notifyMessage ? replaceVars(config.notifyMessage, session.variables, botProfile) : '👨‍💼 *Atendimento Humano:*\n\nVocê foi transferido para nossa equipe de atendimento. Um consultor responderá em breve!';
+      replies.push(handoffText);
       if (db.conversations[`conv-${cleanPhone}`]) {
         db.conversations[`conv-${cleanPhone}`].status = 'waiting_human';
       }
