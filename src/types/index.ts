@@ -113,6 +113,8 @@ export interface Appointment {
   price?: number;
   appointment_date: string;
   appointment_time: string;
+  end_time?: string;
+  slots_count?: number;
   status: 'confirmed' | 'pending' | 'cancelled' | 'completed' | 'no_show' | 'in_progress';
   notes?: string;
   created_at: string;

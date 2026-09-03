@@ -304,7 +304,15 @@ export const ClientQueuePage: React.FC<ClientQueuePageProps> = ({ onNavigate }) 
                       Em Atendimento
                     </span>
                     <span className="text-xs font-mono text-brand-300 font-bold">
-                      {currentInChair.appointment_time}
+                      {(() => {
+                        const [sh, sm] = (currentInChair.appointment_time || '09:00').split(':').map(Number);
+                        const dur = Number(currentInChair.duration_minutes) || 30;
+                        const endMin = (sh || 0) * 60 + (sm || 0) + dur;
+                        const endH = Math.floor(endMin / 60);
+                        const endM = endMin % 60;
+                        const endTime = currentInChair.end_time || `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+                        return dur > 30 ? `${currentInChair.appointment_time} às ${endTime}` : currentInChair.appointment_time;
+                      })()}
                     </span>
                   </div>
                   <h4 className="text-xl font-black text-white mt-1">
@@ -314,6 +322,11 @@ export const ClientQueuePage: React.FC<ClientQueuePageProps> = ({ onNavigate }) 
                     <span>{currentInChair.service_name}</span>
                     <span>•</span>
                     <span className="text-slate-400">{maskPhone(currentInChair.contact_phone)}</span>
+                    {Number(currentInChair.duration_minutes) > 30 && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30">
+                        {currentInChair.duration_minutes} min
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
@@ -364,7 +377,15 @@ export const ClientQueuePage: React.FC<ClientQueuePageProps> = ({ onNavigate }) 
                         #{index + 1}
                       </span>
                       <span className="text-sm font-black font-mono text-brand-300">
-                        {apt.appointment_time}
+                        {(() => {
+                          const [sh, sm] = (apt.appointment_time || '09:00').split(':').map(Number);
+                          const dur = Number(apt.duration_minutes) || 30;
+                          const endMin = (sh || 0) * 60 + (sm || 0) + dur;
+                          const endH = Math.floor(endMin / 60);
+                          const endM = endMin % 60;
+                          const endTime = apt.end_time || `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+                          return dur > 30 ? `${apt.appointment_time} às ${endTime}` : apt.appointment_time;
+                        })()}
                       </span>
                     </div>
                     <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
