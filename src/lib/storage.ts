@@ -90,6 +90,19 @@ function setItem<T>(key: string, value: T): void {
   }
 }
 
+export function matchesPhone(p1?: string, p2?: string): boolean {
+  if (!p1 || !p2) return false;
+  const c1 = p1.replace(/\D/g, '');
+  const c2 = p2.replace(/\D/g, '');
+  if (!c1 || !c2) return false;
+  if (c1 === c2) return true;
+  const n1 = c1.startsWith('55') && c1.length > 11 ? c1.slice(2) : c1;
+  const n2 = c2.startsWith('55') && c2.length > 11 ? c2.slice(2) : c2;
+  if (n1 === n2) return true;
+  if (c1.length >= 8 && c2.length >= 8 && c1.slice(-8) === c2.slice(-8)) return true;
+  return false;
+}
+
 export async function syncWithWhatsAppServer(): Promise<void> {
   try {
     const backendUrl = getBackendUrl();
@@ -1593,8 +1606,71 @@ export const StorageService = {
       }
     } catch {}
 
-    const localUsers = getItem<SystemUser[]>(STORAGE_KEYS.SYSTEM_USERS, [
-      {
+    const defaultAdminUser: SystemUser = {
+      id: 'user-talvane',
+      name: 'Talvane (Administrador & Barbeiro)',
+      phone: '81996138924',
+      password: '123',
+      pin: '1234',
+      role: 'admin',
+      permissions: {
+        can_access_admin: true,
+        can_access_atendimento: true,
+        can_access_barbeiro: true,
+      },
+      status: 'active',
+      created_at: '2026-09-03T21:24:01.059Z',
+    };
+
+    const localUsers = getItem<SystemUser[]>(STORAGE_KEYS.SYSTEM_USERS, [defaultAdminUser]);
+    const hasAdmin = localUsers.some((u) => matchesPhone(u.phone, '81996138924'));
+    if (!hasAdmin) {
+      localUsers.unshift(defaultAdminUser);
+      setItem(STORAGE_KEYS.SYSTEM_USERS, localUsers);
+    }
+    return localUsers;
+  },
+
+  async saveSystemUser(user: SystemUser): Promise<void> {
+    const cleanPhone = (user.phone || '').replace(/\D/g, '');
+    const users = getItem<SystemUser[]>(STORAGE_KEYS.SYSTEM_USERS, []);
+    const idx = users.findIndex((u) => u.id === user.id || (cleanPhone && matchesPhone(u.phone, cleanPhone)));
+    let updated: SystemUser[];
+    if (idx >= 0) {
+      updated = [...users];
+      updated[idx] = { ...users[idx], ...user, updated_at: new Date().toISOString() };
+    } else {
+      updated = [{ ...user, created_at: new Date().toISOString() }, ...users];
+    }
+    setItem(STORAGE_KEYS.SYSTEM_USERS, updated);
+
+    const backendUrl = getBackendUrl();
+    try {
+      const res = await fetch(`${backendUrl}/api/whatsapp/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(user),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.users && Array.isArray(data.users) && data.users.length > 0) {
+          setItem(STORAGE_KEYS.SYSTEM_USERS, data.users);
+        }
+      }
+    } catch {}
+  },
+
+  async deleteSystemUser(id: string): Promise<void> {
+    const users = getItem<SystemUser[]>(STORAGE_KEYS.SYSTEM_USERS, []);
+    const cleanId = String(id || '').replace(/\D/g, '');
+    let filtered = users.filter((u) => {
+      if (u.id === id) return false;
+      if (cleanId && matchesPhone(u.phone, cleanId)) return false;
+      return true;
+    });
+    // Ensure master admin is never removed from local storage
+    if (!filtered.some((u) => matchesPhone(u.phone, '81996138924'))) {
+      filtered.push({
         id: 'user-talvane',
         name: 'Talvane (Administrador & Barbeiro)',
         phone: '81996138924',
@@ -1607,57 +1683,21 @@ export const StorageService = {
           can_access_barbeiro: true,
         },
         status: 'active',
-        created_at: new Date().toISOString(),
-      },
-    ]);
-    return localUsers;
-  },
-
-  async saveSystemUser(user: SystemUser): Promise<void> {
-    const backendUrl = getBackendUrl();
-    try {
-      const res = await fetch(`${backendUrl}/api/whatsapp/users`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(user),
+        created_at: '2026-09-03T21:24:01.059Z',
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.users && Array.isArray(data.users)) {
-          setItem(STORAGE_KEYS.SYSTEM_USERS, data.users);
-          return;
-        }
-      }
-    } catch {}
-
-    const users = getItem<SystemUser[]>(STORAGE_KEYS.SYSTEM_USERS, []);
-    const idx = users.findIndex((u) => u.id === user.id);
-    let updated: SystemUser[];
-    if (idx >= 0) {
-      updated = [...users];
-      updated[idx] = { ...user, updated_at: new Date().toISOString() };
-    } else {
-      updated = [{ ...user, created_at: new Date().toISOString() }, ...users];
     }
-    setItem(STORAGE_KEYS.SYSTEM_USERS, updated);
-  },
+    setItem(STORAGE_KEYS.SYSTEM_USERS, filtered);
 
-  async deleteSystemUser(id: string): Promise<void> {
     const backendUrl = getBackendUrl();
     try {
       const res = await fetch(`${backendUrl}/api/whatsapp/users/${id}`, { method: 'DELETE' });
       if (res.ok) {
         const data = await res.json();
-        if (data.users && Array.isArray(data.users)) {
+        if (data.users && Array.isArray(data.users) && data.users.length > 0) {
           setItem(STORAGE_KEYS.SYSTEM_USERS, data.users);
-          return;
         }
       }
     } catch {}
-
-    const users = getItem<SystemUser[]>(STORAGE_KEYS.SYSTEM_USERS, []);
-    const filtered = users.filter((u) => u.id !== id);
-    setItem(STORAGE_KEYS.SYSTEM_USERS, filtered);
   },
 
   async verifyUserAccess(phone: string, passwordOrPin: string, requiredPermission: keyof UserPermissions): Promise<{ success: boolean; user?: SystemUser; error?: string }> {

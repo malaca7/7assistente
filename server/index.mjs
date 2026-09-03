@@ -1146,8 +1146,8 @@ const DEFAULT_SYSTEM_USERS = [
 
 app.get('/api/whatsapp/users', (req, res) => {
   const db = loadDb();
-  if (!db.systemUsers || db.systemUsers.length === 0) {
-    db.systemUsers = DEFAULT_SYSTEM_USERS;
+  if (!db.systemUsers || !Array.isArray(db.systemUsers) || db.systemUsers.length === 0) {
+    db.systemUsers = [...DEFAULT_SYSTEM_USERS];
     saveDb(db);
   }
   res.json(db.systemUsers);
@@ -1156,10 +1156,12 @@ app.get('/api/whatsapp/users', (req, res) => {
 app.post('/api/whatsapp/users', (req, res) => {
   const user = req.body;
   const db = loadDb();
-  if (!db.systemUsers) db.systemUsers = [...DEFAULT_SYSTEM_USERS];
+  if (!db.systemUsers || !Array.isArray(db.systemUsers)) {
+    db.systemUsers = [...DEFAULT_SYSTEM_USERS];
+  }
 
   const cleanPhone = (user.phone || '').replace(/\D/g, '');
-  const idx = db.systemUsers.findIndex((u) => u.id === user.id || (u.phone && u.phone.replace(/\D/g, '') === cleanPhone));
+  const idx = db.systemUsers.findIndex((u) => u.id === user.id || (cleanPhone && u.phone && u.phone.replace(/\D/g, '') === cleanPhone));
 
   if (idx >= 0) {
     db.systemUsers[idx] = {
@@ -1185,11 +1187,26 @@ app.post('/api/whatsapp/users', (req, res) => {
 app.delete('/api/whatsapp/users/:id', (req, res) => {
   const { id } = req.params;
   const db = loadDb();
-  if (db.systemUsers) {
-    db.systemUsers = db.systemUsers.filter((u) => u.id !== id);
-    saveDb(db);
+  if (!db.systemUsers || !Array.isArray(db.systemUsers)) {
+    db.systemUsers = [...DEFAULT_SYSTEM_USERS];
   }
-  res.json({ success: true, users: db.systemUsers || [] });
+
+  const cleanId = String(id || '').replace(/\D/g, '');
+  db.systemUsers = db.systemUsers.filter((u) => {
+    if (u.id === id) return false;
+    const uPhone = (u.phone || '').replace(/\D/g, '');
+    if (cleanId && uPhone === cleanId) return false;
+    return true;
+  });
+
+  // Ensure master admin is never removed
+  const hasAdmin = db.systemUsers.some((u) => (u.phone || '').replace(/\D/g, '') === '81996138924');
+  if (!hasAdmin) {
+    db.systemUsers.push(DEFAULT_SYSTEM_USERS[0]);
+  }
+
+  saveDb(db);
+  res.json({ success: true, users: db.systemUsers });
 });
 
 app.post('/api/whatsapp/users/verify', (req, res) => {

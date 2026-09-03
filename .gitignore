@@ -1,2 +1,4 @@
 node_modules
 .env
+whatsapp_auth
+server/whatsapp_auth

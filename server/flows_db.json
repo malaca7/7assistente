@@ -1364,20 +1364,6 @@
       }
     ]
   },
-  "logs": [
-    {
-      "id": "log-1788464073074-8b8i8",
-      "type": "system",
-      "title": "Teste de Auditoria",
-      "description": "Verificando sistema de logs",
-      "contact_phone": "5581996138924",
-      "contact_name": "Rogerio",
-      "details": {
-        "test": true
-      },
-      "created_at": "2026-09-03T19:34:33.074Z"
-    }
-  ],
   "systemUsers": [
     {
       "id": "user-talvane",
@@ -1392,7 +1378,7 @@
         "can_access_barbeiro": true
       },
       "status": "active",
-      "created_at": "2026-09-03T21:14:19.956Z"
+      "created_at": "2026-09-03T21:24:01.059Z"
     }
   ]
 }

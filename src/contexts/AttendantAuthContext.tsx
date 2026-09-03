@@ -63,6 +63,27 @@ export const AttendantAuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const login = async (emailOrPhone: string, password: string): Promise<boolean> => {
+    // 1. Check via System Users with can_access_atendimento permission
+    try {
+      const userCheck = await StorageService.verifyUserAccess(emailOrPhone, password, 'can_access_atendimento');
+      if (userCheck.success && userCheck.user) {
+        const onlineAttendant: Attendant = {
+          id: userCheck.user.id,
+          name: userCheck.user.name,
+          email: `${userCheck.user.phone}@atendente.local`,
+          phone: userCheck.user.phone,
+          password: userCheck.user.password || password,
+          role: 'atendente',
+          status: 'online',
+          active_chats_count: 0,
+        };
+        setCurrentAttendant(onlineAttendant);
+        localStorage.setItem(ATTENDANT_SESSION_KEY, JSON.stringify(onlineAttendant));
+        return true;
+      }
+    } catch {}
+
+    // 2. Fallback to existing attendants list
     const list = await StorageService.getAttendants();
     setAttendants(list);
 
