@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - source
   workflow_dispatch:
 
 permissions:
@@ -14,11 +13,11 @@ permissions:
 
 concurrency:
   group: "pages"
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build React Admin Panel & Push gh-pages
+  build-and-deploy-pages:
+    name: Build React Admin Panel & Deploy GitHub Pages
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -42,7 +41,6 @@ jobs:
           touch dist/.nojekyll
 
       - name: Push to gh-pages Branch
-        if: github.ref == 'refs/heads/main'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -56,9 +54,8 @@ jobs:
           path: './dist'
 
   deploy-pages:
-    name: Deploy to GitHub Pages
-    needs: build
-    if: github.ref == 'refs/heads/main'
+    name: Deploy to GitHub Pages Environment
+    needs: build-and-deploy-pages
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -69,9 +66,8 @@ jobs:
         uses: actions/deploy-pages@v4
 
   deploy-discloud:
-    name: Deploy to Discloud
-    needs: build
-    if: github.ref == 'refs/heads/main'
+    name: Deploy to Discloud & Restart Bot
+    needs: build-and-deploy-pages
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -119,4 +115,3 @@ jobs:
             
             echo "✅ Deploy e reinicialização automática do bot concluídos com sucesso na Discloud!"
           fi
-
