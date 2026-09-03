@@ -26,7 +26,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
@@ -68,7 +68,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install Dependencies & Build Frontend
         run: |
@@ -86,19 +86,4 @@ jobs:
         env:
           DISCLOUD_TOKEN: ${{ secrets.DISCLOUD_TOKEN || 'eyJhbGciOiJIUzI1NiJ9.eyJpZCI6IjI4ODUxOTI1OTYyMDgiLCJrZXkiOiIzMTE1ZTQwYTY3ODY0MDg3NmRlYzZhOTk4YTYwIn0.y3RYPKpF9VdbnO-Qhry-84k-1bP3bhpWeQ7AfjqLXqk' }}
         run: |
-          echo "🚀 Enviando commit de atualização para Discloud App talvanebarber..."
-            RESPONSE=$(curl -s -X PUT "https://api.discloud.app/v2/app/talvanebarber/commit" \
-              -H "api-token: $DISCLOUD_TOKEN" \
-              -F "file=@7assistente.zip")
-            echo "Resposta Discloud Commit: $RESPONSE"
-            
-            echo "⏳ Aguardando 10 segundos para processamento e descompactação dos arquivos na Discloud..."
-            sleep 10
-            
-            echo "🔄 Reiniciando aplicação do bot na Discloud..."
-            RESTART_RESP=$(curl -s -X PUT "https://api.discloud.app/v2/app/talvanebarber/restart" \
-              -H "api-token: $DISCLOUD_TOKEN")
-            echo "Resposta Discloud Restart: $RESTART_RESP"
-            
-            echo "✅ Deploy e reinicialização automática do bot concluídos com sucesso na Discloud!"
-          fi
+          node deployDiscloud.mjs "$DISCLOUD_TOKEN"
