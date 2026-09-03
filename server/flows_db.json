@@ -401,7 +401,7 @@
       "flowId": "flow-1788033465058",
       "currentNodeId": "node-ask_date-1788104674417",
       "variables": {
-        "whatsapp_pushname": "Teste",
+        "whatsapp_pushname": "Rogerio",
         "telefone_cliente": "5581996138924",
         "telefone_whatsapp": "5581996138924",
         "ultima_mensagem": "oi",
@@ -496,7 +496,7 @@
       "id": "contact-5581996138924",
       "phone": "5581996138924",
       "name": "Teste",
-      "whatsapp_pushname": "Teste",
+      "whatsapp_pushname": "Rogerio",
       "status": "lead",
       "tags": [
         "Lead"
@@ -504,7 +504,7 @@
       "is_registered": false,
       "metadata": {},
       "created_at": "2026-09-03T17:58:33.868Z",
-      "updated_at": "2026-09-03T17:58:33.871Z"
+      "updated_at": "2026-09-03T18:27:10.283Z"
     }
   },
   "conversations": {
@@ -531,8 +531,8 @@
       "unread_count": 0,
       "created_at": "2026-09-03T17:58:33.868Z",
       "last_message": "📅 *Escolha a Data do Agendamento*\n\n*Rogerio*, para qual dia você gostaria de agendar seu atendimento?",
-      "last_message_at": "2026-09-03T17:58:33.871Z",
-      "updated_at": "2026-09-03T17:58:33.871Z"
+      "last_message_at": "2026-09-03T18:27:10.283Z",
+      "updated_at": "2026-09-03T18:27:10.283Z"
     }
   },
   "messages": {
@@ -1237,6 +1237,24 @@
         "content": "📅 *Escolha a Data do Agendamento*\n\n*Rogerio*, para qual dia você gostaria de agendar seu atendimento?",
         "status": "delivered",
         "created_at": "2026-09-03T17:58:33.871Z"
+      },
+      {
+        "id": "msg-1788460030281-c0d9c",
+        "conversation_id": "conv-5581996138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Olá Rogerio, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber Shop*! e vou lhe auxiliar para ter um melhor atendimento",
+        "status": "delivered",
+        "created_at": "2026-09-03T18:27:10.281Z"
+      },
+      {
+        "id": "msg-1788460030283-x9piv",
+        "conversation_id": "conv-5581996138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "📅 *Escolha a Data do Agendamento*\n\n*Rogerio*, para qual dia você gostaria de agendar seu atendimento?",
+        "status": "delivered",
+        "created_at": "2026-09-03T18:27:10.283Z"
       }
     ]
   },

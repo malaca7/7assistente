@@ -680,7 +680,24 @@ export async function getActiveFlowAndGraph(db) {
     console.warn(`[FlowRunner] ⚠️ Fluxo "${candidateFlow.name}" (${flowId}) publicado mas sem nós, tentando próximo...`);
   }
 
-  // Last resort: return first published flow even without nodes (will show error message)
+  // If candidate flows had no nodes, find ANY flow in db that HAS nodes
+  const flowWithNodes = (flows || []).find((f) => (db.nodes?.[f.id] || []).length > 0);
+  if (flowWithNodes) {
+    const fallbackNodes = db.nodes[flowWithNodes.id];
+    const fallbackEdges = db.edges?.[flowWithNodes.id] || [];
+    console.log(`[FlowRunner] 🔄 Reutilizando grafo de "${flowWithNodes.name}" (${fallbackNodes.length} nós) para fluxo ativo`);
+    return { publishedFlow: publishedFlows[0] || flowWithNodes, nodes: fallbackNodes, edges: fallbackEdges };
+  }
+
+  // Check if db.nodes has any entries at all
+  const anyKey = Object.keys(db.nodes || {}).find((k) => (db.nodes[k] || []).length > 0);
+  if (anyKey) {
+    const fallbackNodes = db.nodes[anyKey];
+    const fallbackEdges = db.edges?.[anyKey] || [];
+    return { publishedFlow: publishedFlows[0] || flows[0] || { name: 'Atendimento' }, nodes: fallbackNodes, edges: fallbackEdges };
+  }
+
+  // Last resort: return first published flow even without nodes
   const fallback = publishedFlows[0] || flows[0];
   return { publishedFlow: fallback || null, nodes: db.nodes?.[fallback?.id] || [], edges: db.edges?.[fallback?.id] || [] };
 }

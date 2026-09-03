@@ -470,7 +470,13 @@ export const SettingsPage: React.FC = () => {
       {activeTab === 'whatsapp_qr' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in">
           <div className="lg:col-span-2 space-y-6">
-            <QRCodeView />
+            <QRCodeView
+              value={rawQR || session.qrCode || ''}
+              qrDataUrl={qrDataUrl}
+              onRefresh={generateQRCode}
+              onRequestPairingCode={requestPairingCode}
+              isLoading={isConnecting}
+            />
 
             {/* Backend URL Configuration */}
             <Card className="p-6 rounded-3xl bg-dark-900/70 border-white/10 space-y-4">

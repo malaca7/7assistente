@@ -29,10 +29,25 @@ const getBackendUrl = (): string => {
     return window.location.origin;
   }
   try {
+    const customUrl = localStorage.getItem('7assistente_custom_backend_url');
+    if (customUrl) {
+      if (customUrl.includes('talvanebarber')) {
+        localStorage.setItem('7assistente_custom_backend_url', 'https://talvane.discloud.app');
+        return 'https://talvane.discloud.app';
+      }
+      if (customUrl.trim()) return customUrl.trim();
+    }
     const raw = localStorage.getItem('7assistente_settings');
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed?.backend_url) return parsed.backend_url;
+      if (parsed?.backend_url) {
+        if (parsed.backend_url.includes('talvanebarber')) {
+          parsed.backend_url = 'https://talvane.discloud.app';
+          localStorage.setItem('7assistente_settings', JSON.stringify(parsed));
+          return 'https://talvane.discloud.app';
+        }
+        return parsed.backend_url;
+      }
     }
   } catch {}
   return 'https://talvane.discloud.app';
