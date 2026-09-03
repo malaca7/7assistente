@@ -45,7 +45,8 @@ import {
   CalendarCheck,
   Headphones,
   UserPlus,
-  Eraser
+  Eraser,
+  AlertCircle
 } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -59,7 +60,7 @@ import { StorageService, getBackendUrl } from '../../lib/storage';
 import { Conversation, Message, Contact, Flow, Attendant, CannedReply } from '../../types';
 import { formatPhone, formatTimeAgo, formatDate } from '../../lib/utils';
 
-export const ConversationsPage: React.FC = () => {
+export const ConversationsPage: React.FC<{ onNavigate?: (path: string) => void }> = ({ onNavigate }) => {
   const { success, info, warning, error: toastError } = useToast();
   const { isConnected } = useWhatsApp();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -741,7 +742,7 @@ export const ConversationsPage: React.FC = () => {
               </div>
               <button
                 type="button"
-                onClick={() => onNavigate('/configuracoes')}
+                onClick={() => onNavigate ? onNavigate('/configuracoes') : (window.location.href = '/configuracoes')}
                 className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs whitespace-nowrap shadow-sm transition-all"
               >
                 Conectar Aparelho
