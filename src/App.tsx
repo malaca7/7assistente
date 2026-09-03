@@ -69,32 +69,24 @@ export const App: React.FC = () => {
   let pageContent = <DashboardPage onNavigate={navigate} />;
 
   if (currentPath === '/fluxos') {
-    title = 'Construtor de Fluxos';
+    title = 'Fluxos';
     subtitle = 'Gerencie e edite árvores de nós de automação';
     pageContent = <FlowListPage onNavigate={navigate} />;
-  } else if (currentPath === '/conversas') {
-    title = 'Conversas & Atendimento';
-    subtitle = 'Histórico e transferências de atendimento no WhatsApp';
+  } else if (currentPath === '/conversas' || currentPath === '/atendimento') {
+    title = 'Atendimento';
+    subtitle = 'Histórico de mensagens e atendimento em tempo real no WhatsApp';
     pageContent = <ConversationsPage />;
   } else if (currentPath === '/clientes' || currentPath === '/contatos') {
-    title = 'Gestão de Clientes & CRM';
+    title = 'Clientes';
     subtitle = 'Histórico completo de atendimentos, agendamentos realizados, serviços e preferências';
     pageContent = <ClientsPage onNavigate={navigate} />;
-  } else if (currentPath === '/agenda') {
-    title = 'Agenda & Compromissos';
-    subtitle = 'Gerenciador de horários marcados no WhatsApp';
+  } else if (currentPath === '/agenda' || currentPath === '/agendamentos' || currentPath === '/servicos' || currentPath === '/expediente') {
+    title = 'Agendamentos';
+    subtitle = 'Gestão completa de horários marcados, catálogo de serviços e expediente de funcionamento';
     pageContent = <AgendaPage onNavigate={navigate} />;
-  } else if (currentPath === '/servicos' || currentPath === '/expediente') {
-    title = 'Serviços & Expediente';
-    subtitle = 'Catálogo de serviços, preços, dias de funcionamento e horários de atendimento';
-    pageContent = <ServicesAndHoursPage onNavigate={navigate} />;
-  } else if (currentPath === '/agentes-ia') {
-    title = 'Agentes de IA';
-    subtitle = 'Configuração de inteligência artificial e bases de conhecimento';
-    pageContent = <AiAgentsPage />;
   } else if (currentPath === '/configuracoes') {
     title = 'Configurações';
-    subtitle = 'Perfil e identidade do bot, variáveis globais e Meta WhatsApp API';
+    subtitle = 'Perfil do assistente, integrações, banco de dados Supabase e preferências da plataforma';
     pageContent = <SettingsPage />;
   }
 

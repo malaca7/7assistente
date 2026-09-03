@@ -49,7 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: 'flows',
-      label: 'Construtor de Fluxos',
+      label: 'Fluxos',
       path: '/fluxos',
       icon: GitFork,
       badge: 'PRO',
@@ -57,7 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: 'conversations',
-      label: 'Conversas & Atendimento',
+      label: 'Atendimento',
       path: '/conversas',
       icon: MessageSquareText,
       badge: '3',
@@ -72,26 +72,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: 'agenda',
-      label: 'Agenda & Horários',
+      label: 'Agendamentos',
       path: '/agenda',
       icon: CalendarIcon,
       badge: null,
-    },
-    {
-      id: 'services-hours',
-      label: 'Serviços & Expediente',
-      path: '/servicos',
-      icon: Scissors,
-      badge: 'PRO',
-      badgeColor: 'bg-brand-500/20 text-brand-300 border-brand-500/30',
-    },
-    {
-      id: 'ai-agents',
-      label: 'Agentes de IA',
-      path: '/agentes-ia',
-      icon: Sparkles,
-      badge: 'IA',
-      badgeColor: 'bg-brand-500/20 text-brand-300 border-brand-500/30',
     },
     {
       id: 'settings',

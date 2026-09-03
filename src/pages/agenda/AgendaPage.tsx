@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Calendar as CalendarIcon, 
   Clock, 
@@ -14,6 +14,7 @@ import {
   MessageSquare, 
   Trash2, 
   Edit, 
+  Edit2,
   Save, 
   Sliders, 
   Sparkles, 
@@ -26,7 +27,18 @@ import {
   GripVertical,
   Move,
   LayoutGrid,
-  List
+  List,
+  Scissors,
+  Copy,
+  Briefcase,
+  ToggleLeft,
+  ToggleRight,
+  Info,
+  CalendarCheck,
+  CalendarDays,
+  TrendingUp,
+  Tag,
+  AlertTriangle
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -34,7 +46,7 @@ import { Input, Textarea } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { useToast } from '../../contexts/ToastContext';
-import { StorageService } from '../../lib/storage';
+import { StorageService, getBackendUrl } from '../../lib/storage';
 import { Appointment, AgendaSettings, AgendaServiceItem } from '../../types';
 import { formatPhone, formatDate } from '../../lib/utils';
 
@@ -43,25 +55,31 @@ export interface AgendaPageProps {
 }
 
 export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
-  const { success, error: toastError, info } = useToast();
-  const [activeTab, setActiveTab] = useState<'appointments' | 'settings'>('appointments');
+  const { success, error: toastError, info, warning } = useToast();
+  
+  // Tabs: 'appointments' | 'services' | 'hours' | 'simulator'
+  const [activeTab, setActiveTab] = useState<'appointments' | 'services' | 'hours' | 'simulator'>('appointments');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [settings, setSettings] = useState<AgendaSettings>({
-    business_days: ['1', '2', '3', '4', '5'],
+    business_days: ['1', '2', '3', '4', '5', '6'],
     start_time: '08:00',
-    end_time: '18:00',
+    end_time: '19:00',
     slot_duration_minutes: 30,
     break_start_time: '12:00',
     break_end_time: '13:00',
+    buffer_minutes: 5,
+    out_of_hours_message: 'Olá! Nosso horário de expediente é de Segunda a Sábado das 08:00 às 19:00. Deixe sua mensagem ou escolha um horário que responderemos com prioridade!',
     services: [
-      { id: 'srv-1', name: 'Atendimento Especialista', duration_minutes: 30, price: 150 },
-      { id: 'srv-2', name: 'Demonstração da Plataforma', duration_minutes: 45, price: 0 },
-      { id: 'srv-3', name: 'Suporte & Configuração', duration_minutes: 30, price: 80 },
+      { id: 'srv-1', name: 'Corte Tradicional', duration_minutes: 30, price: 35, category: 'Cabelo', is_active: true },
+      { id: 'srv-2', name: 'Barba Terapia & Modelagem', duration_minutes: 25, price: 25, category: 'Barba', is_active: true },
+      { id: 'srv-3', name: 'Combo Cabelo + Barba', duration_minutes: 55, price: 55, category: 'Combos', is_active: true },
+      { id: 'srv-4', name: 'Sobrancelha & Acabamento', duration_minutes: 15, price: 15, category: 'Estética', is_active: true },
     ],
   });
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     return new Date().toISOString().split('T')[0];
@@ -76,28 +94,45 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newClientName, setNewClientName] = useState('');
   const [newClientPhone, setNewClientPhone] = useState('');
-  const [newService, setNewService] = useState('Atendimento Especialista');
+  const [newService, setNewService] = useState('Corte Tradicional');
   const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0]);
   const [newTime, setNewTime] = useState('09:00');
+  const [newPrice, setNewPrice] = useState<number | ''>(35);
   const [newNotes, setNewNotes] = useState('');
-  const [isSavingSettings, setIsSavingSettings] = useState(false);
 
-  // New Service input state in settings tab
-  const [newServiceName, setNewServiceName] = useState('');
-  const [newServiceDuration, setNewServiceDuration] = useState(30);
-  const [newServicePrice, setNewServicePrice] = useState(0);
+  // Service Modal State (Catálogo)
+  const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
+  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
+  const [serviceName, setServiceName] = useState('');
+  const [serviceDuration, setServiceDuration] = useState(30);
+  const [servicePrice, setServicePrice] = useState<number | ''>(35);
+  const [serviceCategory, setServiceCategory] = useState('Cabelo');
+  const [serviceDescription, setServiceDescription] = useState('');
+  const [serviceIsActive, setServiceIsActive] = useState(true);
+  const [serviceSearchTerm, setServiceSearchTerm] = useState('');
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
 
+  // Simulator State
+  const [simDate, setSimDate] = useState(new Date().toISOString().split('T')[0]);
+
+  // Load Data
   const loadData = async (silent = false) => {
     try {
       if (!silent) setIsLoading(true);
-      const [apts, agendaConfig] = await Promise.all([
+      const [aptsData, settingsData] = await Promise.all([
         StorageService.getAppointments(),
         StorageService.getAgendaSettings(),
       ]);
-      setAppointments(apts);
-      setSettings(agendaConfig);
-    } catch (err) {
-      console.error('Error loading agenda data:', err);
+      setAppointments(aptsData);
+      if (settingsData) {
+        setSettings(prev => ({
+          ...prev,
+          ...settingsData,
+          services: (settingsData.services && settingsData.services.length > 0) ? settingsData.services : prev.services,
+        }));
+      }
+    } catch (e) {
+      console.error('Error loading agenda data:', e);
     } finally {
       if (!silent) setIsLoading(false);
     }
@@ -107,164 +142,132 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
     loadData(false);
     const interval = setInterval(() => {
       loadData(true);
-    }, 3500);
+    }, 4000);
     return () => clearInterval(interval);
   }, []);
 
-  // Generate All Time Slots for the Day
-  const generateSlots = () => {
-    const startHour = parseInt(settings.start_time.split(':')[0], 10) || 8;
-    const startMin = parseInt(settings.start_time.split(':')[1] || '0', 10);
-    const endHour = parseInt(settings.end_time.split(':')[0], 10) || 18;
-    const endMin = parseInt(settings.end_time.split(':')[1] || '0', 10);
-    const duration = settings.slot_duration_minutes || 30;
-
-    const slots: string[] = [];
-    let currentMinutes = startHour * 60 + startMin;
-    const endMinutes = endHour * 60 + endMin;
-
-    while (currentMinutes + duration <= endMinutes) {
-      const h = Math.floor(currentMinutes / 60);
-      const m = currentMinutes % 60;
-      slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
-      currentMinutes += duration;
-    }
-
-    return slots.length > 0 ? slots : ['08:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'];
-  };
-
-  const slots = generateSlots();
-
-  // Date Navigation Helpers
-  const handlePrevDay = () => {
-    const d = new Date(selectedDate + 'T00:00:00');
-    d.setDate(d.getDate() - 1);
-    setSelectedDate(d.toISOString().split('T')[0]);
-  };
-
-  const handleNextDay = () => {
-    const d = new Date(selectedDate + 'T00:00:00');
-    d.setDate(d.getDate() + 1);
-    setSelectedDate(d.toISOString().split('T')[0]);
-  };
-
-  const handleToday = () => {
-    setSelectedDate(new Date().toISOString().split('T')[0]);
-  };
-
-  const formatDisplayDate = (dateStr: string) => {
+  // Save General Agenda Settings (Expediente)
+  const handleSaveHoursSettings = async () => {
     try {
-      const parts = dateStr.split('-');
-      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-      return d.toLocaleDateString('pt-BR', {
-        weekday: 'long',
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric',
-      });
-    } catch {
-      return dateStr;
+      setIsSavingSettings(true);
+      await StorageService.updateAgendaSettings(settings);
+      success('Configurações Salvas', 'Expediente e horários foram atualizados no banco de dados e no WhatsApp bot.');
+    } catch (err: any) {
+      toastError('Erro ao salvar', err.message);
+    } finally {
+      setIsSavingSettings(false);
     }
   };
 
-  // Drag and Drop Logic
-  const handleDragStart = (e: React.DragEvent, apt: Appointment) => {
-    e.dataTransfer.setData('text/plain', apt.id);
-    e.dataTransfer.effectAllowed = 'move';
-    setDraggedAptId(apt.id);
+  // Toggle Business Day
+  const handleToggleDay = (dayIndex: string) => {
+    const current = [...settings.business_days];
+    const exists = current.includes(dayIndex);
+    const updated = exists ? current.filter(d => d !== dayIndex) : [...current, dayIndex];
+    setSettings(prev => ({ ...prev, business_days: updated }));
   };
 
-  const handleDragEnd = () => {
-    setDraggedAptId(null);
-    setDragOverSlot(null);
+  // --- SERVICE CATALOG METHODS ---
+  const handleOpenNewService = () => {
+    setEditingServiceId(null);
+    setServiceName('');
+    setServiceDuration(30);
+    setServicePrice(35);
+    setServiceCategory('Cabelo');
+    setServiceDescription('');
+    setServiceIsActive(true);
+    setIsServiceModalOpen(true);
   };
 
-  const handleDropOnSlot = async (slotTime: string) => {
-    if (!draggedAptId) return;
+  const handleOpenEditService = (item: AgendaServiceItem) => {
+    setEditingServiceId(item.id);
+    setServiceName(item.name);
+    setServiceDuration(item.duration_minutes || 30);
+    setServicePrice(item.price ?? 35);
+    setServiceCategory(item.category || 'Cabelo');
+    setServiceDescription(item.description || '');
+    setServiceIsActive(item.is_active !== false);
+    setIsServiceModalOpen(true);
+  };
 
-    const aptToMove = appointments.find((a) => a.id === draggedAptId);
-    if (!aptToMove) return;
-
-    if (aptToMove.appointment_time === slotTime && aptToMove.appointment_date === selectedDate) {
-      setDraggedAptId(null);
-      setDragOverSlot(null);
+  const handleSaveService = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!serviceName.trim()) {
+      toastError('Nome obrigatório', 'Informe o nome do serviço.');
       return;
     }
 
+    const serviceItem: AgendaServiceItem = {
+      id: editingServiceId || `srv-${Date.now()}`,
+      name: serviceName.trim(),
+      duration_minutes: Number(serviceDuration) || 30,
+      price: servicePrice === '' ? 0 : Number(servicePrice),
+      category: serviceCategory.trim() || 'Geral',
+      description: serviceDescription.trim() || undefined,
+      is_active: serviceIsActive,
+    };
+
     try {
-      const updated: Appointment = {
-        ...aptToMove,
-        appointment_date: selectedDate,
-        appointment_time: slotTime,
-      };
-
-      // Optimistic update
-      setAppointments((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
-      await StorageService.saveAppointment(updated);
-      success(
-        'Horário Reagendado!',
-        `${updated.contact_name} foi movido para ${selectedDate} às ${slotTime}.`
-      );
+      await StorageService.saveAgendaServiceItem(serviceItem);
+      const currentServices = [...(settings.services || [])];
+      const idx = currentServices.findIndex(s => s.id === serviceItem.id);
+      if (idx >= 0) currentServices[idx] = serviceItem;
+      else currentServices.push(serviceItem);
+      
+      setSettings(prev => ({ ...prev, services: currentServices }));
+      setIsServiceModalOpen(false);
+      success('Serviço Salvo', `"${serviceItem.name}" sincronizado com sucesso.`);
     } catch (err: any) {
-      toastError('Erro ao reagendar', err.message);
-      await loadData();
-    } finally {
-      setDraggedAptId(null);
-      setDragOverSlot(null);
+      toastError('Erro ao salvar serviço', err.message);
     }
   };
 
-  const handleOpenAddOnSlot = (slotTime: string) => {
-    setNewDate(selectedDate);
-    setNewTime(slotTime);
-    setIsAddModalOpen(true);
+  const handleDeleteService = async (id: string, name: string) => {
+    if (!confirm(`Tem certeza que deseja remover o serviço "${name}"?`)) return;
+    try {
+      await StorageService.deleteAgendaServiceItem(id);
+      const updated = (settings.services || []).filter(s => s.id !== id);
+      setSettings(prev => ({ ...prev, services: updated }));
+      success('Serviço Removido', `O serviço "${name}" foi excluído.`);
+    } catch (err: any) {
+      toastError('Erro ao excluir', err.message);
+    }
   };
 
-  const getServiceDuration = (serviceName: string, currentSettings: AgendaSettings, apt?: Appointment): number => {
-    if (apt?.duration_minutes && apt.duration_minutes > 0) {
-      return apt.duration_minutes;
+  const handleToggleServiceStatus = async (item: AgendaServiceItem) => {
+    const updated: AgendaServiceItem = { ...item, is_active: !item.is_active };
+    try {
+      await StorageService.saveAgendaServiceItem(updated);
+      const currentServices = [...(settings.services || [])];
+      const idx = currentServices.findIndex(s => s.id === item.id);
+      if (idx >= 0) currentServices[idx] = updated;
+      setSettings(prev => ({ ...prev, services: currentServices }));
+      info('Status Atualizado', `Serviço "${item.name}" agora está ${updated.is_active ? 'ATIVO' : 'INATIVO'}.`);
+    } catch (err: any) {
+      toastError('Erro ao atualizar', err.message);
     }
-    if (!serviceName) return currentSettings.slot_duration_minutes || 15;
-
-    const normalized = serviceName.trim().toLowerCase();
-    const matched = (currentSettings.services || []).find((s) => {
-      const sNorm = s.name.trim().toLowerCase();
-      return sNorm === normalized || normalized.includes(sNorm) || sNorm.includes(normalized);
-    });
-
-    if (matched && matched.duration_minutes > 0) {
-      return matched.duration_minutes;
-    }
-
-    const match = serviceName.match(/(\d+)\s*(?:min|m|minutos)/i);
-    if (match) {
-      return parseInt(match[1], 10);
-    }
-
-    if (normalized.includes('barba') && normalized.includes('corte')) {
-      return 55;
-    }
-
-    return currentSettings.slot_duration_minutes || 15;
   };
 
-  const handleCreateAppointment = async (e: React.FormEvent) => {
+  // --- APPOINTMENTS METHODS ---
+  const handleSaveAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newClientName.trim() || !newClientPhone.trim()) {
-      toastError('Campos obrigatórios', 'Informe o nome e WhatsApp do cliente.');
+      toastError('Dados incompletos', 'Informe o nome e WhatsApp do cliente.');
       return;
     }
 
     try {
-      const srvObj = settings.services.find((s) => s.name === newService);
-      const calculatedDur = srvObj?.duration_minutes || getServiceDuration(newService, settings);
+      const selectedSrvObj = settings.services?.find(s => s.name === newService);
+      const duration = selectedSrvObj?.duration_minutes || 30;
+      const price = newPrice === '' ? (selectedSrvObj?.price || 35) : Number(newPrice);
 
       const newApt: Appointment = {
         id: `apt-${Date.now()}`,
         contact_name: newClientName.trim(),
         contact_phone: newClientPhone.replace(/\D/g, ''),
         service_name: newService,
-        duration_minutes: calculatedDur,
+        duration_minutes: duration,
+        price,
         appointment_date: newDate,
         appointment_time: newTime,
         status: 'confirmed',
@@ -275,794 +278,789 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
       await StorageService.saveAppointment(newApt);
       await loadData();
       setIsAddModalOpen(false);
-      setNewClientName('');
-      setNewClientPhone('');
-      setNewNotes('');
-      success('Agendamento Confirmado', `Horário reservado para ${newApt.contact_name} em ${newApt.appointment_date} às ${newApt.appointment_time}.`);
+      success('Agendamento Confirmado', `Horário reservado para ${newApt.contact_name} em ${formatDate(newDate)} às ${newTime}.`);
     } catch (err: any) {
       toastError('Erro ao agendar', err.message);
     }
   };
 
-  const handleUpdateStatus = async (id: string, newStatus: Appointment['status']) => {
+  const handleUpdateStatus = async (aptId: string, newStatus: Appointment['status']) => {
     try {
-      await StorageService.updateAppointmentStatus(id, newStatus);
+      await StorageService.updateAppointmentStatus(aptId, newStatus);
       await loadData();
-      success('Status Atualizado', `O agendamento agora está ${newStatus === 'confirmed' ? 'Confirmado' : newStatus === 'completed' ? 'Concluído' : 'Cancelado'}.`);
+      success('Status Atualizado', `O agendamento agora está como ${
+        newStatus === 'completed' ? 'Realizado' :
+        newStatus === 'confirmed' ? 'Confirmado' :
+        newStatus === 'cancelled' ? 'Cancelado' :
+        newStatus === 'no_show' ? 'Não Compareceu' : 'Pendente'
+      }.`);
     } catch (err: any) {
       toastError('Erro ao atualizar status', err.message);
     }
   };
 
-  const handleDeleteAppointment = async (id: string, clientName: string) => {
+  const handleDeleteAppointment = async (aptId: string) => {
+    if (!confirm('Deseja realmente remover este agendamento?')) return;
     try {
-      await StorageService.deleteAppointment(id);
+      await StorageService.deleteAppointment(aptId);
       await loadData();
-      success('Agendamento Removido', `O agendamento de ${clientName} foi excluído.`);
+      success('Agendamento Excluído', 'O registro foi removido com sucesso.');
     } catch (err: any) {
       toastError('Erro ao excluir', err.message);
     }
   };
 
-  const handleSaveSettings = async () => {
-    setIsSavingSettings(true);
+  // Drag and Drop Slot Reassignment
+  const handleDragStart = (aptId: string) => {
+    setDraggedAptId(aptId);
+  };
+
+  const handleDragOver = (e: React.DragEvent, timeSlot: string) => {
+    e.preventDefault();
+    setDragOverSlot(timeSlot);
+  };
+
+  const handleDrop = async (timeSlot: string) => {
+    if (!draggedAptId) return;
+    const targetApt = appointments.find(a => a.id === draggedAptId);
+    if (!targetApt) return;
+
     try {
-      await StorageService.updateAgendaSettings(settings);
-      success('Configurações da Agenda Salvas', 'Horários e regras sincronizados com o motor do WhatsApp.');
+      const updated = { ...targetApt, appointment_time: timeSlot, appointment_date: selectedDate };
+      await StorageService.saveAppointment(updated);
+      await loadData();
+      success('Horário Remarcado', `Agendamento de ${targetApt.contact_name} movido para ${timeSlot}.`);
     } catch (err: any) {
-      toastError('Erro ao salvar configurações', err.message);
+      toastError('Erro ao mover', err.message);
     } finally {
-      setIsSavingSettings(false);
+      setDraggedAptId(null);
+      setDragOverSlot(null);
     }
   };
 
-  const handleAddService = () => {
-    if (!newServiceName.trim()) return;
-    const newSrv: AgendaServiceItem = {
-      id: `srv-${Date.now()}`,
-      name: newServiceName.trim(),
-      duration_minutes: Number(newServiceDuration) || 30,
-      price: Number(newServicePrice) || 0,
-    };
-    setSettings((prev) => ({
-      ...prev,
-      services: [...prev.services, newSrv],
-    }));
-    setNewServiceName('');
-    setNewServicePrice(0);
-    success('Serviço Adicionado', `"${newSrv.name}" adicionado à lista de serviços.`);
+  // Generate Available Time Slots calculation
+  const generateSlots = (dateString: string) => {
+    const slots: string[] = [];
+    const targetDate = new Date(`${dateString}T12:00:00`);
+    const dayOfWeek = String(targetDate.getDay());
+
+    if (!settings.business_days.includes(dayOfWeek)) {
+      return [];
+    }
+
+    const [startH, startM] = settings.start_time.split(':').map(Number);
+    const [endH, endM] = settings.end_time.split(':').map(Number);
+    const [breakStartH, breakStartM] = (settings.break_start_time || '12:00').split(':').map(Number);
+    const [breakEndH, breakEndM] = (settings.break_end_time || '13:00').split(':').map(Number);
+
+    const startTotal = startH * 60 + startM;
+    const endTotal = endH * 60 + endM;
+    const breakStartTotal = breakStartH * 60 + breakStartM;
+    const breakEndTotal = breakEndH * 60 + breakEndM;
+    const duration = settings.slot_duration_minutes || 30;
+
+    let current = startTotal;
+    while (current + duration <= endTotal) {
+      const isLunch = current >= breakStartTotal && current < breakEndTotal;
+      if (!isLunch) {
+        const h = Math.floor(current / 60);
+        const m = current % 60;
+        slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+      }
+      current += duration;
+    }
+    return slots;
   };
 
-  const handleRemoveService = (srvId: string) => {
-    setSettings((prev) => ({
-      ...prev,
-      services: prev.services.filter((s) => s.id !== srvId),
-    }));
-  };
-
-  const toggleDay = (dayKey: string) => {
-    setSettings((prev) => {
-      const days = prev.business_days.includes(dayKey)
-        ? prev.business_days.filter((d) => d !== dayKey)
-        : [...prev.business_days, dayKey];
-      return { ...prev, business_days: days };
+  // Filtered Appointments
+  const filteredAppointments = useMemo(() => {
+    return appointments.filter(apt => {
+      const matchesDate = apt.appointment_date === selectedDate;
+      const matchesStatus = filterStatus === 'all' || apt.status === filterStatus;
+      const search = searchTerm.toLowerCase();
+      const matchesSearch = 
+        (apt.contact_name || '').toLowerCase().includes(search) ||
+        (apt.contact_phone || '').includes(search) ||
+        (apt.service_name || '').toLowerCase().includes(search);
+      return matchesDate && matchesStatus && matchesSearch;
     });
-  };
+  }, [appointments, selectedDate, filterStatus, searchTerm]);
 
-  const weekDays = [
-    { key: '1', label: 'Segunda' },
-    { key: '2', label: 'Terça' },
-    { key: '3', label: 'Quarta' },
-    { key: '4', label: 'Quinta' },
-    { key: '5', label: 'Sexta' },
-    { key: '6', label: 'Sábado' },
-    { key: '0', label: 'Domingo' },
+  // Filtered Services in Catalog Tab
+  const serviceCategories = useMemo(() => {
+    const set = new Set<string>();
+    (settings.services || []).forEach(s => s.category && set.add(s.category.trim()));
+    return ['all', ...Array.from(set)];
+  }, [settings.services]);
+
+  const filteredServices = useMemo(() => {
+    return (settings.services || []).filter(s => {
+      const matchesCategory = selectedCategoryFilter === 'all' || s.category === selectedCategoryFilter;
+      const matchesSearch = s.name.toLowerCase().includes(serviceSearchTerm.toLowerCase()) || 
+        (s.description || '').toLowerCase().includes(serviceSearchTerm.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }, [settings.services, selectedCategoryFilter, serviceSearchTerm]);
+
+  const slotsForSelectedDate = useMemo(() => generateSlots(selectedDate), [selectedDate, settings]);
+  const simulatedSlots = useMemo(() => generateSlots(simDate), [simDate, settings]);
+
+  const weekDaysLabels = [
+    { id: '0', label: 'Dom', full: 'Domingo' },
+    { id: '1', label: 'Seg', full: 'Segunda-feira' },
+    { id: '2', label: 'Ter', full: 'Terça-feira' },
+    { id: '3', label: 'Qua', full: 'Quarta-feira' },
+    { id: '4', label: 'Qui', full: 'Quinta-feira' },
+    { id: '5', label: 'Sex', full: 'Sexta-feira' },
+    { id: '6', label: 'Sáb', full: 'Sábado' },
   ];
 
-  // Appointments for the selected day in Grid View
-  const dayAppointments = appointments.filter((a) => a.appointment_date === selectedDate);
-
-  // Filtered appointments for List View
-  const filteredAppointments = appointments.filter((apt) => {
-    const matchesSearch =
-      apt.contact_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      apt.contact_phone.includes(searchTerm) ||
-      apt.service_name.toLowerCase().includes(searchTerm.toLowerCase());
-    if (!matchesSearch) return false;
-    if (filterStatus !== 'all' && apt.status !== filterStatus) return false;
-    return true;
-  });
-
   return (
-    <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-300 select-none pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-display font-bold text-white tracking-tight flex items-center gap-2">
-            <CalendarIcon className="w-5 h-5 text-emerald-400" />
-            Agenda & Grade de Horários
-          </h2>
-          <p className="text-xs text-slate-400 mt-1">
-            Gerencie os horários marcados pelos clientes no WhatsApp e arraste os cards para reagendar.
-          </p>
+    <div className="space-y-6 pb-12 animate-in fade-in duration-200">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-dark-900/60 p-4 rounded-3xl border border-white/5 backdrop-blur-xl">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-500 p-0.5 shadow-lg shadow-brand-500/20 flex items-center justify-center">
+            <div className="w-full h-full bg-dark-950 rounded-[14px] flex items-center justify-center text-brand-400">
+              <CalendarIcon className="w-6 h-6" />
+            </div>
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-white flex items-center gap-2">
+              Central de Agendamentos & Serviços
+              <Badge variant="brand" className="text-[10px] py-0 px-2">Sincronizado</Badge>
+            </h1>
+            <p className="text-xs text-slate-400">
+              Agenda do WhatsApp, catálogo de serviços, expediente comercial e vagas
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <div className="flex rounded-2xl bg-dark-900 border border-white/10 p-1">
-            <button
-              onClick={() => setActiveTab('appointments')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                activeTab === 'appointments'
-                  ? 'bg-emerald-500 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <CalendarIcon className="w-3.5 h-3.5" />
-              Grade & Horários ({appointments.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('settings')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                activeTab === 'settings'
-                  ? 'bg-emerald-500 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <SettingsIcon className="w-3.5 h-3.5" />
-              Configurar Horários
-            </button>
-          </div>
-
+        {/* Action Button depending on tab */}
+        <div className="flex items-center gap-2">
           {activeTab === 'appointments' && (
             <Button
               variant="brand"
               size="sm"
+              onClick={() => setIsAddModalOpen(true)}
               leftIcon={<Plus className="w-4 h-4" />}
-              onClick={() => {
-                setNewDate(selectedDate);
-                setIsAddModalOpen(true);
-              }}
-              className="bg-emerald-600 hover:bg-emerald-500"
+              className="text-xs shadow-lg shadow-brand-500/20"
             >
               Novo Agendamento
+            </Button>
+          )}
+
+          {activeTab === 'services' && (
+            <Button
+              variant="brand"
+              size="sm"
+              onClick={handleOpenNewService}
+              leftIcon={<Plus className="w-4 h-4" />}
+              className="text-xs shadow-lg shadow-brand-500/20"
+            >
+              Novo Serviço
+            </Button>
+          )}
+
+          {activeTab === 'hours' && (
+            <Button
+              variant="brand"
+              size="sm"
+              onClick={handleSaveHoursSettings}
+              disabled={isSavingSettings}
+              leftIcon={<Save className="w-4 h-4" />}
+              className="text-xs bg-emerald-600 hover:bg-emerald-500"
+            >
+              {isSavingSettings ? 'Salvando...' : 'Salvar Expediente'}
             </Button>
           )}
         </div>
       </div>
 
-      {/* TAB 1: Appointments & Grid */}
-      {activeTab === 'appointments' && (
-        <div className="space-y-6">
-          {/* Top Control Bar: Date Navigator & View Switcher */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-3xl bg-dark-900 border border-white/5 shadow-xl">
-            {/* Date Navigator */}
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={handlePrevDay}
-                  className="p-2 rounded-xl bg-dark-850 border border-white/5 text-slate-300 hover:text-white hover:border-white/20 transition-colors"
-                  title="Dia Anterior"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={handleToday}
-                  className="px-3 py-1.5 rounded-xl bg-dark-850 border border-white/5 text-xs font-bold text-slate-300 hover:text-white hover:border-white/20 transition-colors"
-                >
-                  Hoje
-                </button>
-                <button
-                  onClick={handleNextDay}
-                  className="p-2 rounded-xl bg-dark-850 border border-white/5 text-slate-300 hover:text-white hover:border-white/20 transition-colors"
-                  title="Próximo Dia"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
+      {/* Main Tabs Navigation Bar */}
+      <div className="flex items-center gap-1.5 p-1.5 bg-dark-900/80 rounded-2xl border border-white/5 overflow-x-auto">
+        <button
+          onClick={() => setActiveTab('appointments')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+            activeTab === 'appointments'
+              ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <CalendarIcon className="w-4 h-4" />
+          <span>Agenda & Compromissos</span>
+          <Badge variant="neutral" className="text-[10px] ml-1 bg-dark-950/60">{appointments.length}</Badge>
+        </button>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="bg-dark-850 border border-white/10 rounded-xl px-3 py-1.5 text-xs font-mono font-bold text-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                />
-                <span className="text-xs font-bold text-white capitalize hidden md:inline">
-                  {formatDisplayDate(selectedDate)}
-                </span>
-              </div>
+        <button
+          onClick={() => setActiveTab('services')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+            activeTab === 'services'
+              ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Scissors className="w-4 h-4" />
+          <span>Catálogo de Serviços</span>
+          <Badge variant="neutral" className="text-[10px] ml-1 bg-dark-950/60">{(settings.services || []).length}</Badge>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('hours')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+            activeTab === 'hours'
+              ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Clock className="w-4 h-4" />
+          <span>Horários & Expediente</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('simulator')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+            activeTab === 'simulator'
+              ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>Simulador de Vagas</span>
+        </button>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* TAB 1: AGENDA & COMPROMISSOS */}
+      {/* ========================================================================= */}
+      {activeTab === 'appointments' && (
+        <div className="space-y-4 animate-in fade-in">
+          {/* Calendar Toolbar (Date Selector, Filters, Search) */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-3 bg-dark-900/50 p-3.5 rounded-2xl border border-white/5">
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="bg-dark-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+              />
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
+                className="text-xs h-8"
+              >
+                Hoje
+              </Button>
+
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="bg-dark-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              >
+                <option value="all">Todos os Status</option>
+                <option value="confirmed">Confirmados</option>
+                <option value="completed">Realizados / Concluídos</option>
+                <option value="no_show">Não Compareceu</option>
+                <option value="cancelled">Cancelados</option>
+              </select>
             </div>
 
-            {/* View Mode & Drag Tip */}
-            <div className="flex items-center gap-3">
-              <div className="hidden lg:flex items-center gap-1.5 text-[11px] text-emerald-400/90 font-medium bg-emerald-950/40 border border-emerald-500/20 px-3 py-1 rounded-xl">
-                <Move className="w-3.5 h-3.5" />
-                <span>Arraste os cards (Drag & Drop) para trocar o horário</span>
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <div className="relative flex-1 md:w-64">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
+                <input
+                  type="text"
+                  placeholder="Buscar cliente ou serviço..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-dark-950 border border-white/10 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
               </div>
 
-              <div className="flex rounded-xl bg-dark-850 border border-white/10 p-1">
+              <div className="flex items-center gap-1 bg-dark-950 p-1 rounded-xl border border-white/10">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-1.5 rounded-lg text-xs transition-colors flex items-center gap-1 ${
-                    viewMode === 'grid'
-                      ? 'bg-emerald-500 text-white'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                  title="Grade por Horários"
+                  className={`p-1.5 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-brand-500 text-white' : 'text-slate-400 hover:text-white'}`}
+                  title="Visão em Grade de Horários"
                 >
-                  <LayoutGrid className="w-4 h-4" />
-                  <span className="text-xs font-bold hidden sm:inline">Grade</span>
+                  <LayoutGrid className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-1.5 rounded-lg text-xs transition-colors flex items-center gap-1 ${
-                    viewMode === 'list'
-                      ? 'bg-emerald-500 text-white'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                  title="Lista Completa"
+                  className={`p-1.5 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-brand-500 text-white' : 'text-slate-400 hover:text-white'}`}
+                  title="Visão em Lista"
                 >
-                  <List className="w-4 h-4" />
-                  <span className="text-xs font-bold hidden sm:inline">Lista</span>
+                  <List className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
           </div>
 
-          {/* VIEW MODE 1: Interactive Drag & Drop Time Grid */}
-          {viewMode === 'grid' && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 gap-3">
-                {(() => {
-                  const occupiedSlots = new Set<string>();
-                  const slotOccupationMap = new Map<
-                    string,
-                    {
-                      apt: Appointment;
-                      slotsCount: number;
-                      endHourStr: string;
-                      dur: number;
-                      coveredSlotTimes: string[];
-                    }
-                  >();
+          {/* Appointments Grid or List View */}
+          {slotsForSelectedDate.length === 0 ? (
+            <Card className="p-12 text-center space-y-2 bg-dark-900/40 border-white/5">
+              <Clock className="w-10 h-10 text-slate-600 mx-auto" />
+              <h3 className="text-sm font-bold text-white">Dia Sem Expediente</h3>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                Este dia não está marcado como dia útil nas configurações de expediente comercial.
+              </p>
+            </Card>
+          ) : viewMode === 'grid' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {slotsForSelectedDate.map((timeSlot) => {
+                const aptForSlot = filteredAppointments.find(a => a.appointment_time === timeSlot);
+                const isOver = dragOverSlot === timeSlot;
 
-                  dayAppointments.forEach((apt) => {
-                    const dur = getServiceDuration(apt.service_name, settings, apt);
-                    const aptStart =
-                      parseInt(apt.appointment_time.split(':')[0], 10) * 60 +
-                      parseInt(apt.appointment_time.split(':')[1] || '0', 10);
-                    const aptEnd = aptStart + dur;
-                    const endHourStr = `${String(Math.floor(aptEnd / 60)).padStart(2, '0')}:${String(aptEnd % 60).padStart(2, '0')}`;
-
-                    // Find all slots covered by this appointment
-                    const covered = slots.filter((st) => {
-                      const stMin =
-                        parseInt(st.split(':')[0], 10) * 60 + parseInt(st.split(':')[1] || '0', 10);
-                      return stMin >= aptStart && stMin < aptEnd;
-                    });
-
-                    if (covered.length > 0) {
-                      const startSlot = covered[0];
-                      slotOccupationMap.set(startSlot, {
-                        apt,
-                        slotsCount: covered.length,
-                        endHourStr,
-                        dur,
-                        coveredSlotTimes: covered,
-                      });
-
-                      // Mark subsequent covered slots as occupied so they don't render duplicate cards
-                      for (let i = 1; i < covered.length; i++) {
-                        occupiedSlots.add(covered[i]);
-                      }
-                    }
-                  });
-
-                  return slots.map((slotTime) => {
-                    // Skip rendering redundant slot rows that are already covered by the spanning card above
-                    if (occupiedSlots.has(slotTime)) {
-                      return null;
-                    }
-
-                    const occupation = slotOccupationMap.get(slotTime);
-                    const isBreak =
-                      settings.break_start_time &&
-                      settings.break_end_time &&
-                      slotTime >= settings.break_start_time &&
-                      slotTime < settings.break_end_time;
-                    const isDragOver = dragOverSlot === slotTime;
-
-                    if (occupation) {
-                      const { apt, endHourStr, dur, coveredSlotTimes } = occupation;
-                      return (
-                        <div
-                          key={slotTime}
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                            e.dataTransfer.dropEffect = 'move';
-                            setDragOverSlot(slotTime);
-                          }}
-                          onDragLeave={() => {
-                            if (dragOverSlot === slotTime) setDragOverSlot(null);
-                          }}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            handleDropOnSlot(slotTime);
-                          }}
-                          className={`p-4 rounded-3xl border transition-all duration-200 flex flex-col md:flex-row items-start md:items-center gap-4 ${
-                            isDragOver
-                              ? 'bg-emerald-950/60 border-emerald-400 ring-2 ring-emerald-500 shadow-2xl scale-[1.01]'
-                              : 'bg-dark-900/90 border-emerald-500/30 hover:border-emerald-500/50 shadow-xl'
-                          }`}
-                        >
-                          {/* Time & Duration Column */}
-                          <div className="flex flex-col justify-center md:w-40 flex-shrink-0 space-y-1">
-                            <div className="flex items-center gap-2">
-                              <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400" />
-                              <span className="font-mono text-base font-extrabold text-white tracking-tight">
-                                {apt.appointment_time}
-                              </span>
-                              <span className="text-xs text-slate-400 font-mono">➔ {endHourStr}</span>
-                            </div>
-                            <span className="text-[10px] font-bold text-emerald-300 font-mono bg-emerald-500/15 px-2.5 py-0.5 rounded-lg border border-emerald-500/30 w-fit">
-                              ⏱️ {dur} minutos
-                            </span>
-                          </div>
-
-                          {/* Single Unified Multi-Slot Appointment Card */}
-                          <div
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, apt)}
-                            onDragEnd={handleDragEnd}
-                            className={`flex-1 w-full p-4 rounded-2xl border transition-all cursor-grab active:cursor-grabbing shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
-                              draggedAptId === apt.id
-                                ? 'opacity-40 scale-95 border-dashed border-emerald-400 bg-emerald-950/40'
-                                : apt.status === 'confirmed'
-                                ? 'bg-gradient-to-r from-emerald-950/40 via-dark-850 to-dark-900 border-emerald-500/40 hover:border-emerald-400'
-                                : apt.status === 'completed'
-                                ? 'bg-gradient-to-r from-brand-950/40 via-dark-850 to-dark-900 border-brand-500/40 hover:border-brand-400'
-                                : 'bg-gradient-to-r from-rose-950/40 via-dark-850 to-dark-900 border-rose-500/40 hover:border-rose-400'
-                            }`}
-                          >
-                            <div className="flex items-start sm:items-center gap-3.5">
-                              <div className="p-2 rounded-xl bg-white/5 text-slate-400 hover:text-white cursor-grab">
-                                <GripVertical className="w-5 h-5" />
-                              </div>
-                              <div className="space-y-1.5">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <h4 className="text-sm font-extrabold text-white tracking-tight">{apt.contact_name}</h4>
-                                  <span
-                                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                                      apt.status === 'confirmed'
-                                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                                        : apt.status === 'completed'
-                                        ? 'bg-brand-500/20 text-brand-300 border border-brand-500/30'
-                                        : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                                    }`}
-                                  >
-                                    {apt.status === 'confirmed' ? 'Confirmado' : apt.status === 'completed' ? 'Concluído' : 'Cancelado'}
-                                  </span>
-                                </div>
-
-                                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
-                                  <span className="font-mono text-slate-400">{formatPhone(apt.contact_phone)}</span>
-                                  <span>•</span>
-                                  <span className="text-emerald-300 font-bold bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-500/20">
-                                    {apt.service_name}
-                                  </span>
-                                </div>
-
-                                {/* Multi-slot indicator */}
-                                {coveredSlotTimes.length > 1 && (
-                                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                                    <span className="text-[10px] text-slate-400 font-medium">
-                                      Ocupa {coveredSlotTimes.length} horários:
-                                    </span>
-                                    {coveredSlotTimes.map((st) => (
-                                      <span
-                                        key={st}
-                                        className="px-2 py-0.5 rounded-md bg-dark-950 border border-emerald-500/30 text-[10px] font-mono font-bold text-amber-300 shadow-sm"
-                                      >
-                                        {st}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Action Buttons */}
-                            <div className="flex items-center gap-1.5 self-end sm:self-center">
-                              {apt.status === 'confirmed' && (
-                                <button
-                                  onClick={() => handleUpdateStatus(apt.id, 'completed')}
-                                  className="p-2 rounded-xl text-slate-400 hover:text-emerald-400 hover:bg-white/5 transition-colors"
-                                  title="Marcar como Concluído"
-                                >
-                                  <CheckCircle2 className="w-4 h-4" />
-                                </button>
-                              )}
-                              <button
-                                onClick={() => onNavigate('/conversas')}
-                                className="p-2 rounded-xl text-slate-400 hover:text-brand-300 hover:bg-white/5 transition-colors"
-                                title="Abrir Conversa no WhatsApp"
-                              >
-                                <MessageSquare className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteAppointment(apt.id, apt.contact_name)}
-                                className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-white/5 transition-colors"
-                                title="Excluir Agendamento"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    // Free Slot
-                    return (
-                      <div
-                        key={slotTime}
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          e.dataTransfer.dropEffect = 'move';
-                          setDragOverSlot(slotTime);
-                        }}
-                        onDragLeave={() => {
-                          if (dragOverSlot === slotTime) setDragOverSlot(null);
-                        }}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          handleDropOnSlot(slotTime);
-                        }}
-                        className={`min-h-[64px] p-3 rounded-2xl border transition-all duration-150 flex flex-col md:flex-row md:items-center gap-3 ${
-                          isDragOver
-                            ? 'bg-emerald-950/50 border-emerald-400 ring-2 ring-emerald-500 shadow-xl'
-                            : isBreak
-                            ? 'bg-dark-950/40 border-dashed border-white/5 opacity-70'
-                            : 'bg-dark-900/40 border-white/5 hover:border-white/15'
-                        }`}
-                      >
-                        {/* Time Slot Label */}
-                        <div className="flex items-center justify-between md:w-40 flex-shrink-0">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-2.5 h-2.5 rounded-full ${isBreak ? 'bg-amber-400' : 'bg-slate-700'}`} />
-                            <span className="font-mono text-sm font-bold text-slate-300 tracking-wider">
-                              {slotTime}
-                            </span>
-                          </div>
-                          {isBreak && (
-                            <span className="text-[10px] text-amber-300 font-semibold px-2 py-0.5 bg-amber-500/10 rounded-md md:hidden">
-                              Intervalo
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Free Slot Button */}
-                        <div className="flex-1 flex items-center min-h-[44px]">
-                          <div
-                            onClick={() => handleOpenAddOnSlot(slotTime)}
-                            className="flex-1 h-full min-h-[44px] rounded-xl border border-dashed border-white/10 hover:border-emerald-500/40 hover:bg-emerald-500/5 cursor-pointer flex items-center justify-center text-xs text-slate-500 hover:text-emerald-300 transition-all group"
-                          >
-                            <span className="flex items-center gap-1.5 font-medium">
-                              <Plus className="w-3.5 h-3.5 group-hover:scale-125 transition-transform" />
-                              {isBreak ? 'Intervalo (Clique para agendar mesmo assim)' : 'Horário Livre — Clique ou Solte um card aqui'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            </div>
-          )}
-
-          {/* VIEW MODE 2: Full List of Appointments */}
-          {viewMode === 'list' && (
-            <div className="space-y-4">
-              {/* Search & Filters */}
-              <Card>
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-2">
-                  <div className="relative flex-1 w-full">
-                    <Search className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
-                    <input
-                      type="text"
-                      placeholder="Buscar por cliente, telefone ou serviço..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full bg-dark-850 border border-white/5 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                    />
-                  </div>
-
-                  {/* Status Filter */}
-                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto">
-                    {[
-                      { id: 'all', label: 'Todos' },
-                      { id: 'confirmed', label: 'Confirmados' },
-                      { id: 'completed', label: 'Concluídos' },
-                      { id: 'cancelled', label: 'Cancelados' },
-                    ].map((st) => (
-                      <button
-                        key={st.id}
-                        onClick={() => setFilterStatus(st.id)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
-                          filterStatus === st.id
-                            ? 'bg-emerald-500 text-white'
-                            : 'bg-dark-850 text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        {st.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </Card>
-
-              {/* Grid of Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredAppointments.map((apt) => (
+                return (
                   <div
-                    key={apt.id}
-                    className="p-4 rounded-3xl bg-dark-900 border border-white/5 hover:border-emerald-500/30 transition-all space-y-3 shadow-xl relative group"
+                    key={timeSlot}
+                    onDragOver={(e) => handleDragOver(e, timeSlot)}
+                    onDrop={() => handleDrop(timeSlot)}
+                    className={`p-3.5 rounded-2xl border transition-all duration-200 flex flex-col justify-between min-h-[110px] ${
+                      isOver ? 'border-brand-400 bg-brand-950/40 ring-2 ring-brand-500/20' :
+                      aptForSlot
+                        ? aptForSlot.status === 'completed'
+                          ? 'bg-emerald-950/30 border-emerald-500/30'
+                          : aptForSlot.status === 'cancelled'
+                          ? 'bg-rose-950/20 border-rose-500/20 opacity-70'
+                          : aptForSlot.status === 'no_show'
+                          ? 'bg-amber-950/30 border-amber-500/30'
+                          : 'bg-dark-900/90 border-brand-500/30 shadow-md shadow-brand-500/5'
+                        : 'bg-dark-900/30 border-white/5 hover:border-white/10'
+                    }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          apt.status === 'confirmed'
-                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                            : apt.status === 'completed'
-                            ? 'bg-brand-500/20 text-brand-300 border border-brand-500/30'
-                            : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                        }`}
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-xs font-mono font-bold text-brand-300 flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5" />
+                        {timeSlot}
+                      </span>
+
+                      {aptForSlot ? (
+                        <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider ${
+                          aptForSlot.status === 'completed' ? 'bg-emerald-500/20 text-emerald-300' :
+                          aptForSlot.status === 'cancelled' ? 'bg-rose-500/20 text-rose-300' :
+                          aptForSlot.status === 'no_show' ? 'bg-amber-500/20 text-amber-300' :
+                          'bg-brand-500/20 text-brand-300'
+                        }`}>
+                          {aptForSlot.status === 'completed' ? 'Realizado' :
+                           aptForSlot.status === 'cancelled' ? 'Cancelado' :
+                           aptForSlot.status === 'no_show' ? 'Faltou' : 'Confirmado'}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-500 font-mono">Disponível</span>
+                      )}
+                    </div>
+
+                    {aptForSlot ? (
+                      <div
+                        draggable
+                        onDragStart={() => handleDragStart(aptForSlot.id)}
+                        className="mt-2 space-y-1 cursor-grab active:cursor-grabbing"
                       >
-                        {apt.status === 'confirmed' ? 'Confirmado' : apt.status === 'completed' ? 'Concluído' : 'Cancelado'}
-                      </span>
-                      <span className="text-xs font-mono font-bold text-white flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-emerald-400" />
-                        {apt.appointment_time}
-                      </span>
-                    </div>
+                        <h4 className="text-xs font-bold text-white truncate flex items-center gap-1.5">
+                          <GripVertical className="w-3 h-3 text-slate-500 flex-shrink-0" />
+                          {aptForSlot.contact_name}
+                        </h4>
+                        <p className="text-[11px] text-slate-400 truncate">
+                          ✂️ {aptForSlot.service_name} {aptForSlot.price ? `(R$ ${Number(aptForSlot.price).toFixed(2).replace('.', ',')})` : ''}
+                        </p>
+                        <p className="text-[10px] font-mono text-slate-500">
+                          📱 {formatPhone(aptForSlot.contact_phone)}
+                        </p>
 
-                    <div className="space-y-1">
-                      <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                        <User className="w-4 h-4 text-slate-400" />
-                        {apt.contact_name}
-                      </h3>
-                      <p className="text-xs text-slate-400 font-mono flex items-center gap-2">
-                        <Phone className="w-3.5 h-3.5 text-slate-500" />
-                        {formatPhone(apt.contact_phone)}
-                      </p>
-                    </div>
-
-                    <div className="p-2.5 rounded-2xl bg-dark-850 border border-white/5 space-y-1 text-xs">
-                      <div className="flex items-center justify-between text-slate-300">
-                        <span className="font-semibold text-emerald-400">Serviço:</span>
-                        <span className="font-medium truncate">{apt.service_name}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-slate-400 text-[11px]">
-                        <span>Data:</span>
-                        <span className="font-mono">{apt.appointment_date}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                      <div className="flex items-center gap-1">
-                        {apt.status === 'confirmed' && (
+                        {/* Quick Status Buttons */}
+                        <div className="flex items-center justify-end gap-1 pt-2 mt-1 border-t border-white/5">
+                          {aptForSlot.status !== 'completed' && (
+                            <button
+                              onClick={() => handleUpdateStatus(aptForSlot.id, 'completed')}
+                              className="p-1 rounded bg-emerald-950 text-emerald-400 hover:bg-emerald-900 text-[10px]"
+                              title="Marcar como Realizado / Concluído"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {aptForSlot.status !== 'no_show' && aptForSlot.status !== 'completed' && (
+                            <button
+                              onClick={() => handleUpdateStatus(aptForSlot.id, 'no_show')}
+                              className="p-1 rounded bg-amber-950 text-amber-400 hover:bg-amber-900 text-[10px]"
+                              title="Marcar como Não Compareceu"
+                            >
+                              <AlertTriangle className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                           <button
-                            onClick={() => handleUpdateStatus(apt.id, 'completed')}
-                            className="px-2 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-[11px] font-semibold flex items-center gap-1 transition-colors"
+                            onClick={() => handleDeleteAppointment(aptForSlot.id)}
+                            className="p-1 rounded bg-rose-950/40 text-rose-400 hover:bg-rose-900/60 text-[10px]"
+                            title="Remover"
                           >
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            Concluir
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
-                        )}
-                        {apt.status !== 'cancelled' && (
-                          <button
-                            onClick={() => handleUpdateStatus(apt.id, 'cancelled')}
-                            className="px-2 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-[11px] font-semibold flex items-center gap-1 transition-colors"
-                          >
-                            <XCircle className="w-3.5 h-3.5" />
-                            Cancelar
-                          </button>
-                        )}
+                        </div>
                       </div>
-
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => onNavigate('/conversas')}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-white/5 transition-colors"
-                        >
-                          <MessageSquare className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteAppointment(apt.id, apt.contact_name)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-white/5 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setNewDate(selectedDate);
+                          setNewTime(timeSlot);
+                          setIsAddModalOpen(true);
+                        }}
+                        className="mt-3 w-full py-1 rounded-xl text-[11px] text-slate-500 hover:text-white hover:bg-white/5 border border-dashed border-white/10 flex items-center justify-center gap-1 transition-colors"
+                      >
+                        <Plus className="w-3 h-3" />
+                        Agendar Horário
+                      </button>
+                    )}
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
+          ) : (
+            <Card className="bg-dark-900/70 border-white/5 overflow-hidden rounded-3xl">
+              <table className="w-full text-left text-xs text-slate-300">
+                <thead className="bg-dark-950 text-[11px] text-slate-400 font-semibold border-b border-white/5 uppercase">
+                  <tr>
+                    <th className="p-4">Horário</th>
+                    <th className="p-4">Cliente</th>
+                    <th className="p-4">WhatsApp</th>
+                    <th className="p-4">Serviço</th>
+                    <th className="p-4">Status</th>
+                    <th className="p-4 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {filteredAppointments.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="p-8 text-center text-slate-500">
+                        Nenhum agendamento encontrado para a data e filtros selecionados.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredAppointments.map(apt => (
+                      <tr key={apt.id} className="hover:bg-white/[0.02]">
+                        <td className="p-4 font-mono font-bold text-brand-400">{apt.appointment_time}</td>
+                        <td className="p-4 font-bold text-white">{apt.contact_name}</td>
+                        <td className="p-4 font-mono text-slate-400">{formatPhone(apt.contact_phone)}</td>
+                        <td className="p-4">
+                          <span className="font-semibold text-slate-200">{apt.service_name}</span>
+                          {apt.price && <span className="text-emerald-400 font-mono ml-2">R$ {Number(apt.price).toFixed(2).replace('.', ',')}</span>}
+                        </td>
+                        <td className="p-4">
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                            apt.status === 'completed' ? 'bg-emerald-500/20 text-emerald-300' :
+                            apt.status === 'cancelled' ? 'bg-rose-500/20 text-rose-300' :
+                            apt.status === 'no_show' ? 'bg-amber-500/20 text-amber-300' :
+                            'bg-brand-500/20 text-brand-300'
+                          }`}>
+                            {apt.status === 'completed' ? 'Realizado' :
+                             apt.status === 'cancelled' ? 'Cancelado' :
+                             apt.status === 'no_show' ? 'Não Compareceu' : 'Confirmado'}
+                          </span>
+                        </td>
+                        <td className="p-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {apt.status !== 'completed' && (
+                              <button
+                                onClick={() => handleUpdateStatus(apt.id, 'completed')}
+                                className="p-1.5 rounded-lg bg-emerald-950 text-emerald-400 hover:bg-emerald-900"
+                                title="Concluir Atendimento"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteAppointment(apt.id)}
+                              className="p-1.5 rounded-lg bg-rose-950/40 text-rose-400 hover:bg-rose-900"
+                              title="Excluir"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </Card>
           )}
         </div>
       )}
 
-      {/* TAB 2: Agenda Settings & Business Rules */}
-      {activeTab === 'settings' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in">
-          {/* Left Column: Business Hours & Rules (7 cols) */}
-          <div className="lg:col-span-7 space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                    <Clock className="w-4 h-4" />
+      {/* ========================================================================= */}
+      {/* TAB 2: CATÁLOGO DE SERVIÇOS */}
+      {/* ========================================================================= */}
+      {activeTab === 'services' && (
+        <div className="space-y-4 animate-in fade-in">
+          {/* Catalog Toolbar */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-3 bg-dark-900/50 p-3.5 rounded-2xl border border-white/5">
+            <div className="relative flex-1 w-full md:max-w-md">
+              <Search className="w-3.5 h-3.5 absolute left-3.5 top-3 text-slate-500" />
+              <input
+                type="text"
+                placeholder="Buscar serviços por nome ou descrição..."
+                value={serviceSearchTerm}
+                onChange={(e) => setServiceSearchTerm(e.target.value)}
+                className="w-full bg-dark-950 border border-white/10 rounded-xl pl-9 pr-3.5 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <select
+                value={selectedCategoryFilter}
+                onChange={(e) => setSelectedCategoryFilter(e.target.value)}
+                className="bg-dark-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              >
+                <option value="all">Todas as Categorias</option>
+                {serviceCategories.filter(c => c !== 'all').map(c => (
+                  <option key={c} value={c}>Categoria: {c}</option>
+                ))}
+              </select>
+
+              <Button
+                variant="brand"
+                size="sm"
+                onClick={handleOpenNewService}
+                leftIcon={<Plus className="w-4 h-4" />}
+                className="text-xs"
+              >
+                Cadastrar Serviço
+              </Button>
+            </div>
+          </div>
+
+          {/* Services Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredServices.map((service) => (
+              <Card
+                key={service.id}
+                className={`p-5 rounded-3xl border transition-all duration-200 flex flex-col justify-between ${
+                  service.is_active !== false
+                    ? 'bg-dark-900/80 border-white/10 hover:border-brand-500/40'
+                    : 'bg-dark-950/40 border-white/5 opacity-60'
+                }`}
+              >
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-dark-950 text-slate-400 border border-white/5">
+                        {service.category || 'Geral'}
+                      </span>
+                      <h3 className="text-sm font-bold text-white mt-1.5">{service.name}</h3>
+                    </div>
+
+                    <button
+                      onClick={() => handleToggleServiceStatus(service)}
+                      className={`p-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors ${
+                        service.is_active !== false
+                          ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/20'
+                          : 'bg-dark-950 text-slate-500 border border-white/5'
+                      }`}
+                      title="Ativar/Desativar Serviço"
+                    >
+                      {service.is_active !== false ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+                    </button>
                   </div>
-                  <div>
-                    <CardTitle className="text-base">Horários de Atendimento & Expediente</CardTitle>
-                    <p className="text-xs text-slate-400">Defina os dias e intervalos em que o robô pode agendar clientes</p>
+
+                  {service.description && (
+                    <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                      {service.description}
+                    </p>
+                  )}
+
+                  <div className="flex items-center justify-between pt-2 border-t border-white/5 text-xs">
+                    <span className="text-slate-400 font-mono flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-brand-400" />
+                      {service.duration_minutes || 30} minutos
+                    </span>
+
+                    <span className="text-emerald-400 font-mono font-bold text-sm">
+                      R$ {Number(service.price || 0).toFixed(2).replace('.', ',')}
+                    </span>
                   </div>
                 </div>
-              </CardHeader>
 
-              <div className="space-y-5">
-                {/* Working Days */}
-                <div className="space-y-2">
-                  <label className="block text-xs font-bold text-white">Dias de Atendimento na Semana:</label>
-                  <div className="flex flex-wrap gap-2">
-                    {weekDays.map((day) => {
-                      const isSelected = settings.business_days.includes(day.key);
-                      return (
-                        <button
-                          key={day.key}
-                          type="button"
-                          onClick={() => toggleDay(day.key)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
-                            isSelected
-                              ? 'bg-emerald-500 text-white border-emerald-400 shadow-md'
-                              : 'bg-dark-850 text-slate-400 border-white/5 hover:text-white'
-                          }`}
-                        >
-                          {day.label}
-                        </button>
-                      );
-                    })}
-                  </div>
+                <div className="flex items-center justify-end gap-1.5 pt-4 mt-4 border-t border-white/5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleOpenEditService(service)}
+                    leftIcon={<Edit2 className="w-3.5 h-3.5" />}
+                    className="text-xs h-8"
+                  >
+                    Editar
+                  </Button>
+
+                  <button
+                    onClick={() => handleDeleteService(service.id, service.name)}
+                    className="p-2 rounded-xl bg-rose-950/30 text-rose-400 hover:bg-rose-900/50 transition-colors"
+                    title="Excluir Serviço"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
-                {/* Operating Hours */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* ========================================================================= */}
+      {/* TAB 3: HORÁRIOS & EXPEDIENTE */}
+      {/* ========================================================================= */}
+      {activeTab === 'hours' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in">
+          {/* Working Days & Shift Configuration */}
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="p-6 rounded-3xl bg-dark-900/80 border-white/10 space-y-6">
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <CalendarCheck className="w-4 h-4 text-brand-400" />
+                  Dias de Atendimento Comercial
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Selecione os dias em que a barbearia/empresa atende e recebe agendamentos pelo WhatsApp
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
+                {weekDaysLabels.map((day) => {
+                  const isSelected = settings.business_days.includes(day.id);
+                  return (
+                    <button
+                      key={day.id}
+                      type="button"
+                      onClick={() => handleToggleDay(day.id)}
+                      className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1 ${
+                        isSelected
+                          ? 'bg-brand-600/20 border-brand-500 text-white shadow-lg shadow-brand-500/10'
+                          : 'bg-dark-950/60 border-white/5 text-slate-500 hover:border-white/20'
+                      }`}
+                    >
+                      <span className="text-xs font-bold">{day.label}</span>
+                      <span className="text-[10px] font-mono">{day.full.substring(0, 3)}</span>
+                      {isSelected ? (
+                        <Check className="w-3.5 h-3.5 text-brand-400 mt-1" />
+                      ) : (
+                        <span className="text-[9px] text-slate-600 mt-1">Folga</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1">Início do Expediente *</label>
                   <Input
-                    label="Horário de Abertura"
                     type="time"
                     value={settings.start_time}
                     onChange={(e) => setSettings({ ...settings, start_time: e.target.value })}
                   />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1">Término do Expediente *</label>
                   <Input
-                    label="Horário de Fechamento"
                     type="time"
                     value={settings.end_time}
                     onChange={(e) => setSettings({ ...settings, end_time: e.target.value })}
                   />
                 </div>
+              </div>
 
-                {/* Duration & Break */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-medium text-slate-300">Duração por Slot</label>
-                    <select
-                      value={settings.slot_duration_minutes}
-                      onChange={(e) => setSettings({ ...settings, slot_duration_minutes: Number(e.target.value) })}
-                      className="w-full rounded-xl bg-dark-850 border border-slate-700/60 px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
-                    >
-                      <option value={15}>15 minutos</option>
-                      <option value={30}>30 minutos</option>
-                      <option value={45}>45 minutos</option>
-                      <option value={60}>60 minutos (1 hora)</option>
-                    </select>
-                  </div>
-
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1">Início do Intervalo / Almoço</label>
                   <Input
-                    label="Início do Intervalo / Almoço"
                     type="time"
                     value={settings.break_start_time || '12:00'}
                     onChange={(e) => setSettings({ ...settings, break_start_time: e.target.value })}
                   />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1">Fim do Intervalo / Almoço</label>
                   <Input
-                    label="Fim do Intervalo / Almoço"
                     type="time"
                     value={settings.break_end_time || '13:00'}
                     onChange={(e) => setSettings({ ...settings, break_end_time: e.target.value })}
                   />
                 </div>
+              </div>
 
-                <div className="flex justify-end pt-2">
-                  <Button
-                    variant="brand"
-                    leftIcon={<Save className="w-4 h-4" />}
-                    isLoading={isSavingSettings}
-                    onClick={handleSaveSettings}
-                    className="bg-emerald-600 hover:bg-emerald-500"
-                  >
-                    Salvar Horários da Agenda
-                  </Button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1">Duração Padrão das Vagas (Minutos)</label>
+                  <Input
+                    type="number"
+                    value={settings.slot_duration_minutes}
+                    onChange={(e) => setSettings({ ...settings, slot_duration_minutes: Number(e.target.value) })}
+                    min={5}
+                    max={240}
+                  />
                 </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1">Tempo de Tolerância / Intervalo (Minutos)</label>
+                  <Input
+                    type="number"
+                    value={settings.buffer_minutes ?? 5}
+                    onChange={(e) => setSettings({ ...settings, buffer_minutes: Number(e.target.value) })}
+                    min={0}
+                    max={60}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">Mensagem Automática Fora do Horário de Expediente</label>
+                <Textarea
+                  rows={3}
+                  value={settings.out_of_hours_message || ''}
+                  onChange={(e) => setSettings({ ...settings, out_of_hours_message: e.target.value })}
+                  placeholder="Mensagem enviada quando o cliente entra em contato fora do horário comercial..."
+                />
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <Button
+                  variant="brand"
+                  onClick={handleSaveHoursSettings}
+                  disabled={isSavingSettings}
+                  leftIcon={<Save className="w-4 h-4" />}
+                  className="bg-emerald-600 hover:bg-emerald-500"
+                >
+                  {isSavingSettings ? 'Salvando...' : 'Salvar Alterações de Expediente'}
+                </Button>
               </div>
             </Card>
           </div>
 
-          {/* Right Column: Services Catalog (5 cols) */}
-          <div className="lg:col-span-5 space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-emerald-400" />
-                  <CardTitle className="text-sm">Catálogo de Serviços & Consultas</CardTitle>
+          {/* Summary Column */}
+          <div className="space-y-4">
+            <Card className="p-5 rounded-3xl bg-dark-900/60 border-white/5 space-y-4">
+              <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                <Info className="w-4 h-4 text-cyan-400" />
+                Resumo Operacional
+              </h4>
+              <div className="space-y-2.5 text-xs text-slate-300">
+                <div className="flex justify-between pb-2 border-b border-white/5">
+                  <span className="text-slate-400">Dias Ativos:</span>
+                  <span className="font-bold text-white">{settings.business_days.length} dias por semana</span>
                 </div>
-              </CardHeader>
-
-              <div className="space-y-4">
-                {/* Add Service Form */}
-                <div className="p-3.5 rounded-2xl bg-dark-850 border border-white/5 space-y-3">
-                  <Input
-                    label="Nome do Serviço"
-                    placeholder="Ex: Consulta Médica, Demonstração"
-                    value={newServiceName}
-                    onChange={(e) => setNewServiceName(e.target.value)}
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input
-                      label="Duração (min)"
-                      type="number"
-                      value={newServiceDuration}
-                      onChange={(e) => setNewServiceDuration(Number(e.target.value))}
-                    />
-                    <Input
-                      label="Valor (R$)"
-                      type="number"
-                      value={newServicePrice}
-                      onChange={(e) => setNewServicePrice(Number(e.target.value))}
-                    />
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full text-xs"
-                    onClick={handleAddService}
-                    leftIcon={<Plus className="w-3.5 h-3.5" />}
-                  >
-                    Adicionar ao Catálogo
-                  </Button>
+                <div className="flex justify-between pb-2 border-b border-white/5">
+                  <span className="text-slate-400">Horário:</span>
+                  <span className="font-mono text-white">{settings.start_time} às {settings.end_time}</span>
                 </div>
-
-                {/* Services List */}
-                <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar">
-                  {settings.services.map((srv) => (
-                    <div
-                      key={srv.id}
-                      className="p-3 rounded-2xl bg-dark-850 border border-white/5 flex items-center justify-between"
-                    >
-                      <div>
-                        <p className="text-xs font-bold text-white">{srv.name}</p>
-                        <p className="text-[10px] text-slate-400 font-mono">
-                          {srv.duration_minutes} min • {srv.price ? `R$ ${srv.price},00` : 'Gratuito'}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => handleRemoveService(srv.id)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-white/5 transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
+                <div className="flex justify-between pb-2 border-b border-white/5">
+                  <span className="text-slate-400">Pausa / Almoço:</span>
+                  <span className="font-mono text-amber-300">{settings.break_start_time || '12:00'} - {settings.break_end_time || '13:00'}</span>
+                </div>
+                <div className="flex justify-between pb-2 border-b border-white/5">
+                  <span className="text-slate-400">Vagas por Hora:</span>
+                  <span className="font-mono text-emerald-400 font-bold">{Math.floor(60 / (settings.slot_duration_minutes || 30))} slots</span>
                 </div>
               </div>
             </Card>
@@ -1070,76 +1068,234 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
         </div>
       )}
 
-      {/* Manual Appointment Modal */}
+      {/* ========================================================================= */}
+      {/* TAB 4: SIMULADOR DE VAGAS */}
+      {/* ========================================================================= */}
+      {activeTab === 'simulator' && (
+        <div className="space-y-4 animate-in fade-in">
+          <Card className="p-6 rounded-3xl bg-dark-900/80 border-white/10 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-brand-400" />
+                  Simulador de Horários em Tempo Real
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Teste e veja exatamente como o bot WhatsApp calculará os horários para cada data
+                </p>
+              </div>
+
+              <input
+                type="date"
+                value={simDate}
+                onChange={(e) => setSimDate(e.target.value)}
+                className="bg-dark-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+              />
+            </div>
+
+            <div className="pt-3 border-t border-white/5">
+              <span className="text-xs text-slate-400 block mb-3">
+                Grade de horários gerada ({simulatedSlots.length} horários disponíveis):
+              </span>
+
+              {simulatedSlots.length === 0 ? (
+                <div className="p-6 text-center bg-dark-950 rounded-2xl border border-white/5 text-xs text-slate-500">
+                  Data sem atendimento comercial conforme as regras de expediente.
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {simulatedSlots.map(slot => (
+                    <span
+                      key={slot}
+                      className="px-3 py-1.5 rounded-xl bg-dark-950 border border-brand-500/20 text-brand-300 font-mono text-xs font-bold shadow-sm"
+                    >
+                      {slot}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* MODAL: Novo Agendamento Manual */}
       <Modal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        title="Novo Agendamento Manual"
-        subtitle="Reserve um horário na agenda para um cliente"
+        title="Novo Agendamento"
+        subtitle="Reserve um horário diretamente na agenda"
+        maxWidth="md"
       >
-        <form onSubmit={handleCreateAppointment} className="space-y-4">
-          <Input
-            label="Nome do Cliente"
-            placeholder="Ex: Rogerio Silva"
-            value={newClientName}
-            onChange={(e) => setNewClientName(e.target.value)}
-            required
-          />
+        <form onSubmit={handleSaveAppointment} className="space-y-4 pt-2">
+          <div>
+            <label className="text-xs font-semibold text-slate-300 block mb-1">Nome do Cliente *</label>
+            <Input
+              type="text"
+              placeholder="Ex: Carlos Santos"
+              value={newClientName}
+              onChange={(e) => setNewClientName(e.target.value)}
+              required
+            />
+          </div>
 
-          <Input
-            label="WhatsApp do Cliente (com DDD)"
-            placeholder="Ex: 81996138924"
-            value={newClientPhone}
-            onChange={(e) => setNewClientPhone(e.target.value)}
-            required
-          />
+          <div>
+            <label className="text-xs font-semibold text-slate-300 block mb-1">WhatsApp do Cliente *</label>
+            <Input
+              type="text"
+              placeholder="Ex: 81 99613-8924"
+              value={newClientPhone}
+              onChange={(e) => setNewClientPhone(e.target.value)}
+              required
+            />
+          </div>
 
-          <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-slate-300">Serviço / Atendimento</label>
+          <div>
+            <label className="text-xs font-semibold text-slate-300 block mb-1">Serviço *</label>
             <select
               value={newService}
-              onChange={(e) => setNewService(e.target.value)}
-              className="w-full rounded-xl bg-dark-850 border border-slate-700/60 px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              onChange={(e) => {
+                setNewService(e.target.value);
+                const sObj = settings.services?.find(s => s.name === e.target.value);
+                if (sObj) setNewPrice(sObj.price ?? 35);
+              }}
+              className="w-full bg-dark-800 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
             >
-              {settings.services.map((s) => (
+              {(settings.services || []).map(s => (
                 <option key={s.id} value={s.name}>
-                  {s.name} ({s.duration_minutes} min)
+                  {s.name} (R$ {Number(s.price || 0).toFixed(2).replace('.', ',')})
                 </option>
               ))}
             </select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Data"
-              type="date"
-              value={newDate}
-              onChange={(e) => setNewDate(e.target.value)}
-              required
+            <div>
+              <label className="text-xs font-semibold text-slate-300 block mb-1">Data *</label>
+              <Input
+                type="date"
+                value={newDate}
+                onChange={(e) => setNewDate(e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-300 block mb-1">Horário *</label>
+              <Input
+                type="time"
+                value={newTime}
+                onChange={(e) => setNewTime(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-slate-300 block mb-1">Observações</label>
+            <Textarea
+              rows={2}
+              placeholder="Observações do atendimento..."
+              value={newNotes}
+              onChange={(e) => setNewNotes(e.target.value)}
             />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-white/5">
+            <Button variant="outline" type="button" onClick={() => setIsAddModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button variant="brand" type="submit">
+              Confirmar Agendamento
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* MODAL: Novo / Editar Serviço do Catálogo */}
+      <Modal
+        isOpen={isServiceModalOpen}
+        onClose={() => setIsServiceModalOpen(false)}
+        title={editingServiceId ? 'Editar Serviço' : 'Novo Serviço no Catálogo'}
+        subtitle="Configure os detalhes, duração e valores disponíveis no WhatsApp"
+        maxWidth="md"
+      >
+        <form onSubmit={handleSaveService} className="space-y-4 pt-2">
+          <div>
+            <label className="text-xs font-semibold text-slate-300 block mb-1">Nome do Serviço *</label>
             <Input
-              label="Horário"
-              type="time"
-              value={newTime}
-              onChange={(e) => setNewTime(e.target.value)}
+              type="text"
+              placeholder="Ex: Corte Degradê Navalhado"
+              value={serviceName}
+              onChange={(e) => setServiceName(e.target.value)}
               required
             />
           </div>
 
-          <Textarea
-            label="Observações Internas (Opcional)"
-            placeholder="Ex: Cliente prefere atendimento presencial."
-            value={newNotes}
-            onChange={(e) => setNewNotes(e.target.value)}
-            rows={2}
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-slate-300 block mb-1">Preço (R$) *</label>
+              <Input
+                type="number"
+                step="0.5"
+                placeholder="35.00"
+                value={servicePrice}
+                onChange={(e) => setServicePrice(e.target.value === '' ? '' : Number(e.target.value))}
+                required
+              />
+            </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>
+            <div>
+              <label className="text-xs font-semibold text-slate-300 block mb-1">Duração (Minutos) *</label>
+              <Input
+                type="number"
+                placeholder="30"
+                value={serviceDuration}
+                onChange={(e) => setServiceDuration(Number(e.target.value))}
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-slate-300 block mb-1">Categoria</label>
+            <Input
+              type="text"
+              placeholder="Ex: Cabelo, Barba, Combos, Estética"
+              value={serviceCategory}
+              onChange={(e) => setServiceCategory(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-slate-300 block mb-1">Descrição / Detalhes</label>
+            <Textarea
+              rows={2}
+              placeholder="Descrição do serviço que pode ser enviada ao cliente..."
+              value={serviceDescription}
+              onChange={(e) => setServiceDescription(e.target.value)}
+            />
+          </div>
+
+          <div className="flex items-center gap-2 pt-2">
+            <input
+              type="checkbox"
+              id="serviceIsActive"
+              checked={serviceIsActive}
+              onChange={(e) => setServiceIsActive(e.target.checked)}
+              className="rounded bg-dark-950 border-white/10 text-brand-500 focus:ring-0"
+            />
+            <label htmlFor="serviceIsActive" className="text-xs text-slate-300 cursor-pointer">
+              Serviço Ativo e Disponível para Agendamento no WhatsApp
+            </label>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-white/5">
+            <Button variant="outline" type="button" onClick={() => setIsServiceModalOpen(false)}>
               Cancelar
             </Button>
-            <Button type="submit" variant="brand" className="bg-emerald-600 hover:bg-emerald-500">
-              Confirmar Agendamento
+            <Button variant="brand" type="submit">
+              {editingServiceId ? 'Salvar Alterações' : 'Cadastrar Serviço'}
             </Button>
           </div>
         </form>
