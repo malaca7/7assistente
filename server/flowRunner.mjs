@@ -397,20 +397,20 @@ export function getLiveContacts() {
   return contacts;
 }
 
-// Function to fetch latest flow, nodes, and edges dynamically with Supabase fallback
+// Function to fetch latest flow, nodes, and edges dynamically with Supabase priority
 export async function getActiveFlowAndGraph(db) {
   let flows = db.flows || [];
   
-  if ((!flows || flows.length === 0) && supabaseClient) {
+  if (supabaseClient) {
     try {
-      const { data } = await supabaseClient.from('flows').select('*');
-      if (data && data.length > 0) {
+      const { data, error } = await supabaseClient.from('flows').select('*').order('updated_at', { ascending: false });
+      if (data && data.length > 0 && !error) {
         db.flows = data;
         flows = data;
         saveDb(db);
       }
     } catch (e) {
-      console.warn('[FlowRunner] Falha ao carregar fluxos do Supabase:', e?.message || e);
+      console.warn('[FlowRunner] Supabase flows fetch fallback:', e?.message || e);
     }
   }
 
@@ -423,7 +423,7 @@ export async function getActiveFlowAndGraph(db) {
   let nodes = db.nodes?.[flowId] || [];
   let edges = db.edges?.[flowId] || [];
 
-  if ((!nodes || nodes.length === 0) && supabaseClient) {
+  if (supabaseClient) {
     try {
       const [nodesRes, edgesRes] = await Promise.all([
         supabaseClient.from('flow_nodes').select('*').eq('flow_id', flowId),
@@ -458,7 +458,6 @@ export async function getActiveFlowAndGraph(db) {
 
       if (nodes.length > 0) {
         saveDb(db);
-        console.log(`[FlowRunner] 📥 Nós do fluxo ativo "${publishedFlow.name}" carregados com sucesso!`);
       }
     } catch (e) {
       console.warn('[FlowRunner] Falha ao carregar nós do Supabase:', e?.message || e);
