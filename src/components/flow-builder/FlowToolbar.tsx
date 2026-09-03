@@ -54,6 +54,7 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
   onSave,
   onToggleStatus,
   onTestFlow,
+  onSwitchToMobileMode,
   isSaving,
   canUndo,
   canRedo,
