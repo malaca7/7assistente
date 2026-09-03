@@ -59,10 +59,44 @@ export const BarberPortalPage: React.FC<BarberPortalPageProps> = ({ onNavigate }
   const [isWalkInModalOpen, setIsWalkInModalOpen] = useState(false);
   const [walkInName, setWalkInName] = useState('');
   const [walkInPhone, setWalkInPhone] = useState('');
-  const [walkInService, setWalkInService] = useState('Corte Tradicional');
+  const [selectedWalkInServiceIds, setSelectedWalkInServiceIds] = useState<string[]>(['srv-1']);
   const [walkInTime, setWalkInTime] = useState('14:00');
-  const [walkInPrice, setWalkInPrice] = useState('35');
   const [isSavingWalkIn, setIsSavingWalkIn] = useState(false);
+
+  const walkInServicesList = useMemo(() => {
+    const services = agendaSettings?.services || [
+      { id: 'srv-1', name: 'Corte Tradicional', duration_minutes: 30, price: 35 },
+      { id: 'srv-2', name: 'Barba Completa (Toalha Quente)', duration_minutes: 25, price: 25 },
+      { id: 'srv-3', name: 'Combo Corte + Barba', duration_minutes: 55, price: 55 },
+      { id: 'srv-4', name: 'Sobrancelha', duration_minutes: 15, price: 15 },
+    ];
+    const list = services.filter((s) => selectedWalkInServiceIds.includes(s.id));
+    return list.length > 0 ? list : [services[0]];
+  }, [agendaSettings, selectedWalkInServiceIds]);
+
+  const walkInTotalDuration = useMemo(() => {
+    return walkInServicesList.reduce((acc, s) => acc + (Number(s.duration_minutes) || 30), 0);
+  }, [walkInServicesList]);
+
+  const walkInTotalPrice = useMemo(() => {
+    return walkInServicesList.reduce((acc, s) => acc + (Number(s.price) || 0), 0);
+  }, [walkInServicesList]);
+
+  const walkInCombinedName = useMemo(() => {
+    return walkInServicesList.map((s) => s.name).join(' + ');
+  }, [walkInServicesList]);
+
+  const handleToggleWalkInService = (srvId: string) => {
+    setSelectedWalkInServiceIds((prev) => {
+      const exists = prev.includes(srvId);
+      if (exists) {
+        if (prev.length === 1) return prev;
+        return prev.filter((id) => id !== srvId);
+      } else {
+        return [...prev, srvId];
+      }
+    });
+  };
 
   const loadData = async () => {
     try {
@@ -166,6 +200,19 @@ export const BarberPortalPage: React.FC<BarberPortalPageProps> = ({ onNavigate }
       return;
     }
 
+    const duration = walkInTotalDuration || 30;
+    const price = walkInTotalPrice || 35;
+    const srvName = walkInCombinedName || 'Atendimento Geral';
+
+    // Calculate end time
+    const [sh, sm] = walkInTime.split(':').map(Number);
+    const endMin = (sh || 0) * 60 + (sm || 0) + duration;
+    const endH = Math.floor(endMin / 60);
+    const endM = endMin % 60;
+    const endTimeStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+    const baseSlot = agendaSettings?.slot_duration_minutes || 30;
+    const slotsCount = Math.max(1, Math.ceil(duration / baseSlot));
+
     // Check if slot is already taken
     const conflict = appointments.find(
       (a) => a.appointment_date === selectedDate && a.appointment_time === walkInTime && a.status !== 'cancelled' && a.status !== 'no_show'
@@ -182,9 +229,11 @@ export const BarberPortalPage: React.FC<BarberPortalPageProps> = ({ onNavigate }
         id: `walkin-${Date.now()}`,
         contact_name: walkInName.trim(),
         contact_phone: cleanPhone,
-        service_name: walkInService,
-        price: Number(walkInPrice) || 35,
-        duration_minutes: 30,
+        service_name: srvName,
+        price,
+        duration_minutes: duration,
+        end_time: endTimeStr,
+        slots_count: slotsCount,
         appointment_date: selectedDate,
         appointment_time: walkInTime,
         status: 'in_progress', // starts in chair immediately
@@ -196,7 +245,7 @@ export const BarberPortalPage: React.FC<BarberPortalPageProps> = ({ onNavigate }
       setIsWalkInModalOpen(false);
       setWalkInName('');
       setWalkInPhone('');
-      success('Encaixe Criado!', `${newApt.contact_name} adicionado à cadeira às ${newApt.appointment_time}`);
+      success('Encaixe Criado!', `${newApt.contact_name} adicionado à cadeira às ${newApt.appointment_time} (${duration} min - ${slotsCount} slots unidos).`);
     } catch (err) {
       toastError('Erro', 'Falha ao registrar encaixe.');
     } finally {
@@ -624,35 +673,65 @@ export const BarberPortalPage: React.FC<BarberPortalPageProps> = ({ onNavigate }
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300">Serviço</label>
-              <select
-                value={walkInService}
-                onChange={(e) => {
-                  setWalkInService(e.target.value);
-                  if (e.target.value.includes('Combo')) setWalkInPrice('55');
-                  else if (e.target.value.includes('Barba')) setWalkInPrice('25');
-                  else setWalkInPrice('35');
-                }}
-                className="w-full px-3 py-2.5 rounded-xl bg-dark-950 border border-white/10 text-white text-sm focus:outline-none focus:border-brand-500"
-              >
-                <option value="Corte Tradicional">Corte Tradicional</option>
-                <option value="Barba Completa">Barba Completa</option>
-                <option value="Combo Corte + Barba">Combo Corte + Barba</option>
-                <option value="Pezinho & Acabamento">Pezinho & Acabamento</option>
-                <option value="Sobrancelha Navalhada">Sobrancelha</option>
-              </select>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-300">
+                Serviços * (Selecione 1 ou mais serviços)
+              </label>
+              <span className="text-[11px] font-mono text-brand-300 font-bold">
+                {walkInServicesList.length} selecionado(s)
+              </span>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300">Valor (R$)</label>
-              <input
-                type="number"
-                value={walkInPrice}
-                onChange={(e) => setWalkInPrice(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-dark-950 border border-white/10 text-white text-sm focus:outline-none focus:border-brand-500"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-44 overflow-y-auto p-1.5 rounded-xl bg-dark-950 border border-white/10">
+              {(agendaSettings?.services || [
+                { id: 'srv-1', name: 'Corte Tradicional', duration_minutes: 30, price: 35 },
+                { id: 'srv-2', name: 'Barba Completa (Toalha Quente)', duration_minutes: 25, price: 25 },
+                { id: 'srv-3', name: 'Combo Corte + Barba', duration_minutes: 55, price: 55 },
+                { id: 'srv-4', name: 'Sobrancelha', duration_minutes: 15, price: 15 },
+              ]).map((s) => {
+                const isSelected = selectedWalkInServiceIds.includes(s.id);
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => handleToggleWalkInService(s.id)}
+                    className={`p-2 rounded-xl border text-left transition-all flex items-start justify-between gap-2 ${
+                      isSelected
+                        ? 'bg-brand-500/20 border-brand-500/60 text-white shadow-sm ring-1 ring-brand-500/30'
+                        : 'bg-dark-900/60 border-white/5 text-slate-400 hover:border-white/15'
+                    }`}
+                  >
+                    <div className="space-y-0.5">
+                      <span className="text-xs font-bold block text-white">{s.name}</span>
+                      <span className="text-[10px] text-slate-400 block font-mono">
+                        ⏱️ {s.duration_minutes || 30}m • R$ {Number(s.price || 0).toFixed(2).replace('.', ',')}
+                      </span>
+                    </div>
+                    <div className={`w-4 h-4 rounded-md flex items-center justify-center text-[10px] font-bold border transition-colors mt-0.5 ${
+                      isSelected ? 'bg-brand-500 text-slate-950 border-brand-400' : 'border-white/20 bg-dark-950'
+                    }`}>
+                      {isSelected ? '✓' : ''}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Total Duration and Price Summary */}
+            <div className="mt-2 p-2.5 rounded-xl bg-dark-950 border border-brand-500/30 flex items-center justify-between text-xs">
+              <div>
+                <span className="text-[10px] text-slate-400 block">Total do Atendimento:</span>
+                <span className="font-semibold text-white line-clamp-1">{walkInCombinedName}</span>
+              </div>
+              <div className="text-right">
+                <span className="text-brand-300 font-mono font-bold block">
+                  ⏱️ {walkInTotalDuration} min
+                </span>
+                <span className="text-emerald-400 font-mono font-bold block">
+                  R$ {walkInTotalPrice.toFixed(2).replace('.', ',')}
+                </span>
+              </div>
             </div>
           </div>
 
