@@ -645,6 +645,41 @@ export const StorageService = {
     return updated;
   },
 
+  async saveConversation(conversation: Conversation): Promise<Conversation> {
+    const convs = await this.getConversations();
+    const index = convs.findIndex(c => c.id === conversation.id);
+    const updated: Conversation = {
+      ...conversation,
+      updated_at: new Date().toISOString()
+    };
+
+    if (index >= 0) {
+      convs[index] = updated;
+    } else {
+      convs.unshift(updated);
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('conversations').upsert(updated, { onConflict: 'id' });
+      } catch (e) {
+        console.warn('Supabase conversation upsert fallback:', e);
+      }
+    }
+
+    const backendUrl = getBackendUrl();
+    try {
+      await fetch(`${backendUrl}/api/whatsapp/conversations/${conversation.id}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: conversation.status }),
+      });
+    } catch {}
+
+    setItem(STORAGE_KEYS.CONVERSATIONS, convs);
+    return updated;
+  },
+
   async deleteConversation(id: string): Promise<void> {
     const backendUrl = getBackendUrl();
     const convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, []);
@@ -739,10 +774,16 @@ export const StorageService = {
     return newMessage;
   },
 
-  // Agenda & Appointments
+  // Agenda, Business Hours & Services Catalog
   async getAgendaSettings(): Promise<AgendaSettings> {
     const backendUrl = getBackendUrl();
     if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: settingsData } = await supabase.from('settings').select('*').limit(1).maybeSingle();
+        if (settingsData && settingsData.agenda_settings) {
+          return settingsData.agenda_settings as AgendaSettings;
+        }
+      } catch (e) {}
       try {
         const { data, error } = await supabase.from('agenda_settings').select('*').limit(1).maybeSingle();
         if (data && !error) return data as AgendaSettings;
@@ -763,12 +804,14 @@ export const StorageService = {
       slot_duration_minutes: 30,
       break_start_time: '12:00',
       break_end_time: '13:00',
+      buffer_minutes: 5,
+      out_of_hours_message: 'Olá! Nosso horário de expediente é de Segunda a Sábado das 08:00 às 19:00. Deixe sua mensagem ou selecione um horário para agendamento que confirmaremos assim que reabrirmos!',
       services: [
-        { id: 'srv-1', name: 'Corte Tradicional', duration_minutes: 30, price: 35 },
-        { id: 'srv-2', name: 'Barba Completa', duration_minutes: 30, price: 25 },
-        { id: 'srv-3', name: 'Corte + Barba (Combo)', duration_minutes: 60, price: 55 },
-        { id: 'srv-4', name: 'Sobrancelha', duration_minutes: 15, price: 15 },
-        { id: 'srv-5', name: 'Pigmentação', duration_minutes: 20, price: 25 },
+        { id: 'srv-1', name: 'Corte Tradicional', duration_minutes: 30, price: 35, category: 'Cabelo', description: 'Corte clássico ou moderno com acabamento na tesoura e navalhete.', active: true },
+        { id: 'srv-2', name: 'Barboterapia Completa', duration_minutes: 30, price: 25, category: 'Barba', description: 'Tratamento com toalha quente, óleos essenciais e alinhamento.', active: true },
+        { id: 'srv-3', name: 'Combo Cabelo + Barba', duration_minutes: 60, price: 55, category: 'Combo', description: 'Experiência completa com corte de cabelo e barboterapia.', active: true },
+        { id: 'srv-4', name: 'Design de Sobrancelha', duration_minutes: 15, price: 15, category: 'Estética', description: 'Alinhamento e acabamento simétrico da sobrancelha.', active: true },
+        { id: 'srv-5', name: 'Pigmentação Barba/Cabelo', duration_minutes: 20, price: 25, category: 'Estética', description: 'Preenchimento e disfarce de falhas com tintura especial.', active: true },
       ],
     });
   },
@@ -779,6 +822,13 @@ export const StorageService = {
     const updated = { ...current, ...settings, updated_at: new Date().toISOString() };
 
     if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('settings').upsert({
+          id: 'default',
+          agenda_settings: updated,
+          updated_at: new Date().toISOString()
+        });
+      } catch (e) {}
       try {
         await supabase.from('agenda_settings').upsert({ id: 'default', ...updated });
       } catch (e) {}
@@ -795,6 +845,24 @@ export const StorageService = {
     setItem(STORAGE_KEYS.AGENDA_SETTINGS, updated);
     syncWithWhatsAppServer();
     return updated;
+  },
+
+  async saveAgendaServiceItem(service: AgendaServiceItem): Promise<AgendaSettings> {
+    const settings = await this.getAgendaSettings();
+    const services = [...(settings.services || [])];
+    const index = services.findIndex(s => s.id === service.id);
+    if (index >= 0) {
+      services[index] = service;
+    } else {
+      services.push(service);
+    }
+    return this.updateAgendaSettings({ services });
+  },
+
+  async deleteAgendaServiceItem(serviceId: string): Promise<AgendaSettings> {
+    const settings = await this.getAgendaSettings();
+    const services = (settings.services || []).filter(s => s.id !== serviceId);
+    return this.updateAgendaSettings({ services });
   },
 
   async getAppointments(): Promise<Appointment[]> {

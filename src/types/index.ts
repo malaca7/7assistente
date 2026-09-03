@@ -107,15 +107,20 @@ export interface AgendaServiceItem {
   name: string;
   duration_minutes: number;
   price?: number;
+  description?: string;
+  category?: string;
+  active?: boolean;
 }
 
 export interface AgendaSettings {
-  business_days: string[]; // ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+  business_days: string[]; // ['1', '2', '3', '4', '5', '6', '0'] (1=Seg, 2=Ter, ..., 6=Sáb, 0=Dom)
   start_time: string; // '08:00'
-  end_time: string; // '18:00'
+  end_time: string; // '19:00'
   slot_duration_minutes: number; // 30, 45, 60
   break_start_time?: string; // '12:00'
   break_end_time?: string; // '13:00'
+  buffer_minutes?: number; // 5, 10
+  out_of_hours_message?: string;
   services: AgendaServiceItem[];
 }
 

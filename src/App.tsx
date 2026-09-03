@@ -10,6 +10,7 @@ import { ConversationsPage } from './pages/conversations/ConversationsPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
 import { AiAgentsPage } from './pages/ai-agents/AiAgentsPage';
 import { AgendaPage } from './pages/agenda/AgendaPage';
+import { ServicesAndHoursPage } from './pages/services-hours/ServicesAndHoursPage';
 
 const normalizePath = (rawPath: string) => {
   let clean = rawPath.replace(/^\/7assistente\/?/, '/');
@@ -81,8 +82,12 @@ export const App: React.FC = () => {
     pageContent = <ContactsPage onNavigate={navigate} />;
   } else if (currentPath === '/agenda') {
     title = 'Agenda & Compromissos';
-    subtitle = 'Gerenciador de horários marcados e regras de atendimento';
+    subtitle = 'Gerenciador de horários marcados no WhatsApp';
     pageContent = <AgendaPage onNavigate={navigate} />;
+  } else if (currentPath === '/servicos' || currentPath === '/expediente') {
+    title = 'Serviços & Expediente';
+    subtitle = 'Catálogo de serviços, preços, dias de funcionamento e horários de atendimento';
+    pageContent = <ServicesAndHoursPage onNavigate={navigate} />;
   } else if (currentPath === '/agentes-ia') {
     title = 'Agentes de IA';
     subtitle = 'Configuração de inteligência artificial e bases de conhecimento';

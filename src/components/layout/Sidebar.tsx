@@ -12,7 +12,8 @@ import {
   Bot,
   Zap,
   PhoneCall,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  Scissors
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWhatsApp } from '../../contexts/WhatsAppContext';
@@ -71,11 +72,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: 'agenda',
-      label: 'Agenda',
+      label: 'Agenda & Horários',
       path: '/agenda',
       icon: CalendarIcon,
-      badge: 'NOVO',
-      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+      badge: null,
+    },
+    {
+      id: 'services-hours',
+      label: 'Serviços & Expediente',
+      path: '/servicos',
+      icon: Scissors,
+      badge: 'PRO',
+      badgeColor: 'bg-brand-500/20 text-brand-300 border-brand-500/30',
     },
     {
       id: 'ai-agents',
