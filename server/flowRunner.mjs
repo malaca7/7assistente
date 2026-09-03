@@ -182,6 +182,24 @@ function migrateLidContacts(db) {
 const AUTH_DIR = path.resolve(__dirname, 'whatsapp_auth');
 const BACKUP_DB_PATH = path.resolve(AUTH_DIR, 'flows_db_backup.json');
 
+export const DEFAULT_SYSTEM_USERS = [
+  {
+    id: 'user-talvane',
+    name: 'Talvane (Administrador & Barbeiro)',
+    phone: '81996138924',
+    password: '123',
+    pin: '1234',
+    role: 'admin',
+    permissions: {
+      can_access_admin: true,
+      can_access_atendimento: true,
+      can_access_barbeiro: true,
+    },
+    status: 'active',
+    created_at: '2026-09-03T21:24:01.059Z',
+  },
+];
+
 export function loadDb() {
   let parsed = null;
   try {
@@ -216,6 +234,9 @@ export function loadDb() {
           if (backupData.attendants && backupData.attendants.length > 0) {
             parsed.attendants = backupData.attendants;
           }
+          if (backupData.systemUsers && backupData.systemUsers.length > 0) {
+            parsed.systemUsers = backupData.systemUsers;
+          }
         }
       }
     }
@@ -238,6 +259,7 @@ export function loadDb() {
       messages: parsed.messages || {},
       attendants: parsed.attendants || [],
       agendaSettings: parsed.agendaSettings || DEFAULT_AGENDA_SETTINGS,
+      systemUsers: (parsed.systemUsers && parsed.systemUsers.length > 0) ? parsed.systemUsers : DEFAULT_SYSTEM_USERS,
     };
   }
 
@@ -254,6 +276,7 @@ export function loadDb() {
     messages: {},
     attendants: [],
     agendaSettings: DEFAULT_AGENDA_SETTINGS,
+    systemUsers: DEFAULT_SYSTEM_USERS,
   };
 }
 

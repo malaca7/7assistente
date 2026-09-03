@@ -59,11 +59,19 @@ export const UsersPage: React.FC = () => {
   const currentUserObj = users.find((u) => isSamePhone(u.phone, currentPhone));
 
   // Determine if user has admin privileges
-  const isCurrentUserAdmin =
-    isSamePhone(currentPhone, '81996138924') ||
-    currentUserObj?.role === 'admin' ||
-    currentUserObj?.permissions?.can_access_admin === true ||
-    (isAuthenticated && (currentUserObj ? currentUserObj.permissions?.can_access_admin !== false : true));
+  // Only users who have admin can manage (create, edit, delete) users.
+  const isCurrentUserAdmin = useMemo(() => {
+    // 1. Any user authenticated into the Admin Panel via AuthContext
+    if (isAuthenticated) return true;
+    // 2. Master admin phone (81996138924)
+    if (isSamePhone(currentPhone, '81996138924')) return true;
+    // 3. Admin role or explicit can_access_admin permission
+    if (currentUserObj?.role === 'admin') return true;
+    if (currentUserObj?.permissions?.can_access_admin === true) return true;
+    // 4. Stored admin session
+    if (session?.authenticated) return true;
+    return false;
+  }, [isAuthenticated, currentPhone, currentUserObj, session]);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -77,6 +85,10 @@ export const UsersPage: React.FC = () => {
   const [permBarbeiro, setPermBarbeiro] = useState(true);
   const [userStatus, setUserStatus] = useState<'active' | 'inactive'>('active');
   const [isSaving, setIsSaving] = useState(false);
+
+  // Delete Confirmation Modal State
+  const [userToDelete, setUserToDelete] = useState<SystemUser | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchUsers = async () => {
     try {
@@ -123,14 +135,15 @@ export const UsersPage: React.FC = () => {
       toastError('Acesso Restrito', 'Apenas usuários com perfil Administrador podem editar usuários.');
       return;
     }
+    const isMaster = isSamePhone(user.phone, '81996138924');
     setEditingUser(user);
     setUserName(user.name);
     setUserPhone(user.phone);
     setUserPassword(user.password || '');
-    setUserRole(user.role || 'custom');
-    setPermAdmin(user.permissions?.can_access_admin || false);
-    setPermAtendimento(user.permissions?.can_access_atendimento || false);
-    setPermBarbeiro(user.permissions?.can_access_barbeiro || false);
+    setUserRole(user.role || (isMaster ? 'admin' : 'custom'));
+    setPermAdmin(isMaster ? true : Boolean(user.permissions?.can_access_admin));
+    setPermAtendimento(isMaster ? true : Boolean(user.permissions?.can_access_atendimento));
+    setPermBarbeiro(isMaster ? true : Boolean(user.permissions?.can_access_barbeiro));
     setUserStatus(user.status || 'active');
     setIsModalOpen(true);
   };
@@ -177,24 +190,25 @@ export const UsersPage: React.FC = () => {
 
     setIsSaving(true);
     try {
+      const isMaster = isSamePhone(cleanPhone, '81996138924');
       const newUser: SystemUser = {
         id: editingUser ? editingUser.id : `user-${Date.now()}`,
         name: userName.trim(),
         phone: cleanPhone,
         password: userPassword.trim(),
         pin: userPassword.trim().slice(0, 6),
-        role: userRole,
+        role: isMaster ? 'admin' : userRole,
         permissions: {
-          can_access_admin: permAdmin,
-          can_access_atendimento: permAtendimento,
-          can_access_barbeiro: permBarbeiro,
+          can_access_admin: isMaster ? true : permAdmin,
+          can_access_atendimento: isMaster ? true : permAtendimento,
+          can_access_barbeiro: isMaster ? true : permBarbeiro,
         },
         status: userStatus,
         created_at: editingUser?.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
 
-      await StorageService.saveSystemUser(newUser);
+      // Optimistic state update
       setUsers((prev) => {
         const idx = prev.findIndex((u) => u.id === newUser.id || isSamePhone(u.phone, newUser.phone));
         if (idx >= 0) {
@@ -204,9 +218,18 @@ export const UsersPage: React.FC = () => {
         }
         return [newUser, ...prev];
       });
+
+      await StorageService.saveSystemUser(newUser);
       setIsModalOpen(false);
-      fetchUsers().catch(() => {});
-      success('Usuário Salvo', `Permissões de ${newUser.name} atualizadas com sucesso!`);
+      success('Usuário Salvo', `Usuário ${newUser.name} salvo com sucesso!`);
+
+      // Confirm with backend sync
+      try {
+        const refreshed = await StorageService.getSystemUsers();
+        if (Array.isArray(refreshed) && refreshed.length > 0) {
+          setUsers(refreshed);
+        }
+      } catch {}
     } catch (err) {
       toastError('Erro', 'Falha ao salvar usuário.');
     } finally {
@@ -214,24 +237,44 @@ export const UsersPage: React.FC = () => {
     }
   };
 
-  const handleDeleteUser = async (user: SystemUser) => {
+  const requestDeleteUser = (user: SystemUser) => {
     if (!isCurrentUserAdmin) {
       toastError('Acesso Restrito', 'Apenas usuários com perfil Administrador podem excluir usuários.');
       return;
     }
-    if (isSamePhone(user.phone, '81996138924') && users.length === 1) {
-      toastError('Ação Bloqueada', 'O administrador principal não pode ser excluído.');
+    if (isSamePhone(user.phone, '81996138924')) {
+      toastError('Ação Bloqueada', 'O administrador principal (Talvane) não pode ser excluído.');
       return;
     }
-    if (!window.confirm(`Tem certeza de que deseja excluir o acesso de "${user.name}"?`)) return;
+    setUserToDelete(user);
+  };
 
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+    if (!isCurrentUserAdmin) {
+      toastError('Acesso Restrito', 'Apenas usuários com perfil Administrador podem excluir usuários.');
+      return;
+    }
+    const target = userToDelete;
+    setIsDeleting(true);
     try {
-      await StorageService.deleteSystemUser(user.id);
-      setUsers((prev) => prev.filter((u) => u.id !== user.id));
-      fetchUsers().catch(() => {});
-      success('Usuário Removido', `O acesso de ${user.name} foi revogado.`);
+      // Optimistic removal
+      setUsers((prev) => prev.filter((u) => u.id !== target.id && !isSamePhone(u.phone, target.phone)));
+      await StorageService.deleteSystemUser(target.id);
+      success('Usuário Removido', `O acesso de ${target.name} foi revogado com sucesso.`);
+      setUserToDelete(null);
+
+      // Confirm with backend sync
+      try {
+        const refreshed = await StorageService.getSystemUsers();
+        if (Array.isArray(refreshed) && refreshed.length > 0) {
+          setUsers(refreshed);
+        }
+      } catch {}
     } catch (err) {
       toastError('Erro', 'Falha ao excluir usuário.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -453,14 +496,20 @@ export const UsersPage: React.FC = () => {
 
                         <button
                           type="button"
-                          onClick={() => handleDeleteUser(user)}
-                          disabled={!isCurrentUserAdmin}
+                          onClick={() => requestDeleteUser(user)}
+                          disabled={!isCurrentUserAdmin || isSamePhone(user.phone, '81996138924')}
                           className={`p-1.5 rounded-lg transition-all ${
-                            isCurrentUserAdmin
+                            isCurrentUserAdmin && !isSamePhone(user.phone, '81996138924')
                               ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300'
                               : 'opacity-30 cursor-not-allowed text-slate-500'
                           }`}
-                          title={!isCurrentUserAdmin ? 'Apenas administradores podem excluir' : 'Excluir Usuário'}
+                          title={
+                            isSamePhone(user.phone, '81996138924')
+                              ? 'O administrador principal (Talvane) não pode ser excluído'
+                              : !isCurrentUserAdmin
+                              ? 'Apenas administradores podem excluir'
+                              : 'Excluir Usuário'
+                          }
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -660,6 +709,54 @@ export const UsersPage: React.FC = () => {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <Modal
+        isOpen={Boolean(userToDelete)}
+        onClose={() => setUserToDelete(null)}
+        title="Confirmar Exclusão de Acesso"
+        maxWidth="sm"
+      >
+        <div className="space-y-4 pt-2">
+          <div className="p-4 rounded-xl bg-rose-950/30 border border-rose-500/30 text-xs text-rose-300 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-white text-sm">
+                Excluir acesso de {userToDelete?.name}?
+              </p>
+              <p className="mt-1 text-slate-300">
+                Telefone: <span className="font-mono text-white font-bold">{userToDelete?.phone}</span>
+              </p>
+              <p className="mt-1 text-slate-400">
+                Esta ação revogará permanentemente as permissões de acesso deste usuário a todos os painéis.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setUserToDelete(null)}
+              disabled={isDeleting}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              onClick={confirmDeleteUser}
+              isLoading={isDeleting}
+              leftIcon={<Trash2 className="w-4 h-4" />}
+              className="font-bold"
+            >
+              Confirmar Exclusão
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
