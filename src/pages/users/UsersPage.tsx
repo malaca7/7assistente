@@ -28,12 +28,26 @@ import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { useToast } from '../../contexts/ToastContext';
 
+import { useAuth } from '../../contexts/AuthContext';
+
 export const UsersPage: React.FC = () => {
+  const { user: currentAdmin } = useAuth();
   const { success, error: toastError, info } = useToast();
   const [users, setUsers] = useState<SystemUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Check if current user is admin
+  const session = StorageService.getSession();
+  const currentPhone = (currentAdmin?.phone || session?.phone || '81996138924').replace(/\D/g, '');
+  const currentUserObj = users.find(u => (u.phone || '').replace(/\D/g, '') === currentPhone);
+  const isCurrentUserAdmin =
+    currentPhone === '81996138924' ||
+    currentUserObj?.role === 'admin' ||
+    currentUserObj?.permissions?.can_access_admin === true ||
+    currentAdmin?.role === 'admin' ||
+    !session || !session.phone;
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -70,6 +84,10 @@ export const UsersPage: React.FC = () => {
   };
 
   const openCreateModal = () => {
+    if (!isCurrentUserAdmin) {
+      toastError('Acesso Restrito', 'Apenas usuários com perfil Administrador podem cadastrar novos usuários.');
+      return;
+    }
     setEditingUser(null);
     setUserName('');
     setUserPhone('');
@@ -83,6 +101,10 @@ export const UsersPage: React.FC = () => {
   };
 
   const openEditModal = (user: SystemUser) => {
+    if (!isCurrentUserAdmin) {
+      toastError('Acesso Restrito', 'Apenas usuários com perfil Administrador podem editar usuários.');
+      return;
+    }
     setEditingUser(user);
     setUserName(user.name);
     setUserPhone(user.phone);
@@ -114,6 +136,10 @@ export const UsersPage: React.FC = () => {
 
   const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isCurrentUserAdmin) {
+      toastError('Acesso Restrito', 'Apenas usuários com perfil Administrador podem salvar alterações de usuários.');
+      return;
+    }
     const cleanPhone = userPhone.replace(/\D/g, '');
     if (!userName.trim()) {
       toastError('Aviso', 'Informe o nome do usuário.');
@@ -159,6 +185,10 @@ export const UsersPage: React.FC = () => {
   };
 
   const handleDeleteUser = async (user: SystemUser) => {
+    if (!isCurrentUserAdmin) {
+      toastError('Acesso Restrito', 'Apenas usuários com perfil Administrador podem excluir usuários.');
+      return;
+    }
     if (user.phone.replace(/\D/g, '') === '81996138924' && users.length === 1) {
       toastError('Ação Bloqueada', 'O administrador principal não pode ser excluído.');
       return;
@@ -188,6 +218,16 @@ export const UsersPage: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in">
+      {/* Read-only notice if not admin */}
+      {!isCurrentUserAdmin && (
+        <div className="p-3.5 rounded-2xl bg-amber-950/40 border border-amber-500/30 text-xs text-amber-300 flex items-center gap-2.5 shadow-sm">
+          <Lock className="w-4 h-4 text-amber-400 flex-shrink-0" />
+          <span>
+            <strong>Modo Somente Leitura:</strong> Apenas usuários com perfil <strong>Administrador</strong> têm permissão para criar, editar ou excluir acessos no sistema.
+          </span>
+        </div>
+      )}
+
       {/* Top Banner / Actions */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -214,8 +254,10 @@ export const UsersPage: React.FC = () => {
             variant="brand"
             size="sm"
             onClick={openCreateModal}
+            disabled={!isCurrentUserAdmin}
             leftIcon={<Plus className="w-4 h-4" />}
-            className="font-bold shadow-glow-brand"
+            className={`font-bold shadow-glow-brand ${!isCurrentUserAdmin ? 'opacity-40 cursor-not-allowed' : ''}`}
+            title={!isCurrentUserAdmin ? 'Apenas administradores podem criar usuários' : 'Novo Usuário'}
           >
             Novo Usuário
           </Button>
@@ -367,8 +409,13 @@ export const UsersPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => openEditModal(user)}
-                          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-all"
-                          title="Editar Usuário"
+                          disabled={!isCurrentUserAdmin}
+                          className={`p-1.5 rounded-lg transition-all ${
+                            isCurrentUserAdmin
+                              ? 'bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white'
+                              : 'opacity-30 cursor-not-allowed text-slate-500'
+                          }`}
+                          title={!isCurrentUserAdmin ? 'Apenas administradores podem editar' : 'Editar Usuário'}
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
@@ -376,8 +423,13 @@ export const UsersPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleDeleteUser(user)}
-                          className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 transition-all"
-                          title="Excluir Usuário"
+                          disabled={!isCurrentUserAdmin}
+                          className={`p-1.5 rounded-lg transition-all ${
+                            isCurrentUserAdmin
+                              ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300'
+                              : 'opacity-30 cursor-not-allowed text-slate-500'
+                          }`}
+                          title={!isCurrentUserAdmin ? 'Apenas administradores podem excluir' : 'Excluir Usuário'}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

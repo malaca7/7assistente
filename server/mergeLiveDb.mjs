@@ -16,9 +16,9 @@ async function mergeLive() {
     appointments: [],
     contacts: {},
     conversations: {},
-    messages: {},
     attendants: [],
     agendaSettings: {},
+    systemUsers: [],
   };
 
   if (fs.existsSync(DB_PATH)) {
@@ -143,6 +143,21 @@ async function mergeLive() {
           liveAtts.forEach(a => attMap.set(a.id, a));
           localDb.attendants = Array.from(attMap.values());
           console.log(`[MergeLive] ✅ ${localDb.attendants.length} atendentes sincronizados.`);
+        }
+      }
+    } catch {}
+
+    // 7. Fetch System Users
+    try {
+      const usersRes = await fetch(`${LIVE_URL}/api/whatsapp/users`, { signal: AbortSignal.timeout(4000) });
+      if (usersRes.ok) {
+        const liveUsers = await usersRes.json();
+        if (Array.isArray(liveUsers) && liveUsers.length > 0) {
+          const userMap = new Map();
+          (localDb.systemUsers || []).forEach(u => userMap.set(u.id, u));
+          liveUsers.forEach(u => userMap.set(u.id, u));
+          localDb.systemUsers = Array.from(userMap.values());
+          console.log(`[MergeLive] ✅ ${localDb.systemUsers.length} usuários sincronizados.`);
         }
       }
     } catch {}

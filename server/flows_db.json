@@ -1363,5 +1363,22 @@
       },
       "created_at": "2026-09-03T19:34:33.074Z"
     }
+  ],
+  "systemUsers": [
+    {
+      "id": "user-talvane",
+      "name": "Talvane (Administrador & Barbeiro)",
+      "phone": "81996138924",
+      "password": "123",
+      "pin": "1234",
+      "role": "admin",
+      "permissions": {
+        "can_access_admin": true,
+        "can_access_atendimento": true,
+        "can_access_barbeiro": true
+      },
+      "status": "active",
+      "created_at": "2026-09-03T18:00:00.000Z"
+    }
   ]
 }

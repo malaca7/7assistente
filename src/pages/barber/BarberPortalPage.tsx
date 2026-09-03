@@ -29,6 +29,7 @@ import { Appointment, AgendaSettings, SystemUser } from '../../types';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { useToast } from '../../contexts/ToastContext';
+import { useWhatsApp } from '../../contexts/WhatsAppContext';
 import { BarberLoginPage } from './BarberLoginPage';
 
 interface BarberPortalPageProps {
@@ -37,6 +38,7 @@ interface BarberPortalPageProps {
 
 export const BarberPortalPage: React.FC<BarberPortalPageProps> = ({ onNavigate }) => {
   const { success, error: toastError, info } = useToast();
+  const { isConnected } = useWhatsApp();
   
   // Barber Authentication State
   const [loggedBarber, setLoggedBarber] = useState<SystemUser | null>(() => {
@@ -372,6 +374,15 @@ export const BarberPortalPage: React.FC<BarberPortalPageProps> = ({ onNavigate }
               <span className="px-2 py-0.5 text-[10px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30 rounded-full">
                 {loggedBarber?.name || 'Barbeiro'}
               </span>
+              {isConnected ? (
+                <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> WhatsApp Online
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" /> WhatsApp Offline
+                </span>
+              )}
             </h1>
             <p className="text-xs text-slate-400">Controle de cadeira e atendimentos em tempo real</p>
           </div>
@@ -617,16 +628,28 @@ export const BarberPortalPage: React.FC<BarberPortalPageProps> = ({ onNavigate }
                       <div className="flex flex-wrap items-center gap-2 sm:justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5">
                         {/* WhatsApp Trigger */}
                         {cleanPhone && (
-                          <a
-                            href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Olá ${apt.contact_name}! Estou aguardando você aqui na Talvane Barber Shop para seu atendimento das ${apt.appointment_time}.`)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 transition-all text-xs font-bold flex items-center gap-1"
-                            title="Chamar no WhatsApp"
-                          >
-                            <MessageSquare className="w-4 h-4 fill-current" />
-                            <span className="hidden sm:inline">WhatsApp</span>
-                          </a>
+                          isConnected ? (
+                            <a
+                              href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Olá ${apt.contact_name}! Estou aguardando você aqui na Talvane Barber Shop para seu atendimento das ${apt.appointment_time}.`)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 transition-all text-xs font-bold flex items-center gap-1"
+                              title="Chamar no WhatsApp"
+                            >
+                              <MessageSquare className="w-4 h-4 fill-current" />
+                              <span className="hidden sm:inline">WhatsApp</span>
+                            </a>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled
+                              className="p-2 rounded-xl bg-white/5 border border-white/5 text-slate-500 cursor-not-allowed text-xs font-bold flex items-center gap-1 opacity-50"
+                              title="WhatsApp desconectado no servidor"
+                            >
+                              <MessageSquare className="w-4 h-4" />
+                              <span className="hidden sm:inline">WhatsApp Offline</span>
+                            </button>
+                          )
                         )}
 
                         {/* Status Change Buttons */}

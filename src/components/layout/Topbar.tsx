@@ -78,16 +78,6 @@ export const Topbar: React.FC<TopbarProps> = ({
           </div>
         )}
 
-        {/* Quick New Flow Action */}
-        <Button
-          size="sm"
-          variant="primary"
-          leftIcon={<Plus className="w-4 h-4" />}
-          onClick={() => onNavigate('/fluxos')}
-          className="hidden md:inline-flex"
-        >
-          Novo Fluxo
-        </Button>
 
         {/* Notifications */}
         <div className="relative">
