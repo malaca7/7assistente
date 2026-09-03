@@ -405,6 +405,94 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
   const slotsForSelectedDate = useMemo(() => generateSlots(selectedDate), [selectedDate, settings]);
   const simulatedSlots = useMemo(() => generateSlots(simDate), [simDate, settings]);
 
+  // Unified schedule combining consecutive slots for multi-slot services
+  const unifiedSchedule = useMemo(() => {
+    const baseDuration = settings.slot_duration_minutes || 30;
+    const result: Array<{
+      id: string;
+      startTime: string;
+      endTime: string;
+      durationMinutes: number;
+      slotsCount: number;
+      isBooked: boolean;
+      appointment?: Appointment;
+    }> = [];
+
+    const processedTimes = new Set<string>();
+
+    slotsForSelectedDate.forEach((timeSlot) => {
+      if (processedTimes.has(timeSlot)) return;
+
+      const [sh, sm] = timeSlot.split(':').map(Number);
+      const slotStartMin = sh * 60 + sm;
+
+      // Find appointment that STARTS at this slot
+      const startingApt = filteredAppointments.find(
+        (a) => a.appointment_time === timeSlot && a.status !== 'cancelled' && a.status !== 'no_show'
+      );
+
+      if (startingApt) {
+        const dur = Number(startingApt.duration_minutes) || baseDuration;
+        const slotEndMin = slotStartMin + dur;
+        const endH = Math.floor(slotEndMin / 60);
+        const endM = slotEndMin % 60;
+        const endTimeStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+        const count = Math.max(1, Math.ceil(dur / baseDuration));
+
+        // Mark all base slots covered by this appointment as processed/unified
+        slotsForSelectedDate.forEach((bs) => {
+          const [bh, bm] = bs.split(':').map(Number);
+          const bMin = bh * 60 + bm;
+          if (bMin >= slotStartMin && bMin < slotEndMin) {
+            processedTimes.add(bs);
+          }
+        });
+
+        result.push({
+          id: startingApt.id,
+          startTime: timeSlot,
+          endTime: endTimeStr,
+          durationMinutes: dur,
+          slotsCount: count,
+          isBooked: true,
+          appointment: startingApt,
+        });
+      } else {
+        // Check if covered by an ongoing appointment that started earlier
+        const ongoingApt = filteredAppointments.find((a) => {
+          if (a.status === 'cancelled' || a.status === 'no_show') return false;
+          const [ah, am] = a.appointment_time.split(':').map(Number);
+          const aStartMin = ah * 60 + am;
+          const aDur = Number(a.duration_minutes) || baseDuration;
+          return slotStartMin >= aStartMin && slotStartMin < aStartMin + aDur;
+        });
+
+        if (ongoingApt) {
+          processedTimes.add(timeSlot);
+          return;
+        }
+
+        // Single free slot
+        const slotEndMin = slotStartMin + baseDuration;
+        const endH = Math.floor(slotEndMin / 60);
+        const endM = slotEndMin % 60;
+        const endTimeStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+
+        result.push({
+          id: `free-${timeSlot}`,
+          startTime: timeSlot,
+          endTime: endTimeStr,
+          durationMinutes: baseDuration,
+          slotsCount: 1,
+          isBooked: false,
+        });
+        processedTimes.add(timeSlot);
+      }
+    });
+
+    return result;
+  }, [slotsForSelectedDate, filteredAppointments, settings.slot_duration_minutes]);
+
   const weekDaysLabels = [
     { id: '0', label: 'Dom', full: 'Domingo' },
     { id: '1', label: 'Seg', full: 'Segunda-feira' },
@@ -609,16 +697,18 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
             </Card>
           ) : viewMode === 'grid' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-              {slotsForSelectedDate.map((timeSlot) => {
-                const aptForSlot = filteredAppointments.find(a => a.appointment_time === timeSlot);
+              {unifiedSchedule.map((slot) => {
+                const timeSlot = slot.startTime;
+                const aptForSlot = slot.appointment;
                 const isOver = dragOverSlot === timeSlot;
+                const isMultiSlot = slot.slotsCount > 1;
 
                 return (
                   <div
-                    key={timeSlot}
+                    key={slot.id}
                     onDragOver={(e) => handleDragOver(e, timeSlot)}
                     onDrop={() => handleDrop(timeSlot)}
-                    className={`p-3.5 rounded-2xl border transition-all duration-200 flex flex-col justify-between min-h-[110px] ${
+                    className={`p-3.5 rounded-2xl border transition-all duration-200 flex flex-col justify-between min-h-[115px] ${
                       isOver ? 'border-brand-400 bg-brand-950/40 ring-2 ring-brand-500/20' :
                       aptForSlot
                         ? aptForSlot.status === 'completed'
@@ -627,15 +717,24 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
                           ? 'bg-rose-950/20 border-rose-500/20 opacity-70'
                           : aptForSlot.status === 'no_show'
                           ? 'bg-amber-950/30 border-amber-500/30'
+                          : isMultiSlot
+                          ? 'bg-dark-900/95 border-brand-500/60 shadow-lg shadow-brand-500/10 ring-1 ring-brand-500/30'
                           : 'bg-dark-900/90 border-brand-500/30 shadow-md shadow-brand-500/5'
                         : 'bg-dark-900/30 border-white/5 hover:border-white/10'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <span className="text-xs font-mono font-bold text-brand-300 flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5" />
-                        {timeSlot}
-                      </span>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-mono font-black text-brand-300 flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5" />
+                          {isMultiSlot ? `${slot.startTime} às ${slot.endTime}` : slot.startTime}
+                        </span>
+                        {isMultiSlot && aptForSlot && (
+                          <span className="text-[9px] font-bold text-brand-400">
+                            {slot.durationMinutes} min • {slot.slotsCount} slots unidos
+                          </span>
+                        )}
+                      </div>
 
                       {aptForSlot ? (
                         <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider ${

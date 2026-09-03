@@ -1049,7 +1049,7 @@ app.post('/api/whatsapp/agenda/appointments', (req, res) => {
 
   // Prevent double booking if slot is already occupied
   if (dateStr && timeStr && isSlotBooked(dateStr, timeStr, dur, db)) {
-    const nextSlot = getNextAvailableSlot(dateStr, timeStr, db);
+    const nextSlot = getNextAvailableSlot(dateStr, timeStr, db, dur);
     return res.status(400).json({
       success: false,
       error: 'Horário já reservado',
@@ -1058,9 +1058,20 @@ app.post('/api/whatsapp/agenda/appointments', (req, res) => {
     });
   }
 
+  const [sh, sm] = (timeStr || '09:00').split(':').map(Number);
+  const endMin = (sh || 0) * 60 + (sm || 0) + dur;
+  const endH = Math.floor(endMin / 60);
+  const endM = endMin % 60;
+  const endTimeVal = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+  const baseSlotDur = db.agendaSettings?.slot_duration_minutes || 30;
+  const slotsCount = Math.max(1, Math.ceil(dur / baseSlotDur));
+
   const newApt = {
     ...appointment,
     id: appointment.id || `apt-${Date.now()}`,
+    duration_minutes: dur,
+    end_time: appointment.end_time || endTimeVal,
+    slots_count: slotsCount,
     status: appointment.status || 'confirmed',
     created_at: new Date().toISOString(),
   };
@@ -1226,8 +1237,9 @@ app.delete('/api/whatsapp/agenda/appointments/:id', (req, res) => {
 
 app.get('/api/whatsapp/agenda/available-slots', (req, res) => {
   const dateStr = req.query.date || new Date().toISOString().split('T')[0];
+  const duration = Number(req.query.duration) || null;
   const db = loadDb();
-  const slots = getAvailableSlots(dateStr, db);
+  const slots = getAvailableSlots(dateStr, db, duration);
   res.json({ date: dateStr, available_slots: slots });
 });
 

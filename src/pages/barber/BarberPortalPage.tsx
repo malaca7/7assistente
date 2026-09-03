@@ -441,14 +441,35 @@ export const BarberPortalPage: React.FC<BarberPortalPageProps> = ({ onNavigate }
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       {/* Left: Time & Client Info */}
                       <div className="flex items-start gap-3.5">
-                        <div className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-white/5 border border-white/10 text-center min-w-[64px]">
-                          <span className="text-sm font-black font-mono text-brand-300">
-                            {apt.appointment_time}
-                          </span>
-                          <span className="text-[10px] text-slate-400">
-                            {apt.duration_minutes || 30}m
-                          </span>
-                        </div>
+                        {(() => {
+                          const [sh, sm] = (apt.appointment_time || '09:00').split(':').map(Number);
+                          const dur = Number(apt.duration_minutes) || 30;
+                          const endMin = (sh || 0) * 60 + (sm || 0) + dur;
+                          const endH = Math.floor(endMin / 60);
+                          const endM = endMin % 60;
+                          const endTime = apt.end_time || `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+                          const slotsCount = apt.slots_count || Math.max(1, Math.ceil(dur / 30));
+
+                          return (
+                            <div className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-white/5 border border-white/10 text-center min-w-[80px]">
+                              <span className="text-xs sm:text-sm font-black font-mono text-brand-300">
+                                {apt.appointment_time}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                até {endTime}
+                              </span>
+                              {slotsCount > 1 ? (
+                                <span className="text-[9px] font-bold text-brand-400 mt-0.5">
+                                  {dur}m ({slotsCount} slots)
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-slate-500">
+                                  {dur}m
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
 
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 flex-wrap">

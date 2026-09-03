@@ -270,19 +270,22 @@ export function saveDb(data) {
 }
 
 // Generate available time slots for a given date based on Agenda Settings and Booked Appointments
-export function getAvailableSlots(dateStr, db) {
+// Generate available time slots for a given date based on Agenda Settings and Booked Appointments
+// Supports multi-slot services, ensuring all consecutive slots required by the service are joined as 1.
+export function getAvailableSlots(dateStr, db, requiredDuration = null) {
   const settings = db.agendaSettings || DEFAULT_AGENDA_SETTINGS;
   const startHour = parseInt(settings.start_time.split(':')[0], 10);
   const startMin = parseInt(settings.start_time.split(':')[1] || '0', 10);
   const endHour = parseInt(settings.end_time.split(':')[0], 10);
   const endMin = parseInt(settings.end_time.split(':')[1] || '0', 10);
-  const duration = settings.slot_duration_minutes || 30;
+  const baseSlotDuration = settings.slot_duration_minutes || 30;
+  const neededDuration = Number(requiredDuration) || baseSlotDuration;
 
   const breakStart = settings.break_start_time || '12:00';
   const breakEnd = settings.break_end_time || '13:00';
 
   const bookedRanges = (db.appointments || [])
-    .filter((a) => a.appointment_date === dateStr && a.status !== 'cancelled')
+    .filter((a) => a.appointment_date === dateStr && a.status !== 'cancelled' && a.status !== 'no_show')
     .map((a) => {
       const sHour = parseInt(a.appointment_time.split(':')[0], 10) || 0;
       const sMin = parseInt(a.appointment_time.split(':')[1] || '0', 10) || 0;
@@ -293,7 +296,7 @@ export function getAvailableSlots(dateStr, db) {
           srvName.toLowerCase().includes(s.name?.toLowerCase()) ||
           s.name?.toLowerCase().includes(srvName.toLowerCase())
       );
-      const srvDuration = a.duration_minutes || srv?.duration_minutes || (srvName.toLowerCase().includes('barba') ? 55 : duration);
+      const srvDuration = Number(a.duration_minutes) || srv?.duration_minutes || (srvName.toLowerCase().includes('barba') ? 55 : baseSlotDuration);
       const startM = sHour * 60 + sMin;
       const endM = startM + srvDuration;
       return { startM, endM };
@@ -306,18 +309,15 @@ export function getAvailableSlots(dateStr, db) {
   const breakStartMin = parseInt(breakStart.split(':')[0], 10) * 60 + parseInt(breakStart.split(':')[1] || '0', 10);
   const breakEndMin = parseInt(breakEnd.split(':')[0], 10) * 60 + parseInt(breakEnd.split(':')[1] || '0', 10);
 
-  while (currentMinutes + duration <= endMinutes) {
-    // Check if within break time
-    if (currentMinutes >= breakStartMin && currentMinutes < breakEndMin) {
-      currentMinutes = breakEndMin;
-      continue;
-    }
-
+  while (currentMinutes + neededDuration <= endMinutes) {
     const slotStart = currentMinutes;
-    const slotEnd = currentMinutes + duration;
+    const slotEnd = currentMinutes + neededDuration;
+
+    // Check if slot collides with lunch/break interval
+    const overlapsBreak = (slotStart < breakEndMin && slotEnd > breakStartMin);
 
     // Check if overlapping with any existing appointment range
-    const isOverlapping = bookedRanges.some((r) => slotStart < r.endM && slotEnd > r.startM);
+    const isOverlapping = overlapsBreak || bookedRanges.some((r) => slotStart < r.endM && slotEnd > r.startM);
 
     if (!isOverlapping) {
       const h = Math.floor(slotStart / 60);
@@ -326,7 +326,7 @@ export function getAvailableSlots(dateStr, db) {
       slots.push(timeFormatted);
     }
 
-    currentMinutes += duration;
+    currentMinutes += baseSlotDuration;
   }
 
   return slots;
@@ -353,16 +353,17 @@ export function isSlotBooked(dateStr, timeStr, durationMinutes = 30, db) {
   });
 }
 
-export function getNextAvailableSlot(dateStr, requestedTime, db) {
-  const slots = getAvailableSlots(dateStr, db);
+export function getNextAvailableSlot(dateStr, requestedTime, db, duration = 30) {
+  const slots = getAvailableSlots(dateStr, db, duration);
   if (slots.length === 0) return null;
   const rHour = parseInt(requestedTime.split(':')[0], 10) || 0;
   const rMin = parseInt(requestedTime.split(':')[1] || '0', 10) || 0;
   const reqMinutes = rHour * 60 + rMin;
 
   const nextSlot = slots.find((slot) => {
-    const h = parseInt(slot.split(':')[0], 10) || 0;
-    const m = parseInt(slot.split(':')[1] || '0', 10) || 0;
+    const timeStr = typeof slot === 'string' ? slot : slot.time;
+    const h = parseInt(timeStr.split(':')[0], 10) || 0;
+    const m = parseInt(timeStr.split(':')[1] || '0', 10) || 0;
     return h * 60 + m > reqMinutes;
   });
 
@@ -1415,31 +1416,57 @@ function parseCustomDateString(input) {
       const dateVal = session.variables[dateVar] || session.variables['data_agendamento'] || new Date().toISOString().split('T')[0];
       const srvName = config.serviceName ? replaceVars(config.serviceName, session.variables, botProfile) : (session.variables['servico_selecionado'] || 'Atendimento Especializado');
 
-      const slots = getAvailableSlots(dateVal, db);
+      const srvObj = (db.agendaSettings?.services || []).find((s) => 
+        s.name?.trim().toLowerCase() === srvName.trim().toLowerCase() ||
+        srvName.toLowerCase().includes(s.name?.toLowerCase()) ||
+        s.name?.toLowerCase().includes(srvName.toLowerCase())
+      );
+      const baseSlotDur = db.agendaSettings?.slot_duration_minutes || 30;
+      const srvDuration = Number(srvObj?.duration_minutes) || Number(session.variables['duracao_minutos']) || (srvName.toLowerCase().includes('barba') ? 55 : baseSlotDur);
+
+      const slots = getAvailableSlots(dateVal, db, srvDuration);
 
       if (slots.length === 0) {
-        replies.push(`📅 *Agenda Completa para ${dateVal}*\n\nNão encontramos horários livres disponíveis para esta data. Por favor, envie outra data para agendar.`);
+        replies.push(`📅 *Agenda Completa para ${dateVal}*\n\nNão encontramos horários livres disponíveis com tempo contínuo para este serviço (${srvDuration} min). Por favor, envie outra data para agendar.`);
         session.currentNodeId = currentNode.id;
         break;
       }
 
-      // Present available slots as Native Clickable Buttons
-      const slotButtons = slots.slice(0, 3).map((slot) => ({
-        id: `slot_${slot}`,
-        title: `🕒 ${slot}`,
-        slotTime: slot,
-      }));
+      const slotsCount = Math.max(1, Math.ceil(srvDuration / baseSlotDur));
+
+      // Present available slots as Clickable Buttons (showing unified range if multi-slot)
+      const slotButtons = slots.slice(0, 3).map((slot) => {
+        const timeStr = typeof slot === 'string' ? slot : slot.time;
+        const [sh, sm] = timeStr.split(':').map(Number);
+        const endMin = sh * 60 + sm + srvDuration;
+        const endH = Math.floor(endMin / 60);
+        const endM = endMin % 60;
+        const endTimeFormatted = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+
+        const titleStr = slotsCount > 1 ? `🕒 ${timeStr}-${endTimeFormatted}` : `🕒 ${timeStr}`;
+
+        return {
+          id: `slot_${timeStr}`,
+          title: titleStr.length > 20 ? titleStr.substring(0, 20) : titleStr,
+          slotTime: timeStr,
+          endTime: endTimeFormatted,
+          duration: srvDuration,
+          slotsCount
+        };
+      });
 
       session.activeButtons = slotButtons;
       session.variables['data_agendamento'] = dateVal;
       session.variables['servico_selecionado'] = srvName;
+      session.variables['duracao_minutos'] = srvDuration;
       session.currentNodeId = currentNode.id;
 
-      const intro = config.introMessage ? replaceVars(config.introMessage, session.variables, botProfile) : 'Estes são os horários livres para agendamento. Toque no seu horário preferido:';
+      const slotNotice = slotsCount > 1 ? `\n• Duração: *${srvDuration} min* (${slotsCount} slots unidos como 1 só)` : `\n• Duração: *${srvDuration} min*`;
+      const intro = config.introMessage ? replaceVars(config.introMessage, session.variables, botProfile) : 'Estes são os horários livres com tempo completo disponível para seu atendimento. Toque no seu horário preferido:';
 
       replies.push({
         type: 'buttons',
-        body: `🕒 *Horários Livres na Agenda (${dateVal}):*\n\n• Serviço: *${srvName}*\n\n${intro}`,
+        body: `🕒 *Horários Livres na Agenda (${dateVal}):*\n\n• Serviço: *${srvName}*${slotNotice}\n\n${intro}`,
         footer: 'Toque no horário desejado para agendar:',
         buttons: slotButtons,
       });
@@ -1455,18 +1482,30 @@ function parseCustomDateString(input) {
       const clientName = session.variables.nome_cliente || senderName;
 
       const srvObj = (db.agendaSettings?.services || []).find((s) => s.name?.toLowerCase().trim() === srvName.toLowerCase().trim());
-      const srvDur = srvObj?.duration_minutes || session.variables['duracao_minutos'] || (srvName.toLowerCase().includes('barba') ? 55 : 30);
+      const baseSlotDur = db.agendaSettings?.slot_duration_minutes || 30;
+      const srvDur = srvObj?.duration_minutes || session.variables['duracao_minutos'] || (srvName.toLowerCase().includes('barba') ? 55 : baseSlotDur);
+      const slotsCount = Math.max(1, Math.ceil(srvDur / baseSlotDur));
+
+      // Calculate endTime
+      const [sh, sm] = timeVal.split(':').map(Number);
+      const endMin = (sh || 0) * 60 + (sm || 0) + srvDur;
+      const endH = Math.floor(endMin / 60);
+      const endM = endMin % 60;
+      const endTimeVal = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
 
       // Check for slot collision: do not allow booking if slot is already occupied!
       const isOccupied = isSlotBooked(dateVal, timeVal, srvDur, db);
       if (isOccupied) {
-        const nextSlot = getNextAvailableSlot(dateVal, timeVal, db);
-        const freeSlots = getAvailableSlots(dateVal, db);
-        const suggestedSlots = freeSlots.slice(0, 3).map((slot) => ({
-          id: `slot_${slot}`,
-          title: `🕒 ${slot}`,
-          slotTime: slot,
-        }));
+        const nextSlot = getNextAvailableSlot(dateVal, timeVal, db, srvDur);
+        const freeSlots = getAvailableSlots(dateVal, db, srvDur);
+        const suggestedSlots = freeSlots.slice(0, 3).map((slot) => {
+          const slotTime = typeof slot === 'string' ? slot : slot.time;
+          return {
+            id: `slot_${slotTime}`,
+            title: `🕒 ${slotTime}`,
+            slotTime: slotTime,
+          };
+        });
 
         session.activeButtons = suggestedSlots;
         session.variables['data_agendamento'] = dateVal;
@@ -1502,6 +1541,8 @@ function parseCustomDateString(input) {
         duration_minutes: srvDur,
         appointment_date: dateVal,
         appointment_time: timeVal,
+        end_time: endTimeVal,
+        slots_count: slotsCount,
         status: 'confirmed',
         created_at: new Date().toISOString(),
       };
