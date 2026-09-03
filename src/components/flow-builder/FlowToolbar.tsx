@@ -14,7 +14,9 @@ import {
   Sparkles,
   GitCommit,
   Check,
-  ChevronDown
+  ChevronDown,
+  Smartphone,
+  List
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
@@ -26,6 +28,7 @@ export interface FlowToolbarProps {
   onSave: () => void;
   onToggleStatus: () => void;
   onTestFlow?: () => void;
+  onSwitchToMobileMode?: () => void;
   isSaving: boolean;
   canUndo?: boolean;
   canRedo?: boolean;
@@ -263,6 +266,18 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
             </div>
           )}
         </div>
+
+        {/* Switch to Mobile Step Mode Button */}
+        {onSwitchToMobileMode && (
+          <button
+            onClick={onSwitchToMobileMode}
+            className="p-2 rounded-xl bg-dark-850 border border-brand-500/20 hover:border-brand-500/50 text-brand-300 hover:text-brand-200 transition-colors flex items-center gap-1.5 text-xs shadow-sm"
+            title="Alternar para Modo Lista Passo a Passo (Otimizado para Celular / Mobile)"
+          >
+            <Smartphone className="w-4 h-4 text-brand-400" />
+            <span className="hidden lg:inline font-medium">Modo Lista</span>
+          </button>
+        )}
 
         {/* Auto-Organize Flow Button */}
         {onAutoLayout && (
