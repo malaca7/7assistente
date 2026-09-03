@@ -9,7 +9,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "node index.mjs",
-    "server": "node server/index.mjs"
+    "server": "node server/index.mjs",
+    "deploy": "powershell -ExecutionPolicy Bypass -File .\\deployAllBranches.ps1",
+    "deploy:all": "powershell -ExecutionPolicy Bypass -File .\\deployAllBranches.ps1"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.115.0",
