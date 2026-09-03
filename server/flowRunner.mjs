@@ -397,6 +397,96 @@ export function getLiveContacts() {
   return contacts;
 }
 
+// Function to find if a contact is already registered (in Supabase or Local DB)
+export async function findRegisteredContact(cleanPhone, senderName, db) {
+  const digitsOnly = (cleanPhone || '').replace(/\D/g, '');
+  if (!digitsOnly) return { isRegistered: false, contact: null };
+
+  // Generate phone variations: with 55, without 55, with/without 9th digit
+  const variations = new Set();
+  variations.add(digitsOnly);
+
+  let withoutDdi = digitsOnly;
+  if (digitsOnly.startsWith('55') && digitsOnly.length >= 12) {
+    withoutDdi = digitsOnly.substring(2);
+    variations.add(withoutDdi);
+  } else if (digitsOnly.length === 10 || digitsOnly.length === 11) {
+    variations.add(`55${digitsOnly}`);
+  }
+
+  // 9th digit variations for Brazilian numbers (e.g. 81 99613-8924 vs 81 9613-8924)
+  if (withoutDdi.length === 11 && withoutDdi[2] === '9') {
+    const without9 = withoutDdi.substring(0, 2) + withoutDdi.substring(3);
+    variations.add(without9);
+    variations.add(`55${without9}`);
+  } else if (withoutDdi.length === 10) {
+    const with9 = withoutDdi.substring(0, 2) + '9' + withoutDdi.substring(2);
+    variations.add(with9);
+    variations.add(`55${with9}`);
+  }
+
+  // 1. Search in memory / db.contacts
+  const contactsList = Object.values(db.contacts || {});
+  for (const c of contactsList) {
+    const cDigits = (c.phone || c.id || '').replace(/\D/g, '');
+    for (const v of variations) {
+      if (cDigits && (cDigits === v || cDigits.endsWith(v) || v.endsWith(cDigits))) {
+        const hasRealName = Boolean(c.name && c.name.trim() !== '' && c.name.replace(/\D/g, '') !== cDigits && c.name.toLowerCase() !== 'cliente');
+        if (hasRealName || c.tags?.length > 0) {
+          return { isRegistered: true, contact: c, hasRealName: true };
+        }
+      }
+    }
+  }
+
+  // 2. Search in Supabase Cloud Database (Single Source of Truth)
+  if (supabaseClient) {
+    try {
+      for (const v of variations) {
+        const { data, error } = await supabaseClient
+          .from('contacts')
+          .select('*')
+          .or(`phone.eq.${v},phone.ilike.%${v}%`)
+          .limit(1)
+          .maybeSingle();
+
+        if (data && !error && data.name) {
+          const hasRealName = Boolean(data.name.trim() !== '' && data.name.replace(/\D/g, '') !== data.phone?.replace(/\D/g, '') && data.name.toLowerCase() !== 'cliente');
+          if (hasRealName) {
+            if (!db.contacts) db.contacts = {};
+            db.contacts[cleanPhone] = data;
+            db.contacts[data.phone] = data;
+            saveDb(db);
+            return { isRegistered: true, contact: data, hasRealName: true };
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[FlowRunner] Erro ao consultar contato no Supabase:', e.message);
+    }
+  }
+
+  // 3. Search in Appointments (Historic bookings)
+  const apts = db.appointments || [];
+  const aptMatch = apts.find((a) => {
+    const aDigits = (a.contact_phone || a.phone || '').replace(/\D/g, '');
+    for (const v of variations) {
+      if (aDigits && (aDigits === v || aDigits.endsWith(v) || v.endsWith(aDigits))) return true;
+    }
+    return false;
+  });
+
+  if (aptMatch && aptMatch.contact_name && aptMatch.contact_name.toLowerCase() !== 'cliente') {
+    return {
+      isRegistered: true,
+      contact: { name: aptMatch.contact_name, phone: cleanPhone },
+      hasRealName: true,
+    };
+  }
+
+  return { isRegistered: false, contact: null, hasRealName: false };
+}
+
 // Function to fetch latest flow, nodes, and edges dynamically with Supabase priority
 export async function getActiveFlowAndGraph(db) {
   let flows = db.flows || [];
@@ -800,34 +890,36 @@ function parseCustomDateString(input) {
       break;
     }
 
-    // 4. Check Contact Node (Primeiro Contato vs Contato Salvo)
+    // 4. Check Contact Node (Primeiro Contato vs Contato Salvo / Recorrente)
     else if (nodeType === 'check_contact') {
-      const existingContact = db.contacts && db.contacts[cleanPhone];
-      const aptsCount = (db.appointments || []).filter((a) => (a.contact_phone === cleanPhone || a.phone === cleanPhone)).length;
-      
-      const isRegistered = Boolean(
-        (existingContact && existingContact.tags?.includes('Cliente') && existingContact.name && existingContact.name !== 'Cliente') ||
-        (session.variables.nome_cliente && session.variables.nome_cliente !== senderName && session.variables.nome_cliente !== 'Cliente') ||
-        aptsCount > 0
-      );
-      const isNew = !isRegistered;
+      const contactInfo = await findRegisteredContact(cleanPhone, senderName, db);
+      const isNew = !contactInfo.isRegistered;
+      const contact = contactInfo.contact;
 
       // Populate rich context variables
       session.variables['is_primeiro_contato'] = isNew;
       session.variables['is_novo_contato'] = isNew;
       session.variables['tipo_cliente'] = isNew ? 'novo' : 'recorrente';
       session.variables['telefone_whatsapp'] = cleanPhone;
-      if (isRegistered && existingContact?.name) {
-        session.variables['nome_cliente'] = existingContact.name;
-      }
-      session.variables['tags_contato'] = (existingContact?.tags || []).join(', ');
-      session.variables['total_agendamentos'] = aptsCount;
 
-      console.log(`[FlowRunner] 👥 Verificação de Contato para ${cleanPhone}: ${isNew ? 'NOVO CONTATO (1ª Vez)' : 'CONTATO JÁ SALVO'}`);
+      if (!isNew && contact?.name) {
+        session.variables['nome_cliente'] = contact.name;
+        session.variables['cliente_nome'] = contact.name;
+      }
+      if (contact?.tags) {
+        session.variables['tags_contato'] = (contact.tags || []).join(', ');
+      }
+      if (contact?.custom_fields) {
+        Object.assign(session.variables, contact.custom_fields);
+      }
+
+      console.log(`[FlowRunner] 👥 [Check Contact] Verificação para ${cleanPhone}: ${isNew ? '🆕 NOVO CONTATO (1ª Vez)' : `✅ CONTATO JÁ CADASTRADO ("${contact?.name || 'Cliente'}")`}`);
 
       // Follow edge from 'is_new' or 'is_existing' handle
       const targetHandle = isNew ? 'is_new' : 'is_existing';
-      const branchEdge = edges.find((e) => e.source === currentNode.id && e.sourceHandle === targetHandle) ||
+      const branchEdge =
+        edges.find((e) => e.source === currentNode.id && e.sourceHandle === targetHandle) ||
+        edges.find((e) => e.source === currentNode.id && (isNew ? e.sourceHandle?.includes('new') : e.sourceHandle?.includes('exist'))) ||
         edges.find((e) => e.source === currentNode.id);
 
       if (branchEdge) {

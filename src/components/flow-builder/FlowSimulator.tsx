@@ -241,6 +241,23 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
           },
         ]);
         break;
+      } else if (type === 'check_contact') {
+        const isExisting = Boolean(activeVars.nome_cliente && activeVars.nome_cliente !== 'Cliente');
+        const isNew = !isExisting;
+        activeVars.is_primeiro_contato = isNew;
+        activeVars.is_novo_contato = isNew;
+        activeVars.tipo_cliente = isNew ? 'novo' : 'recorrente';
+
+        const targetHandle = isNew ? 'is_new' : 'is_existing';
+        const branchEdge =
+          edges.find((e) => e.source === nextNode.id && e.sourceHandle === targetHandle) ||
+          edges.find((e) => e.source === nextNode.id && (isNew ? e.sourceHandle?.includes('new') : e.sourceHandle?.includes('exist'))) ||
+          edges.find((e) => e.source === nextNode.id);
+
+        if (branchEdge) {
+          curr = nodes.find((n) => n.id === branchEdge.target) || null;
+          continue;
+        }
       } else if (type === 'confirm_booking') {
         const clientName = activeVars.nome_cliente || 'Cliente';
         const srvName = activeVars.servico_selecionado || 'Corte de Cabelo';
