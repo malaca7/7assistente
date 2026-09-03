@@ -132,6 +132,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
           type: edgeType,
           animated: true,
           style: { stroke: '#06b6d4', strokeWidth: 2.5 },
+          pathOptions: { offset: 35, borderRadius: 20 },
         }}
         proOptions={{ hideAttribution: true }}
       >
