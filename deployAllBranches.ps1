@@ -50,8 +50,13 @@ $tempDist = Join-Path $env:TEMP "dist_ghpages_$(Get-Random)"
 New-Item -ItemType Directory -Path $tempDist -Force | Out-Null
 Copy-Item -Path "dist\*" -Destination $tempDist -Recurse -Force
 
+$tempEnv = Join-Path $env:TEMP "env_backup_$(Get-Random)"
+if (Test-Path ".env") {
+    Copy-Item ".env" -Destination $tempEnv -Force
+}
+
 git checkout gh-pages
-Get-ChildItem -Path . -Exclude ".git" | Remove-Item -Recurse -Force
+Get-ChildItem -Path . -Exclude @(".git", ".env") | Remove-Item -Recurse -Force
 Copy-Item -Path "$tempDist\*" -Destination . -Recurse -Force
 Remove-Item -Path $tempDist -Recurse -Force
 
@@ -65,6 +70,10 @@ Write-Host "Branch GH-PAGES enviada para o GitHub com sucesso!" -ForegroundColor
 
 # Return to source branch
 git checkout source
+if (Test-Path $tempEnv) {
+    Copy-Item $tempEnv -Destination ".env" -Force
+    Remove-Item $tempEnv -Force
+}
 
 # 4. DISCLOUD DEPLOY & RESTART
 Write-Host "[4/4] Empacotando 7assistente.zip e enviando para o Discloud..." -ForegroundColor Cyan
