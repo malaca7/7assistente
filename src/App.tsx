@@ -110,7 +110,7 @@ export const App: React.FC = () => {
   } else if (currentPath === '/conversas' || currentPath === '/atendimento') {
     title = 'Atendimento';
     subtitle = 'Histórico de mensagens e atendimento em tempo real no WhatsApp';
-    pageContent = <ConversationsPage />;
+    pageContent = <ConversationsPage onNavigate={navigate} />;
   } else if (currentPath === '/clientes' || currentPath === '/contatos') {
     title = 'Clientes';
     subtitle = 'Histórico completo de atendimentos, agendamentos realizados, serviços e preferências';
