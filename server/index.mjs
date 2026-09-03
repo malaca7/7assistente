@@ -105,14 +105,86 @@ async function hydrateFromSupabase() {
   if (!supabaseServer) return;
   try {
     const db = loadDb();
-    const { data: flowsData } = await supabaseServer.from('flows').select('*');
-    if (flowsData && flowsData.length > 0) {
+    
+    // 1. Hydrate Flows
+    const { data: flowsData, error: flowErr } = await supabaseServer.from('flows').select('*').order('updated_at', { ascending: false });
+    if (flowsData && flowsData.length > 0 && !flowErr) {
       db.flows = flowsData;
-      saveDb(db);
-      console.log(`[WhatsApp Server] 📥 ${flowsData.length} fluxos sincronizados do Supabase na inicialização.`);
+      console.log(`[WhatsApp Server] 📥 ${flowsData.length} fluxos sincronizados do Supabase.`);
     }
+
+    // 2. Hydrate Flow Nodes & Edges
+    const [nodesRes, edgesRes] = await Promise.all([
+      supabaseServer.from('flow_nodes').select('*'),
+      supabaseServer.from('flow_edges').select('*')
+    ]);
+
+    if (nodesRes.data && nodesRes.data.length > 0) {
+      if (!db.nodes) db.nodes = {};
+      nodesRes.data.forEach((d) => {
+        if (!db.nodes[d.flow_id]) db.nodes[d.flow_id] = [];
+        const formattedNode = {
+          id: d.id,
+          flow_id: d.flow_id,
+          type: d.node_type || d.type,
+          position: { x: Number(d.position_x || 0), y: Number(d.position_y || 0) },
+          data: d.data || {},
+        };
+        const existingIdx = db.nodes[d.flow_id].findIndex((n) => n.id === d.id);
+        if (existingIdx >= 0) {
+          db.nodes[d.flow_id][existingIdx] = formattedNode;
+        } else {
+          db.nodes[d.flow_id].push(formattedNode);
+        }
+      });
+      console.log(`[WhatsApp Server] 📥 ${nodesRes.data.length} nós de fluxos carregados do Supabase.`);
+    }
+
+    if (edgesRes.data && edgesRes.data.length > 0) {
+      if (!db.edges) db.edges = {};
+      edgesRes.data.forEach((e) => {
+        if (!db.edges[e.flow_id]) db.edges[e.flow_id] = [];
+        const formattedEdge = {
+          id: e.id,
+          flow_id: e.flow_id,
+          source: e.source_node_id || e.source,
+          target: e.target_node_id || e.target,
+          sourceHandle: e.source_handle || e.sourceHandle,
+          targetHandle: e.target_handle || e.targetHandle,
+          data: e.condition || e.data,
+        };
+        const existingIdx = db.edges[e.flow_id].findIndex((ed) => ed.id === e.id);
+        if (existingIdx >= 0) {
+          db.edges[e.flow_id][existingIdx] = formattedEdge;
+        } else {
+          db.edges[e.flow_id].push(formattedEdge);
+        }
+      });
+      console.log(`[WhatsApp Server] 📥 ${edgesRes.data.length} conexões de fluxos carregadas do Supabase.`);
+    }
+
+    // 3. Hydrate Contacts
+    const { data: contactsData } = await supabaseServer.from('contacts').select('*');
+    if (contactsData && contactsData.length > 0) {
+      if (!db.contacts) db.contacts = {};
+      contactsData.forEach((c) => {
+        const clean = (c.phone || '').replace(/\D/g, '');
+        if (clean) db.contacts[clean] = c;
+      });
+    }
+
+    // 4. Hydrate Settings & Bot Profile
+    const { data: settingsData } = await supabaseServer.from('settings').select('*').limit(1);
+    if (settingsData && settingsData.length > 0) {
+      const s = settingsData[0];
+      if (s.bot_profile) db.botProfile = s.bot_profile;
+      if (s.agenda_settings) db.agendaSettings = s.agenda_settings;
+    }
+
+    saveDb(db);
+    console.log(`[WhatsApp Server] ✅ Sincronização e persistência completa com Supabase finalizadas.`);
   } catch (err) {
-    // Non-fatal
+    console.warn('[WhatsApp Server] Falha ao hidratar dados do Supabase:', err.message);
   }
 }
 
@@ -790,39 +862,128 @@ app.get('/api/whatsapp/agenda/available-slots', (req, res) => {
   res.json({ date: dateStr, available_slots: slots });
 });
 
-// 10. Flow Management REST Endpoints
-app.get('/api/whatsapp/flows', (req, res) => {
+// 10. Flow Management REST Endpoints (Supabase Single-Source-of-Truth)
+app.get('/api/whatsapp/flows', async (req, res) => {
   const db = loadDb();
+  if (supabaseServer) {
+    try {
+      const { data: flowsData } = await supabaseServer.from('flows').select('*').order('updated_at', { ascending: false });
+      if (flowsData && flowsData.length > 0) {
+        db.flows = flowsData;
+        saveDb(db);
+        return res.json(flowsData);
+      }
+    } catch (e) {
+      console.warn('[WhatsApp Server] Falha ao listar fluxos do Supabase:', e.message);
+    }
+  }
   res.json(db.flows || []);
 });
 
-app.post('/api/whatsapp/flows', (req, res) => {
+app.post('/api/whatsapp/flows', async (req, res) => {
   try {
     const flow = req.body;
     const db = loadDb();
     if (!db.flows) db.flows = [];
-    const idx = db.flows.findIndex(f => f.id === flow.id);
+    const updatedFlow = { ...flow, updated_at: new Date().toISOString() };
+    const idx = db.flows.findIndex((f) => f.id === flow.id);
     if (idx >= 0) {
-      db.flows[idx] = { ...db.flows[idx], ...flow, updated_at: new Date().toISOString() };
+      db.flows[idx] = updatedFlow;
     } else {
-      db.flows.unshift({ ...flow, updated_at: new Date().toISOString() });
+      db.flows.unshift(updatedFlow);
     }
     saveDb(db);
-    res.json({ success: true, flow });
+
+    // Persist to Supabase
+    if (supabaseServer) {
+      try {
+        await supabaseServer.from('flows').upsert(updatedFlow);
+      } catch (sbErr) {
+        console.warn('[WhatsApp Server] Falha ao salvar fluxo no Supabase:', sbErr.message);
+      }
+    }
+
+    res.json({ success: true, flow: updatedFlow });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.get('/api/whatsapp/flows/:id/graph', (req, res) => {
+app.delete('/api/whatsapp/flows/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = loadDb();
+    if (db.flows) {
+      db.flows = db.flows.filter((f) => f.id !== id);
+    }
+    if (db.nodes && db.nodes[id]) delete db.nodes[id];
+    if (db.edges && db.edges[id]) delete db.edges[id];
+    saveDb(db);
+
+    if (supabaseServer) {
+      try {
+        await supabaseServer.from('flow_nodes').delete().eq('flow_id', id);
+        await supabaseServer.from('flow_edges').delete().eq('flow_id', id);
+        await supabaseServer.from('flows').delete().eq('id', id);
+        console.log(`[WhatsApp Server] 🗑️ Fluxo ${id} removido do Supabase com sucesso.`);
+      } catch (sbErr) {
+        console.warn('[WhatsApp Server] Falha ao excluir fluxo do Supabase:', sbErr.message);
+      }
+    }
+
+    res.json({ success: true, message: 'Fluxo excluído com sucesso' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/whatsapp/flows/:id/graph', async (req, res) => {
   const { id } = req.params;
   const db = loadDb();
+
+  if (supabaseServer) {
+    try {
+      const [nodesRes, edgesRes] = await Promise.all([
+        supabaseServer.from('flow_nodes').select('*').eq('flow_id', id),
+        supabaseServer.from('flow_edges').select('*').eq('flow_id', id),
+      ]);
+
+      if (nodesRes.data && nodesRes.data.length > 0) {
+        const nodes = nodesRes.data.map((d) => ({
+          id: d.id,
+          flow_id: d.flow_id,
+          type: d.node_type || d.type,
+          position: { x: Number(d.position_x || 0), y: Number(d.position_y || 0) },
+          data: d.data || {},
+        }));
+        const edges = (edgesRes.data || []).map((e) => ({
+          id: e.id,
+          flow_id: e.flow_id,
+          source: e.source_node_id || e.source,
+          target: e.target_node_id || e.target,
+          sourceHandle: e.source_handle || e.sourceHandle,
+          targetHandle: e.target_handle || e.targetHandle,
+          data: e.condition || e.data,
+        }));
+
+        if (!db.nodes) db.nodes = {};
+        if (!db.edges) db.edges = {};
+        db.nodes[id] = nodes;
+        db.edges[id] = edges;
+        saveDb(db);
+        return res.json({ nodes, edges });
+      }
+    } catch (e) {
+      console.warn('[WhatsApp Server] Falha ao carregar grafo do Supabase:', e.message);
+    }
+  }
+
   const nodes = db.nodes?.[id] || [];
   const edges = db.edges?.[id] || [];
   res.json({ nodes, edges });
 });
 
-app.post('/api/whatsapp/flows/:id/graph', (req, res) => {
+app.post('/api/whatsapp/flows/:id/graph', async (req, res) => {
   try {
     const { id } = req.params;
     const { nodes, edges } = req.body;
@@ -835,19 +996,58 @@ app.post('/api/whatsapp/flows/:id/graph', (req, res) => {
     // Reset active sessions so subsequent WhatsApp messages immediately run the updated graph
     db.sessions = {};
     saveDb(db);
-    console.log(`[WhatsApp Server] 🔄 Grafo do fluxo ${id} salvo com ${nodes?.length || 0} nós e ${edges?.length || 0} conexões.`);
+
+    if (supabaseServer) {
+      try {
+        await supabaseServer.from('flow_nodes').delete().eq('flow_id', id);
+        if (nodes && nodes.length > 0) {
+          const insertNodes = nodes.map((n) => ({
+            id: n.id,
+            flow_id: id,
+            node_type: n.data?.nodeType || n.type,
+            position_x: n.position.x,
+            position_y: n.position.y,
+            data: n.data,
+          }));
+          await supabaseServer.from('flow_nodes').insert(insertNodes);
+        }
+
+        await supabaseServer.from('flow_edges').delete().eq('flow_id', id);
+        if (edges && edges.length > 0) {
+          const insertEdges = edges.map((e) => ({
+            id: e.id,
+            flow_id: id,
+            source_node_id: e.source,
+            target_node_id: e.target,
+            source_handle: e.sourceHandle || null,
+            target_handle: e.targetHandle || null,
+            condition: e.data || null,
+          }));
+          await supabaseServer.from('flow_edges').insert(insertEdges);
+        }
+
+        await supabaseServer.from('flows').update({
+          node_count: (nodes || []).length,
+          updated_at: new Date().toISOString(),
+        }).eq('id', id);
+        console.log(`[WhatsApp Server] 💾 Grafo do fluxo ${id} salvo no Supabase com ${nodes?.length || 0} nós e ${edges?.length || 0} conexões.`);
+      } catch (sbErr) {
+        console.warn('[WhatsApp Server] Falha ao persistir grafo no Supabase:', sbErr.message);
+      }
+    }
+
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/whatsapp/flows/:id/publish', (req, res) => {
+app.post('/api/whatsapp/flows/:id/publish', async (req, res) => {
   try {
     const { id } = req.params;
     const db = loadDb();
     if (!db.flows) db.flows = [];
-    db.flows.forEach(f => {
+    db.flows.forEach((f) => {
       if (f.id === id) {
         f.status = 'published';
       } else {
@@ -856,6 +1056,17 @@ app.post('/api/whatsapp/flows/:id/publish', (req, res) => {
     });
     db.sessions = {};
     saveDb(db);
+
+    if (supabaseServer) {
+      try {
+        await supabaseServer.from('flows').update({ status: 'paused', updated_at: new Date().toISOString() }).neq('id', id);
+        await supabaseServer.from('flows').update({ status: 'published', updated_at: new Date().toISOString() }).eq('id', id);
+        console.log(`[WhatsApp Server] 🚀 Fluxo ${id} gravado como PUBLICADO no Supabase!`);
+      } catch (sbErr) {
+        console.warn('[WhatsApp Server] Falha ao publicar fluxo no Supabase:', sbErr.message);
+      }
+    }
+
     console.log(`[WhatsApp Server] 🚀 Fluxo ${id} definido como PUBLICADO (ATIVO) no WhatsApp!`);
     res.json({ success: true });
   } catch (err) {
@@ -864,7 +1075,7 @@ app.post('/api/whatsapp/flows/:id/publish', (req, res) => {
 });
 
 // 11. Sync Flows
-app.post('/api/whatsapp/sync-flows', (req, res) => {
+app.post('/api/whatsapp/sync-flows', async (req, res) => {
   try {
     const { flows, nodes, edges, botProfile, agendaSettings } = req.body;
     const db = loadDb();
@@ -875,24 +1086,32 @@ app.post('/api/whatsapp/sync-flows', (req, res) => {
     if (botProfile) db.botProfile = { ...db.botProfile, ...botProfile };
     if (agendaSettings) db.agendaSettings = { ...db.agendaSettings, ...agendaSettings };
 
-    // Reset active sessions so subsequent messages strictly trigger the newly published flow
     db.sessions = {};
-
     saveDb(db);
-    console.log('[WhatsApp Server] ✅ Fluxos, nós, identidade e agenda sincronizados! Sessões ativas resetadas para o novo fluxo.');
 
-    if (supabaseServer && botProfile) {
-      supabaseServer.from('settings').upsert({
-        id: 'default',
-        bot_profile: botProfile,
-        business_name: botProfile.company_name || 'Talvane Barber',
-        updated_at: new Date().toISOString(),
-      }).catch(() => {});
+    if (supabaseServer) {
+      try {
+        if (flows && flows.length > 0) {
+          for (const f of flows) {
+            await supabaseServer.from('flows').upsert({ ...f, updated_at: new Date().toISOString() });
+          }
+        }
+        if (botProfile) {
+          await supabaseServer.from('settings').upsert({
+            id: 'default',
+            bot_profile: botProfile,
+            agenda_settings: agendaSettings || db.agendaSettings,
+            business_name: botProfile.company_name || 'Talvane Barber',
+            updated_at: new Date().toISOString(),
+          });
+        }
+      } catch (sbErr) {
+        console.warn('[WhatsApp Server] Falha ao sincronizar fluxos no Supabase:', sbErr.message);
+      }
     }
 
-    res.json({ success: true, message: 'Fluxos atualizados no motor do WhatsApp' });
+    res.json({ success: true });
   } catch (err) {
-    console.error('[WhatsApp Server] Erro ao sincronizar fluxos:', err);
     res.status(500).json({ error: err.message });
   }
 });

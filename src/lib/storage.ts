@@ -226,9 +226,24 @@ export const StorageService = {
     };
   },
 
-  // Flows
+  // Flows (Supabase Single-Source-of-Truth)
   async getFlows(): Promise<Flow[]> {
     const backendUrl = getBackendUrl();
+
+    // 1. Prioritize Supabase Cloud Database
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('flows').select('*').order('updated_at', { ascending: false });
+        if (data && data.length > 0 && !error) {
+          setItem(STORAGE_KEYS.FLOWS, data);
+          return data as Flow[];
+        }
+      } catch (e) {
+        console.warn('Supabase flows fetch fallback:', e);
+      }
+    }
+
+    // 2. Fallback to WhatsApp Backend Server
     try {
       const res = await fetch(`${backendUrl}/api/whatsapp/flows`);
       if (res.ok) {
@@ -240,14 +255,7 @@ export const StorageService = {
       }
     } catch {}
 
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { data, error } = await supabase.from('flows').select('*').order('updated_at', { ascending: false });
-        if (data && data.length > 0 && !error) return data as Flow[];
-      } catch (e) {
-        console.warn('Supabase flows fetch fallback:', e);
-      }
-    }
+    // 3. Fallback to LocalStorage
     return getItem<Flow[]>(STORAGE_KEYS.FLOWS, sampleFlows);
   },
 
@@ -270,15 +278,7 @@ export const StorageService = {
 
     setItem(STORAGE_KEYS.FLOWS, flows);
 
-    // Save directly to WhatsApp Server
-    try {
-      await fetch(`${backendUrl}/api/whatsapp/flows`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated),
-      });
-    } catch {}
-
+    // 1. Direct Persist to Supabase
     if (isSupabaseConfigured && supabase) {
       try {
         await supabase.from('flows').upsert(updated);
@@ -287,23 +287,45 @@ export const StorageService = {
       }
     }
 
+    // 2. Direct Persist to WhatsApp Server
+    try {
+      await fetch(`${backendUrl}/api/whatsapp/flows`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      });
+    } catch {}
+
     syncWithWhatsAppServer();
     return updated;
   },
 
   async deleteFlow(id: string): Promise<void> {
+    const backendUrl = getBackendUrl();
     const flows = await this.getFlows();
     const filtered = flows.filter(f => f.id !== id);
+    setItem(STORAGE_KEYS.FLOWS, filtered);
+    localStorage.removeItem(`${STORAGE_KEYS.FLOW_NODES_PREFIX}${id}`);
+    localStorage.removeItem(`${STORAGE_KEYS.FLOW_EDGES_PREFIX}${id}`);
+
+    // 1. Remove from Supabase
     if (isSupabaseConfigured && supabase) {
       try {
+        await supabase.from('flow_nodes').delete().eq('flow_id', id);
+        await supabase.from('flow_edges').delete().eq('flow_id', id);
         await supabase.from('flows').delete().eq('id', id);
       } catch (e) {
         console.warn('Supabase flow delete fallback:', e);
       }
     }
-    setItem(STORAGE_KEYS.FLOWS, filtered);
-    localStorage.removeItem(`${STORAGE_KEYS.FLOW_NODES_PREFIX}${id}`);
-    localStorage.removeItem(`${STORAGE_KEYS.FLOW_EDGES_PREFIX}${id}`);
+
+    // 2. Remove from WhatsApp Server
+    try {
+      await fetch(`${backendUrl}/api/whatsapp/flows/${id}`, {
+        method: 'DELETE',
+      });
+    } catch {}
+
     syncWithWhatsAppServer();
   },
 
@@ -332,6 +354,28 @@ export const StorageService = {
   // Flow Nodes & Edges
   async getFlowNodes(flowId: string): Promise<FlowNode[]> {
     const backendUrl = getBackendUrl();
+
+    // 1. Prioritize Supabase
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('flow_nodes').select('*').eq('flow_id', flowId);
+        if (data && data.length > 0 && !error) {
+          const formatted = data.map(d => ({
+            id: d.id,
+            flow_id: d.flow_id,
+            type: d.node_type || d.type,
+            position: { x: Number(d.position_x || 0), y: Number(d.position_y || 0) },
+            data: d.data || {},
+          })) as FlowNode[];
+          setItem(`${STORAGE_KEYS.FLOW_NODES_PREFIX}${flowId}`, formatted);
+          return formatted;
+        }
+      } catch (e) {
+        console.warn('Supabase flow_nodes fetch fallback:', e);
+      }
+    }
+
+    // 2. Fallback to WhatsApp Server
     try {
       const res = await fetch(`${backendUrl}/api/whatsapp/flows/${flowId}/graph`);
       if (res.ok) {
@@ -343,22 +387,6 @@ export const StorageService = {
       }
     } catch {}
 
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { data, error } = await supabase.from('flow_nodes').select('*').eq('flow_id', flowId);
-        if (data && data.length > 0 && !error) {
-          return data.map(d => ({
-            id: d.id,
-            flow_id: d.flow_id,
-            type: d.node_type || d.type,
-            position: { x: Number(d.position_x || 0), y: Number(d.position_y || 0) },
-            data: d.data || {},
-          })) as FlowNode[];
-        }
-      } catch (e) {
-        console.warn('Supabase flow_nodes fetch fallback:', e);
-      }
-    }
     if (flowId === 'flow-1788033465058' || flowId === 'flow-001') {
       const stored = getItem<FlowNode[] | null>(`${STORAGE_KEYS.FLOW_NODES_PREFIX}${flowId}`, null);
       return stored || initialFlowNodes as FlowNode[];
@@ -368,6 +396,30 @@ export const StorageService = {
 
   async getFlowEdges(flowId: string): Promise<FlowEdge[]> {
     const backendUrl = getBackendUrl();
+
+    // 1. Prioritize Supabase
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('flow_edges').select('*').eq('flow_id', flowId);
+        if (data && data.length > 0 && !error) {
+          const formatted = data.map(e => ({
+            id: e.id,
+            flow_id: e.flow_id,
+            source: e.source_node_id || e.source,
+            target: e.target_node_id || e.target,
+            sourceHandle: e.source_handle || e.sourceHandle,
+            targetHandle: e.target_handle || e.targetHandle,
+            data: e.condition || e.data,
+          })) as FlowEdge[];
+          setItem(`${STORAGE_KEYS.FLOW_EDGES_PREFIX}${flowId}`, formatted);
+          return formatted;
+        }
+      } catch (e) {
+        console.warn('Supabase flow_edges fetch fallback:', e);
+      }
+    }
+
+    // 2. Fallback to WhatsApp Server
     try {
       const res = await fetch(`${backendUrl}/api/whatsapp/flows/${flowId}/graph`);
       if (res.ok) {
@@ -379,24 +431,6 @@ export const StorageService = {
       }
     } catch {}
 
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { data, error } = await supabase.from('flow_edges').select('*').eq('flow_id', flowId);
-        if (data && data.length > 0 && !error) {
-          return data.map(e => ({
-            id: e.id,
-            flow_id: e.flow_id,
-            source: e.source_node_id || e.source,
-            target: e.target_node_id || e.target,
-            sourceHandle: e.source_handle || e.sourceHandle,
-            targetHandle: e.target_handle || e.targetHandle,
-            data: e.condition || e.data,
-          })) as FlowEdge[];
-        }
-      } catch (e) {
-        console.warn('Supabase flow_edges fetch fallback:', e);
-      }
-    }
     if (flowId === 'flow-1788033465058' || flowId === 'flow-001') {
       const stored = getItem<FlowEdge[] | null>(`${STORAGE_KEYS.FLOW_EDGES_PREFIX}${flowId}`, null);
       return stored || initialFlowEdges as FlowEdge[];
@@ -409,19 +443,11 @@ export const StorageService = {
     setItem(`${STORAGE_KEYS.FLOW_NODES_PREFIX}${flowId}`, nodes);
     setItem(`${STORAGE_KEYS.FLOW_EDGES_PREFIX}${flowId}`, edges);
 
-    // Save directly to WhatsApp Server
-    try {
-      await fetch(`${backendUrl}/api/whatsapp/flows/${flowId}/graph`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nodes, edges }),
-      });
-    } catch {}
-
+    // 1. Persist directly to Supabase Cloud Database
     if (isSupabaseConfigured && supabase) {
       try {
         await supabase.from('flow_nodes').delete().eq('flow_id', flowId);
-        if (nodes.length > 0) {
+        if (nodes && nodes.length > 0) {
           await supabase.from('flow_nodes').insert(
             nodes.map(n => ({
               id: n.id,
@@ -435,7 +461,7 @@ export const StorageService = {
         }
 
         await supabase.from('flow_edges').delete().eq('flow_id', flowId);
-        if (edges.length > 0) {
+        if (edges && edges.length > 0) {
           await supabase.from('flow_edges').insert(
             edges.map(e => ({
               id: e.id,
@@ -448,10 +474,25 @@ export const StorageService = {
             }))
           );
         }
+
+        await supabase.from('flows').update({
+          node_count: (nodes || []).length,
+          updated_at: new Date().toISOString(),
+        }).eq('id', flowId);
       } catch (e) {
         console.warn('Supabase graph save fallback:', e);
       }
     }
+
+    // 2. Persist to WhatsApp Server
+    try {
+      await fetch(`${backendUrl}/api/whatsapp/flows/${flowId}/graph`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nodes, edges }),
+      });
+    } catch {}
+
     syncWithWhatsAppServer();
   },
 
