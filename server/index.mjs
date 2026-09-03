@@ -23,7 +23,11 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import QRCode from 'qrcode';
-import { createClient } from '@supabase/supabase-js';
+let createClient = null;
+try {
+  const mod = await import('@supabase/supabase-js');
+  createClient = mod.createClient;
+} catch (e) {}
 import { 
   executePublishedFlow, 
   loadDb, 
@@ -34,7 +38,10 @@ import {
   getLiveContacts,
   getAvailableSlots,
   clearLiveMessages,
-  deleteLiveMessage
+  deleteLiveMessage,
+  getLiveLogs,
+  clearLiveLogs,
+  recordLiveLog
 } from './flowRunner.mjs';
 
 // Catch unhandled errors so Discloud never crashes
@@ -1051,12 +1058,41 @@ app.patch('/api/whatsapp/agenda/appointments/:id', (req, res) => {
   if (db.appointments) {
     const idx = db.appointments.findIndex((a) => a.id === id);
     if (idx >= 0) {
-      db.appointments[idx] = { ...db.appointments[idx], ...updates };
+      db.appointments[idx] = { ...db.appointments[idx], ...updates, updated_at: new Date().toISOString() };
       saveDb(db);
+
+      if (updates.status) {
+        const statusLabels = {
+          completed: 'Realizado / Concluído',
+          in_progress: 'Em Atendimento / Na Cadeira',
+          no_show: 'Não Compareceu / Ausente',
+          cancelled: 'Cancelado',
+          confirmed: 'Confirmado',
+        };
+        recordLiveLog(
+          'appointment_status',
+          `Status: ${statusLabels[updates.status] || updates.status}`,
+          `Agendamento de ${db.appointments[idx].contact_name || db.appointments[idx].contact_phone} marcado como ${statusLabels[updates.status] || updates.status}`,
+          db.appointments[idx].contact_phone,
+          db.appointments[idx].contact_name,
+          { appointmentId: id, newStatus: updates.status, ...updates }
+        );
+      }
+
       return res.json({ success: true, appointment: db.appointments[idx] });
     }
   }
   res.status(404).json({ error: 'Agendamento não encontrado' });
+});
+
+// Logs & Audit Endpoints
+app.get('/api/whatsapp/logs', (req, res) => {
+  res.json(getLiveLogs());
+});
+
+app.delete('/api/whatsapp/logs', (req, res) => {
+  clearLiveLogs();
+  res.json({ success: true, message: 'Logs de auditoria limpos com sucesso' });
 });
 
 app.delete('/api/whatsapp/agenda/appointments/:id', (req, res) => {

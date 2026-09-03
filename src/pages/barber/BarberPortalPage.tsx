@@ -1,0 +1,658 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Scissors, 
+  Calendar, 
+  Clock, 
+  CheckCircle2, 
+  XCircle, 
+  UserX, 
+  Plus, 
+  Phone, 
+  MessageSquare, 
+  DollarSign, 
+  User, 
+  RefreshCw, 
+  ChevronRight, 
+  ChevronLeft,
+  Flame,
+  AlertCircle,
+  ExternalLink,
+  ShieldCheck,
+  Check,
+  TrendingUp,
+  Tag
+} from 'lucide-react';
+import { StorageService } from '../../lib/storage';
+import { Appointment, AgendaSettings } from '../../types';
+import { Button } from '../../components/ui/Button';
+import { Modal } from '../../components/ui/Modal';
+import { useToast } from '../../contexts/ToastContext';
+
+interface BarberPortalPageProps {
+  onNavigate: (path: string) => void;
+}
+
+export const BarberPortalPage: React.FC<BarberPortalPageProps> = ({ onNavigate }) => {
+  const { success, error: toastError, info } = useToast();
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [agendaSettings, setAgendaSettings] = useState<AgendaSettings | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
+
+  // Modal Novo Encaixe
+  const [isWalkInModalOpen, setIsWalkInModalOpen] = useState(false);
+  const [walkInName, setWalkInName] = useState('');
+  const [walkInPhone, setWalkInPhone] = useState('');
+  const [walkInService, setWalkInService] = useState('Corte Tradicional');
+  const [walkInTime, setWalkInTime] = useState('14:00');
+  const [walkInPrice, setWalkInPrice] = useState('35');
+  const [isSavingWalkIn, setIsSavingWalkIn] = useState(false);
+
+  const loadData = async () => {
+    try {
+      const [aptsData, settingsData] = await Promise.all([
+        StorageService.getAppointments(),
+        StorageService.getAgendaSettings(),
+      ]);
+      setAppointments(aptsData || []);
+      setAgendaSettings(settingsData);
+    } catch (err) {
+      console.error('Erro ao carregar agenda do barbeiro:', err);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+    const interval = setInterval(loadData, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleManualRefresh = () => {
+    setIsRefreshing(true);
+    loadData();
+  };
+
+  // Quick date change helpers
+  const todayStr = useMemo(() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
+
+  const tomorrowStr = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
+
+  // Filter appointments for the selected date
+  const filteredAppointments = useMemo(() => {
+    return appointments
+      .filter((a) => a.appointment_date === selectedDate)
+      .sort((a, b) => a.appointment_time.localeCompare(b.appointment_time));
+  }, [appointments, selectedDate]);
+
+  // Daily statistics
+  const stats = useMemo(() => {
+    const total = filteredAppointments.length;
+    const completed = filteredAppointments.filter((a) => a.status === 'completed').length;
+    const inProgress = filteredAppointments.filter((a) => a.status === 'in_progress').length;
+    const pending = filteredAppointments.filter((a) => a.status === 'confirmed' || a.status === 'pending').length;
+    const noShow = filteredAppointments.filter((a) => a.status === 'no_show').length;
+    const cancelled = filteredAppointments.filter((a) => a.status === 'cancelled').length;
+
+    const estimatedRevenue = filteredAppointments
+      .filter((a) => a.status === 'completed' || a.status === 'in_progress' || a.status === 'confirmed')
+      .reduce((sum, a) => sum + (Number(a.price) || 35), 0);
+
+    const actualRevenue = filteredAppointments
+      .filter((a) => a.status === 'completed')
+      .reduce((sum, a) => sum + (Number(a.price) || 35), 0);
+
+    return { total, completed, inProgress, pending, noShow, cancelled, estimatedRevenue, actualRevenue };
+  }, [filteredAppointments]);
+
+  // Update appointment status in 1 click
+  const handleUpdateStatus = async (aptId: string, newStatus: Appointment['status']) => {
+    try {
+      await StorageService.updateAppointmentStatus(aptId, newStatus);
+      setAppointments((prev) =>
+        prev.map((a) => (a.id === aptId ? { ...a, status: newStatus, updated_at: new Date().toISOString() } : a))
+      );
+
+      const statusMessages: Record<string, string> = {
+        in_progress: '✂️ Cliente colocado na cadeira (Em Atendimento)!',
+        completed: '✅ Serviço marcado como Concluído / Realizado!',
+        no_show: '❌ Marcado como Não Compareceu / Ausente.',
+        cancelled: '🚫 Agendamento cancelado.',
+        confirmed: '⏳ Agendamento marcado como Confirmado.',
+      };
+
+      success('Status Atualizado', statusMessages[newStatus] || 'Status atualizado com sucesso.');
+    } catch (err) {
+      toastError('Erro', 'Não foi possível atualizar o status do agendamento.');
+    }
+  };
+
+  // Save new walk-in appointment
+  const handleCreateWalkIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!walkInName.trim()) {
+      toastError('Aviso', 'Informe o nome do cliente.');
+      return;
+    }
+
+    setIsSavingWalkIn(true);
+    try {
+      const cleanPhone = walkInPhone.replace(/\D/g, '') || '5581999999999';
+      const newApt: Appointment = {
+        id: `walkin-${Date.now()}`,
+        contact_name: walkInName.trim(),
+        contact_phone: cleanPhone,
+        service_name: walkInService,
+        price: Number(walkInPrice) || 35,
+        duration_minutes: 30,
+        appointment_date: selectedDate,
+        appointment_time: walkInTime,
+        status: 'in_progress', // starts in chair immediately
+        created_at: new Date().toISOString(),
+      };
+
+      await StorageService.saveAppointment(newApt);
+      setAppointments((prev) => [newApt, ...prev]);
+      setIsWalkInModalOpen(false);
+      setWalkInName('');
+      setWalkInPhone('');
+      success('Encaixe Criado!', `${newApt.contact_name} adicionado à cadeira às ${newApt.appointment_time}`);
+    } catch (err) {
+      toastError('Erro', 'Falha ao registrar encaixe.');
+    } finally {
+      setIsSavingWalkIn(false);
+    }
+  };
+
+  const getStatusBadge = (status: Appointment['status']) => {
+    switch (status) {
+      case 'in_progress':
+        return (
+          <span className="px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-brand-500 text-dark-950 flex items-center gap-1 shadow-glow-brand animate-pulse">
+            <Scissors className="w-3.5 h-3.5" />
+            Na Cadeira
+          </span>
+        );
+      case 'completed':
+        return (
+          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            Realizado
+          </span>
+        );
+      case 'no_show':
+        return (
+          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-300 border border-red-500/30 flex items-center gap-1">
+            <UserX className="w-3.5 h-3.5" />
+            Não Compareceu
+          </span>
+        );
+      case 'cancelled':
+        return (
+          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-500/20 text-slate-400 border border-slate-500/30 flex items-center gap-1">
+            <XCircle className="w-3.5 h-3.5" />
+            Cancelado
+          </span>
+        );
+      case 'confirmed':
+      default:
+        return (
+          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 flex items-center gap-1">
+            <Clock className="w-3.5 h-3.5" />
+            Aguardando
+          </span>
+        );
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-dark-950 text-slate-100 flex flex-col relative pb-20">
+      {/* Top Header */}
+      <header className="sticky top-0 z-40 bg-dark-900/90 backdrop-blur-xl border-b border-white/10 px-4 sm:px-8 py-3.5 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-dark-950 font-black shadow-lg shadow-brand-500/20">
+            <Scissors className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+              Painel do Barbeiro
+              <span className="px-2 py-0.5 text-[10px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30 rounded-full">
+                Talvane
+              </span>
+            </h1>
+            <p className="text-xs text-slate-400">Controle de cadeira e atendimentos em tempo real</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={handleManualRefresh}
+            title="Atualizar Agenda"
+            className={`p-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white transition-all ${
+              isRefreshing ? 'animate-spin text-brand-400' : ''
+            }`}
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+
+          <Button
+            variant="brand"
+            size="sm"
+            onClick={() => setIsWalkInModalOpen(true)}
+            leftIcon={<Plus className="w-4 h-4" />}
+            className="font-bold shadow-glow-brand"
+          >
+            <span className="hidden sm:inline">Novo</span> Encaixe
+          </Button>
+
+          <button
+            type="button"
+            onClick={() => onNavigate('/')}
+            title="Ver Fila Pública"
+            className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-brand-300 transition-all"
+          >
+            <ExternalLink className="w-4 h-4" />
+          </button>
+        </div>
+      </header>
+
+      {/* Main Body */}
+      <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-8 py-6 space-y-6">
+        {/* DATE SELECTOR BAR */}
+        <div className="p-3 bg-dark-900/80 rounded-2xl border border-white/10 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedDate(todayStr)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                selectedDate === todayStr
+                  ? 'bg-brand-500 text-dark-950 shadow-md shadow-brand-500/30'
+                  : 'bg-white/5 text-slate-400 hover:text-white'
+              }`}
+            >
+              Hoje
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedDate(tomorrowStr)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                selectedDate === tomorrowStr
+                  ? 'bg-brand-500 text-dark-950 shadow-md shadow-brand-500/30'
+                  : 'bg-white/5 text-slate-400 hover:text-white'
+              }`}
+            >
+              Amanhã
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-brand-400" />
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="px-3 py-1.5 bg-dark-950 rounded-xl border border-white/10 text-xs font-mono font-bold text-white focus:outline-none focus:border-brand-500"
+            />
+          </div>
+        </div>
+
+        {/* QUICK STATS CARDS */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="p-4 rounded-2xl bg-dark-900/70 border border-white/10 space-y-1">
+            <div className="flex items-center justify-between text-slate-400 text-xs">
+              <span>Agendados</span>
+              <Calendar className="w-3.5 h-3.5 text-blue-400" />
+            </div>
+            <p className="text-2xl font-black text-white">{stats.total}</p>
+            <p className="text-[11px] text-slate-400">{stats.pending} na espera</p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-dark-900/70 border border-white/10 space-y-1">
+            <div className="flex items-center justify-between text-slate-400 text-xs">
+              <span>Na Cadeira</span>
+              <Scissors className="w-3.5 h-3.5 text-brand-400" />
+            </div>
+            <p className="text-2xl font-black text-brand-400">{stats.inProgress}</p>
+            <p className="text-[11px] text-slate-400">Em atendimento</p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-dark-900/70 border border-white/10 space-y-1">
+            <div className="flex items-center justify-between text-slate-400 text-xs">
+              <span>Realizados</span>
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+            </div>
+            <p className="text-2xl font-black text-emerald-400">{stats.completed}</p>
+            <p className="text-[11px] text-slate-400">Concluídos com sucesso</p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-dark-900/70 border border-white/10 space-y-1">
+            <div className="flex items-center justify-between text-slate-400 text-xs">
+              <span>Faturamento</span>
+              <DollarSign className="w-3.5 h-3.5 text-amber-400" />
+            </div>
+            <p className="text-2xl font-black text-amber-300">
+              R$ {stats.actualRevenue.toFixed(2).replace('.', ',')}
+            </p>
+            <p className="text-[11px] text-slate-400">
+              Previsto: R$ {stats.estimatedRevenue.toFixed(2).replace('.', ',')}
+            </p>
+          </div>
+        </div>
+
+        {/* TIMELINE / APPOINTMENT CARDS */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold text-white flex items-center gap-2">
+              <Clock className="w-4 h-4 text-brand-400" />
+              <span>Atendimentos do Dia ({selectedDate})</span>
+            </h2>
+            <span className="text-xs text-slate-400">
+              {filteredAppointments.length} agendamento(s)
+            </span>
+          </div>
+
+          {filteredAppointments.length > 0 ? (
+            <div className="space-y-3">
+              {filteredAppointments.map((apt) => {
+                const isCurrent = apt.status === 'in_progress';
+                const isDone = apt.status === 'completed';
+                const isMissed = apt.status === 'no_show';
+                const cleanPhone = (apt.contact_phone || '').replace(/\D/g, '');
+
+                return (
+                  <div
+                    key={apt.id}
+                    className={`p-4 sm:p-5 rounded-2xl transition-all border ${
+                      isCurrent
+                        ? 'bg-brand-950/40 border-brand-500/60 shadow-xl shadow-brand-500/10'
+                        : isDone
+                        ? 'bg-emerald-950/20 border-emerald-500/30 opacity-80'
+                        : isMissed
+                        ? 'bg-red-950/20 border-red-500/30 opacity-70'
+                        : 'bg-dark-900/70 border-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      {/* Left: Time & Client Info */}
+                      <div className="flex items-start gap-3.5">
+                        <div className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-white/5 border border-white/10 text-center min-w-[64px]">
+                          <span className="text-sm font-black font-mono text-brand-300">
+                            {apt.appointment_time}
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            {apt.duration_minutes || 30}m
+                          </span>
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="text-base font-bold text-white">
+                              {apt.contact_name || 'Cliente'}
+                            </h3>
+                            {getStatusBadge(apt.status)}
+                          </div>
+                          <p className="text-xs text-slate-300 flex items-center gap-2">
+                            <span className="font-semibold text-brand-300">{apt.service_name}</span>
+                            <span>•</span>
+                            <span className="text-amber-400 font-bold">
+                              R$ {Number(apt.price || 35).toFixed(2).replace('.', ',')}
+                            </span>
+                          </p>
+                          <p className="text-xs text-slate-400 flex items-center gap-1.5">
+                            <Phone className="w-3 h-3 text-slate-500" />
+                            <span>{apt.contact_phone}</span>
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Right: 1-Click Action Buttons */}
+                      <div className="flex flex-wrap items-center gap-2 sm:justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5">
+                        {/* WhatsApp Trigger */}
+                        {cleanPhone && (
+                          <a
+                            href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Olá ${apt.contact_name}! Estou aguardando você aqui na Talvane Barber Shop para seu atendimento das ${apt.appointment_time}.`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 transition-all text-xs font-bold flex items-center gap-1"
+                            title="Chamar no WhatsApp"
+                          >
+                            <MessageSquare className="w-4 h-4 fill-current" />
+                            <span className="hidden sm:inline">WhatsApp</span>
+                          </a>
+                        )}
+
+                        {/* Status Change Buttons */}
+                        {apt.status !== 'in_progress' && apt.status !== 'completed' && (
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateStatus(apt.id, 'in_progress')}
+                            className="px-3 py-2 rounded-xl bg-brand-500 hover:bg-brand-400 text-dark-950 font-black text-xs transition-all flex items-center gap-1.5 shadow-md shadow-brand-500/20"
+                          >
+                            <Scissors className="w-3.5 h-3.5" />
+                            <span>Na Cadeira</span>
+                          </button>
+                        )}
+
+                        {apt.status !== 'completed' && (
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateStatus(apt.id, 'completed')}
+                            className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all flex items-center gap-1.5 shadow-md shadow-emerald-600/20"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Realizado</span>
+                          </button>
+                        )}
+
+                        {apt.status !== 'no_show' && apt.status !== 'completed' && (
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateStatus(apt.id, 'no_show')}
+                            className="px-2.5 py-2 rounded-xl bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/30 font-bold text-xs transition-all flex items-center gap-1"
+                            title="Marcar como Não Compareceu"
+                          >
+                            <UserX className="w-3.5 h-3.5" />
+                            <span className="hidden md:inline">Faltou</span>
+                          </button>
+                        )}
+
+                        {apt.status !== 'cancelled' && apt.status !== 'completed' && (
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateStatus(apt.id, 'cancelled')}
+                            className="px-2.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/10 font-bold text-xs transition-all"
+                            title="Cancelar Agendamento"
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+
+                        {isDone && (
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateStatus(apt.id, 'confirmed')}
+                            className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 text-xs font-semibold"
+                          >
+                            Reabrir
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="p-8 rounded-3xl bg-dark-900/60 border border-white/10 text-center space-y-3">
+              <Calendar className="w-8 h-8 text-slate-500 mx-auto" />
+              <p className="text-sm font-bold text-white">Nenhum agendamento para esta data.</p>
+              <p className="text-xs text-slate-400">
+                Adicione um novo cliente que chegou direto no balcão usando o botão abaixo:
+              </p>
+              <Button
+                variant="brand"
+                size="sm"
+                onClick={() => setIsWalkInModalOpen(true)}
+                leftIcon={<Plus className="w-4 h-4" />}
+              >
+                Cadastrar Encaixe
+              </Button>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* MODAL: NOVO ENCAIXE / BALCÃO */}
+      <Modal
+        isOpen={isWalkInModalOpen}
+        onClose={() => setIsWalkInModalOpen(false)}
+        title="Novo Encaixe / Atendimento de Balcão"
+        size="md"
+      >
+        <form onSubmit={handleCreateWalkIn} className="space-y-4 pt-2">
+          <p className="text-xs text-slate-400">
+            Adicione um cliente que chegou diretamente na barbearia para colocá-lo na cadeira ou na fila de hoje ({selectedDate}).
+          </p>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-300">Nome do Cliente *</label>
+            <input
+              type="text"
+              required
+              value={walkInName}
+              onChange={(e) => setWalkInName(e.target.value)}
+              placeholder="Ex: Carlos Oliveira"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-dark-950 border border-white/10 text-white text-sm focus:outline-none focus:border-brand-500"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-300">WhatsApp / Telefone</label>
+            <input
+              type="text"
+              value={walkInPhone}
+              onChange={(e) => setWalkInPhone(e.target.value)}
+              placeholder="Ex: 81 99613-8924"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-dark-950 border border-white/10 text-white text-sm focus:outline-none focus:border-brand-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300">Serviço</label>
+              <select
+                value={walkInService}
+                onChange={(e) => {
+                  setWalkInService(e.target.value);
+                  if (e.target.value.includes('Combo')) setWalkInPrice('55');
+                  else if (e.target.value.includes('Barba')) setWalkInPrice('25');
+                  else setWalkInPrice('35');
+                }}
+                className="w-full px-3 py-2.5 rounded-xl bg-dark-950 border border-white/10 text-white text-sm focus:outline-none focus:border-brand-500"
+              >
+                <option value="Corte Tradicional">Corte Tradicional</option>
+                <option value="Barba Completa">Barba Completa</option>
+                <option value="Combo Corte + Barba">Combo Corte + Barba</option>
+                <option value="Pezinho & Acabamento">Pezinho & Acabamento</option>
+                <option value="Sobrancelha Navalhada">Sobrancelha</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300">Valor (R$)</label>
+              <input
+                type="number"
+                value={walkInPrice}
+                onChange={(e) => setWalkInPrice(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-dark-950 border border-white/10 text-white text-sm focus:outline-none focus:border-brand-500"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-300">Horário</label>
+            <input
+              type="time"
+              value={walkInTime}
+              onChange={(e) => setWalkInTime(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-dark-950 border border-white/10 text-white text-sm font-mono focus:outline-none focus:border-brand-500"
+            />
+          </div>
+
+          <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsWalkInModalOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              variant="brand"
+              size="sm"
+              isLoading={isSavingWalkIn}
+              className="font-bold shadow-glow-brand"
+            >
+              Iniciar Atendimento Agora
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Bottom Sticky Mobile Bar with Quick Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-dark-900/90 backdrop-blur-xl border-t border-white/10 px-6 py-2.5 flex items-center justify-around text-xs">
+        <button
+          type="button"
+          onClick={() => onNavigate('/')}
+          className="flex flex-col items-center gap-1 text-slate-400 hover:text-brand-300"
+        >
+          <Scissors className="w-4 h-4" />
+          <span className="text-[10px]">Fila Pública</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setSelectedDate(todayStr)}
+          className="flex flex-col items-center gap-1 text-brand-400 font-bold"
+        >
+          <Clock className="w-4 h-4" />
+          <span className="text-[10px]">Hoje</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onNavigate('/admin')}
+          className="flex flex-col items-center gap-1 text-slate-400 hover:text-white"
+        >
+          <ShieldCheck className="w-4 h-4" />
+          <span className="text-[10px]">Admin</span>
+        </button>
+      </nav>
+    </div>
+  );
+};

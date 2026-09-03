@@ -113,8 +113,20 @@ export interface Appointment {
   price?: number;
   appointment_date: string;
   appointment_time: string;
-  status: 'confirmed' | 'pending' | 'cancelled' | 'completed' | 'no_show';
+  status: 'confirmed' | 'pending' | 'cancelled' | 'completed' | 'no_show' | 'in_progress';
   notes?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface AuditLog {
+  id: string;
+  type: 'appointment_created' | 'appointment_status' | 'bot_flow' | 'message_inbound' | 'message_outbound' | 'system';
+  title: string;
+  description: string;
+  contact_phone?: string;
+  contact_name?: string;
+  details?: Record<string, any>;
   created_at: string;
 }
 

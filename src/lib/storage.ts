@@ -13,7 +13,8 @@ import {
   Appointment,
   AgendaSettings,
   Attendant,
-  CannedReply
+  CannedReply,
+  AuditLog
 } from '../types';
 import { 
   initialAdminProfile, 
@@ -1412,5 +1413,43 @@ export const StorageService = {
 
   clearSession(): void {
     localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+  },
+
+  // Audit Logs
+  async getLogs(): Promise<AuditLog[]> {
+    const backendUrl = getBackendUrl();
+    try {
+      const res = await fetch(`${backendUrl}/api/whatsapp/logs`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) return data;
+      }
+    } catch {}
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('audit_logs')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(200);
+        if (!error && data && data.length > 0) return data as AuditLog[];
+      } catch {}
+    }
+
+    return [];
+  },
+
+  async clearLogs(): Promise<void> {
+    const backendUrl = getBackendUrl();
+    try {
+      await fetch(`${backendUrl}/api/whatsapp/logs`, { method: 'DELETE' });
+    } catch {}
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('audit_logs').delete().neq('id', '0');
+      } catch {}
+    }
   }
 };

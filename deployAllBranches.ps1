@@ -56,7 +56,7 @@ if (Test-Path ".env") {
 }
 
 git checkout gh-pages
-Get-ChildItem -Path . -Exclude @(".git", ".env") | Remove-Item -Recurse -Force
+Get-ChildItem -Path . -Exclude @(".git", ".env", "node_modules") | Remove-Item -Recurse -Force
 Copy-Item -Path "$tempDist\*" -Destination . -Recurse -Force
 Remove-Item -Path $tempDist -Recurse -Force
 

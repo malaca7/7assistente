@@ -5,7 +5,7 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { Phone, Lock, Eye, EyeOff, ShieldCheck, Sparkles, ArrowRight, MessageCircle } from 'lucide-react';
 
-export const LoginPage: React.FC = () => {
+export const LoginPage: React.FC<{ onNavigate?: (path: string) => void }> = ({ onNavigate }) => {
   const { loginWithPhone, isLoading } = useAuth();
   const { error: toastError, success: toastSuccess } = useToast();
 
@@ -33,6 +33,9 @@ export const LoginPage: React.FC = () => {
       toastError('Falha no Login', res.error || 'Credenciais inválidas.');
     } else {
       toastSuccess('Acesso Autorizado', 'Bem-vindo ao painel 7 Assistente!');
+      if (onNavigate) {
+        onNavigate('/admin');
+      }
     }
   };
 
@@ -118,6 +121,18 @@ export const LoginPage: React.FC = () => {
             >
               Entrar na Plataforma
             </Button>
+
+            {onNavigate && (
+              <div className="pt-1 text-center">
+                <button
+                  type="button"
+                  onClick={() => onNavigate('/')}
+                  className="text-xs text-slate-400 hover:text-brand-300 transition-colors underline underline-offset-4"
+                >
+                  ← Voltar para a Fila de Clientes
+                </button>
+              </div>
+            )}
           </form>
         </div>
 
