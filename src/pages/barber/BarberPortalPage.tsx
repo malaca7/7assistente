@@ -264,11 +264,14 @@ export const BarberPortalPage: React.FC<BarberPortalPageProps> = ({ onNavigate }
       if (nextSlot) {
         toastError(
           'Horário Ocupado',
-          `Já existe agendamento às ${walkInTime} (${conflict.contact_name}). Sugerido próximo horário com tempo suficiente (${duration} min): ${nextSlot}.`
+          `Já existe agendamento às ${walkInTime} (${conflict.contact_name}). Próximo horário livre disponível para ${duration} min: ${nextSlot.displayFull}.`
         );
-        setWalkInTime(nextSlot);
+        setWalkInTime(nextSlot.time);
+        if (nextSlot.date && nextSlot.date !== selectedDate) {
+          setSelectedDate(nextSlot.date);
+        }
       } else {
-        toastError('Agenda Lotada', `Já existe agendamento às ${walkInTime} e não há outros horários com ${duration} min livres hoje.`);
+        toastError('Agenda Lotada', `Já existe agendamento às ${walkInTime} e não há outros horários com ${duration} min livres.`);
       }
       return;
     }

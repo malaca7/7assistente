@@ -307,3 +307,13 @@ export interface DashboardKPIs {
   waitingHuman: number;
   messagesSentToday: number;
 }
+
+export interface SlotSuggestion {
+  date: string;
+  time: string;
+  formattedDate: string;
+  dayOfWeek: string;
+  displayFull: string;
+  displayShort: string;
+  isSameDate: boolean;
+}
