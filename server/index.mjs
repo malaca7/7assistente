@@ -1217,6 +1217,55 @@ app.post('/api/whatsapp/flows/:id/publish', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+// 10. Settings & Bot Profile Management (Sincronização em Tempo Real)
+app.get('/api/whatsapp/settings', (req, res) => {
+  const db = loadDb();
+  res.json({
+    settings: db.settings || {},
+    botProfile: db.botProfile || {},
+    agendaSettings: db.agendaSettings || {},
+    attendants: db.attendants || [],
+  });
+});
+
+app.post('/api/whatsapp/settings', async (req, res) => {
+  try {
+    const { settings, botProfile, agendaSettings } = req.body;
+    const db = loadDb();
+
+    if (settings) db.settings = { ...db.settings, ...settings };
+    if (botProfile) db.botProfile = { ...db.botProfile, ...botProfile };
+    if (agendaSettings) db.agendaSettings = { ...db.agendaSettings, ...agendaSettings };
+
+    saveDb(db);
+    console.log('[WhatsApp Server] ⚙️ Configurações e Perfil do Robô salvos com sucesso no banco de dados!');
+    res.json({
+      success: true,
+      settings: db.settings,
+      botProfile: db.botProfile,
+      agendaSettings: db.agendaSettings,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/whatsapp/profile', (req, res) => {
+  const db = loadDb();
+  res.json(db.botProfile || {});
+});
+
+app.post('/api/whatsapp/profile', (req, res) => {
+  try {
+    const profile = req.body;
+    const db = loadDb();
+    db.botProfile = { ...(db.botProfile || {}), ...profile };
+    saveDb(db);
+    console.log('[WhatsApp Server] 🤖 Perfil do Robô atualizado no banco de dados:', db.botProfile.name || 'Assistente');
+    res.json({ success: true, botProfile: db.botProfile });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // 11. Sync Flows

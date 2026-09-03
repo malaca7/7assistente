@@ -167,6 +167,14 @@ export const SettingsPage: React.FC = () => {
           setWebsiteUrl(saved.website_url || defaultBotProfile.website_url);
           setWelcomeMessage(saved.welcome_message || defaultBotProfile.welcome_message);
           setFallbackMessage(saved.fallback_message || defaultBotProfile.fallback_message);
+          if (saved.handoff_message) setHandoffMessage(saved.handoff_message);
+          if (saved.company_address) setCompanyAddress(saved.company_address);
+          if (saved.pix_key_type) setPixKeyType(saved.pix_key_type);
+          if (saved.pix_key) setPixKey(saved.pix_key);
+          if (saved.pix_owner) setPixOwner(saved.pix_owner);
+          if (typeof saved.notify_new_bookings === 'boolean') setNotifyNewBookings(saved.notify_new_bookings);
+          if (saved.notify_phone) setNotifyPhone(saved.notify_phone);
+          if (typeof saved.play_audio_alerts === 'boolean') setPlayAudioAlerts(saved.play_audio_alerts);
         }
       } catch (e) {
         console.error('Error loading bot profile:', e);
@@ -175,12 +183,11 @@ export const SettingsPage: React.FC = () => {
     loadProfile();
   }, []);
 
-  const handleSaveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveProfile = async (e?: React.FormEvent) => {
+    if (e && e.preventDefault) e.preventDefault();
     setIsSaving(true);
     try {
       const updated: BotProfile = {
-        id: 'default',
         name: botName,
         company_name: companyName,
         gender,
@@ -192,11 +199,19 @@ export const SettingsPage: React.FC = () => {
         website_url: websiteUrl,
         welcome_message: welcomeMessage,
         fallback_message: fallbackMessage,
+        handoff_message: handoffMessage,
+        company_address: companyAddress,
+        pix_key_type: pixKeyType,
+        pix_key: pixKey,
+        pix_owner: pixOwner,
+        notify_new_bookings: notifyNewBookings,
+        notify_phone: notifyPhone,
+        play_audio_alerts: playAudioAlerts,
         updated_at: new Date().toISOString(),
       };
 
       await StorageService.updateBotProfile(updated);
-      success('Configurações Salvas', 'Perfil, mensagens e identidade do assistente sincronizados com sucesso.');
+      success('Configurações Salvas no Banco', 'Perfil, dados comerciais e identidade sincronizados com o servidor em tempo real.');
     } catch (err: any) {
       toastError('Erro ao salvar', err.message || 'Falha ao gravar configurações');
     } finally {

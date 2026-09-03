@@ -174,38 +174,80 @@ function migrateLidContacts(db) {
   }
 }
 
+const AUTH_DIR = path.resolve(__dirname, 'whatsapp_auth');
+const BACKUP_DB_PATH = path.resolve(AUTH_DIR, 'flows_db_backup.json');
+
 export function loadDb() {
+  let parsed = null;
   try {
     if (fs.existsSync(DB_PATH)) {
       const data = fs.readFileSync(DB_PATH, 'utf-8');
-      const parsed = JSON.parse(data);
-      migrateLidContacts(parsed);
-      return {
-        flows: parsed.flows || [],
-        nodes: parsed.nodes || {},
-        edges: parsed.edges || {},
-        botProfile: parsed.botProfile || {},
-        sessions: parsed.sessions || {},
-        appointments: parsed.appointments || [],
-        contacts: parsed.contacts || {},
-        conversations: parsed.conversations || {},
-        messages: parsed.messages || {},
-        agendaSettings: parsed.agendaSettings || DEFAULT_AGENDA_SETTINGS,
-      };
+      parsed = JSON.parse(data);
     }
   } catch (err) {
     console.error('[FlowRunner] Erro ao ler flows_db.json:', err);
   }
+
+  // Restore & Merge from Persistent WhatsApp Auth Backup (never deleted during deploys)
+  try {
+    if (fs.existsSync(BACKUP_DB_PATH)) {
+      const backupData = JSON.parse(fs.readFileSync(BACKUP_DB_PATH, 'utf-8'));
+      if (backupData) {
+        if (!parsed) {
+          parsed = backupData;
+        } else {
+          if (backupData.botProfile && Object.keys(backupData.botProfile).length > 0) {
+            parsed.botProfile = { ...parsed.botProfile, ...backupData.botProfile };
+          }
+          if (backupData.settings && Object.keys(backupData.settings).length > 0) {
+            parsed.settings = { ...parsed.settings, ...backupData.settings };
+          }
+          if (backupData.contacts && Object.keys(backupData.contacts).length > 0) {
+            parsed.contacts = { ...backupData.contacts, ...parsed.contacts };
+          }
+          if (backupData.conversations && Object.keys(backupData.conversations).length > 0) {
+            parsed.conversations = { ...backupData.conversations, ...parsed.conversations };
+          }
+          if (backupData.attendants && backupData.attendants.length > 0) {
+            parsed.attendants = backupData.attendants;
+          }
+        }
+      }
+    }
+  } catch (bErr) {
+    // Ignore backup read error
+  }
+
+  if (parsed) {
+    migrateLidContacts(parsed);
+    return {
+      flows: parsed.flows || [],
+      nodes: parsed.nodes || {},
+      edges: parsed.edges || {},
+      botProfile: parsed.botProfile || {},
+      settings: parsed.settings || {},
+      sessions: parsed.sessions || {},
+      appointments: parsed.appointments || [],
+      contacts: parsed.contacts || {},
+      conversations: parsed.conversations || {},
+      messages: parsed.messages || {},
+      attendants: parsed.attendants || [],
+      agendaSettings: parsed.agendaSettings || DEFAULT_AGENDA_SETTINGS,
+    };
+  }
+
   return {
     flows: [],
     nodes: {},
     edges: {},
     botProfile: {},
+    settings: {},
     sessions: {},
     appointments: [],
     contacts: {},
     conversations: {},
     messages: {},
+    attendants: [],
     agendaSettings: DEFAULT_AGENDA_SETTINGS,
   };
 }
@@ -213,6 +255,10 @@ export function loadDb() {
 export function saveDb(data) {
   try {
     fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
+    if (!fs.existsSync(AUTH_DIR)) {
+      fs.mkdirSync(AUTH_DIR, { recursive: true });
+    }
+    fs.writeFileSync(BACKUP_DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
   } catch (err) {
     console.error('[FlowRunner] Erro ao salvar flows_db.json:', err);
   }

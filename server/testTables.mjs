@@ -1,5 +1,4 @@
-import './websocketPolyfill.mjs';
-import WebSocket from 'ws';
+import WebSocket from './websocketPolyfill.mjs';
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = 'https://nskflvulclgwqqasdntq.supabase.co';
