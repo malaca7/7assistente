@@ -1217,6 +1217,8 @@ app.post('/api/whatsapp/flows/:id/publish', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
 // 10. Settings & Bot Profile Management (Sincronização em Tempo Real)
 app.get('/api/whatsapp/settings', (req, res) => {
   const db = loadDb();
