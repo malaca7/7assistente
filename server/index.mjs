@@ -727,13 +727,22 @@ app.get('/api/whatsapp/conversations/:convId/messages', (req, res) => {
 });
 
 // 7. Get Real Registered Contacts
-app.get('/api/whatsapp/contacts', (req, res) => {
+app.get('/api/whatsapp/contacts', async (req, res) => {
+  const db = loadDb();
+  if (supabaseServer) {
+    try {
+      const { data } = await supabaseServer.from('contacts').select('*').order('created_at', { ascending: false });
+      if (data && data.length > 0) {
+        return res.json(data);
+      }
+    } catch (e) {}
+  }
   const contacts = getLiveContacts();
   res.json(contacts);
 });
 
 // 8. Save / Update / Delete Contact
-app.post('/api/whatsapp/contacts', (req, res) => {
+app.post('/api/whatsapp/contacts', async (req, res) => {
   const contact = req.body;
   const db = loadDb();
   if (!db.contacts) db.contacts = {};
@@ -745,23 +754,48 @@ app.post('/api/whatsapp/contacts', (req, res) => {
       updated_at: new Date().toISOString(),
     };
     saveDb(db);
+
+    if (supabaseServer) {
+      try {
+        await supabaseServer.from('contacts').upsert(db.contacts[cleanPhone], { onConflict: 'phone' });
+      } catch (e) {}
+    }
   }
   res.json({ success: true, contact: db.contacts[cleanPhone] });
 });
 
-app.delete('/api/whatsapp/contacts/:id', (req, res) => {
+app.delete('/api/whatsapp/contacts/:id', async (req, res) => {
   const { id } = req.params;
   const phoneQuery = req.query.phone || '';
   const db = loadDb();
 
+  const digits = [
+    String(id).replace(/\D/g, ''),
+    String(phoneQuery).replace(/\D/g, ''),
+  ].filter(d => d.length >= 8);
+
+  // 1. Delete from Supabase Database
+  if (supabaseServer) {
+    try {
+      if (id) {
+        await supabaseServer.from('contacts').delete().eq('id', id);
+      }
+      for (const d of digits) {
+        const alt = d.startsWith('55') ? d.substring(2) : `55${d}`;
+        await supabaseServer.from('contacts').delete().or(`phone.eq.${d},phone.eq.${alt},id.eq.contact-${d},id.eq.contact-${alt}`);
+      }
+    } catch (sbErr) {
+      console.warn('[WhatsApp Server] Falha ao deletar contato no Supabase:', sbErr.message);
+    }
+  }
+
+  // 2. Delete from Memory / Local DB
   if (db.contacts) {
     const targets = [
       String(id),
       String(id).replace('contact-', ''),
-      String(id).replace(/\D/g, ''),
-      String(phoneQuery),
-      String(phoneQuery).replace(/\D/g, ''),
-    ].filter(Boolean);
+      ...digits,
+    ];
 
     Object.keys(db.contacts).forEach((k) => {
       const c = db.contacts[k];
@@ -780,6 +814,7 @@ app.delete('/api/whatsapp/contacts/:id', (req, res) => {
 
     saveDb(db);
   }
+
   res.json({ success: true, message: 'Contato excluído com sucesso' });
 });
 
