@@ -446,6 +446,18 @@
       "created_at": "2026-08-29T23:23:18.236Z",
       "updated_at": "2026-08-30T15:54:58.044Z",
       "profile_picture_url": "https://pps.whatsapp.net/v/t61.24694-24/674630155_1633106875192131_9214554452579566382_n.jpg?ccb=11-4&oh=01_Q5Aa5QH8Rcsf-hGOlkVBBpTEo5nl3x1xEqmhIqKGisBkzVPZ0g&oe=6AA16C21&_nc_sid=5e03e0&_nc_cat=104"
+    },
+    "81996138924": {
+      "id": "contact-81996138924",
+      "phone": "81996138924",
+      "name": "Julio",
+      "status": "active",
+      "tags": [
+        "Possivel Cliente"
+      ],
+      "metadata": {},
+      "created_at": "2026-09-03T17:43:19.161Z",
+      "updated_at": "2026-09-03T17:43:20.035Z"
     }
   },
   "conversations": {
