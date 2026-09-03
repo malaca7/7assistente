@@ -94,7 +94,7 @@ jobs:
         run: |
           zip -r 7assistente.zip index.mjs index.js package.json discloud.config .discloudignore server dist
 
-      - name: Deploy via Discloud API
+      - name: Deploy via Discloud API & Restart Bot
         env:
           DISCLOUD_TOKEN: ${{ secrets.DISCLOUD_TOKEN }}
         run: |
@@ -103,14 +103,20 @@ jobs:
             echo "ℹ️ Para auto-deploy na Discloud via GitHub Actions, adicione DISCLOUD_TOKEN em Settings > Secrets and variables > Actions."
             echo "ℹ️ Ou ative a integração nativa do GitHub no painel da Discloud apontando para a branch main."
           else
-            echo "🚀 Enviando atualização para Discloud App talvanebarber..."
+            echo "🚀 Enviando commit de atualização para Discloud App talvanebarber..."
             RESPONSE=$(curl -s -X PUT "https://api.discloud.app/v2/app/talvanebarber/commit" \
               -H "api-token: $DISCLOUD_TOKEN" \
               -F "file=@7assistente.zip")
             echo "Resposta Discloud Commit: $RESPONSE"
             
-            echo "🔄 Reiniciando aplicação na Discloud..."
+            echo "⏳ Aguardando 10 segundos para processamento e descompactação dos arquivos na Discloud..."
+            sleep 10
+            
+            echo "🔄 Reiniciando aplicação do bot na Discloud..."
             RESTART_RESP=$(curl -s -X PUT "https://api.discloud.app/v2/app/talvanebarber/restart" \
               -H "api-token: $DISCLOUD_TOKEN")
             echo "Resposta Discloud Restart: $RESTART_RESP"
+            
+            echo "✅ Deploy e reinicialização automática do bot concluídos com sucesso na Discloud!"
           fi
+
