@@ -414,19 +414,78 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
     [screenToFlowPosition, spawnNodeAtPosition]
   );
 
-  // Auto-Layout Algorithm (True Genealogical Tree Hierarchy)
+  // Advanced Auto-Layout Algorithm (Sugiyama Hierarchical DAG Tree with Zero-Collision Spacing)
   const handleAutoLayout = useCallback(() => {
     if (nodes.length === 0) return;
 
+    // 1. Dynamic Height Estimator
+    const getNodeHeight = (n: Node): number => {
+      const type = n.data?.nodeType || n.type;
+      const cfg = (n.data as any)?.config || {};
+      switch (type) {
+        case 'trigger':
+          return 160;
+        case 'message':
+          return 190;
+        case 'question':
+          return 210;
+        case 'buttons': {
+          const btnCount = (cfg.buttons || []).length || 2;
+          return 180 + btnCount * 42;
+        }
+        case 'check_contact':
+          return 260;
+        case 'services_catalog':
+          return 280;
+        case 'schedule_contact':
+          return 260;
+        case 'ask_date':
+          return 240;
+        case 'confirm_booking':
+          return 240;
+        case 'condition':
+          return 240;
+        case 'ai_agent':
+          return 220;
+        case 'human_handoff':
+          return 200;
+        case 'delay':
+          return 160;
+        case 'http_request':
+        case 'webhook':
+          return 220;
+        default:
+          return 220;
+      }
+    };
+
+    const NODE_WIDTH = 320;
+    const HORIZONTAL_GAP = 140;
+    const HORIZONTAL_STEP = NODE_WIDTH + HORIZONTAL_GAP; // 460px
+    const VERTICAL_GAP = 70; // Guaranteed minimum distance between node borders
+    const START_X = 120;
+    const START_Y = 140;
+
+    // 2. Build Adjacency Graph
     const childrenMap = new Map<string, string[]>();
     const parentMap = new Map<string, string[]>();
+    const edgeHandleOrder = new Map<string, number>(); // edgeId -> handle index
 
     nodes.forEach((n) => {
       childrenMap.set(n.id, []);
       parentMap.set(n.id, []);
     });
 
-    edges.forEach((e) => {
+    // Sort edges so branching handles (e.g. is_new vs is_existing, btn_1 vs btn_2) preserve order
+    const sortedEdges = [...edges].sort((a, b) => {
+      const hA = a.sourceHandle || '';
+      const hB = b.sourceHandle || '';
+      if (hA === 'is_new' || hA === 'true' || hA.includes('1')) return -1;
+      if (hB === 'is_new' || hB === 'true' || hB.includes('1')) return 1;
+      return hA.localeCompare(hB);
+    });
+
+    sortedEdges.forEach((e) => {
       if (childrenMap.has(e.source) && childrenMap.has(e.target)) {
         if (!childrenMap.get(e.source)!.includes(e.target)) {
           childrenMap.get(e.source)!.push(e.target);
@@ -437,34 +496,46 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
       }
     });
 
-    // 1. Assign Layer (X coordinate / Depth Level) via Longest Path from Roots
-    const roots = nodes.filter((n) => (n.data?.nodeType || n.type) === 'trigger' || (parentMap.get(n.id)?.length || 0) === 0);
+    // 3. Topological Layering (Sugiyama Rank Assignment)
+    const roots = nodes.filter(
+      (n) => (n.data?.nodeType || n.type) === 'trigger' || (parentMap.get(n.id)?.length || 0) === 0
+    );
     if (roots.length === 0 && nodes.length > 0) {
       roots.push(nodes[0]);
     }
 
     const depthMap = new Map<string, number>();
+    roots.forEach((r) => depthMap.set(r.id, 0));
 
-    const assignDepth = (nodeId: string, currentDepth: number) => {
-      const existingDepth = depthMap.get(nodeId) || 0;
-      if (currentDepth > existingDepth) {
-        depthMap.set(nodeId, currentDepth);
-      }
-      const children = childrenMap.get(nodeId) || [];
-      children.forEach((childId) => {
-        assignDepth(childId, (depthMap.get(nodeId) || currentDepth) + 1);
+    // Iterative longest-path to ensure target depth >= source depth + 1
+    let changed = true;
+    let iteration = 0;
+    const maxIterations = nodes.length + 5;
+
+    while (changed && iteration < maxIterations) {
+      changed = false;
+      iteration++;
+
+      edges.forEach((e) => {
+        const srcDepth = depthMap.get(e.source);
+        if (srcDepth !== undefined) {
+          const curTargetDepth = depthMap.get(e.target) || 0;
+          const requiredDepth = srcDepth + 1;
+          if (requiredDepth > curTargetDepth) {
+            depthMap.set(e.target, requiredDepth);
+            changed = true;
+          }
+        }
       });
-    };
+    }
 
-    roots.forEach((r) => assignDepth(r.id, 0));
-
+    // Assign any unvisited orphaned node to layer 0
     nodes.forEach((n) => {
       if (!depthMap.has(n.id)) {
         depthMap.set(n.id, 0);
       }
     });
 
-    // Group nodes by column/depth level
     const maxDepth = Math.max(...Array.from(depthMap.values()), 0);
     const columns: Node[][] = Array.from({ length: maxDepth + 1 }, () => []);
 
@@ -473,28 +544,38 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
       columns[d].push(n);
     });
 
-    // 2. Initial Y Placement
-    const NODE_WIDTH = 320;
-    const HORIZONTAL_GAP = 90;
-    const HORIZONTAL_STEP = NODE_WIDTH + HORIZONTAL_GAP;
-    const MIN_VERTICAL_GAP = 220;
-    const START_X = 80;
-    const START_Y = 120;
+    // 4. Handle-Aware Sorting inside each column to prevent line crossings
+    for (let d = 0; d <= maxDepth; d++) {
+      columns[d].sort((a, b) => {
+        const parentsA = parentMap.get(a.id) || [];
+        const parentsB = parentMap.get(b.id) || [];
+        // Primary sort: average index of parent
+        const avgParentA = parentsA.length > 0 ? parentsA.reduce((acc, p) => acc + (depthMap.get(p) || 0), 0) / parentsA.length : 0;
+        const avgParentB = parentsB.length > 0 ? parentsB.reduce((acc, p) => acc + (depthMap.get(p) || 0), 0) / parentsB.length : 0;
+        return avgParentA - avgParentB;
+      });
+    }
 
+    // 5. Initial Subtree Y Positioning
     const yPositions = new Map<string, number>();
 
-    roots.forEach((r, idx) => {
-      yPositions.set(r.id, START_Y + idx * (MIN_VERTICAL_GAP * 2));
+    // Position roots
+    let currentRootY = START_Y;
+    roots.forEach((r) => {
+      yPositions.set(r.id, currentRootY);
+      const h = getNodeHeight(r);
+      currentRootY += h + VERTICAL_GAP * 2;
     });
 
+    // Forward Sweep (Assign children relative to parent)
     for (let d = 0; d <= maxDepth; d++) {
       const colNodes = columns[d];
-      
+
       colNodes.forEach((node) => {
         const parents = parentMap.get(node.id) || [];
         if (parents.length > 0 && !yPositions.has(node.id)) {
           const parentYs = parents.map((pId) => yPositions.get(pId) ?? START_Y);
-          const avgY = parentYs.reduce((a, b) => a + b, 0) / parentYs.length;
+          const avgY = parentYs.reduce((acc, cur) => acc + cur, 0) / parentYs.length;
           yPositions.set(node.id, avgY);
         } else if (!yPositions.has(node.id)) {
           yPositions.set(node.id, START_Y);
@@ -502,34 +583,69 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
 
         const children = childrenMap.get(node.id) || [];
         if (children.length > 1) {
-          const totalSpan = (children.length - 1) * MIN_VERTICAL_GAP;
-          const startChildY = (yPositions.get(node.id) || START_Y) - totalSpan / 2;
-          children.forEach((childId, cIdx) => {
+          const totalChildrenHeight = children.reduce((sum, cId) => {
+            const childNode = nodes.find((n) => n.id === cId);
+            return sum + (childNode ? getNodeHeight(childNode) : 220) + VERTICAL_GAP;
+          }, 0) - VERTICAL_GAP;
+
+          const parentY = yPositions.get(node.id) || START_Y;
+          let runningChildY = parentY - totalChildrenHeight / 2;
+
+          children.forEach((childId) => {
             if (!yPositions.has(childId)) {
-              yPositions.set(childId, startChildY + cIdx * MIN_VERTICAL_GAP);
+              yPositions.set(childId, runningChildY);
+              const childNode = nodes.find((n) => n.id === childId);
+              runningChildY += (childNode ? getNodeHeight(childNode) : 220) + VERTICAL_GAP;
             }
           });
         }
       });
+    }
 
+    // Backward Sweep (Center parents relative to their children)
+    for (let d = maxDepth; d >= 0; d--) {
+      const colNodes = columns[d];
+      colNodes.forEach((node) => {
+        const children = childrenMap.get(node.id) || [];
+        if (children.length > 0) {
+          const childYs = children.map((cId) => yPositions.get(cId) ?? START_Y);
+          const avgChildY = childYs.reduce((acc, cur) => acc + cur, 0) / childYs.length;
+          yPositions.set(node.id, avgChildY);
+        }
+      });
+    }
+
+    // 6. Strict Non-Overlapping Collision Resolution in Every Column
+    for (let d = 0; d <= maxDepth; d++) {
+      const colNodes = columns[d];
+      if (colNodes.length <= 1) continue;
+
+      // Sort column nodes by calculated Y
       colNodes.sort((a, b) => (yPositions.get(a.id) || 0) - (yPositions.get(b.id) || 0));
 
+      // Push downward to guarantee zero overlap
       for (let i = 1; i < colNodes.length; i++) {
-        const prevId = colNodes[i - 1].id;
-        const curId = colNodes[i].id;
-        const prevY = yPositions.get(prevId) || 0;
-        const curY = yPositions.get(curId) || 0;
+        const prevNode = colNodes[i - 1];
+        const curNode = colNodes[i];
+        const prevY = yPositions.get(prevNode.id) || START_Y;
+        const prevH = getNodeHeight(prevNode);
+        const minCurY = prevY + prevH + VERTICAL_GAP;
+        const curY = yPositions.get(curNode.id) || START_Y;
 
-        if (curY < prevY + MIN_VERTICAL_GAP) {
-          yPositions.set(curId, prevY + MIN_VERTICAL_GAP);
+        if (curY < minCurY) {
+          yPositions.set(curNode.id, minCurY);
         }
       }
     }
 
+    // 7. Global Vertical Normalization
+    const minY = Math.min(...Array.from(yPositions.values()), START_Y);
+    const yOffset = minY < START_Y ? START_Y - minY : 0;
+
     const layoutedNodes: Node[] = nodes.map((n) => {
       const depth = depthMap.get(n.id) || 0;
       const posX = START_X + depth * HORIZONTAL_STEP;
-      const posY = yPositions.get(n.id) || START_Y;
+      const posY = (yPositions.get(n.id) || START_Y) + yOffset;
 
       return {
         ...n,
@@ -539,10 +655,10 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
 
     setNodes(layoutedNodes);
     pushHistory(layoutedNodes, edges);
-    success('Organograma Alinhado', 'Estrutura organizada com sucesso!');
+    success('Organograma Alinhado', 'Estrutura e linhas organizadas sem sobreposições!');
 
     setTimeout(() => {
-      fitView({ padding: 0.2, duration: 800 });
+      fitView({ padding: 0.25, duration: 800 });
     }, 60);
   }, [nodes, edges, setNodes, pushHistory, fitView, success]);
 
