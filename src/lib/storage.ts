@@ -499,31 +499,36 @@ export const StorageService = {
   // Contacts
   async getContacts(): Promise<Contact[]> {
     const backendUrl = getBackendUrl();
-    let serverContacts: Contact[] = [];
-    try {
-      const res = await fetch(`${backendUrl}/api/whatsapp/contacts`);
-      if (res.ok) {
-        serverContacts = await res.json();
-      }
-    } catch {
-      // Ignore if server is not reachable
-    }
 
+    // 1. Supabase Cloud Database is the primary Source of Truth
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.from('contacts').select('*').order('created_at', { ascending: false });
-        if (data && data.length > 0 && !error) {
-          const combined = [...data, ...serverContacts];
-          return Array.from(new Map(combined.map(c => [c.phone, c])).values()) as Contact[];
+        if (data && !error) {
+          setItem(STORAGE_KEYS.CONTACTS, data);
+          return data as Contact[];
         }
       } catch (e) {
         console.warn('Supabase contacts fetch fallback:', e);
       }
     }
 
-    const localContacts = getItem<Contact[]>(STORAGE_KEYS.CONTACTS, []);
-    const combined = [...serverContacts, ...localContacts];
-    return Array.from(new Map(combined.map(c => [c.phone, c])).values()) as Contact[];
+    // 2. WhatsApp Backend Server Fallback
+    try {
+      const res = await fetch(`${backendUrl}/api/whatsapp/contacts`);
+      if (res.ok) {
+        const serverContacts = await res.json();
+        if (Array.isArray(serverContacts) && serverContacts.length > 0) {
+          setItem(STORAGE_KEYS.CONTACTS, serverContacts);
+          return serverContacts;
+        }
+      }
+    } catch {
+      // Ignore if server is not reachable
+    }
+
+    // 3. Local Cache Fallback
+    return getItem<Contact[]>(STORAGE_KEYS.CONTACTS, []);
   },
 
   async getContactById(id: string): Promise<Contact | null> {
