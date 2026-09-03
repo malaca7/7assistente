@@ -30,8 +30,10 @@ export async function syncContactToSupabase(contact) {
       name: contact.name || 'Cliente WhatsApp',
       phone: cleanPhone,
       email: contact.email || null,
-      status: contact.status || 'lead',
-      tags: contact.tags || ['WhatsApp'],
+      status: contact.status || 'active',
+      is_registered: contact.is_registered !== false,
+      profile_picture_url: contact.profile_picture_url || null,
+      tags: contact.tags || ['Cliente'],
       custom_fields: contact.custom_fields || contact.metadata || {},
       last_interaction: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -434,12 +436,15 @@ export async function findRegisteredContact(cleanPhone, senderName, db) {
   const isVerifiedClient = (c) => {
     if (!c) return false;
     if (c.is_registered === true || c.is_verified === true) return true;
-    const tagList = (c.tags || []).map((t) => t.toLowerCase().trim());
+    const tagList = (c.tags || []).map((t) => String(t).toLowerCase().trim());
     if (tagList.includes('cliente') || tagList.includes('vip') || tagList.includes('recorrente') || tagList.includes('mensalista') || tagList.includes('agendado')) {
       return true;
     }
-    if (c.status === 'active' && c.name && c.name !== 'Cliente' && c.name !== 'Cliente WhatsApp' && c.name !== c.whatsapp_pushname) {
-      return true;
+    const cleanName = String(c.name || '').trim();
+    if (cleanName && cleanName !== 'Cliente' && cleanName !== 'Cliente WhatsApp' && cleanName !== 'nome_cliente' && cleanName !== 'undefined') {
+      if (c.status === 'active' || (c.custom_fields && Object.keys(c.custom_fields).length > 0)) {
+        return true;
+      }
     }
     return false;
   };
@@ -494,7 +499,7 @@ export async function findRegisteredContact(cleanPhone, senderName, db) {
   if (aptMatch && aptMatch.contact_name && aptMatch.contact_name.toLowerCase() !== 'cliente') {
     return {
       isRegistered: true,
-      contact: { name: aptMatch.contact_name, phone: cleanPhone },
+      contact: { name: aptMatch.contact_name, phone: cleanPhone, is_registered: true },
       hasRealName: true,
     };
   }
@@ -674,21 +679,31 @@ function parseCustomDateString(input) {
   return today.toISOString().split('T')[0];
 }
 
-  const isReset =
+  const isExplicitReset =
     cleanInput.toLowerCase() === 'menu' ||
     cleanInput.toLowerCase() === 'inicio' ||
     cleanInput.toLowerCase() === 'início' ||
     cleanInput.toLowerCase() === 'reiniciar' ||
+    cleanInput.toLowerCase() === 'cancelar' ||
+    cleanInput.toLowerCase() === 'voltar' ||
+    cleanInput.toLowerCase() === 'comecar' ||
+    cleanInput.toLowerCase() === 'começar' ||
+    cleanInput.toLowerCase() === 'start';
+
+  const isGreeting =
     cleanInput.toLowerCase() === 'oi' ||
     cleanInput.toLowerCase() === 'olá' ||
     cleanInput.toLowerCase() === 'ola' ||
     cleanInput.toLowerCase() === 'bom dia' ||
     cleanInput.toLowerCase() === 'boa tarde' ||
-    cleanInput.toLowerCase() === 'boa noite' ||
-    cleanInput.toLowerCase() === 'comecar' ||
-    cleanInput.toLowerCase() === 'começar' ||
-    cleanInput.toLowerCase() === 'start' ||
-    !session.currentNodeId;
+    cleanInput.toLowerCase() === 'boa noite';
+
+  const isWaitingForInput = Boolean(
+    session.waitingForVar ||
+    (session.currentNodeId && nodes.some((n) => n.id === session.currentNodeId && (n.type === 'question' || n.data?.nodeType === 'question')))
+  );
+
+  const isReset = isExplicitReset || (!isWaitingForInput && (isGreeting || !session.currentNodeId));
 
   let currentNode = null;
 
@@ -700,26 +715,41 @@ function parseCustomDateString(input) {
     const prevType = prevNode?.data?.nodeType || prevNode?.type;
 
     // 1. Question response
-    if (prevNode && prevType === 'question') {
-      const qConfig = prevNode.data?.config || {};
+    if ((prevNode && prevType === 'question') || session.waitingForVar) {
+      const activeQuestionNode = (prevNode && prevType === 'question') ? prevNode : nodes.find((n) => (n.data?.nodeType || n.type) === 'question');
+      const qConfig = activeQuestionNode?.data?.config || {};
       let varKey = qConfig.variableName || session.waitingForVar || 'resposta_usuario';
       varKey = varKey.replace(/[{}]/g, '').trim();
 
-      session.variables[varKey] = cleanInput;
-      session.variables[`{{${varKey}}}`] = cleanInput;
-      session.waitingForVar = null;
+      // Clean up conversational prefixes if user typed "Me chamo Carlos" or "Meu nome é Carlos"
+      let extractedName = cleanInput;
+      const lowerInput = cleanInput.toLowerCase().trim();
+      if (lowerInput.startsWith('me chamo ')) {
+        extractedName = cleanInput.substring(9).trim();
+      } else if (lowerInput.startsWith('meu nome é ') || lowerInput.startsWith('meu nome e ')) {
+        extractedName = cleanInput.substring(11).trim();
+      } else if (lowerInput.startsWith('sou o ') || lowerInput.startsWith('sou a ')) {
+        extractedName = cleanInput.substring(6).trim();
+      }
 
-      const isNameVar = varKey.toLowerCase().includes('nome') || varKey === 'name' || varKey === 'cliente';
-      if (isNameVar) {
-        session.variables.nome_cliente = cleanInput;
-        session.variables.cliente_nome = cleanInput;
+      const isNameVar = varKey.toLowerCase().includes('nome') || varKey === 'name' || varKey === 'cliente' || qConfig.expectedType === 'text';
+      const finalVal = isNameVar ? extractedName : cleanInput;
+
+      session.variables[varKey] = finalVal;
+      session.variables[`{{${varKey}}}`] = finalVal;
+      session.variables['resposta_usuario'] = finalVal;
+      session.waitingForVar = null;
+      if (isNameVar && extractedName) {
+        session.variables.nome_cliente = extractedName;
+        session.variables.cliente_nome = extractedName;
+        session.variables.nome = extractedName;
 
         if (!db.contacts) db.contacts = {};
         if (!db.contacts[cleanPhone]) {
           db.contacts[cleanPhone] = {
             id: `contact-${cleanPhone}`,
             phone: cleanPhone,
-            name: cleanInput,
+            name: extractedName,
             status: 'active',
             tags: ['Cliente'],
             is_registered: true,
@@ -727,7 +757,7 @@ function parseCustomDateString(input) {
             updated_at: new Date().toISOString(),
           };
         } else {
-          db.contacts[cleanPhone].name = cleanInput;
+          db.contacts[cleanPhone].name = extractedName;
           db.contacts[cleanPhone].status = 'active';
           db.contacts[cleanPhone].is_registered = true;
           if (!db.contacts[cleanPhone].tags) db.contacts[cleanPhone].tags = [];
@@ -738,11 +768,11 @@ function parseCustomDateString(input) {
         }
 
         if (db.conversations && db.conversations[`conv-${cleanPhone}`]) {
-          db.conversations[`conv-${cleanPhone}`].contact_name = cleanInput;
+          db.conversations[`conv-${cleanPhone}`].contact_name = extractedName;
         }
 
         syncContactToSupabase(db.contacts[cleanPhone]);
-        console.log(`[FlowRunner] 👤 Nome do cliente gravado da resposta da pergunta: "${cleanInput}" para ${cleanPhone}`);
+        console.log(`[FlowRunner] 👤 Nome do cliente gravado da resposta da pergunta: "${extractedName}" para ${cleanPhone}`);
       }
 
       if (varKey.toLowerCase().includes('email')) {
@@ -761,7 +791,8 @@ function parseCustomDateString(input) {
 
       saveDb(db);
 
-      const nextEdge = edges.find((e) => e.source === prevNode.id);
+      const effectiveQuestionNode = activeQuestionNode || prevNode;
+      const nextEdge = effectiveQuestionNode ? edges.find((e) => e.source === effectiveQuestionNode.id) : null;
       if (nextEdge) {
         currentNode = nodes.find((n) => n.id === nextEdge.target);
         session.currentNodeId = currentNode?.id || null;
@@ -982,25 +1013,42 @@ function parseCustomDateString(input) {
       session.variables['tipo_cliente'] = isNew ? 'novo' : 'recorrente';
       session.variables['telefone_whatsapp'] = cleanPhone;
 
+      if (contact?.custom_fields) {
+        Object.assign(session.variables, contact.custom_fields);
+      }
       if (!isNew && contact?.name) {
         session.variables['nome_cliente'] = contact.name;
         session.variables['cliente_nome'] = contact.name;
+        session.variables['nome'] = contact.name;
       }
       if (contact?.tags) {
         session.variables['tags_contato'] = (contact.tags || []).join(', ');
-      }
-      if (contact?.custom_fields) {
-        Object.assign(session.variables, contact.custom_fields);
       }
 
       console.log(`[FlowRunner] 👥 [Check Contact] Verificação para ${cleanPhone}: ${isNew ? '🆕 NOVO CONTATO (1ª Vez)' : `✅ CONTATO JÁ CADASTRADO ("${contact?.name || 'Cliente'}")`}`);
 
       // Follow edge from 'is_new' or 'is_existing' handle
       const targetHandle = isNew ? 'is_new' : 'is_existing';
-      const branchEdge =
-        edges.find((e) => e.source === currentNode.id && e.sourceHandle === targetHandle) ||
-        edges.find((e) => e.source === currentNode.id && (isNew ? e.sourceHandle?.includes('new') : e.sourceHandle?.includes('exist'))) ||
-        edges.find((e) => e.source === currentNode.id);
+      let branchEdge = edges.find((e) => e.source === currentNode.id && e.sourceHandle === targetHandle);
+
+      if (!branchEdge) {
+        branchEdge = edges.find(
+          (e) =>
+            e.source === currentNode.id &&
+            (isNew
+              ? e.sourceHandle?.includes('new') || e.sourceHandle?.includes('novo')
+              : e.sourceHandle?.includes('exist') || e.sourceHandle?.includes('salvo') || e.sourceHandle?.includes('recorrente'))
+        );
+      }
+
+      if (!branchEdge) {
+        const nodeEdges = edges.filter((e) => e.source === currentNode.id);
+        if (nodeEdges.length >= 2) {
+          branchEdge = isNew ? nodeEdges[0] : nodeEdges[1];
+        } else {
+          branchEdge = nodeEdges[0];
+        }
+      }
 
       if (branchEdge) {
         currentNode = nodes.find((n) => n.id === branchEdge.target);
@@ -1227,20 +1275,46 @@ function parseCustomDateString(input) {
         const cleanNameKey = config.contactName.replace(/[{}]/g, '').trim();
         resolvedName =
           session.variables[cleanNameKey] ||
-          session.variables[config.contactName] ||
-          session.variables.nome_cliente ||
-          replaceVars(config.contactName, session.variables, botProfile);
+          session.variables['nome_cliente'] ||
+          session.variables['nome'] ||
+          session.variables['cliente_nome'];
+        if (!resolvedName && config.contactName.includes('{{')) {
+          resolvedName = replaceVars(config.contactName, session.variables, botProfile);
+        }
       } else {
-        resolvedName = session.variables.nome_cliente || session.variables.cliente_nome || senderName;
+        resolvedName =
+          session.variables.nome_cliente ||
+          session.variables.nome ||
+          session.variables.cliente_nome ||
+          session.variables.resposta_usuario ||
+          senderName;
       }
 
       resolvedName = String(resolvedName || '').trim();
-      if (resolvedName && resolvedName !== 'Cliente' && resolvedName !== 'Cliente WhatsApp') {
+      // Guard against saving literal variable placeholder names as the contact name
+      if (
+        resolvedName === 'nome_cliente' ||
+        resolvedName === 'nome' ||
+        resolvedName === 'cliente_nome' ||
+        resolvedName === 'undefined' ||
+        resolvedName === 'null'
+      ) {
+        resolvedName =
+          session.variables.nome_cliente ||
+          session.variables.nome ||
+          session.variables.resposta_usuario ||
+          senderName ||
+          'Cliente';
+      }
+
+      if (resolvedName && resolvedName !== 'Cliente' && resolvedName !== 'Cliente WhatsApp' && resolvedName !== 'nome_cliente') {
         session.variables.nome_cliente = resolvedName;
         session.variables.cliente_nome = resolvedName;
+        session.variables.nome = resolvedName;
         db.contacts[cleanPhone].name = resolvedName;
         if (db.conversations && db.conversations[`conv-${cleanPhone}`]) {
           db.conversations[`conv-${cleanPhone}`].contact_name = resolvedName;
+          syncConversationToSupabase(db.conversations[`conv-${cleanPhone}`]);
         }
       }
 
@@ -1264,16 +1338,12 @@ function parseCustomDateString(input) {
       }
 
       // 4. Tags
-      if (config.tags) {
-        const configuredTags = config.tags
-          .split(',')
-          .map((t) => t.trim())
-          .filter(Boolean);
-        if (configuredTags.length > 0) {
-          const existingTags = db.contacts[cleanPhone].tags || [];
-          db.contacts[cleanPhone].tags = Array.from(new Set([...existingTags, ...configuredTags]));
-        }
-      }
+      const existingTags = db.contacts[cleanPhone].tags || [];
+      const configuredTags = (config.tags || 'Cliente')
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean);
+      db.contacts[cleanPhone].tags = Array.from(new Set([...existingTags, ...configuredTags, 'Cliente']));
 
       // 5. Custom Metadata / Custom Fields
       if (config.customFieldKey) {

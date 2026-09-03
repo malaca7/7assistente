@@ -12,7 +12,7 @@
     "server": "node server/index.mjs"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.112.4",
+    "@supabase/supabase-js": "^2.115.0",
     "@whiskeysockets/baileys": "^7.0.0-rc14",
     "@xyflow/react": "^12.11.5",
     "clsx": "^2.1.1",
@@ -25,7 +25,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^3.6.0",
-    "ws": "^8.18.0"
+    "ws": "^8.21.3"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
