@@ -315,16 +315,21 @@ export function recordRealMessage(phone, senderName, direction, content, explici
   const existingContact = db.contacts[cleanPhone] || {
     id: `contact-${cleanPhone}`,
     phone: cleanPhone,
-    name: senderName || 'Cliente WhatsApp',
+    name: (senderName && senderName !== 'Cliente') ? senderName : 'Cliente WhatsApp',
+    whatsapp_pushname: senderName || undefined,
     profile_picture_url: profilePicUrl || undefined,
-    status: 'active',
-    tags: explicitTags || ['WhatsApp'],
+    status: 'lead',
+    tags: explicitTags || ['Lead'],
+    is_registered: false,
     metadata: {},
     created_at: now,
   };
 
-  if (senderName && (!existingContact.name || existingContact.name === 'Cliente WhatsApp' || existingContact.name === 'Cliente')) {
-    existingContact.name = senderName;
+  if (senderName && senderName !== 'Cliente') {
+    existingContact.whatsapp_pushname = senderName;
+    if (!existingContact.name || existingContact.name === 'Cliente WhatsApp' || existingContact.name === 'Cliente') {
+      existingContact.name = senderName;
+    }
   }
   if (profilePicUrl && !existingContact.profile_picture_url) {
     existingContact.profile_picture_url = profilePicUrl;
@@ -425,14 +430,27 @@ export async function findRegisteredContact(cleanPhone, senderName, db) {
     variations.add(`55${with9}`);
   }
 
+  // Helper to determine if contact has verified client status
+  const isVerifiedClient = (c) => {
+    if (!c) return false;
+    if (c.is_registered === true || c.is_verified === true) return true;
+    const tagList = (c.tags || []).map((t) => t.toLowerCase().trim());
+    if (tagList.includes('cliente') || tagList.includes('vip') || tagList.includes('recorrente') || tagList.includes('mensalista') || tagList.includes('agendado')) {
+      return true;
+    }
+    if (c.status === 'active' && c.name && c.name !== 'Cliente' && c.name !== 'Cliente WhatsApp' && c.name !== c.whatsapp_pushname) {
+      return true;
+    }
+    return false;
+  };
+
   // 1. Search in memory / db.contacts
   const contactsList = Object.values(db.contacts || {});
   for (const c of contactsList) {
     const cDigits = (c.phone || c.id || '').replace(/\D/g, '');
     for (const v of variations) {
       if (cDigits && (cDigits === v || cDigits.endsWith(v) || v.endsWith(cDigits))) {
-        const hasRealName = Boolean(c.name && c.name.trim() !== '' && c.name.replace(/\D/g, '') !== cDigits && c.name.toLowerCase() !== 'cliente');
-        if (hasRealName || c.tags?.length > 0) {
+        if (isVerifiedClient(c)) {
           return { isRegistered: true, contact: c, hasRealName: true };
         }
       }
@@ -450,15 +468,12 @@ export async function findRegisteredContact(cleanPhone, senderName, db) {
           .limit(1)
           .maybeSingle();
 
-        if (data && !error && data.name) {
-          const hasRealName = Boolean(data.name.trim() !== '' && data.name.replace(/\D/g, '') !== data.phone?.replace(/\D/g, '') && data.name.toLowerCase() !== 'cliente');
-          if (hasRealName) {
-            if (!db.contacts) db.contacts = {};
-            db.contacts[cleanPhone] = data;
-            db.contacts[data.phone] = data;
-            saveDb(db);
-            return { isRegistered: true, contact: data, hasRealName: true };
-          }
+        if (data && !error && isVerifiedClient(data)) {
+          if (!db.contacts) db.contacts = {};
+          db.contacts[cleanPhone] = data;
+          db.contacts[data.phone] = data;
+          saveDb(db);
+          return { isRegistered: true, contact: data, hasRealName: true };
         }
       }
     } catch (e) {
@@ -598,10 +613,14 @@ export async function executePublishedFlow(senderJid, messageText, pushName, rea
 
   session.variables = {
     ...session.variables,
-    nome_cliente: session.variables.nome_cliente || senderName,
+    whatsapp_pushname: senderName || '',
     telefone_cliente: cleanPhone,
+    telefone_whatsapp: cleanPhone,
     ultima_mensagem: cleanInput,
   };
+  if (!session.variables.nome_cliente) {
+    session.variables.nome_cliente = '';
+  }
 
   const botProfile = db.botProfile || {};
   const replies = [];
@@ -665,24 +684,64 @@ function parseCustomDateString(input) {
     // 1. Question response
     if (prevNode && prevType === 'question') {
       const qConfig = prevNode.data?.config || {};
-      const varKey = qConfig.variableName || session.waitingForVar || 'resposta_usuario';
+      let varKey = qConfig.variableName || session.waitingForVar || 'resposta_usuario';
+      varKey = varKey.replace(/[{}]/g, '').trim();
+
       session.variables[varKey] = cleanInput;
+      session.variables[`{{${varKey}}}`] = cleanInput;
       session.waitingForVar = null;
 
-      if (varKey.includes('nome')) {
+      const isNameVar = varKey.toLowerCase().includes('nome') || varKey === 'name' || varKey === 'cliente';
+      if (isNameVar) {
         session.variables.nome_cliente = cleanInput;
-        if (db.contacts[cleanPhone]) db.contacts[cleanPhone].name = cleanInput;
-        if (db.conversations[`conv-${cleanPhone}`]) db.conversations[`conv-${cleanPhone}`].contact_name = cleanInput;
+        session.variables.cliente_nome = cleanInput;
+
+        if (!db.contacts) db.contacts = {};
+        if (!db.contacts[cleanPhone]) {
+          db.contacts[cleanPhone] = {
+            id: `contact-${cleanPhone}`,
+            phone: cleanPhone,
+            name: cleanInput,
+            status: 'active',
+            tags: ['Cliente'],
+            is_registered: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+        } else {
+          db.contacts[cleanPhone].name = cleanInput;
+          db.contacts[cleanPhone].status = 'active';
+          db.contacts[cleanPhone].is_registered = true;
+          if (!db.contacts[cleanPhone].tags) db.contacts[cleanPhone].tags = [];
+          if (!db.contacts[cleanPhone].tags.includes('Cliente')) {
+            db.contacts[cleanPhone].tags.push('Cliente');
+          }
+          db.contacts[cleanPhone].updated_at = new Date().toISOString();
+        }
+
+        if (db.conversations && db.conversations[`conv-${cleanPhone}`]) {
+          db.conversations[`conv-${cleanPhone}`].contact_name = cleanInput;
+        }
+
+        syncContactToSupabase(db.contacts[cleanPhone]);
+        console.log(`[FlowRunner] 👤 Nome do cliente gravado da resposta da pergunta: "${cleanInput}" para ${cleanPhone}`);
       }
-      if (varKey.includes('email')) {
+
+      if (varKey.toLowerCase().includes('email')) {
         session.variables.email_cliente = cleanInput;
-        if (db.contacts[cleanPhone]) db.contacts[cleanPhone].email = cleanInput;
+        if (db.contacts && db.contacts[cleanPhone]) {
+          db.contacts[cleanPhone].email = cleanInput;
+          syncContactToSupabase(db.contacts[cleanPhone]);
+        }
       }
-      if (db.contacts[cleanPhone]) {
+
+      if (db.contacts && db.contacts[cleanPhone]) {
         if (!db.contacts[cleanPhone].custom_fields) db.contacts[cleanPhone].custom_fields = {};
         db.contacts[cleanPhone].custom_fields[varKey] = cleanInput;
         syncContactToSupabase(db.contacts[cleanPhone]);
       }
+
+      saveDb(db);
 
       const nextEdge = edges.find((e) => e.source === prevNode.id);
       if (nextEdge) {
@@ -1131,18 +1190,22 @@ function parseCustomDateString(input) {
       replies.push(confirmText);
     }
 
-    // 5. Update Contact Profile Node
+    // 5. Update Contact Profile Node (Salvar / Vincular Dados no Perfil do Cliente)
     else if (nodeType === 'update_contact') {
+      if (!db.contacts) db.contacts = {};
       if (!db.contacts[cleanPhone]) {
         db.contacts[cleanPhone] = {
           id: `contact-${cleanPhone}`,
           phone: cleanPhone,
-          name: senderName,
+          name: senderName || 'Cliente',
           profile_picture_url: profilePicUrl || undefined,
           status: 'active',
-          tags: [],
+          tags: ['Cliente'],
+          is_registered: true,
+          custom_fields: {},
           metadata: {},
           created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         };
       }
 
@@ -1151,32 +1214,46 @@ function parseCustomDateString(input) {
         db.contacts[cleanPhone].profile_picture_url = profilePicUrl;
       }
 
-      // 2. Client Name
-      if (config.contactName && session.variables[config.contactName]) {
-        const newName = String(session.variables[config.contactName]).trim();
-        session.variables.nome_cliente = newName;
-        db.contacts[cleanPhone].name = newName;
-        if (db.conversations[`conv-${cleanPhone}`]) {
-          db.conversations[`conv-${cleanPhone}`].contact_name = newName;
+      // 2. Client Name Resolution
+      let resolvedName = '';
+      if (config.contactName) {
+        const cleanNameKey = config.contactName.replace(/[{}]/g, '').trim();
+        resolvedName =
+          session.variables[cleanNameKey] ||
+          session.variables[config.contactName] ||
+          session.variables.nome_cliente ||
+          replaceVars(config.contactName, session.variables, botProfile);
+      } else {
+        resolvedName = session.variables.nome_cliente || session.variables.cliente_nome || senderName;
+      }
+
+      resolvedName = String(resolvedName || '').trim();
+      if (resolvedName && resolvedName !== 'Cliente' && resolvedName !== 'Cliente WhatsApp') {
+        session.variables.nome_cliente = resolvedName;
+        session.variables.cliente_nome = resolvedName;
+        db.contacts[cleanPhone].name = resolvedName;
+        if (db.conversations && db.conversations[`conv-${cleanPhone}`]) {
+          db.conversations[`conv-${cleanPhone}`].contact_name = resolvedName;
         }
-      } else if (senderName && (!db.contacts[cleanPhone].name || db.contacts[cleanPhone].name === 'Cliente')) {
-        db.contacts[cleanPhone].name = senderName;
       }
 
       // 3. WhatsApp Phone Number & Variable Creation
-      const phoneVarKey = (config.phoneVarName || 'telefone_whatsapp').trim();
+      const phoneVarKey = (config.phoneVarName || 'telefone_whatsapp').replace(/[{}]/g, '').trim();
       session.variables[phoneVarKey] = cleanPhone;
       session.variables['telefone_cliente'] = cleanPhone;
+      session.variables['telefone_whatsapp'] = cleanPhone;
 
-      if (config.phoneVariable && session.variables[config.phoneVariable]) {
-        const cleanExtracted = String(session.variables[config.phoneVariable]).replace(/\D/g, '');
-        if (cleanExtracted.length >= 8) {
-          db.contacts[cleanPhone].phone = cleanExtracted;
-          session.variables[phoneVarKey] = cleanExtracted;
-          session.variables['telefone_cliente'] = cleanExtracted;
+      if (config.phoneVariable) {
+        const cleanPhoneVar = config.phoneVariable.replace(/[{}]/g, '').trim();
+        const customPhone = session.variables[cleanPhoneVar] || session.variables[config.phoneVariable];
+        if (customPhone) {
+          const cleanExtracted = String(customPhone).replace(/\D/g, '');
+          if (cleanExtracted.length >= 8) {
+            db.contacts[cleanPhone].phone = cleanExtracted;
+            session.variables[phoneVarKey] = cleanExtracted;
+            session.variables['telefone_cliente'] = cleanExtracted;
+          }
         }
-      } else {
-        db.contacts[cleanPhone].phone = cleanPhone;
       }
 
       // 4. Tags
@@ -1186,18 +1263,42 @@ function parseCustomDateString(input) {
           .map((t) => t.trim())
           .filter(Boolean);
         if (configuredTags.length > 0) {
-          db.contacts[cleanPhone].tags = configuredTags;
+          const existingTags = db.contacts[cleanPhone].tags || [];
+          db.contacts[cleanPhone].tags = Array.from(new Set([...existingTags, ...configuredTags]));
         }
       }
 
-      // 5. Custom Metadata
+      // 5. Custom Metadata / Custom Fields
       if (config.customFieldKey) {
-        const val = session.variables[config.customFieldValue] || config.customFieldValue || '';
-        if (!db.contacts[cleanPhone].metadata) db.contacts[cleanPhone].metadata = {};
-        db.contacts[cleanPhone].metadata[config.customFieldKey] = val;
+        const fieldKey = config.customFieldKey.replace(/[{}]/g, '').trim();
+        let fieldVal = config.customFieldValue || '';
+        const cleanValKey = fieldVal.replace(/[{}]/g, '').trim();
+        fieldVal = session.variables[cleanValKey] || session.variables[fieldVal] || replaceVars(fieldVal, session.variables, botProfile);
+
+        if (!db.contacts[cleanPhone].custom_fields) db.contacts[cleanPhone].custom_fields = {};
+        db.contacts[cleanPhone].custom_fields[fieldKey] = fieldVal;
+        session.variables[fieldKey] = fieldVal;
       }
 
+      db.contacts[cleanPhone].is_registered = true;
+      db.contacts[cleanPhone].status = 'active';
       db.contacts[cleanPhone].updated_at = new Date().toISOString();
+
+      // Persist directly to Supabase
+      syncContactToSupabase(db.contacts[cleanPhone]);
+      saveDb(db);
+      console.log(`[FlowRunner] 💾 [Salvar Dados] Contato ${cleanPhone} salvo no Supabase com Nome: "${db.contacts[cleanPhone].name}" e Tags: [${(db.contacts[cleanPhone].tags || []).join(', ')}]`);
+
+      // Advance to next node
+      const outgoing = edges.find((e) => e.source === currentNode.id);
+      if (outgoing) {
+        currentNode = nodes.find((n) => n.id === outgoing.target);
+        if (currentNode) {
+          session.currentNodeId = currentNode.id;
+          continue;
+        }
+      }
+      break;
     }
 
     // 6. Condition Node
