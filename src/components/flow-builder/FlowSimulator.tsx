@@ -182,7 +182,42 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
           },
         ]);
         break;
-      } else if (type === 'ask_date') {
+      } else if (type === 'show_services') {
+        const header = config.headerText || '💈 *Catálogo de Serviços & Preços*';
+        const footer = config.footerText ? `\n\n_${config.footerText}_` : '';
+        const defaultList = '• ✂️ *Corte de Cabelo* — R$ 35,00 (30 min)\n• 🪒 *Barba Terapia* — R$ 40,00 (45 min)\n• ✂️🪒 *Combo Completo* — R$ 70,00 (60 min)';
+        const fullMsg = `${header}\n\n${defaultList}${footer}`;
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg-${Date.now()}-${Math.random()}`,
+            sender: 'bot',
+            content: fullMsg,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            nodeId: nextNode.id,
+          },
+        ]);
+        // Continuous flow (does not pause for input)
+      } else if (type === 'select_service' || type === 'services_catalog') {
+        const intro = substituteVariables(config.introMessage || 'Qual serviço você deseja agendar hoje?', activeVars, p || undefined);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg-${Date.now()}-${Math.random()}`,
+            sender: 'bot',
+            content: `✂️ *Escolha o Serviço:*\n${intro}`,
+            buttons: [
+              { id: 'srv_1', title: 'Corte de Cabelo (R$ 35)' },
+              { id: 'srv_2', title: 'Barba Terapia (R$ 40)' },
+              { id: 'srv_3', title: 'Combo Cabelo + Barba (R$ 70)' },
+            ],
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            nodeId: nextNode.id,
+          },
+        ]);
+        break;
+      } else if (type === 'select_date' || type === 'ask_date') {
         const qText = substituteVariables(config.questionText || 'Para qual dia você deseja agendar?', activeVars, p || undefined);
         const todayStr = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
         const tomDate = new Date();
@@ -205,32 +240,16 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
           },
         ]);
         break;
-      } else if (type === 'services_catalog') {
-        const intro = substituteVariables(config.introMessage || 'Qual serviço você deseja agendar?', activeVars, p || undefined);
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `msg-${Date.now()}-${Math.random()}`,
-            sender: 'bot',
-            content: `🏷️ *Catálogo de Serviços:*\n${intro}`,
-            buttons: [
-              { id: 'srv_1', title: 'Corte de Cabelo (R$ 35,00)' },
-              { id: 'srv_2', title: 'Barba Terapia (R$ 40,00)' },
-              { id: 'srv_3', title: 'Combo Cabelo + Barba (R$ 70,00)' },
-            ],
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            nodeId: nextNode.id,
-          },
-        ]);
-        break;
-      } else if (type === 'schedule_contact') {
+      } else if (type === 'select_time_slot' || type === 'schedule_contact') {
         const srv = activeVars.servico_selecionado || 'Corte de Cabelo';
+        const dateStr = activeVars.data_agendamento || 'Hoje';
+        const intro = substituteVariables(config.introMessage || 'Estes são os horários livres para agendamento. Toque no seu horário preferido:', activeVars, p || undefined);
         setMessages((prev) => [
           ...prev,
           {
             id: `msg-${Date.now()}-${Math.random()}`,
             sender: 'bot',
-            content: `🕒 *Horários Livres da Agenda:*\nServiço selecionado: *${srv}*\nEscolha seu horário:`,
+            content: `🕒 *Horários Livres da Agenda (${dateStr}):*\n• Serviço: *${srv}*\n\n${intro}`,
             buttons: [
               { id: 'slot_0900', title: '🕒 09:00' },
               { id: 'slot_1000', title: '🕒 10:00' },

@@ -10,11 +10,16 @@ import {
   Image as ImageIcon, 
   UserCheck,
   Calendar,
+  CalendarDays,
   DollarSign,
   UserPlus,
   CheckCircle2,
   ListOrdered,
-  OctagonX
+  OctagonX,
+  Scissors,
+  ListChecks,
+  Layers,
+  Users
 } from 'lucide-react';
 import { BaseNode } from './BaseNode';
 import { FlowNodeData } from '../../../types';
@@ -333,7 +338,8 @@ export const ScheduleContactNode: React.FC<NodeProps> = ({ id, selected, data })
   );
 };
 
-export const ServicesCatalogNode: React.FC<NodeProps> = ({ id, selected, data }) => {
+// 1. Exibir Catálogo de Serviços (Apenas Exibição / Leitura)
+export const ShowServicesNode: React.FC<NodeProps> = ({ id, selected, data }) => {
   const nodeData = data as unknown as FlowNodeData;
   const config = nodeData.config || {};
 
@@ -341,41 +347,72 @@ export const ServicesCatalogNode: React.FC<NodeProps> = ({ id, selected, data })
     <BaseNode
       id={id}
       selected={selected}
-      title={nodeData.label || 'Catálogo de Serviços & Preços'}
-      subtitle="Exibe todos os serviços da Agenda"
-      icon={<DollarSign className="w-4 h-4" />}
+      title={nodeData.label || 'Exibir Catálogo de Serviços'}
+      subtitle="Lista serviços, durações e preços"
+      icon={<Layers className="w-4 h-4" />}
       iconBg="bg-amber-600"
       accentColor="bg-amber-500"
       hasInput={true}
       hasOutput={true}
       isConfigured={true}
     >
-      <div className="space-y-2 p-2.5 rounded-xl bg-dark-950/90 border border-amber-500/20 text-[11px]">
+      <div className="space-y-1.5 p-2.5 rounded-xl bg-dark-950/90 border border-amber-500/20 text-[11px]">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30">
-            🔘 Todos os Serviços da Agenda
+            📋 Apenas Exibição
           </span>
-          <span className="text-[10px] text-slate-400 font-mono">Dinâmico</span>
+          <span className="text-[10px] text-slate-400 font-mono">Texto Formatado</span>
         </div>
-
         <p className="text-[10.5px] text-slate-300 leading-snug">
-          Envia todos os serviços cadastrados no painel como opções interativas no WhatsApp.
+          Envia uma mensagem com todos os serviços e preços cadastrados no painel e prossegue o fluxo.
         </p>
+      </div>
+    </BaseNode>
+  );
+};
 
-        <div className="border-t border-white/5 pt-1.5 space-y-1">
-          <span className="text-[10px] font-semibold text-amber-400 block">
-            Retorna a opção escolhida em:
+// 2. Selecionar Serviço (Botões Interativos no WhatsApp)
+export const SelectServiceNode: React.FC<NodeProps> = ({ id, selected, data }) => {
+  const nodeData = data as unknown as FlowNodeData;
+  const config = nodeData.config || {};
+
+  return (
+    <BaseNode
+      id={id}
+      selected={selected}
+      title={nodeData.label || 'Selecionar Serviço'}
+      subtitle="Botões de escolha no WhatsApp"
+      icon={<Scissors className="w-4 h-4" />}
+      iconBg="bg-emerald-600"
+      accentColor="bg-emerald-500"
+      hasInput={true}
+      hasOutput={true}
+      isConfigured={true}
+    >
+      <div className="space-y-2 p-2.5 rounded-xl bg-dark-950/90 border border-emerald-500/20 text-[11px]">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+            🔘 Botões de Escolha
           </span>
+          <span className="text-[10px] text-slate-400 font-mono">Interativo</span>
+        </div>
+        <p className="text-[10.5px] text-slate-300 leading-snug">
+          Apresenta os serviços como botões clicáveis no WhatsApp e aguarda a seleção do cliente.
+        </p>
+        <div className="border-t border-white/5 pt-1.5 space-y-1">
+          <span className="text-[10px] font-semibold text-emerald-400 block">Salva nas variáveis:</span>
           <div className="flex items-center gap-1.5 flex-wrap">
             <VariableBadge name="servico_selecionado" />
             <VariableBadge name="valor_servico" />
-            <VariableBadge name="duracao_servico" />
+            <VariableBadge name="duracao_minutos" />
           </div>
         </div>
       </div>
     </BaseNode>
   );
 };
+
+export const ServicesCatalogNode = SelectServiceNode;
 
 export const CheckContactNode: React.FC<NodeProps> = ({ id, selected, data }) => {
   const nodeData = data as unknown as FlowNodeData;
@@ -415,7 +452,8 @@ export const CheckContactNode: React.FC<NodeProps> = ({ id, selected, data }) =>
   );
 };
 
-export const AskDateNode: React.FC<NodeProps> = ({ id, selected, data }) => {
+// 3. Escolher Data do Agendamento
+export const SelectDateNode: React.FC<NodeProps> = ({ id, selected, data }) => {
   const nodeData = data as unknown as FlowNodeData;
   const config = nodeData.config || {};
 
@@ -423,9 +461,9 @@ export const AskDateNode: React.FC<NodeProps> = ({ id, selected, data }) => {
     <BaseNode
       id={id}
       selected={selected}
-      title={nodeData.label || 'Escolher Dia do Agendamento'}
-      subtitle="Pergunta ou oferece opções de data"
-      icon={<Calendar className="w-4 h-4" />}
+      title={nodeData.label || 'Escolher Data'}
+      subtitle="Seleciona o dia do agendamento"
+      icon={<CalendarDays className="w-4 h-4" />}
       iconBg="bg-teal-600"
       accentColor="bg-teal-500"
       hasInput={true}
@@ -435,11 +473,14 @@ export const AskDateNode: React.FC<NodeProps> = ({ id, selected, data }) => {
       <div className="space-y-2 p-2.5 rounded-xl bg-dark-950/90 border border-teal-500/20 text-[11px]">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-teal-500/15 text-teal-300 border border-teal-500/30">
-            {config.allowCustomDate !== false ? '📅 Menu + Digitar Data' : '📅 Hoje / Amanhã'}
+            📅 Opções de Data
           </span>
-          <span className="text-[10px] text-slate-400 font-mono">WhatsApp</span>
+          <span className="text-[10px] text-slate-400 font-mono">Hoje / Amanhã</span>
         </div>
-        <div className="text-[10px] text-slate-300 flex items-center justify-between">
+        <p className="text-[10.5px] text-slate-300 leading-snug">
+          Envia botões rápidos de datas e processa respostas do cliente.
+        </p>
+        <div className="text-[10px] text-slate-300 flex items-center justify-between pt-1 border-t border-white/5">
           <span>Variável salva:</span>
           <VariableBadge name={config.dateVariable || 'data_agendamento'} />
         </div>
@@ -447,6 +488,49 @@ export const AskDateNode: React.FC<NodeProps> = ({ id, selected, data }) => {
     </BaseNode>
   );
 };
+
+export const AskDateNode = SelectDateNode;
+
+// 4. Escolher Horário Disponível na Data
+export const SelectTimeSlotNode: React.FC<NodeProps> = ({ id, selected, data }) => {
+  const nodeData = data as unknown as FlowNodeData;
+  const config = nodeData.config || {};
+
+  return (
+    <BaseNode
+      id={id}
+      selected={selected}
+      title={nodeData.label || 'Escolher Horário Disponível'}
+      subtitle="Vagas calculadas em tempo real"
+      icon={<Clock className="w-4 h-4" />}
+      iconBg="bg-emerald-600"
+      accentColor="bg-emerald-500"
+      hasInput={true}
+      hasOutput={true}
+      isConfigured={true}
+    >
+      <div className="space-y-2 p-2.5 rounded-xl bg-dark-950/90 border border-emerald-500/20 text-[11px]">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+            🕒 Vagas em Tempo Real
+          </span>
+          <span className="text-[10px] text-slate-400 font-mono">
+            <VariableBadge name={config.dateVariable || 'data_agendamento'} />
+          </span>
+        </div>
+        <p className="text-[10.5px] text-slate-300 leading-snug">
+          Calcula os horários livres na data selecionada e envia como botões no WhatsApp.
+        </p>
+        <div className="text-[10px] text-slate-300 flex items-center justify-between pt-1 border-t border-white/5">
+          <span>Variável salva:</span>
+          <VariableBadge name="horario_agendamento" />
+        </div>
+      </div>
+    </BaseNode>
+  );
+};
+
+export const ScheduleContactNode = SelectTimeSlotNode;
 
 export const ConfirmBookingNode: React.FC<NodeProps> = ({ id, selected, data }) => {
   const nodeData = data as unknown as FlowNodeData;

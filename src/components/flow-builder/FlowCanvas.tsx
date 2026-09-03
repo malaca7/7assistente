@@ -34,6 +34,10 @@ import {
   AskDateNode,
   ConfirmBookingNode,
   EndFlowNode,
+  ShowServicesNode,
+  SelectServiceNode,
+  SelectDateNode,
+  SelectTimeSlotNode,
 } from './nodes/AdvancedNodes';
 
 export interface FlowCanvasProps {
@@ -79,9 +83,13 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
       ai_agent: AiAgentNode,
       media: MediaNode,
       human_handoff: HumanHandoffNode,
-      ask_date: AskDateNode,
-      services_catalog: ServicesCatalogNode,
-      schedule_contact: ScheduleContactNode,
+      show_services: ShowServicesNode,
+      select_service: SelectServiceNode,
+      select_date: SelectDateNode,
+      select_time_slot: SelectTimeSlotNode,
+      ask_date: SelectDateNode,
+      services_catalog: SelectServiceNode,
+      schedule_contact: SelectTimeSlotNode,
       confirm_booking: ConfirmBookingNode,
       update_contact: UpdateContactNode,
       check_contact: CheckContactNode,
