@@ -30,12 +30,20 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             ref={ref}
             className={cn(
-              'w-full rounded-xl bg-dark-850/90 border border-slate-700/60 px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500/80 focus:border-primary-500 transition-all duration-200 shadow-inner',
+              'w-full rounded-xl bg-dark-850/90 border border-slate-700/60 px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500/80 focus:border-primary-500 transition-all duration-200 shadow-inner select-text nopan nodrag nowheel',
               leftIcon && 'pl-10',
               rightIcon && 'pr-10',
               error && 'border-rose-500 focus:ring-rose-500/80 focus:border-rose-500',
               className
             )}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              props.onKeyDown?.(e);
+            }}
+            onKeyUp={(e) => {
+              e.stopPropagation();
+              props.onKeyUp?.(e);
+            }}
             {...props}
           />
           {rightIcon && (
@@ -74,10 +82,18 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           id={textareaId}
           ref={ref}
           className={cn(
-            'w-full rounded-xl bg-dark-850/90 border border-slate-700/60 px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500/80 focus:border-primary-500 transition-all duration-200 shadow-inner resize-y min-h-[90px]',
+            'w-full rounded-xl bg-dark-850/90 border border-slate-700/60 px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500/80 focus:border-primary-500 transition-all duration-200 shadow-inner resize-y min-h-[90px] select-text nopan nodrag nowheel',
             error && 'border-rose-500 focus:ring-rose-500/80 focus:border-rose-500',
             className
           )}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            props.onKeyDown?.(e);
+          }}
+          onKeyUp={(e) => {
+            e.stopPropagation();
+            props.onKeyUp?.(e);
+          }}
           {...props}
         />
         {error && <p className="text-xs text-rose-400 font-medium">{error}</p>}

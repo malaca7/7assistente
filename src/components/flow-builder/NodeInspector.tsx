@@ -68,6 +68,28 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
     };
   }, [isResizing, onWidthChange, currentWidth]);
 
+  const inspectorRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const el = inspectorRef.current;
+    if (!el) return;
+
+    const stopKeyBubbling = (e: KeyboardEvent) => {
+      // Prevents canvas listeners from catching Space, Delete, Backspace, or Ctrl shortcuts from within the inspector
+      e.stopPropagation();
+    };
+
+    el.addEventListener('keydown', stopKeyBubbling);
+    el.addEventListener('keyup', stopKeyBubbling);
+    el.addEventListener('keypress', stopKeyBubbling);
+
+    return () => {
+      el.removeEventListener('keydown', stopKeyBubbling);
+      el.removeEventListener('keyup', stopKeyBubbling);
+      el.removeEventListener('keypress', stopKeyBubbling);
+    };
+  }, []);
+
   if (!node) return null;
 
   const { data } = node;
@@ -84,14 +106,17 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
 
   return (
     <aside
+      ref={inspectorRef}
       style={{ width: `${currentWidth}px` }}
-      className="bg-dark-900 border-l border-white/5 flex flex-col h-full z-20 shadow-2xl relative transition-all duration-75 select-none"
+      className="bg-dark-900 border-l border-white/5 flex flex-col h-full z-20 shadow-2xl relative transition-all duration-75 select-text nowheel nopan nodrag"
+      onKeyDown={(e) => e.stopPropagation()}
+      onKeyUp={(e) => e.stopPropagation()}
     >
       {/* Draggable Resizer Handle on Left Border */}
       <div
         onMouseDown={startResizing}
         className={cn(
-          'absolute top-0 left-0 bottom-0 w-2 cursor-col-resize hover:bg-primary-500/50 transition-colors z-30 flex items-center justify-center group',
+          'absolute top-0 left-0 bottom-0 w-2 cursor-col-resize hover:bg-primary-500/50 transition-colors z-30 flex items-center justify-center group select-none',
           isResizing && 'bg-primary-500'
         )}
         title="Arraste para redimensionar painel de propriedades"
@@ -100,7 +125,7 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
       </div>
 
       {/* Header */}
-      <div className="p-4 border-b border-white/5 flex items-center justify-between pl-5">
+      <div className="p-4 border-b border-white/5 flex items-center justify-between pl-5 select-none">
         <div className="flex items-center gap-2">
           <SlidersHorizontal className="w-4 h-4 text-primary-400" />
           <h3 className="text-sm font-bold text-white tracking-tight">Propriedades do Nó</h3>
