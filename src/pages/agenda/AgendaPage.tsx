@@ -37,9 +37,11 @@ import {
   CalendarCheck,
   CalendarDays,
   TrendingUp,
-  Tag,
   AlertTriangle,
-  History
+  History,
+  Coffee,
+  Bell,
+  Users
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -48,7 +50,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { useToast } from '../../contexts/ToastContext';
 import { StorageService, getBackendUrl } from '../../lib/storage';
-import { Appointment, AgendaSettings, AgendaServiceItem, SlotSuggestion } from '../../types';
+import { Appointment, AgendaSettings, AgendaServiceItem, SlotSuggestion, DayScheduleConfig } from '../../types';
 import { formatPhone, formatDate } from '../../lib/utils';
 
 export interface AgendaPageProps {
@@ -198,6 +200,68 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
     const exists = current.includes(dayIndex);
     const updated = exists ? current.filter(d => d !== dayIndex) : [...current, dayIndex];
     setSettings(prev => ({ ...prev, business_days: updated }));
+  };
+
+  // --- DAY-BY-DAY WORKING HOURS METHODS ---
+  const getDaySchedule = (dayId: string): DayScheduleConfig => {
+    if (settings.day_schedules && settings.day_schedules[dayId]) {
+      return settings.day_schedules[dayId];
+    }
+    const isEnabled = settings.business_days ? settings.business_days.includes(dayId) : dayId !== '0';
+    return {
+      enabled: isEnabled,
+      start_time: settings.start_time || '08:00',
+      end_time: settings.end_time || (dayId === '6' ? '18:00' : '19:00'),
+      has_break: Boolean(settings.break_start_time && settings.break_end_time),
+      break_start_time: settings.break_start_time || '12:00',
+      break_end_time: settings.break_end_time || '13:00',
+    };
+  };
+
+  const handleUpdateDaySchedule = (dayId: string, updates: Partial<DayScheduleConfig>) => {
+    const current = getDaySchedule(dayId);
+    const updatedDay: DayScheduleConfig = { ...current, ...updates };
+
+    let updatedBusinessDays = [...(settings.business_days || [])];
+    if (updatedDay.enabled && !updatedBusinessDays.includes(dayId)) {
+      updatedBusinessDays.push(dayId);
+    } else if (!updatedDay.enabled && updatedBusinessDays.includes(dayId)) {
+      updatedBusinessDays = updatedBusinessDays.filter((d) => d !== dayId);
+    }
+
+    const newSchedules = {
+      ...(settings.day_schedules || {}),
+      [dayId]: updatedDay,
+    };
+
+    setSettings((prev) => ({
+      ...prev,
+      business_days: updatedBusinessDays,
+      day_schedules: newSchedules,
+    }));
+  };
+
+  const handleApplyToAllDays = (sourceDayId: string) => {
+    const source = getDaySchedule(sourceDayId);
+    const newSchedules: Record<string, DayScheduleConfig> = {};
+    const newBusinessDays: string[] = [];
+
+    weekDaysLabels.forEach((d) => {
+      const isEnabled = d.id === '0' ? false : source.enabled;
+      newSchedules[d.id] = {
+        ...source,
+        enabled: isEnabled,
+      };
+      if (isEnabled) newBusinessDays.push(d.id);
+    });
+
+    setSettings((prev) => ({
+      ...prev,
+      business_days: newBusinessDays,
+      day_schedules: newSchedules,
+    }));
+    const dayName = weekDaysLabels.find((w) => w.id === sourceDayId)?.full || 'do dia';
+    success('Horários Replicados', `A grade de ${dayName} (${source.start_time} às ${source.end_time}) foi aplicada para os demais dias.`);
   };
 
   // --- SERVICE CATALOG METHODS ---
@@ -414,24 +478,36 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
     const targetDate = new Date(`${dateString}T12:00:00`);
     const dayOfWeek = String(targetDate.getDay());
 
-    if (!settings.business_days.includes(dayOfWeek)) {
+    const dayConfig = (settings.day_schedules && settings.day_schedules[dayOfWeek])
+      ? settings.day_schedules[dayOfWeek]
+      : {
+          enabled: settings.business_days ? settings.business_days.includes(dayOfWeek) : true,
+          start_time: settings.start_time || '08:00',
+          end_time: settings.end_time || '19:00',
+          has_break: Boolean(settings.break_start_time && settings.break_end_time),
+          break_start_time: settings.break_start_time || '12:00',
+          break_end_time: settings.break_end_time || '13:00',
+        };
+
+    if (!dayConfig.enabled) {
       return [];
     }
 
-    const [startH, startM] = settings.start_time.split(':').map(Number);
-    const [endH, endM] = settings.end_time.split(':').map(Number);
-    const [breakStartH, breakStartM] = (settings.break_start_time || '12:00').split(':').map(Number);
-    const [breakEndH, breakEndM] = (settings.break_end_time || '13:00').split(':').map(Number);
+    const [startH, startM] = (dayConfig.start_time || settings.start_time || '08:00').split(':').map(Number);
+    const [endH, endM] = (dayConfig.end_time || settings.end_time || '19:00').split(':').map(Number);
+    const [breakStartH, breakStartM] = (dayConfig.break_start_time || '12:00').split(':').map(Number);
+    const [breakEndH, breakEndM] = (dayConfig.break_end_time || '13:00').split(':').map(Number);
 
     const startTotal = startH * 60 + startM;
     const endTotal = endH * 60 + endM;
     const breakStartTotal = breakStartH * 60 + breakStartM;
     const breakEndTotal = breakEndH * 60 + breakEndM;
     const duration = settings.slot_duration_minutes || 30;
+    const hasBreak = dayConfig.has_break !== false;
 
     let current = startTotal;
     while (current + duration <= endTotal) {
-      const isLunch = current >= breakStartTotal && current < breakEndTotal;
+      const isLunch = hasBreak && current >= breakStartTotal && current < breakEndTotal;
       if (!isLunch) {
         const h = Math.floor(current / 60);
         const m = current % 60;
@@ -1241,163 +1317,490 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
       )}
 
       {/* ========================================================================= */}
+      {/* ========================================================================= */}
       {/* TAB 3: HORÁRIOS & EXPEDIENTE */}
       {/* ========================================================================= */}
       {activeTab === 'hours' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in">
-          {/* Working Days & Shift Configuration */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card className="p-6 rounded-3xl bg-dark-900/80 border-white/10 space-y-6">
+        <div className="space-y-6 animate-in fade-in">
+          {/* Top Banner Alert / Info */}
+          <div className="p-4 rounded-3xl bg-gradient-to-r from-brand-950/60 via-dark-900 to-brand-950/40 border border-brand-500/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-brand-500/10 border border-brand-500/30 flex items-center justify-center text-brand-400">
+                <CalendarDays className="w-5 h-5" />
+              </div>
               <div>
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <CalendarCheck className="w-4 h-4 text-brand-400" />
-                  Dias de Atendimento Comercial
+                  Configuração de Expediente por Dia da Semana
+                  <Badge variant="brand" className="text-[10px] py-0">Multidias Ativo</Badge>
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Selecione os dias em que a barbearia/empresa atende e recebe agendamentos pelo WhatsApp
+                <p className="text-xs text-slate-300">
+                  Configure abertura, fechamento e intervalos de forma independente para cada dia (ex: Sábado com horário reduzido).
                 </p>
               </div>
+            </div>
+            <Button
+              variant="brand"
+              size="sm"
+              onClick={handleSaveHoursSettings}
+              disabled={isSavingSettings}
+              leftIcon={<Save className="w-4 h-4" />}
+              className="bg-emerald-600 hover:bg-emerald-500 font-bold shadow-glow-brand whitespace-nowrap"
+            >
+              {isSavingSettings ? 'Salvando...' : 'Salvar Alterações de Expediente'}
+            </Button>
+          </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Column: Day-by-Day Cards + Advanced Options */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-brand-400" />
+                  Grade de Expediente Diário ({weekDaysLabels.length} Dias)
+                </h3>
+                <span className="text-[11px] text-slate-400">
+                  {settings.business_days.length} de 7 dias com atendimento ativo
+                </span>
+              </div>
+
+              {/* Day Cards List */}
+              <div className="space-y-3">
                 {weekDaysLabels.map((day) => {
-                  const isSelected = settings.business_days.includes(day.id);
+                  const dayConfig = getDaySchedule(day.id);
+                  const isEnabled = dayConfig.enabled;
+                  const [sh, sm] = (dayConfig.start_time || '08:00').split(':').map(Number);
+                  const [eh, em] = (dayConfig.end_time || '19:00').split(':').map(Number);
+                  const totalDayMinutes = Math.max(0, (eh * 60 + em) - (sh * 60 + sm));
+                  const hoursCount = (totalDayMinutes / 60).toFixed(1).replace('.0', '');
+
                   return (
-                    <button
+                    <Card
                       key={day.id}
-                      type="button"
-                      onClick={() => handleToggleDay(day.id)}
-                      className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1 ${
-                        isSelected
-                          ? 'bg-brand-600/20 border-brand-500 text-white shadow-lg shadow-brand-500/10'
-                          : 'bg-dark-950/60 border-white/5 text-slate-500 hover:border-white/20'
+                      className={`p-4.5 rounded-3xl border transition-all ${
+                        isEnabled
+                          ? 'bg-dark-900/80 border-white/10 hover:border-brand-500/30'
+                          : 'bg-dark-950/40 border-white/5 opacity-70'
                       }`}
                     >
-                      <span className="text-xs font-bold">{day.label}</span>
-                      <span className="text-[10px] font-mono">{day.full.substring(0, 3)}</span>
-                      {isSelected ? (
-                        <Check className="w-3.5 h-3.5 text-brand-400 mt-1" />
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateDaySchedule(day.id, { enabled: !isEnabled })}
+                            className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
+                              isEnabled
+                                ? 'bg-emerald-500 text-dark-950 font-black shadow-sm'
+                                : 'bg-dark-900 border border-white/20 text-transparent hover:border-white/40'
+                            }`}
+                          >
+                            ✓
+                          </button>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold text-white">{day.full}</span>
+                              <Badge
+                                variant={isEnabled ? 'success' : 'neutral'}
+                                className="text-[10px] py-0 px-2 font-mono"
+                              >
+                                {isEnabled ? 'Aberto' : 'Fechado (Folga)'}
+                              </Badge>
+                            </div>
+                            {isEnabled ? (
+                              <span className="text-[11px] text-slate-400 font-mono">
+                                {hoursCount}h de atendimento • {dayConfig.start_time} às {dayConfig.end_time}
+                                {dayConfig.has_break && dayConfig.break_start_time ? ` (Almoço ${dayConfig.break_start_time} às ${dayConfig.break_end_time})` : ' (Sem intervalo)'}
+                              </span>
+                            ) : (
+                              <span className="text-[11px] text-slate-500">Sem agendamentos no WhatsApp neste dia</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 self-end sm:self-center">
+                          {isEnabled && (
+                            <button
+                              type="button"
+                              onClick={() => handleApplyToAllDays(day.id)}
+                              className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-[11px] font-semibold flex items-center gap-1.5 transition-colors"
+                              title="Replicar estes horários para os outros dias"
+                            >
+                              <Copy className="w-3 h-3 text-brand-400" />
+                              <span>Copiar p/ Todos</span>
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateDaySchedule(day.id, { enabled: !isEnabled })}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${
+                              isEnabled
+                                ? 'bg-rose-950/40 text-rose-300 hover:bg-rose-900/60 border border-rose-500/20'
+                                : 'bg-emerald-950/40 text-emerald-300 hover:bg-emerald-900/60 border border-emerald-500/20'
+                            }`}
+                          >
+                            {isEnabled ? 'Desativar' : 'Ativar Dia'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {isEnabled ? (
+                        <div className="pt-3.5 space-y-3.5">
+                          {/* Shift Inputs */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-[11px] font-semibold text-slate-400 block mb-1">
+                                Início do Atendimento
+                              </label>
+                              <Input
+                                type="time"
+                                value={dayConfig.start_time || '08:00'}
+                                onChange={(e) => handleUpdateDaySchedule(day.id, { start_time: e.target.value })}
+                                className="h-9 text-xs"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-[11px] font-semibold text-slate-400 block mb-1">
+                                Fim do Atendimento
+                              </label>
+                              <Input
+                                type="time"
+                                value={dayConfig.end_time || '19:00'}
+                                onChange={(e) => handleUpdateDaySchedule(day.id, { end_time: e.target.value })}
+                                className="h-9 text-xs"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Break Toggle & Inputs */}
+                          <div className="p-3 rounded-2xl bg-dark-950/60 border border-white/5 space-y-2.5">
+                            <label className="flex items-center gap-2 cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={dayConfig.has_break !== false}
+                                onChange={(e) => handleUpdateDaySchedule(day.id, { has_break: e.target.checked })}
+                                className="w-4 h-4 rounded text-brand-500 focus:ring-brand-500 bg-dark-900 border-white/20"
+                              />
+                              <span className="text-xs font-semibold text-slate-200">
+                                Pausa / Intervalo de Almoço neste dia
+                              </span>
+                            </label>
+
+                            {dayConfig.has_break !== false && (
+                              <div className="grid grid-cols-2 gap-3 pt-1.5 animate-in fade-in">
+                                <div>
+                                  <label className="text-[10px] text-slate-400 block mb-1">Início da Pausa</label>
+                                  <Input
+                                    type="time"
+                                    value={dayConfig.break_start_time || '12:00'}
+                                    onChange={(e) => handleUpdateDaySchedule(day.id, { break_start_time: e.target.value })}
+                                    className="h-8 text-xs bg-dark-900"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] text-slate-400 block mb-1">Fim da Pausa</label>
+                                  <Input
+                                    type="time"
+                                    value={dayConfig.break_end_time || '13:00'}
+                                    onChange={(e) => handleUpdateDaySchedule(day.id, { break_end_time: e.target.value })}
+                                    className="h-8 text-xs bg-dark-900"
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       ) : (
-                        <span className="text-[9px] text-slate-600 mt-1">Folga</span>
+                        <div className="pt-2 text-center py-2 text-xs text-slate-500 font-mono">
+                          Dia desativado para agendamentos.
+                        </div>
                       )}
-                    </button>
+                    </Card>
                   );
                 })}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-white/5">
+              {/* NEW SECTION: Regras Avançadas de Agendamento */}
+              <Card className="p-6 rounded-3xl bg-dark-900/80 border-white/10 space-y-5">
                 <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">Início do Expediente *</label>
-                  <Input
-                    type="time"
-                    value={settings.start_time}
-                    onChange={(e) => setSettings({ ...settings, start_time: e.target.value })}
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Sliders className="w-4 h-4 text-brand-400" />
+                    Regras Avançadas de Agendamento & Automação
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Controle antecedência mínima, limite futuro, cancelamentos e lembretes automáticos no WhatsApp
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Antecedência Mínima */}
+                  <div className="p-3.5 rounded-2xl bg-dark-950/60 border border-white/5 space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-200 block">
+                      Antecedência Mínima para Agendar
+                    </label>
+                    <select
+                      value={settings.min_advance_booking_minutes ?? 30}
+                      onChange={(e) => setSettings({ ...settings, min_advance_booking_minutes: Number(e.target.value) })}
+                      className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-white/10 text-white text-xs focus:outline-none focus:border-brand-500"
+                    >
+                      <option value={0}>Sem limite (permite agendar na hora)</option>
+                      <option value={15}>15 minutos de antecedência</option>
+                      <option value={30}>30 minutos de antecedência (Recomendado)</option>
+                      <option value={60}>1 hora de antecedência</option>
+                      <option value={120}>2 horas de antecedência</option>
+                      <option value={240}>4 horas de antecedência</option>
+                    </select>
+                    <span className="text-[10px] text-slate-400 block">
+                      Evita agendamentos de última hora sem aviso prévio.
+                    </span>
+                  </div>
+
+                  {/* Antecedência Máxima */}
+                  <div className="p-3.5 rounded-2xl bg-dark-950/60 border border-white/5 space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-200 block">
+                      Antecedência Máxima (Janela Futura)
+                    </label>
+                    <select
+                      value={settings.max_advance_booking_days ?? 30}
+                      onChange={(e) => setSettings({ ...settings, max_advance_booking_days: Number(e.target.value) })}
+                      className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-white/10 text-white text-xs focus:outline-none focus:border-brand-500"
+                    >
+                      <option value={7}>Até 7 dias no futuro (1 semana)</option>
+                      <option value={15}>Até 15 dias no futuro</option>
+                      <option value={30}>Até 30 dias no futuro (1 mês - Recomendado)</option>
+                      <option value={60}>Até 60 dias no futuro (2 meses)</option>
+                      <option value={90}>Até 90 dias no futuro (3 meses)</option>
+                    </select>
+                    <span className="text-[10px] text-slate-400 block">
+                      Define até qual data futura o bot libera agendamentos.
+                    </span>
+                  </div>
+
+                  {/* Tolerância de Cancelamento */}
+                  <div className="p-3.5 rounded-2xl bg-dark-950/60 border border-white/5 space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-200 block">
+                      Prazo Limite para Cancelamento pelo WhatsApp
+                    </label>
+                    <select
+                      value={settings.cancellation_notice_hours ?? 2}
+                      onChange={(e) => setSettings({ ...settings, cancellation_notice_hours: Number(e.target.value) })}
+                      className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-white/10 text-white text-xs focus:outline-none focus:border-brand-500"
+                    >
+                      <option value={1}>Até 1 hora antes do atendimento</option>
+                      <option value={2}>Até 2 horas antes (Recomendado)</option>
+                      <option value={4}>Até 4 horas antes</option>
+                      <option value={24}>Até 24 horas antes (1 dia)</option>
+                      <option value={0}>Bloquear cancelamento automático via WhatsApp</option>
+                    </select>
+                    <span className="text-[10px] text-slate-400 block">
+                      Clientes só podem desmarcar dentro deste prazo.
+                    </span>
+                  </div>
+
+                  {/* Lembrete Automático */}
+                  <div className="p-3.5 rounded-2xl bg-dark-950/60 border border-white/5 space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-200 block">
+                      Lembrete Automático no WhatsApp
+                    </label>
+                    <select
+                      value={settings.auto_reminder_hours ?? 2}
+                      onChange={(e) => setSettings({ ...settings, auto_reminder_hours: Number(e.target.value) })}
+                      className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-white/10 text-white text-xs focus:outline-none focus:border-brand-500"
+                    >
+                      <option value={0}>Desativado</option>
+                      <option value={1}>Disparar 1 hora antes</option>
+                      <option value={2}>Disparar 2 horas antes (Recomendado)</option>
+                      <option value={4}>Disparar 4 horas antes</option>
+                      <option value={24}>Disparar 1 dia antes (24h)</option>
+                    </select>
+                    <span className="text-[10px] text-slate-400 block">
+                      Notifica o cliente antes do corte para confirmação.
+                    </span>
+                  </div>
+
+                  {/* Cadeiras Simultâneas */}
+                  <div className="p-3.5 rounded-2xl bg-dark-950/60 border border-white/5 space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-200 block">
+                      Capacidade Simultânea (Cadeiras / Barbeiros)
+                    </label>
+                    <select
+                      value={settings.simultaneous_barbers ?? 1}
+                      onChange={(e) => setSettings({ ...settings, simultaneous_barbers: Number(e.target.value) })}
+                      className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-white/10 text-white text-xs focus:outline-none focus:border-brand-500"
+                    >
+                      <option value={1}>1 Cadeira (Atendimento Individual)</option>
+                      <option value={2}>2 Cadeiras em Paralelo (2 Clientes)</option>
+                      <option value={3}>3 Cadeiras em Paralelo (3 Clientes)</option>
+                      <option value={4}>4 Cadeiras em Paralelo (4 Clientes)</option>
+                    </select>
+                    <span className="text-[10px] text-slate-400 block">
+                      Permite múltiplos agendamentos no mesmo horário.
+                    </span>
+                  </div>
+
+                  {/* Fila de Espera */}
+                  <div className="p-3.5 rounded-2xl bg-dark-950/60 border border-white/5 flex flex-col justify-between">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-200 block mb-1">
+                        Fila de Espera / Encaixe Automático
+                      </label>
+                      <span className="text-[10px] text-slate-400 block leading-relaxed">
+                        Se o dia estiver lotado, o bot pergunta se o cliente deseja entrar na fila de espera.
+                      </span>
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer mt-2">
+                      <input
+                        type="checkbox"
+                        checked={settings.allow_waiting_list !== false}
+                        onChange={(e) => setSettings({ ...settings, allow_waiting_list: e.target.checked })}
+                        className="w-4 h-4 rounded text-brand-500 focus:ring-brand-500 bg-dark-900 border-white/20"
+                      />
+                      <span className="text-xs font-bold text-white">Ativar Lista de Espera</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Parâmetros de Intervalo e Buffer */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-white/5">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1">
+                      Duração Base das Vagas (Minutos)
+                    </label>
+                    <select
+                      value={settings.slot_duration_minutes ?? 30}
+                      onChange={(e) => setSettings({ ...settings, slot_duration_minutes: Number(e.target.value) })}
+                      className="w-full px-3 py-2 rounded-xl bg-dark-950 border border-white/10 text-white text-xs focus:outline-none focus:border-brand-500"
+                    >
+                      <option value={15}>15 minutos por vaga</option>
+                      <option value={20}>20 minutos por vaga</option>
+                      <option value={30}>30 minutos por vaga (Padrão)</option>
+                      <option value={45}>45 minutos por vaga</option>
+                      <option value={60}>60 minutos por vaga</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1">
+                      Tempo de Tolerância / Higienização entre Clientes (Buffer)
+                    </label>
+                    <select
+                      value={settings.buffer_minutes ?? 5}
+                      onChange={(e) => setSettings({ ...settings, buffer_minutes: Number(e.target.value) })}
+                      className="w-full px-3 py-2 rounded-xl bg-dark-950 border border-white/10 text-white text-xs focus:outline-none focus:border-brand-500"
+                    >
+                      <option value={0}>Sem intervalo (0 min)</option>
+                      <option value={5}>5 minutos de intervalo</option>
+                      <option value={10}>10 minutos de intervalo</option>
+                      <option value={15}>15 minutos de intervalo</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Mensagem Fora de Expediente */}
+                <div className="pt-3 border-t border-white/5">
+                  <label className="text-xs font-semibold text-slate-300 block mb-1">
+                    Mensagem Automática Fora do Horário de Expediente
+                  </label>
+                  <Textarea
+                    rows={3}
+                    value={settings.out_of_hours_message || ''}
+                    onChange={(e) => setSettings({ ...settings, out_of_hours_message: e.target.value })}
+                    placeholder="Olá! Nosso horário de atendimento é de Segunda a Sábado. Deixe sua mensagem que responderemos assim que abrirmos!"
+                    className="text-xs"
                   />
+                  <span className="text-[10px] text-slate-500 mt-1 block">
+                    Tags disponíveis: {'{{empresa}}'}, {'{{horarios_semana}}'}, {'{{suporte_telefone}}'}
+                  </span>
                 </div>
 
-                <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">Término do Expediente *</label>
-                  <Input
-                    type="time"
-                    value={settings.end_time}
-                    onChange={(e) => setSettings({ ...settings, end_time: e.target.value })}
-                  />
+                <div className="flex justify-end pt-2">
+                  <Button
+                    variant="brand"
+                    onClick={handleSaveHoursSettings}
+                    disabled={isSavingSettings}
+                    leftIcon={<Save className="w-4 h-4" />}
+                    className="bg-emerald-600 hover:bg-emerald-500 font-bold shadow-glow-brand"
+                  >
+                    {isSavingSettings ? 'Salvando...' : 'Salvar Todas as Configurações'}
+                  </Button>
                 </div>
-              </div>
+              </Card>
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-white/5">
-                <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">Início do Intervalo / Almoço</label>
-                  <Input
-                    type="time"
-                    value={settings.break_start_time || '12:00'}
-                    onChange={(e) => setSettings({ ...settings, break_start_time: e.target.value })}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">Fim do Intervalo / Almoço</label>
-                  <Input
-                    type="time"
-                    value={settings.break_end_time || '13:00'}
-                    onChange={(e) => setSettings({ ...settings, break_end_time: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-white/5">
-                <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">Duração Padrão das Vagas (Minutos)</label>
-                  <Input
-                    type="number"
-                    value={settings.slot_duration_minutes}
-                    onChange={(e) => setSettings({ ...settings, slot_duration_minutes: Number(e.target.value) })}
-                    min={5}
-                    max={240}
-                  />
+            {/* Sidebar Column: Live Operational Summary */}
+            <div className="space-y-4">
+              <Card className="p-5 rounded-3xl bg-dark-900/80 border-white/10 space-y-4 sticky top-4">
+                <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                  <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <Info className="w-4 h-4 text-cyan-400" />
+                    Resumo Semanal
+                  </h4>
+                  <Badge variant="brand" className="text-[10px] py-0">Tempo Real</Badge>
                 </div>
 
-                <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">Tempo de Tolerância / Intervalo (Minutos)</label>
-                  <Input
-                    type="number"
-                    value={settings.buffer_minutes ?? 5}
-                    onChange={(e) => setSettings({ ...settings, buffer_minutes: Number(e.target.value) })}
-                    min={0}
-                    max={60}
-                  />
+                {/* Detailed Day List */}
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Horário de Cada Dia
+                  </span>
+                  <div className="space-y-1.5 font-mono text-[11px]">
+                    {weekDaysLabels.map((d) => {
+                      const cfg = getDaySchedule(d.id);
+                      return (
+                        <div
+                          key={d.id}
+                          className={`flex items-center justify-between p-2 rounded-xl transition-colors ${
+                            cfg.enabled
+                              ? 'bg-dark-950/60 text-slate-200 border border-white/5'
+                              : 'bg-dark-950/20 text-slate-600 border border-transparent'
+                          }`}
+                        >
+                          <span className="font-bold">{d.full.substring(0, 3)}:</span>
+                          {cfg.enabled ? (
+                            <span className="text-emerald-400">
+                              {cfg.start_time} - {cfg.end_time}
+                            </span>
+                          ) : (
+                            <span className="text-slate-500">Fechado</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">Mensagem Automática Fora do Horário de Expediente</label>
-                <Textarea
-                  rows={3}
-                  value={settings.out_of_hours_message || ''}
-                  onChange={(e) => setSettings({ ...settings, out_of_hours_message: e.target.value })}
-                  placeholder="Mensagem enviada quando o cliente entra em contato fora do horário comercial..."
-                />
-              </div>
+                {/* Additional KPI Summary */}
+                <div className="pt-3 border-t border-white/5 space-y-2 text-xs">
+                  <div className="flex justify-between text-slate-300">
+                    <span className="text-slate-400">Capacidade Cadeiras:</span>
+                    <span className="font-bold text-white">{settings.simultaneous_barbers || 1} cadeira(s)</span>
+                  </div>
+                  <div className="flex justify-between text-slate-300">
+                    <span className="text-slate-400">Antecedência Mínima:</span>
+                    <span className="font-bold text-white">{settings.min_advance_booking_minutes ? `${settings.min_advance_booking_minutes} min` : 'Livre'}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-300">
+                    <span className="text-slate-400">Cancelamento:</span>
+                    <span className="font-bold text-white">{settings.cancellation_notice_hours ? `Até ${settings.cancellation_notice_hours}h antes` : 'Bloqueado'}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-300">
+                    <span className="text-slate-400">Lembrete WhatsApp:</span>
+                    <span className="font-bold text-white">{settings.auto_reminder_hours ? `${settings.auto_reminder_hours}h antes` : 'Desativado'}</span>
+                  </div>
+                </div>
 
-              <div className="flex justify-end pt-2">
-                <Button
-                  variant="brand"
-                  onClick={handleSaveHoursSettings}
-                  disabled={isSavingSettings}
-                  leftIcon={<Save className="w-4 h-4" />}
-                  className="bg-emerald-600 hover:bg-emerald-500"
-                >
-                  {isSavingSettings ? 'Salvando...' : 'Salvar Alterações de Expediente'}
-                </Button>
-              </div>
-            </Card>
-          </div>
-
-          {/* Summary Column */}
-          <div className="space-y-4">
-            <Card className="p-5 rounded-3xl bg-dark-900/60 border-white/5 space-y-4">
-              <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                <Info className="w-4 h-4 text-cyan-400" />
-                Resumo Operacional
-              </h4>
-              <div className="space-y-2.5 text-xs text-slate-300">
-                <div className="flex justify-between pb-2 border-b border-white/5">
-                  <span className="text-slate-400">Dias Ativos:</span>
-                  <span className="font-bold text-white">{settings.business_days.length} dias por semana</span>
+                <div className="pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs"
+                    onClick={() => setActiveTab('simulator')}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 mr-1.5 text-brand-400" />
+                    Testar no Simulador
+                  </Button>
                 </div>
-                <div className="flex justify-between pb-2 border-b border-white/5">
-                  <span className="text-slate-400">Horário:</span>
-                  <span className="font-mono text-white">{settings.start_time} às {settings.end_time}</span>
-                </div>
-                <div className="flex justify-between pb-2 border-b border-white/5">
-                  <span className="text-slate-400">Pausa / Almoço:</span>
-                  <span className="font-mono text-amber-300">{settings.break_start_time || '12:00'} - {settings.break_end_time || '13:00'}</span>
-                </div>
-                <div className="flex justify-between pb-2 border-b border-white/5">
-                  <span className="text-slate-400">Vagas por Hora:</span>
-                  <span className="font-mono text-emerald-400 font-bold">{Math.floor(60 / (settings.slot_duration_minutes || 30))} slots</span>
-                </div>
-              </div>
-            </Card>
+              </Card>
+            </div>
           </div>
         </div>
       )}

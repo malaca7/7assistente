@@ -274,15 +274,34 @@ export function saveDb(data) {
 // Supports multi-slot services, ensuring all consecutive slots required by the service are joined as 1.
 export function getAvailableSlots(dateStr, db, requiredDuration = null) {
   const settings = db.agendaSettings || DEFAULT_AGENDA_SETTINGS;
-  const startHour = parseInt(settings.start_time.split(':')[0], 10);
-  const startMin = parseInt(settings.start_time.split(':')[1] || '0', 10);
-  const endHour = parseInt(settings.end_time.split(':')[0], 10);
-  const endMin = parseInt(settings.end_time.split(':')[1] || '0', 10);
+
+  const targetDate = new Date(`${dateStr}T12:00:00`);
+  const dayOfWeek = String(targetDate.getDay());
+
+  const dayConfig = (settings.day_schedules && settings.day_schedules[dayOfWeek])
+    ? settings.day_schedules[dayOfWeek]
+    : {
+        enabled: settings.business_days ? settings.business_days.includes(dayOfWeek) : true,
+        start_time: settings.start_time || '08:00',
+        end_time: settings.end_time || '19:00',
+        has_break: Boolean(settings.break_start_time && settings.break_end_time),
+        break_start_time: settings.break_start_time || '12:00',
+        break_end_time: settings.break_end_time || '13:00',
+      };
+
+  if (!dayConfig.enabled) {
+    return [];
+  }
+
+  const [startHour, startMin] = (dayConfig.start_time || settings.start_time || '08:00').split(':').map(Number);
+  const [endHour, endMin] = (dayConfig.end_time || settings.end_time || '19:00').split(':').map(Number);
   const baseSlotDuration = settings.slot_duration_minutes || 30;
   const neededDuration = Number(requiredDuration) || baseSlotDuration;
 
-  const breakStart = settings.break_start_time || '12:00';
-  const breakEnd = settings.break_end_time || '13:00';
+  const hasBreak = dayConfig.has_break !== false;
+  const breakStart = dayConfig.break_start_time || settings.break_start_time || '12:00';
+  const breakEnd = dayConfig.break_end_time || settings.break_end_time || '13:00';
+  const maxChairs = Math.max(1, Number(settings.simultaneous_barbers) || 1);
 
   const bookedRanges = (db.appointments || [])
     .filter((a) => a.appointment_date === dateStr && a.status !== 'cancelled' && a.status !== 'no_show')
@@ -314,10 +333,11 @@ export function getAvailableSlots(dateStr, db, requiredDuration = null) {
     const slotEnd = currentMinutes + neededDuration;
 
     // Check if slot collides with lunch/break interval
-    const overlapsBreak = (slotStart < breakEndMin && slotEnd > breakStartMin);
+    const overlapsBreak = hasBreak && (slotStart < breakEndMin && slotEnd > breakStartMin);
 
-    // Check if overlapping with any existing appointment range
-    const isOverlapping = overlapsBreak || bookedRanges.some((r) => slotStart < r.endM && slotEnd > r.startM);
+    // Check if overlapping with existing appointments exceeding simultaneous capacity
+    const overlappingCount = bookedRanges.filter((r) => slotStart < r.endM && slotEnd > r.startM).length;
+    const isOverlapping = overlapsBreak || (overlappingCount >= maxChairs);
 
     if (!isOverlapping) {
       const h = Math.floor(slotStart / 60);

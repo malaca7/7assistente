@@ -161,14 +161,32 @@ export interface AgendaServiceItem {
   active?: boolean;
 }
 
-export interface AgendaSettings {
-  business_days: string[]; // ['1', '2', '3', '4', '5', '6', '0'] (1=Seg, 2=Ter, ..., 6=Sáb, 0=Dom)
+export interface DayScheduleConfig {
+  enabled: boolean;
   start_time: string; // '08:00'
   end_time: string; // '19:00'
+  has_break: boolean;
+  break_start_time?: string; // '12:00'
+  break_end_time?: string; // '13:00'
+}
+
+export interface AgendaSettings {
+  business_days: string[]; // ['1', '2', '3', '4', '5', '6', '0'] (1=Seg, 2=Ter, ..., 6=Sáb, 0=Dom)
+  start_time: string; // '08:00' (fallback)
+  end_time: string; // '19:00' (fallback)
   slot_duration_minutes: number; // 30, 45, 60
   break_start_time?: string; // '12:00'
   break_end_time?: string; // '13:00'
   buffer_minutes?: number; // 5, 10
+  day_schedules?: Record<string, DayScheduleConfig>; // '0'..'6' custom daily hours
+
+  // Advanced Options
+  min_advance_booking_minutes?: number; // Antecedência mínima para agendar (ex: 30 min, 60 min)
+  max_advance_booking_days?: number; // Antecedência máxima (ex: 30 dias)
+  cancellation_notice_hours?: number; // Tolerância para cancelamento (ex: 2h antes)
+  auto_reminder_hours?: number; // Lembrete automático pré-atendimento (ex: 2h antes)
+  allow_waiting_list?: boolean; // Lista de espera / fila de encaixe
+  simultaneous_barbers?: number; // Cadeiras / barbeiros simultâneos
   out_of_hours_message?: string;
   services: AgendaServiceItem[];
 }
