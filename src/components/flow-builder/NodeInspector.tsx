@@ -606,7 +606,7 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
                           className="w-full rounded-xl bg-dark-850 border border-slate-700/60 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
                         >
                           <optgroup label="📝 Valores & Textos">
-                            <option value="set_value">Texto / Valor Fixo (com {{tags}})</option>
+                            <option value="set_value">Texto / Valor Fixo (com variáveis)</option>
                             <option value="set_number">Número Fixo</option>
                             <option value="set_boolean">Booleano (Verdadeiro / Falso)</option>
                             <option value="copy_var">Copiar de Outra Variável</option>
