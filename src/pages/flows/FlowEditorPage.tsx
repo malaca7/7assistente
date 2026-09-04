@@ -416,306 +416,327 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
 
   // Advanced Top-to-Bottom Auto-Layout Algorithm (Hierarchical Sugiyama DAG with Zero Overlap & Straight Paths)
   const handleAutoLayout = useCallback(() => {
-    if (nodes.length === 0) return;
+    if (!nodes || nodes.length === 0) return;
 
-    // 1. Dynamic Height Estimator (Compact & Proportional)
-    const getNodeHeight = (n: Node): number => {
-      const type = n.data?.nodeType || n.type;
-      const cfg = (n.data as any)?.config || {};
-      switch (type) {
-        case 'trigger':
-          return 90;
-        case 'message':
-          return 120;
-        case 'question':
-          return 110;
-        case 'buttons': {
-          const btnCount = (cfg.buttons || []).length || 2;
-          return 100 + btnCount * 30;
+    try {
+      // 1. Dynamic Height Estimator (Compact & Proportional)
+      const getNodeHeight = (n: Node): number => {
+        const type = n.data?.nodeType || n.type;
+        const cfg = (n.data as any)?.config || {};
+        switch (type) {
+          case 'trigger':
+            return 90;
+          case 'message': {
+            const text = cfg.text || '';
+            return text.length > 80 ? 130 : 100;
+          }
+          case 'buttons': {
+            const btnCount = (cfg.buttons || []).length || 2;
+            return 100 + Math.min(btnCount, 4) * 26;
+          }
+          case 'question':
+            return 110;
+          case 'check_contact':
+            return 120;
+          case 'services_catalog':
+          case 'select_service':
+          case 'show_services':
+            return 130;
+          case 'schedule_contact':
+          case 'select_time_slot':
+            return 130;
+          case 'ask_date':
+          case 'select_date':
+            return 120;
+          case 'confirm_booking':
+            return 130;
+          case 'condition':
+            return 120;
+          case 'variable': {
+            const count = Array.isArray(cfg.assignments) ? cfg.assignments.length : 1;
+            return 90 + Math.min(count, 3) * 20;
+          }
+          case 'ai_agent':
+            return 110;
+          case 'human_handoff':
+            return 100;
+          case 'delay':
+            return 75;
+          case 'media':
+            return 110;
+          case 'end_flow':
+          case 'finish_flow':
+          case 'end':
+            return 80;
+          default:
+            return 110;
         }
-        case 'check_contact':
-          return 130;
-        case 'services_catalog':
-        case 'select_service':
-        case 'show_services':
-          return 130;
-        case 'schedule_contact':
-        case 'select_time_slot':
-          return 130;
-        case 'ask_date':
-        case 'select_date':
-          return 120;
-        case 'confirm_booking':
-          return 130;
-        case 'condition':
-          return 120;
-        case 'variable': {
-          const count = Array.isArray(cfg.assignments) ? cfg.assignments.length : 1;
-          return 90 + Math.min(count, 3) * 20;
-        }
-        case 'ai_agent':
-          return 110;
-        case 'human_handoff':
-          return 100;
-        case 'delay':
-          return 75;
-        case 'media':
-          return 110;
-        case 'end_flow':
-        case 'finish_flow':
-        case 'end':
-          return 80;
-        default:
-          return 110;
-      }
-    };
+      };
 
-    const NODE_WIDTH = 280;
-    const HORIZONTAL_GAP = 20; // Distância horizontal próxima e compacta entre os nós
-    const VERTICAL_GAP = 26; // Distância vertical próxima e compacta entre as linhas
-    const START_X = 60;
-    const START_Y = 60;
-    const MAIN_CENTER_X = 500;
+      const NODE_WIDTH = 280;
+      const HORIZONTAL_GAP = 20; // Distância horizontal próxima e compacta entre os nós
+      const VERTICAL_GAP = 26; // Distância vertical próxima e compacta entre as linhas
+      const START_X = 60;
+      const START_Y = 60;
+      const MAIN_CENTER_X = 500;
 
-    // 2. Build Adjacency Graph
-    const childrenMap = new Map<string, string[]>();
-    const parentMap = new Map<string, string[]>();
+      // 2. Build Adjacency Graph
+      const childrenMap = new Map<string, string[]>();
+      const parentMap = new Map<string, string[]>();
 
-    nodes.forEach((n) => {
-      childrenMap.set(n.id, []);
-      parentMap.set(n.id, []);
-    });
+      nodes.forEach((n) => {
+        childrenMap.set(n.id, []);
+        parentMap.set(n.id, []);
+      });
 
-    // Sort edges so branching handles (e.g. is_new vs is_existing, true vs false, btn_1 vs btn_2) preserve left-to-right order
-    const sortedEdges = [...edges].sort((a, b) => {
-      const hA = a.sourceHandle || '';
-      const hB = b.sourceHandle || '';
-      if (hA === 'is_new' || hA === 'true' || hA.includes('1') || hA.includes('new')) return -1;
-      if (hB === 'is_new' || hB === 'true' || hB.includes('1') || hB.includes('new')) return 1;
-      if (hA === 'is_existing' || hA === 'false' || hA.includes('2') || hA.includes('exist')) return 1;
-      if (hB === 'is_existing' || hB === 'false' || hB.includes('2') || hB.includes('exist')) return -1;
-      return hA.localeCompare(hB);
-    });
+      // Sort edges so branching handles preserve left-to-right order
+      const sortedEdges = [...(edges || [])].sort((a, b) => {
+        const hA = a.sourceHandle || '';
+        const hB = b.sourceHandle || '';
+        if (hA === 'is_new' || hA === 'true' || hA.includes('1') || hA.includes('new')) return -1;
+        if (hB === 'is_new' || hB === 'true' || hB.includes('1') || hB.includes('new')) return 1;
+        if (hA === 'is_existing' || hA === 'false' || hA.includes('2') || hA.includes('exist')) return 1;
+        if (hB === 'is_existing' || hB === 'false' || hB.includes('2') || hB.includes('exist')) return -1;
+        return hA.localeCompare(hB);
+      });
 
-    sortedEdges.forEach((e) => {
-      if (childrenMap.has(e.source) && childrenMap.has(e.target)) {
-        if (!childrenMap.get(e.source)!.includes(e.target)) {
-          childrenMap.get(e.source)!.push(e.target);
-        }
-        if (!parentMap.get(e.target)!.includes(e.source)) {
-          parentMap.get(e.target)!.push(e.source);
-        }
-      }
-    });
-
-    // 3. Cycle Detection & Removal using DFS
-    // state: 0 = unvisited, 1 = visiting (in active recursion stack / ancestor), 2 = finished
-    const state = new Map<string, number>();
-    nodes.forEach((n) => state.set(n.id, 0));
-
-    const dagChildrenMap = new Map<string, string[]>();
-    const dagParentMap = new Map<string, string[]>();
-    nodes.forEach((n) => {
-      dagChildrenMap.set(n.id, []);
-      dagParentMap.set(n.id, []);
-    });
-
-    const dfs = (u: string) => {
-      state.set(u, 1);
-      const children = childrenMap.get(u) || [];
-      for (const v of children) {
-        if (state.get(v) === 1) {
-          // Back edge (loop/ciclo detectado): não incluir nas arestas do DAG para evitar inflar linhas!
-          continue;
-        }
-        dagChildrenMap.get(u)!.push(v);
-        dagParentMap.get(v)!.push(u);
-
-        if (state.get(v) === 0) {
-          dfs(v);
-        }
-      }
-      state.set(u, 2);
-    };
-
-    roots.forEach((r) => {
-      if (state.get(r.id) === 0) dfs(r.id);
-    });
-    nodes.forEach((n) => {
-      if (state.get(n.id) === 0) dfs(n.id);
-    });
-
-    // 4. Topological Leveling on the Acyclic DAG
-    const inDegree = new Map<string, number>();
-    nodes.forEach((n) => inDegree.set(n.id, dagParentMap.get(n.id)!.length));
-
-    const queue: string[] = [];
-    const rankMap = new Map<string, number>();
-
-    nodes.forEach((n) => {
-      if (inDegree.get(n.id) === 0) {
-        queue.push(n.id);
-        rankMap.set(n.id, 0);
-      }
-    });
-
-    while (queue.length > 0) {
-      const u = queue.shift()!;
-      const curRank = rankMap.get(u) || 0;
-
-      for (const v of dagChildrenMap.get(u) || []) {
-        const nextRank = Math.max(rankMap.get(v) ?? 0, curRank + 1);
-        rankMap.set(v, nextRank);
-        inDegree.set(v, inDegree.get(v)! - 1);
-        if (inDegree.get(v) === 0) {
-          queue.push(v);
-        }
-      }
-    }
-
-    // Any unvisited orphan node defaults to rank 0
-    nodes.forEach((n) => {
-      if (!rankMap.has(n.id)) {
-        rankMap.set(n.id, 0);
-      }
-    });
-
-    // 5. Rank Compression: strictly eliminate all empty row gaps (garante totalRows <= nodes.length)
-    const distinctRanks = Array.from(new Set(rankMap.values())).sort((a, b) => a - b);
-    const compressedRankMap = new Map<number, number>();
-    distinctRanks.forEach((oldR, newR) => {
-      compressedRankMap.set(oldR, newR);
-    });
-
-    nodes.forEach((n) => {
-      const oldR = rankMap.get(n.id)!;
-      rankMap.set(n.id, compressedRankMap.get(oldR)!);
-    });
-
-    const maxRank = Math.max(...Array.from(rankMap.values()), 0);
-    const totalRows = maxRank + 1;
-    const rows: Node[][] = Array.from({ length: totalRows }, () => []);
-
-    nodes.forEach((n) => {
-      const r = rankMap.get(n.id) || 0;
-      rows[r].push(n);
-    });
-
-    // 6. Calculate Uniform Vertical Position (Y) for each Linha (Row)
-    const rowYPositions = new Map<number, number>();
-    let currentY = START_Y;
-    for (let r = 0; r < totalRows; r++) {
-      rowYPositions.set(r, currentY);
-      const rowNodes = rows[r];
-      const maxHeightInRow = rowNodes.length > 0 
-        ? Math.max(...rowNodes.map(getNodeHeight))
-        : 110;
-      currentY += maxHeightInRow + VERTICAL_GAP;
-    }
-
-    // 5. Symmetric Horizontal (X) Positioning by Row (Linha)
-    const xPositions = new Map<string, number>();
-
-    for (let r = 0; r <= maxRank; r++) {
-      const rowNodes = rows[r];
-      if (rowNodes.length === 1) {
-        const node = rowNodes[0];
-        const parents = parentMap.get(node.id) || [];
-        if (parents.length === 1 && xPositions.has(parents[0])) {
-          // Keep directly aligned under single parent
-          xPositions.set(node.id, xPositions.get(parents[0])!);
-        } else {
-          // Center on main axis
-          xPositions.set(node.id, MAIN_CENTER_X - NODE_WIDTH / 2);
-        }
-      } else {
-        // Multiple nodes in this linha: arrange symmetrically around MAIN_CENTER_X
-        const totalWidth = rowNodes.length * NODE_WIDTH + (rowNodes.length - 1) * HORIZONTAL_GAP;
-        let startX = MAIN_CENTER_X - totalWidth / 2;
-
-        // Order nodes based on their parents' horizontal positions
-        rowNodes.sort((a, b) => {
-          const parentsA = parentMap.get(a.id) || [];
-          const parentsB = parentMap.get(b.id) || [];
-          const avgParentXA = parentsA.length > 0 
-            ? parentsA.map((p) => xPositions.get(p) ?? MAIN_CENTER_X).reduce((s, c) => s + c, 0) / parentsA.length 
-            : MAIN_CENTER_X;
-          const avgParentXB = parentsB.length > 0 
-            ? parentsB.map((p) => xPositions.get(p) ?? MAIN_CENTER_X).reduce((s, c) => s + c, 0) / parentsB.length 
-            : MAIN_CENTER_X;
-          return avgParentXA - avgParentXB;
-        });
-
-        rowNodes.forEach((node) => {
-          xPositions.set(node.id, startX);
-          startX += NODE_WIDTH + HORIZONTAL_GAP;
-        });
-      }
-    }
-
-    // 6. Forward sweep: align single-child chains directly under their parents if no conflict
-    for (let r = 1; r <= maxRank; r++) {
-      const rowNodes = rows[r];
-      rowNodes.forEach((node) => {
-        const parents = parentMap.get(node.id) || [];
-        if (parents.length === 1) {
-          const parentX = xPositions.get(parents[0])!;
-          const wouldCollide = rowNodes.some((other) => {
-            if (other.id === node.id) return false;
-            const otherX = xPositions.get(other.id)!;
-            return Math.abs(otherX - parentX) < NODE_WIDTH + HORIZONTAL_GAP;
-          });
-          if (!wouldCollide) {
-            xPositions.set(node.id, parentX);
+      sortedEdges.forEach((e) => {
+        if (childrenMap.has(e.source) && childrenMap.has(e.target)) {
+          if (!childrenMap.get(e.source)!.includes(e.target)) {
+            childrenMap.get(e.source)!.push(e.target);
+          }
+          if (!parentMap.get(e.target)!.includes(e.source)) {
+            parentMap.get(e.target)!.push(e.source);
           }
         }
       });
-    }
 
-    // 7. Strict Collision Prevention: ensure minimum horizontal gap on every row
-    for (let r = 0; r <= maxRank; r++) {
-      const rowNodes = rows[r];
-      if (rowNodes.length <= 1) continue;
+      // 3. Identify Roots
+      let roots = nodes.filter(
+        (n) => (n.data?.nodeType || n.type) === 'trigger' || (parentMap.get(n.id)?.length || 0) === 0
+      );
+      if (roots.length === 0 && nodes.length > 0) {
+        roots.push(nodes[0]);
+      }
 
-      rowNodes.sort((a, b) => (xPositions.get(a.id) || 0) - (xPositions.get(b.id) || 0));
+      // 4. BFS Level Assignment (Strictly Cycle-Proof, guarantees no infinite loop or inflated ranks)
+      const rankMap = new Map<string, number>();
+      const visited = new Set<string>();
+      const queue: string[] = [];
 
-      for (let i = 1; i < rowNodes.length; i++) {
-        const prevX = xPositions.get(rowNodes[i - 1].id)!;
-        const curX = xPositions.get(rowNodes[i].id)!;
-        const minX = prevX + NODE_WIDTH + HORIZONTAL_GAP;
-        if (curX < minX) {
-          xPositions.set(rowNodes[i].id, minX);
+      roots.forEach((r) => {
+        rankMap.set(r.id, 0);
+        visited.add(r.id);
+        queue.push(r.id);
+      });
+
+      while (queue.length > 0) {
+        const u = queue.shift()!;
+        const curLevel = rankMap.get(u) || 0;
+        const children = childrenMap.get(u) || [];
+
+        for (const v of children) {
+          if (!visited.has(v)) {
+            visited.add(v);
+            rankMap.set(v, curLevel + 1);
+            queue.push(v);
+          } else {
+            // Already visited. If it is a forward branch, advance rank only if v is NOT an ancestor of u (cycle check)
+            const vLevel = rankMap.get(v) || 0;
+            if (curLevel + 1 > vLevel) {
+              let isAncestor = false;
+              const reachQueue: string[] = [v];
+              const reachVisited = new Set<string>([v]);
+              while (reachQueue.length > 0) {
+                const curr = reachQueue.shift()!;
+                if (curr === u) {
+                  isAncestor = true;
+                  break;
+                }
+                for (const nxt of childrenMap.get(curr) || []) {
+                  if (!reachVisited.has(nxt)) {
+                    reachVisited.add(nxt);
+                    reachQueue.push(nxt);
+                  }
+                }
+              }
+
+              if (!isAncestor) {
+                rankMap.set(v, curLevel + 1);
+                queue.push(v);
+              }
+            }
+          }
         }
       }
+
+      // Visit any disconnected nodes
+      nodes.forEach((n) => {
+        if (!visited.has(n.id)) {
+          visited.add(n.id);
+          rankMap.set(n.id, 0);
+          queue.push(n.id);
+          while (queue.length > 0) {
+            const u = queue.shift()!;
+            const curLevel = rankMap.get(u) || 0;
+            for (const v of childrenMap.get(u) || []) {
+              if (!visited.has(v)) {
+                visited.add(v);
+                rankMap.set(v, curLevel + 1);
+                queue.push(v);
+              }
+            }
+          }
+        }
+      });
+
+      // 5. Rank Compression: strictly eliminate all empty row gaps (garante totalRows <= nodes.length)
+      const distinctRanks = Array.from(new Set(rankMap.values())).sort((a, b) => a - b);
+      const compressedRankMap = new Map<number, number>();
+      distinctRanks.forEach((oldR, newR) => {
+        compressedRankMap.set(oldR, newR);
+      });
+
+      nodes.forEach((n) => {
+        const oldR = rankMap.get(n.id) ?? 0;
+        rankMap.set(n.id, compressedRankMap.get(oldR) ?? 0);
+      });
+
+      const maxRank = Math.max(...Array.from(rankMap.values()), 0);
+      const totalRows = Math.min(maxRank + 1, nodes.length);
+      const rows: Node[][] = Array.from({ length: totalRows }, () => []);
+
+      nodes.forEach((n) => {
+        const r = Math.min(rankMap.get(n.id) || 0, totalRows - 1);
+        rows[r].push(n);
+      });
+
+      // 6. Calculate Uniform Vertical Position (Y) for each Linha (Row)
+      const rowYPositions = new Map<number, number>();
+      let currentY = START_Y;
+      for (let r = 0; r < totalRows; r++) {
+        rowYPositions.set(r, currentY);
+        const rowNodes = rows[r];
+        const maxHeightInRow = rowNodes.length > 0 
+          ? Math.max(...rowNodes.map(getNodeHeight))
+          : 110;
+        currentY += maxHeightInRow + VERTICAL_GAP;
+      }
+
+      // 7. Horizontal (X) Positioning by Row (Linha)
+      const xPositions = new Map<string, number>();
+
+      for (let r = 0; r < totalRows; r++) {
+        const rowNodes = rows[r];
+        if (rowNodes.length === 1) {
+          const node = rowNodes[0];
+          const upstreamParents = (parentMap.get(node.id) || []).filter(
+            (p) => (rankMap.get(p) ?? 999) < r && xPositions.has(p)
+          );
+
+          if (upstreamParents.length === 1 && Number.isFinite(xPositions.get(upstreamParents[0]))) {
+            xPositions.set(node.id, xPositions.get(upstreamParents[0])!);
+          } else {
+            xPositions.set(node.id, MAIN_CENTER_X - NODE_WIDTH / 2);
+          }
+        } else {
+          const totalWidth = rowNodes.length * NODE_WIDTH + (rowNodes.length - 1) * HORIZONTAL_GAP;
+          let startX = MAIN_CENTER_X - totalWidth / 2;
+
+          rowNodes.sort((a, b) => {
+            const parentsA = (parentMap.get(a.id) || []).filter((p) => xPositions.has(p));
+            const parentsB = (parentMap.get(b.id) || []).filter((p) => xPositions.has(p));
+            const avgParentXA = parentsA.length > 0 
+              ? parentsA.map((p) => xPositions.get(p) ?? MAIN_CENTER_X).reduce((s, c) => s + c, 0) / parentsA.length 
+              : MAIN_CENTER_X;
+            const avgParentXB = parentsB.length > 0 
+              ? parentsB.map((p) => xPositions.get(p) ?? MAIN_CENTER_X).reduce((s, c) => s + c, 0) / parentsB.length 
+              : MAIN_CENTER_X;
+            return avgParentXA - avgParentXB;
+          });
+
+          rowNodes.forEach((node) => {
+            xPositions.set(node.id, startX);
+            startX += NODE_WIDTH + HORIZONTAL_GAP;
+          });
+        }
+      }
+
+      // 8. Forward sweep: align single-child chains directly under their parents if no conflict
+      for (let r = 1; r < totalRows; r++) {
+        const rowNodes = rows[r];
+        rowNodes.forEach((node) => {
+          const upstreamParents = (parentMap.get(node.id) || []).filter(
+            (p) => (rankMap.get(p) ?? 999) < r && xPositions.has(p)
+          );
+          if (upstreamParents.length === 1) {
+            const parentX = xPositions.get(upstreamParents[0]);
+            if (Number.isFinite(parentX)) {
+              const wouldCollide = rowNodes.some((other) => {
+                if (other.id === node.id) return false;
+                const otherX = xPositions.get(other.id);
+                if (!Number.isFinite(otherX)) return false;
+                return Math.abs(otherX! - parentX!) < NODE_WIDTH + HORIZONTAL_GAP;
+              });
+              if (!wouldCollide) {
+                xPositions.set(node.id, parentX!);
+              }
+            }
+          }
+        });
+      }
+
+      // 9. Strict Collision Prevention: ensure minimum horizontal gap on every row
+      for (let r = 0; r < totalRows; r++) {
+        const rowNodes = rows[r];
+        if (rowNodes.length <= 1) continue;
+
+        rowNodes.sort((a, b) => (xPositions.get(a.id) ?? 0) - (xPositions.get(b.id) ?? 0));
+
+        for (let i = 1; i < rowNodes.length; i++) {
+          const prevX = xPositions.get(rowNodes[i - 1].id) ?? (MAIN_CENTER_X - NODE_WIDTH / 2);
+          const curX = xPositions.get(rowNodes[i].id) ?? (MAIN_CENTER_X - NODE_WIDTH / 2);
+          const minX = prevX + NODE_WIDTH + HORIZONTAL_GAP;
+          if (curX < minX) {
+            xPositions.set(rowNodes[i].id, minX);
+          }
+        }
+      }
+
+      // 10. Global Normalization: ensure left-most coordinate is at START_X
+      const allXs = Array.from(xPositions.values()).filter(Number.isFinite);
+      const minX = allXs.length > 0 ? Math.min(...allXs) : START_X;
+      const shiftX = minX < START_X ? START_X - minX : 0;
+
+      const layoutedNodes: Node[] = nodes.map((n) => {
+        const rank = rankMap.get(n.id) ?? 0;
+        const rawX = xPositions.get(n.id);
+        const rawY = rowYPositions.get(rank);
+
+        const posX = (Number.isFinite(rawX) ? rawX! : (MAIN_CENTER_X - NODE_WIDTH / 2)) + shiftX;
+        const posY = Number.isFinite(rawY) ? rawY! : (START_Y + rank * (110 + VERTICAL_GAP));
+
+        return {
+          ...n,
+          position: { x: Math.round(posX), y: Math.round(posY) },
+        };
+      });
+
+      setNodes(layoutedNodes);
+      pushHistory(layoutedNodes, edges);
+      success(
+        'Fluxo Organizado em Linhas',
+        `Fluxo organizado de cima para baixo em ${totalRows} linhas perfeitamente alinhadas!`
+      );
+
+      setTimeout(() => {
+        fitView({ padding: 0.2, duration: 800 });
+      }, 60);
+    } catch (err: any) {
+      console.error('Error during handleAutoLayout:', err);
+      toastError('Erro ao Organizar', err.message || 'Ocorreu um erro ao organizar o fluxo.');
     }
-
-    // 8. Global Normalization: ensure left-most coordinate is at START_X
-    const allXs = Array.from(xPositions.values());
-    const minX = Math.min(...allXs, START_X);
-    const shiftX = minX < START_X ? START_X - minX : 0;
-
-    const layoutedNodes: Node[] = nodes.map((n) => {
-      const rank = rankMap.get(n.id) || 0;
-      const posX = (xPositions.get(n.id) || START_X) + shiftX;
-      const posY = rowYPositions.get(rank) || START_Y;
-
-      return {
-        ...n,
-        position: { x: Math.round(posX), y: Math.round(posY) },
-      };
-    });
-
-    setNodes(layoutedNodes);
-    pushHistory(layoutedNodes, edges);
-    success(
-      'Fluxo Organizado em Linhas',
-      `Fluxo organizado de cima para baixo em ${maxRank + 1} linhas perfeitamente alinhadas!`
-    );
-
-    setTimeout(() => {
-      fitView({ padding: 0.2, duration: 800 });
-    }, 60);
-  }, [nodes, edges, setNodes, pushHistory, fitView, success]);
+  }, [nodes, edges, setNodes, pushHistory, fitView, success, toastError]);
 
   // Duplicate Selected Node
   const handleDuplicateSelectedNode = useCallback(() => {

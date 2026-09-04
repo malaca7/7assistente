@@ -283,8 +283,9 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
         {/* Auto-Organize Flow Button */}
         {onAutoLayout && (
           <button
+            type="button"
             onClick={onAutoLayout}
-            className="p-2 rounded-xl bg-dark-850 border border-white/5 hover:border-emerald-500/30 text-slate-300 hover:text-emerald-300 transition-colors flex items-center gap-1.5 text-xs"
+            className="p-2 rounded-xl bg-dark-850 border border-white/5 hover:border-emerald-500/30 text-slate-300 hover:text-emerald-300 transition-colors flex items-center gap-1.5 text-xs active:scale-95"
             title="Auto-Organizar nós e conexões do fluxo de forma alinhada e elegante"
           >
             <Sparkles className="w-4 h-4 text-emerald-400" />
