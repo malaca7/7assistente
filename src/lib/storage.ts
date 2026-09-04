@@ -671,9 +671,8 @@ export const StorageService = {
             }
           }
 
-          const valid = serverContacts.filter(c => !this.isContactDeleted(c));
-          setItem(STORAGE_KEYS.CONTACTS, valid);
-          return valid;
+          setItem(STORAGE_KEYS.CONTACTS, serverContacts);
+          return serverContacts;
         }
       }
     } catch {

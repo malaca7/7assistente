@@ -697,19 +697,27 @@
     ]
   },
   "botProfile": {
-    "name": "Talvane Barber Bot",
+    "name": "Joaquim",
     "company_name": "Talvane Barber Shop",
     "gender": "male",
     "tone": "Amigável e Profissional",
-    "support_phone": "81996138924",
+    "support_phone": "81987300915",
     "business_hours": "08:00 às 19:00",
     "welcome_message": "Olá! Seja bem-vindo à Talvane Barber. Como podemos te ajudar hoje?",
     "avatar_url": "",
     "company_segment": "Barbearia e Estética Masculina",
-    "support_email": "contato@talvanebarber.com.br",
+    "support_email": "",
     "website_url": "https://talvane.malaca.com.br",
     "id": "default",
-    "updated_at": "2026-09-03T16:56:59.719Z"
+    "updated_at": "2026-09-04T01:11:30.103Z",
+    "handoff_message": "Vou transferir seu atendimento para um de nossos profissionais. Por favor, aguarde um instante!",
+    "company_address": "",
+    "pix_key_type": "telefone",
+    "pix_key": "81996138924",
+    "pix_owner": "Rogerio Malaquias",
+    "notify_new_bookings": true,
+    "notify_phone": "81996138924",
+    "play_audio_alerts": true
   },
   "settings": {
     "id": "settings-001",
@@ -718,19 +726,27 @@
     "whatsapp_access_token_encrypted": "EAAO...7assistente_token_secret_vault",
     "webhook_verify_token": "7assistente_meta_webhook_token_2026",
     "bot_profile": {
-      "name": "Talvane Barber Bot",
+      "name": "Joaquim",
       "company_name": "Talvane Barber Shop",
       "gender": "male",
       "tone": "Amigável e Profissional",
       "avatar_url": "",
       "company_segment": "Barbearia e Estética Masculina",
-      "support_email": "contato@talvanebarber.com.br",
-      "support_phone": "81996138924",
+      "support_email": "",
+      "support_phone": "81987300915",
       "business_hours": "08:00 às 19:00",
       "website_url": "https://talvane.malaca.com.br",
       "welcome_message": "Olá! Seja bem-vindo à Talvane Barber. Como podemos te ajudar hoje?",
       "id": "default",
-      "updated_at": "2026-09-03T16:56:59.719Z"
+      "updated_at": "2026-09-04T01:11:30.103Z",
+      "handoff_message": "Vou transferir seu atendimento para um de nossos profissionais. Por favor, aguarde um instante!",
+      "company_address": "",
+      "pix_key_type": "telefone",
+      "pix_key": "81996138924",
+      "pix_owner": "Rogerio Malaquias",
+      "notify_new_bookings": true,
+      "notify_phone": "81996138924",
+      "play_audio_alerts": true
     },
     "whatsapp_session": {
       "status": "disconnected",
@@ -738,7 +754,7 @@
       "name": ""
     },
     "created_at": "2026-09-03T16:43:07.297Z",
-    "updated_at": "2026-09-03T18:19:57.748Z",
+    "updated_at": "2026-09-04T01:11:30.493Z",
     "backend_url": "https://talvane.discloud.app"
   },
   "sessions": {},
@@ -772,7 +788,29 @@
       "created_at": "2026-09-03T21:12:59.200Z"
     }
   ],
-  "contacts": {},
+  "contacts": {
+    "558196138924": {
+      "id": "contact-558196138924",
+      "phone": "558196138924",
+      "name": "Malaquias",
+      "whatsapp_pushname": "rogerio mlc",
+      "status": "active",
+      "tags": [
+        "Lead",
+        "Cliente",
+        "Novo Cliente"
+      ],
+      "is_registered": true,
+      "metadata": {},
+      "created_at": "2026-09-04T01:19:59.706Z",
+      "updated_at": "2026-09-04T01:20:05.266Z",
+      "custom_fields": {
+        "nome_novocliente": "Malaquias",
+        "interesse_principal": "servico_selecionado"
+      },
+      "profile_picture_url": "https://pps.whatsapp.net/v/t61.24694-24/674630155_1633106875192131_9214554452579566382_n.jpg?ccb=11-4&oh=01_Q5Aa5gGqi__JoK8yGnVm0turK54PKzpqHkTvxTKwHqdg5e4NmQ&oe=6AA722A1&_nc_sid=5e03e0&_nc_cat=104"
+    }
+  },
   "conversations": {
     "conv-558196138924": {
       "id": "conv-558196138924",

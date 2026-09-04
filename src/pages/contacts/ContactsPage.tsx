@@ -47,7 +47,20 @@ export const ContactsPage: React.FC<ContactsPageProps> = ({ onNavigate }) => {
   useEffect(() => {
     loadContacts();
     const interval = setInterval(loadContacts, 3500);
-    return () => clearInterval(interval);
+
+    const handleFocus = () => {
+      if (document.visibilityState === 'visible') {
+        loadContacts();
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
+    };
   }, []);
 
   const loadContacts = async () => {
