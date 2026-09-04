@@ -1338,10 +1338,10 @@
       "role": "atendente",
       "status": "offline",
       "active_chats_count": 0,
-      "updated_at": "2026-09-03T23:26:17.806Z",
+      "updated_at": "2026-09-03T23:59:52.153Z",
       "created_at": "2026-09-03T23:26:18.789Z",
       "metrics": {
-        "chats_assigned": 0,
+        "chats_assigned": 1,
         "chats_resolved": 0,
         "messages_sent": 0,
         "avg_response_time_min": 0,
