@@ -508,63 +508,108 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
       }
     });
 
-    // 3. Topological Layering (Assign each node to Linha 1, Linha 2, Linha 3...)
-    const roots = nodes.filter(
-      (n) => (n.data?.nodeType || n.type) === 'trigger' || (parentMap.get(n.id)?.length || 0) === 0
-    );
-    if (roots.length === 0 && nodes.length > 0) {
-      roots.push(nodes[0]);
-    }
+    // 3. Cycle Detection & Removal using DFS
+    // state: 0 = unvisited, 1 = visiting (in active recursion stack / ancestor), 2 = finished
+    const state = new Map<string, number>();
+    nodes.forEach((n) => state.set(n.id, 0));
 
-    const rankMap = new Map<string, number>();
-    roots.forEach((r) => rankMap.set(r.id, 0));
+    const dagChildrenMap = new Map<string, string[]>();
+    const dagParentMap = new Map<string, string[]>();
+    nodes.forEach((n) => {
+      dagChildrenMap.set(n.id, []);
+      dagParentMap.set(n.id, []);
+    });
 
-    // Iterative longest-path to ensure target rank >= source rank + 1
-    let changed = true;
-    let iteration = 0;
-    const maxIterations = nodes.length * 2;
-
-    while (changed && iteration < maxIterations) {
-      changed = false;
-      iteration++;
-
-      sortedEdges.forEach((e) => {
-        const srcRank = rankMap.get(e.source);
-        if (srcRank !== undefined) {
-          const curTargetRank = rankMap.get(e.target) ?? -1;
-          const requiredRank = srcRank + 1;
-          if (requiredRank > curTargetRank && curTargetRank < maxIterations) {
-            rankMap.set(e.target, requiredRank);
-            changed = true;
-          }
+    const dfs = (u: string) => {
+      state.set(u, 1);
+      const children = childrenMap.get(u) || [];
+      for (const v of children) {
+        if (state.get(v) === 1) {
+          // Back edge (loop/ciclo detectado): não incluir nas arestas do DAG para evitar inflar linhas!
+          continue;
         }
-      });
+        dagChildrenMap.get(u)!.push(v);
+        dagParentMap.get(v)!.push(u);
+
+        if (state.get(v) === 0) {
+          dfs(v);
+        }
+      }
+      state.set(u, 2);
+    };
+
+    roots.forEach((r) => {
+      if (state.get(r.id) === 0) dfs(r.id);
+    });
+    nodes.forEach((n) => {
+      if (state.get(n.id) === 0) dfs(n.id);
+    });
+
+    // 4. Topological Leveling on the Acyclic DAG
+    const inDegree = new Map<string, number>();
+    nodes.forEach((n) => inDegree.set(n.id, dagParentMap.get(n.id)!.length));
+
+    const queue: string[] = [];
+    const rankMap = new Map<string, number>();
+
+    nodes.forEach((n) => {
+      if (inDegree.get(n.id) === 0) {
+        queue.push(n.id);
+        rankMap.set(n.id, 0);
+      }
+    });
+
+    while (queue.length > 0) {
+      const u = queue.shift()!;
+      const curRank = rankMap.get(u) || 0;
+
+      for (const v of dagChildrenMap.get(u) || []) {
+        const nextRank = Math.max(rankMap.get(v) ?? 0, curRank + 1);
+        rankMap.set(v, nextRank);
+        inDegree.set(v, inDegree.get(v)! - 1);
+        if (inDegree.get(v) === 0) {
+          queue.push(v);
+        }
+      }
     }
 
-    // Assign any unvisited orphan node to rank 0
+    // Any unvisited orphan node defaults to rank 0
     nodes.forEach((n) => {
       if (!rankMap.has(n.id)) {
         rankMap.set(n.id, 0);
       }
     });
 
+    // 5. Rank Compression: strictly eliminate all empty row gaps (garante totalRows <= nodes.length)
+    const distinctRanks = Array.from(new Set(rankMap.values())).sort((a, b) => a - b);
+    const compressedRankMap = new Map<number, number>();
+    distinctRanks.forEach((oldR, newR) => {
+      compressedRankMap.set(oldR, newR);
+    });
+
+    nodes.forEach((n) => {
+      const oldR = rankMap.get(n.id)!;
+      rankMap.set(n.id, compressedRankMap.get(oldR)!);
+    });
+
     const maxRank = Math.max(...Array.from(rankMap.values()), 0);
-    const rows: Node[][] = Array.from({ length: maxRank + 1 }, () => []);
+    const totalRows = maxRank + 1;
+    const rows: Node[][] = Array.from({ length: totalRows }, () => []);
 
     nodes.forEach((n) => {
       const r = rankMap.get(n.id) || 0;
       rows[r].push(n);
     });
 
-    // 4. Calculate Uniform Vertical Position (Y) for each Linha (Row)
+    // 6. Calculate Uniform Vertical Position (Y) for each Linha (Row)
     const rowYPositions = new Map<number, number>();
     let currentY = START_Y;
-    for (let r = 0; r <= maxRank; r++) {
+    for (let r = 0; r < totalRows; r++) {
       rowYPositions.set(r, currentY);
       const rowNodes = rows[r];
       const maxHeightInRow = rowNodes.length > 0 
         ? Math.max(...rowNodes.map(getNodeHeight))
-        : 200;
+        : 110;
       currentY += maxHeightInRow + VERTICAL_GAP;
     }
 
