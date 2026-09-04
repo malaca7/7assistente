@@ -1442,16 +1442,58 @@ function parseCustomDateString(input) {
       const buttons = session.activeButtons || btnConfig.buttons || [];
       let matchedBtnIndex = -1;
 
-      const numMatch = parseInt(cleanInput, 10);
-      if (!isNaN(numMatch) && numMatch >= 1 && numMatch <= buttons.length) {
-        matchedBtnIndex = numMatch - 1;
-      } else {
+      const normalize = (str) =>
+        String(str || '')
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase()
+          .trim();
+
+      const normInput = normalize(cleanInput);
+      const cleanDigits = normInput.replace(/\D/g, '');
+
+      // 1. Exact numeric index match (e.g. '1', '2', '1.', '#1')
+      if (cleanDigits) {
+        const num = parseInt(cleanDigits, 10);
+        if (!isNaN(num) && num >= 1 && num <= buttons.length) {
+          matchedBtnIndex = num - 1;
+        }
+      }
+
+      // 2. ID match (e.g. 'btn_1', 'btn_2', 'srv_1')
+      if (matchedBtnIndex === -1) {
         matchedBtnIndex = buttons.findIndex(
-          (b) =>
-            b.id === cleanInput ||
-            b.title?.toLowerCase().trim() === cleanInput.toLowerCase() ||
-            cleanInput.toLowerCase().includes(b.title?.toLowerCase().trim())
+          (b) => b.id === cleanInput || b.id === normInput || (b.id && normInput.includes(b.id))
         );
+      }
+
+      // 3. Exact, keyword, or substring title match
+      if (matchedBtnIndex === -1) {
+        for (let i = 0; i < buttons.length; i++) {
+          const b = buttons[i];
+          const normTitle = normalize(b.title || b.text || '');
+          const cleanTitle = normalize(normTitle.replace(/^\d+[\.\-\)]\s*/, ''));
+
+          if (normInput === normTitle || normInput === cleanTitle) {
+            matchedBtnIndex = i;
+            break;
+          }
+          if (cleanTitle.includes(normInput) && normInput.length >= 3) {
+            matchedBtnIndex = i;
+            break;
+          }
+          if (normInput.includes(cleanTitle) && cleanTitle.length >= 3) {
+            matchedBtnIndex = i;
+            break;
+          }
+          const inputWords = normInput.split(/\s+/).filter((w) => w.length >= 3);
+          const titleWords = cleanTitle.split(/\s+/).filter((w) => w.length >= 3);
+          const hasCommonWord = inputWords.some((w) => titleWords.some((tw) => tw.includes(w) || w.includes(tw)));
+          if (hasCommonWord) {
+            matchedBtnIndex = i;
+            break;
+          }
+        }
       }
 
       // Date input typing (if user typed DD/MM or a custom date on a date node)
@@ -1535,8 +1577,14 @@ function parseCustomDateString(input) {
         }
       } else {
         // If user typed something unrelated while on buttons node
-        const retryButtons = buttons.map((b, i) => `*${i + 1}️⃣* ${b.title}`).join('\n');
-        replies.push(`Opção não reconhecida. Por favor, escolha uma das opções abaixo:\n\n${retryButtons}`);
+        const retryLines = buttons.map((b, i) => {
+          const numEmoji = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'][i] || `*${i + 1}*`;
+          const cleanTitle = (b.title || b.text || `Opção ${i + 1}`).replace(/^\d+[\.\-\)]\s*/, '').trim();
+          return `${numEmoji} *${cleanTitle}*`;
+        }).join('\n\n');
+
+        const retryMsg = `*Opção não reconhecida.*\n\nPor favor, escolha uma das opções abaixo:\n\n${retryLines}\n\n_👉 Digite o número ou o nome da opção desejada:_`;
+        replies.push(retryMsg);
         session.currentNodeId = prevNode.id;
         session.activeButtons = buttons;
         

@@ -203,99 +203,27 @@ async function hydrateFromSupabase() {
 async function sendWhatsAppMessage(jid, reply) {
   if (!sock) return;
 
-  // 1. Interactive Button Message (Native Clickable Buttons in WhatsApp)
+  // 1. Interactive Button Message (Delivered reliably on all WhatsApp clients)
   if (typeof reply === 'object' && reply.type === 'buttons') {
     const rawButtons = reply.buttons || [];
-    const bodyText = reply.body || 'Por favor, selecione uma opção:';
-    const footerText = reply.footer || '7 Assistente';
-    const userJid = sock.user?.id || (sock.authState?.creds?.me?.id) || '';
+    const bodyText = (reply.body || 'Por favor, escolha uma das opções abaixo:').trim();
+    const footerText = (reply.footer || '').trim();
 
-    let sentNative = false;
+    const numberEmojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+    const buttonLines = rawButtons.map((b, idx) => {
+      const emoji = numberEmojis[idx] || `*${idx + 1}*`;
+      const cleanTitle = (b.title || b.text || `Opção ${idx + 1}`).replace(/^\d+[\.\-\)]\s*/, '').trim();
+      return `${emoji} *${cleanTitle}*`;
+    }).join('\n\n');
 
-    // A. WhatsApp Native Flow Interactive Buttons (Modern UI Buttons)
+    const footerSection = footerText ? `\n\n_${footerText}_` : '';
+    const fullMenuText = `${bodyText}\n\n${buttonLines}${footerSection}\n\n_👉 Digite o número ou o nome da opção desejada_`;
+
     try {
-      const interactiveButtons = rawButtons.map((b, idx) => ({
-        name: 'quick_reply',
-        buttonParamsJson: JSON.stringify({
-          display_text: b.title || b.text || `Opção ${idx + 1}`,
-          id: b.id || `btn_${idx + 1}`,
-        }),
-      }));
-
-      const interactiveMessage = {
-        body: { text: bodyText },
-        footer: { text: footerText },
-        header: {
-          title: reply.header || '',
-          hasMediaAttachment: false,
-        },
-        nativeFlowMessage: {
-          buttons: interactiveButtons,
-        },
-      };
-
-      const msg = generateWAMessageFromContent(
-        jid,
-        {
-          viewOnceMessage: {
-            message: {
-              messageContextInfo: {
-                deviceListMetadata: {},
-                deviceListMetadataVersion: 2,
-              },
-              interactiveMessage,
-            },
-          },
-        },
-        { userJid }
-      );
-
-      await sock.relayMessage(jid, msg.message, { messageId: msg.key.id });
-      sentNative = true;
-      console.log(`[WhatsApp Outbound] 🔘 Botões nativos interativos (Native Flow) enviados para ${jid}: ${rawButtons.map((b) => b.title).join(' | ')}`);
+      await sock.sendMessage(jid, { text: fullMenuText });
+      console.log(`[WhatsApp Outbound] 🔘 Menu de opções enviado com sucesso para ${jid}: ${rawButtons.map((b) => b.title).join(' | ')}`);
     } catch (err) {
-      console.warn('[WhatsApp Outbound] Envio de botões nativos via relayMessage falhou:', err.message);
-    }
-
-    // B. Template Buttons Fallback (if native flow fails on specific WhatsApp client)
-    if (!sentNative) {
-      try {
-        const templateButtons = rawButtons.map((b, idx) => ({
-          index: idx + 1,
-          quickReplyButton: {
-            displayText: b.title || b.text || `Opção ${idx + 1}`,
-            id: b.id || `btn_${idx + 1}`,
-          },
-        }));
-
-        const templateMsg = generateWAMessageFromContent(
-          jid,
-          {
-            templateMessage: {
-              hydratedTemplate: {
-                hydratedContentText: bodyText,
-                hydratedFooterText: footerText,
-                hydratedButtons: templateButtons,
-              },
-            },
-          },
-          { userJid }
-        );
-
-        await sock.relayMessage(jid, templateMsg.message, { messageId: templateMsg.key.id });
-        sentNative = true;
-        console.log(`[WhatsApp Outbound] 🔘 Botões template enviados para ${jid}`);
-      } catch (err2) {
-        console.warn('[WhatsApp Outbound] Envio de templateButtons falhou:', err2.message);
-      }
-    }
-
-    // C. Clean Fallback only if recipient client cannot receive buttons
-    if (!sentNative) {
-      const buttonLines = rawButtons.map((b, idx) => `*${idx + 1}️⃣* ${b.title}`).join('\n');
-      const fullButtonText = `${bodyText}\n\n${buttonLines}\n\n_${footerText}_`;
-      await sock.sendMessage(jid, { text: fullButtonText });
-      console.log(`[WhatsApp Outbound] 🔘 Menu fallback texto enviado para ${jid}`);
+      console.error(`[WhatsApp Outbound] Erro ao enviar menu de botões para ${jid}:`, err.message);
     }
   }
 
