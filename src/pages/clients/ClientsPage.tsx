@@ -866,8 +866,14 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
 
       {/* DRAWER: Dossiê e Histórico do Cliente */}
       {selectedClientForDrawer && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-xl bg-dark-950 border-l border-white/10 h-full overflow-y-auto p-6 space-y-6 shadow-2xl flex flex-col justify-between">
+        <div 
+          className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setSelectedClientForDrawer(null)}
+        >
+          <div 
+            className="w-full max-w-xl bg-dark-950 border-l border-white/10 h-full overflow-y-auto p-6 space-y-6 shadow-2xl flex flex-col justify-between"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="space-y-6">
               {/* Drawer Header */}
               <div className="flex items-start justify-between border-b border-white/10 pb-4">
@@ -1131,7 +1137,7 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-white/5">
+          <div className="flex justify-end gap-2 pt-3 border-t border-white/10 sticky bottom-0 bg-dark-900/95 backdrop-blur-md pb-1 -mx-5 sm:-mx-6 px-5 sm:px-6 z-10">
             <Button variant="outline" type="button" onClick={() => setIsClientModalOpen(false)}>
               Cancelar
             </Button>
@@ -1202,7 +1208,7 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-white/5">
+          <div className="flex justify-end gap-2 pt-3 border-t border-white/10 sticky bottom-0 bg-dark-900/95 backdrop-blur-md pb-1 -mx-5 sm:-mx-6 px-5 sm:px-6 z-10">
             <Button variant="outline" type="button" onClick={() => setIsQuickAptModalOpen(false)}>
               Cancelar
             </Button>
