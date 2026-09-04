@@ -190,7 +190,20 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
     const interval = setInterval(() => {
       loadData(true);
     }, 4000);
-    return () => clearInterval(interval);
+
+    const handleFocus = () => {
+      if (document.visibilityState === 'visible') {
+        loadData(true);
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
+    };
   }, []);
 
   // Save General Agenda Settings (Expediente)

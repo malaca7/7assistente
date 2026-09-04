@@ -153,7 +153,20 @@ export const ConversationsPage: React.FC<{ onNavigate?: (path: string) => void }
     const interval = setInterval(() => {
       loadData(true);
     }, 2500);
-    return () => clearInterval(interval);
+
+    const handleFocus = () => {
+      if (document.visibilityState === 'visible') {
+        loadData(true);
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
+    };
   }, [loadData]);
 
   const handleSelectConv = async (conv: Conversation) => {

@@ -31,8 +31,7 @@ import {
   List, 
   TrendingUp, 
   CalendarPlus,
-  Scissors,
-  RefreshCw
+  Scissors
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -83,8 +82,6 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
   const [formNotes, setFormNotes] = useState('');
   const [formStatus, setFormStatus] = useState<'active' | 'blocked' | 'archived'>('active');
 
-  const [isSyncing, setIsSyncing] = useState(false);
-
   const loadData = async (silent = false) => {
     try {
       if (!silent) setIsLoading(true);
@@ -103,35 +100,38 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
     }
   };
 
-  const handleSyncData = async () => {
-    try {
-      setIsSyncing(true);
-      StorageService.clearDeletedContactsCache();
-      const freshContacts = await StorageService.getContacts();
-      const [aptsData, settingsData] = await Promise.all([
-        StorageService.getAppointments(),
-        StorageService.getAgendaSettings(),
-      ]);
-      setClients(freshContacts);
-      setAppointments(aptsData);
-      setAgendaSettings(settingsData);
-      success(
-        'Base Sincronizada',
-        `${freshContacts.length} clientes sincronizados entre Painel Admin, Bot e Banco de Dados.`
-      );
-    } catch (e: any) {
-      toastError('Erro ao sincronizar', e?.message || 'Falha ao conectar com o banco.');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
   useEffect(() => {
     loadData(false);
+
+    // 1. Sincronização periódica contínua em background (a cada 3,5s)
     const interval = setInterval(() => {
       loadData(true);
-    }, 4000);
-    return () => clearInterval(interval);
+    }, 3500);
+
+    // 2. Sincronização instantânea ao focar a tela ou alternar de aba
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === 'visible') {
+        loadData(true);
+      }
+    };
+
+    // 3. Sincronização quando o banco ou localStorage for atualizado
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === '7assistente_contacts' || e.key === '7assistente_appointments') {
+        loadData(true);
+      }
+    };
+
+    window.addEventListener('focus', handleVisibilityOrFocus);
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   // Update selected client in drawer if clients state changes
@@ -487,16 +487,6 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
           <Button
             variant="outline"
             size="sm"
-            onClick={handleSyncData}
-            disabled={isSyncing}
-            leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-brand-400' : ''}`} />}
-            className="text-xs border-white/10 hover:border-white/20"
-          >
-            {isSyncing ? 'Sincronizando...' : 'Sincronizar Banco'}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
             onClick={handleExportCSV}
             leftIcon={<Download className="w-4 h-4" />}
             className="text-xs border-white/10 hover:border-white/20"
@@ -627,15 +617,6 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
             Não há clientes cadastrados no painel. Novos números que enviarem mensagens pelo WhatsApp serão atendidos como <strong>Primeiro Contato (Novo Cliente)</strong>.
           </p>
           <div className="flex items-center justify-center gap-2 pt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSyncData}
-              disabled={isSyncing}
-              leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />}
-            >
-              {isSyncing ? 'Sincronizando...' : 'Sincronizar com Banco'}
-            </Button>
             <Button variant="brand" size="sm" onClick={handleOpenAddClient} leftIcon={<Plus className="w-3.5 h-3.5" />}>
               Cadastrar Primeiro Cliente
             </Button>
