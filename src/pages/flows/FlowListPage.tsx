@@ -133,19 +133,19 @@ export const FlowListPage: React.FC<FlowListPageProps> = ({ onNavigate }) => {
           {
             id: `node-trigger-${Date.now()}`,
             type: 'trigger',
-            position: { x: 100, y: 150 },
+            position: { x: 430, y: 80 },
             data: { label: 'Gatilho Inicial', nodeType: 'trigger', isConfigured: true, config: { eventType: 'any_message' } }
           },
           {
             id: `node-msg-${Date.now()}`,
             type: 'message',
-            position: { x: 450, y: 150 },
+            position: { x: 430, y: 380 },
             data: { label: 'Boas-Vindas', nodeType: 'message', isConfigured: true, config: { text: 'Olá! Seja muito bem-vindo(a) à {{empresa}}. Me chamo {{bot_nome}}!' } }
           },
           {
             id: `node-btn-${Date.now()}`,
             type: 'buttons',
-            position: { x: 800, y: 150 },
+            position: { x: 430, y: 730 },
             data: {
               label: 'Menu Comercial',
               nodeType: 'buttons',

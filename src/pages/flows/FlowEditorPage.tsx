@@ -470,11 +470,12 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
       }
     };
 
-    const NODE_WIDTH = 330;
-    const HORIZONTAL_GAP = 90; // Minimum horizontal distance between node cards
-    const VERTICAL_GAP = 120; // Minimum vertical distance between rows
+    const NODE_WIDTH = 340;
+    const HORIZONTAL_GAP = 100; // Minimum horizontal distance between node cards
+    const VERTICAL_GAP = 140; // Generous vertical distance between rows for smooth downward curves
     const START_X = 100;
-    const START_Y = 100;
+    const START_Y = 80;
+    const MAIN_CENTER_X = 600;
 
     // 2. Build Adjacency Graph
     const childrenMap = new Map<string, string[]>();
@@ -485,12 +486,14 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
       parentMap.set(n.id, []);
     });
 
-    // Sort edges so branching handles (e.g. is_new vs is_existing, true vs false, btn_1 vs btn_2) preserve order
+    // Sort edges so branching handles (e.g. is_new vs is_existing, true vs false, btn_1 vs btn_2) preserve left-to-right order
     const sortedEdges = [...edges].sort((a, b) => {
       const hA = a.sourceHandle || '';
       const hB = b.sourceHandle || '';
-      if (hA === 'is_new' || hA === 'true' || hA.includes('1')) return -1;
-      if (hB === 'is_new' || hB === 'true' || hB.includes('1')) return 1;
+      if (hA === 'is_new' || hA === 'true' || hA.includes('1') || hA.includes('new')) return -1;
+      if (hB === 'is_new' || hB === 'true' || hB.includes('1') || hB.includes('new')) return 1;
+      if (hA === 'is_existing' || hA === 'false' || hA.includes('2') || hA.includes('exist')) return 1;
+      if (hB === 'is_existing' || hB === 'false' || hB.includes('2') || hB.includes('exist')) return -1;
       return hA.localeCompare(hB);
     });
 
@@ -505,7 +508,7 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
       }
     });
 
-    // 3. Topological Layering (Top-to-Bottom Rank Assignment)
+    // 3. Topological Layering (Assign each node to Linha 1, Linha 2, Linha 3...)
     const roots = nodes.filter(
       (n) => (n.data?.nodeType || n.type) === 'trigger' || (parentMap.get(n.id)?.length || 0) === 0
     );
@@ -519,18 +522,18 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
     // Iterative longest-path to ensure target rank >= source rank + 1
     let changed = true;
     let iteration = 0;
-    const maxIterations = nodes.length + 10;
+    const maxIterations = nodes.length * 2;
 
     while (changed && iteration < maxIterations) {
       changed = false;
       iteration++;
 
-      edges.forEach((e) => {
+      sortedEdges.forEach((e) => {
         const srcRank = rankMap.get(e.source);
         if (srcRank !== undefined) {
-          const curTargetRank = rankMap.get(e.target) || 0;
+          const curTargetRank = rankMap.get(e.target) ?? -1;
           const requiredRank = srcRank + 1;
-          if (requiredRank > curTargetRank) {
+          if (requiredRank > curTargetRank && curTargetRank < maxIterations) {
             rankMap.set(e.target, requiredRank);
             changed = true;
           }
@@ -553,7 +556,7 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
       rows[r].push(n);
     });
 
-    // 4. Calculate Dynamic Vertical Position (Y) for each Layer
+    // 4. Calculate Uniform Vertical Position (Y) for each Linha (Row)
     const rowYPositions = new Map<number, number>();
     let currentY = START_Y;
     for (let r = 0; r <= maxRank; r++) {
@@ -565,99 +568,90 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
       currentY += maxHeightInRow + VERTICAL_GAP;
     }
 
-    // 5. Initial Horizontal (X) Positioning by Subtree
+    // 5. Symmetric Horizontal (X) Positioning by Row (Linha)
     const xPositions = new Map<string, number>();
 
-    // Helper: shift a node and all its descendants horizontally
-    const shiftSubtree = (nodeId: string, deltaX: number, visited = new Set<string>()) => {
-      if (visited.has(nodeId) || deltaX === 0) return;
-      visited.add(nodeId);
-      const curX = xPositions.get(nodeId) || START_X;
-      xPositions.set(nodeId, curX + deltaX);
-      const children = childrenMap.get(nodeId) || [];
-      children.forEach((c) => shiftSubtree(c, deltaX, visited));
-    };
-
-    // Position each root tree with initial spacing
-    let currentTreeX = START_X;
-    roots.forEach((root) => {
-      xPositions.set(root.id, currentTreeX);
-      currentTreeX += NODE_WIDTH + HORIZONTAL_GAP * 2;
-    });
-
-    // Forward sweep: place children horizontally below their parents
     for (let r = 0; r <= maxRank; r++) {
+      const rowNodes = rows[r];
+      if (rowNodes.length === 1) {
+        const node = rowNodes[0];
+        const parents = parentMap.get(node.id) || [];
+        if (parents.length === 1 && xPositions.has(parents[0])) {
+          // Keep directly aligned under single parent
+          xPositions.set(node.id, xPositions.get(parents[0])!);
+        } else {
+          // Center on main axis
+          xPositions.set(node.id, MAIN_CENTER_X - NODE_WIDTH / 2);
+        }
+      } else {
+        // Multiple nodes in this linha: arrange symmetrically around MAIN_CENTER_X
+        const totalWidth = rowNodes.length * NODE_WIDTH + (rowNodes.length - 1) * HORIZONTAL_GAP;
+        let startX = MAIN_CENTER_X - totalWidth / 2;
+
+        // Order nodes based on their parents' horizontal positions
+        rowNodes.sort((a, b) => {
+          const parentsA = parentMap.get(a.id) || [];
+          const parentsB = parentMap.get(b.id) || [];
+          const avgParentXA = parentsA.length > 0 
+            ? parentsA.map((p) => xPositions.get(p) ?? MAIN_CENTER_X).reduce((s, c) => s + c, 0) / parentsA.length 
+            : MAIN_CENTER_X;
+          const avgParentXB = parentsB.length > 0 
+            ? parentsB.map((p) => xPositions.get(p) ?? MAIN_CENTER_X).reduce((s, c) => s + c, 0) / parentsB.length 
+            : MAIN_CENTER_X;
+          return avgParentXA - avgParentXB;
+        });
+
+        rowNodes.forEach((node) => {
+          xPositions.set(node.id, startX);
+          startX += NODE_WIDTH + HORIZONTAL_GAP;
+        });
+      }
+    }
+
+    // 6. Forward sweep: align single-child chains directly under their parents if no conflict
+    for (let r = 1; r <= maxRank; r++) {
       const rowNodes = rows[r];
       rowNodes.forEach((node) => {
         const parents = parentMap.get(node.id) || [];
-        if (parents.length > 0 && !xPositions.has(node.id)) {
-          const parentXs = parents.map((pId) => xPositions.get(pId) ?? START_X);
-          const avgX = parentXs.reduce((acc, cur) => acc + cur, 0) / parentXs.length;
-          xPositions.set(node.id, avgX);
-        } else if (!xPositions.has(node.id)) {
-          xPositions.set(node.id, START_X);
-        }
-
-        const children = childrenMap.get(node.id) || [];
-        if (children.length > 1) {
-          const totalChildrenWidth = children.length * NODE_WIDTH + (children.length - 1) * HORIZONTAL_GAP;
-          const parentX = xPositions.get(node.id) || START_X;
-          let runningChildX = parentX - totalChildrenWidth / 2 + NODE_WIDTH / 2;
-
-          children.forEach((childId) => {
-            if (!xPositions.has(childId)) {
-              xPositions.set(childId, runningChildX);
-              runningChildX += NODE_WIDTH + HORIZONTAL_GAP;
-            }
+        if (parents.length === 1) {
+          const parentX = xPositions.get(parents[0])!;
+          const wouldCollide = rowNodes.some((other) => {
+            if (other.id === node.id) return false;
+            const otherX = xPositions.get(other.id)!;
+            return Math.abs(otherX - parentX) < NODE_WIDTH + HORIZONTAL_GAP;
           });
+          if (!wouldCollide) {
+            xPositions.set(node.id, parentX);
+          }
         }
       });
     }
 
-    // Backward sweep: center parents horizontally above their children
-    for (let r = maxRank; r >= 0; r--) {
-      const rowNodes = rows[r];
-      rowNodes.forEach((node) => {
-        const children = childrenMap.get(node.id) || [];
-        if (children.length > 0) {
-          const childXs = children.map((cId) => xPositions.get(cId) ?? START_X);
-          const avgChildX = childXs.reduce((acc, cur) => acc + cur, 0) / childXs.length;
-          xPositions.set(node.id, avgChildX);
-        }
-      });
-    }
-
-    // 6. Strict Non-Overlapping Collision Resolution in Every Row (Top to Bottom)
+    // 7. Strict Collision Prevention: ensure minimum horizontal gap on every row
     for (let r = 0; r <= maxRank; r++) {
       const rowNodes = rows[r];
       if (rowNodes.length <= 1) continue;
 
-      // Sort row nodes by current X
       rowNodes.sort((a, b) => (xPositions.get(a.id) || 0) - (xPositions.get(b.id) || 0));
 
-      // Push to the right to guarantee zero overlap
       for (let i = 1; i < rowNodes.length; i++) {
-        const prevNode = rowNodes[i - 1];
-        const curNode = rowNodes[i];
-        const prevX = xPositions.get(prevNode.id) || START_X;
-        const minCurX = prevX + NODE_WIDTH + HORIZONTAL_GAP;
-        const curX = xPositions.get(curNode.id) || START_X;
-
-        if (curX < minCurX) {
-          const delta = minCurX - curX;
-          // Shift this node and its entire subtree
-          shiftSubtree(curNode.id, delta);
+        const prevX = xPositions.get(rowNodes[i - 1].id)!;
+        const curX = xPositions.get(rowNodes[i].id)!;
+        const minX = prevX + NODE_WIDTH + HORIZONTAL_GAP;
+        if (curX < minX) {
+          xPositions.set(rowNodes[i].id, minX);
         }
       }
     }
 
-    // 7. Global Normalization (ensure minX >= START_X, minY >= START_Y)
-    const minX = Math.min(...Array.from(xPositions.values()), START_X);
-    const xOffset = minX < START_X ? START_X - minX : 0;
+    // 8. Global Normalization: ensure left-most coordinate is at START_X
+    const allXs = Array.from(xPositions.values());
+    const minX = Math.min(...allXs, START_X);
+    const shiftX = minX < START_X ? START_X - minX : 0;
 
     const layoutedNodes: Node[] = nodes.map((n) => {
       const rank = rankMap.get(n.id) || 0;
-      const posX = (xPositions.get(n.id) || START_X) + xOffset;
+      const posX = (xPositions.get(n.id) || START_X) + shiftX;
       const posY = rowYPositions.get(rank) || START_Y;
 
       return {
@@ -668,7 +662,10 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
 
     setNodes(layoutedNodes);
     pushHistory(layoutedNodes, edges);
-    success('Organograma Alinhado', 'Fluxo organizado de cima para baixo sem sobreposição de nós ou linhas!');
+    success(
+      'Fluxo Organizado em Linhas',
+      `Fluxo organizado de cima para baixo em ${maxRank + 1} linhas perfeitamente alinhadas!`
+    );
 
     setTimeout(() => {
       fitView({ padding: 0.2, duration: 800 });

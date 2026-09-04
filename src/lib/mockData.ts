@@ -74,7 +74,7 @@ export const initialFlowNodes = [
   {
     id: 'node-trigger-1788033748050',
     type: 'trigger',
-    position: { x: 80, y: 225 },
+    position: { x: 430, y: 80 },
     data: {
       label: 'Gatilho',
       nodeType: 'trigger',
@@ -90,7 +90,7 @@ export const initialFlowNodes = [
   {
     id: 'node-check_contact-1788102919201',
     type: 'check_contact',
-    position: { x: 470, y: 225 },
+    position: { x: 430, y: 380 },
     data: {
       label: 'Verificar Contato (Novo vs Salvo)',
       nodeType: 'check_contact',
@@ -102,7 +102,7 @@ export const initialFlowNodes = [
   {
     id: 'node-message-1788033773183',
     type: 'message',
-    position: { x: 860, y: 120 },
+    position: { x: 210, y: 730 },
     data: {
       label: 'Enviar Mensagem',
       nodeType: 'message',
@@ -117,7 +117,7 @@ export const initialFlowNodes = [
   {
     id: 'node-question-1788033927695',
     type: 'question',
-    position: { x: 1250, y: 120 },
+    position: { x: 210, y: 1060 },
     data: {
       label: 'Pergunta & Resposta',
       nodeType: 'question',
@@ -133,7 +133,7 @@ export const initialFlowNodes = [
   {
     id: 'node-update_contact-1788041687381',
     type: 'update_contact',
-    position: { x: 1640, y: 120 },
+    position: { x: 210, y: 1400 },
     data: {
       label: 'Salvar / Vincular Dados',
       nodeType: 'update_contact',
@@ -150,7 +150,7 @@ export const initialFlowNodes = [
   {
     id: 'node-message-1788102948794',
     type: 'message',
-    position: { x: 885, y: 450 },
+    position: { x: 650, y: 730 },
     data: {
       label: 'Enviar Mensagem',
       nodeType: 'message',
@@ -165,7 +165,7 @@ export const initialFlowNodes = [
   {
     id: 'node-ask_date-1788104674417',
     type: 'ask_date',
-    position: { x: 2010, y: 360 },
+    position: { x: 430, y: 1740 },
     data: {
       label: '1. Escolher Dia do Agendamento',
       nodeType: 'ask_date',
@@ -181,7 +181,7 @@ export const initialFlowNodes = [
   {
     id: 'node-services_catalog-1788105189425',
     type: 'services_catalog',
-    position: { x: 2370, y: 165 },
+    position: { x: 430, y: 2100 },
     data: {
       label: '2. Catálogo de Serviços & Preços',
       nodeType: 'services_catalog',
@@ -200,7 +200,7 @@ export const initialFlowNodes = [
   {
     id: 'node-schedule_contact-1788104743355',
     type: 'schedule_contact',
-    position: { x: 2810, y: 120 },
+    position: { x: 430, y: 2480 },
     data: {
       label: '3. Horários Livres da Agenda',
       nodeType: 'schedule_contact',
@@ -218,7 +218,7 @@ export const initialFlowNodes = [
   {
     id: 'node-confirm_booking-1788104787175',
     type: 'confirm_booking',
-    position: { x: 3200, y: 120 },
+    position: { x: 430, y: 2860 },
     data: {
       label: '4. Confirmar & Gravar Agendamento',
       nodeType: 'confirm_booking',
