@@ -1033,7 +1033,7 @@ export const UsersPage: React.FC = () => {
             ))}
           </div>
 
-          <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-2">
+          <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-2 sticky bottom-0 bg-dark-900/95 backdrop-blur-md pb-1 -mx-5 sm:-mx-6 px-5 sm:px-6 z-10">
             <Button
               type="button"
               variant="outline"
@@ -1142,7 +1142,7 @@ export const UsersPage: React.FC = () => {
             />
           </div>
 
-          <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-2">
+          <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-2 sticky bottom-0 bg-dark-900/95 backdrop-blur-md pb-1 -mx-5 sm:-mx-6 px-5 sm:px-6 z-10">
             <Button
               type="button"
               variant="outline"

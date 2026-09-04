@@ -844,7 +844,7 @@ export const ServicesAndHoursPage: React.FC<ServicesAndHoursPageProps> = ({ onNa
             </label>
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-white/5">
+          <div className="flex justify-end gap-2 pt-3 border-t border-white/5 sticky bottom-0 bg-dark-900/95 backdrop-blur-md pb-1 -mx-5 sm:-mx-6 px-5 sm:px-6 z-10">
             <Button variant="outline" type="button" onClick={() => setIsServiceModalOpen(false)}>
               Cancelar
             </Button>

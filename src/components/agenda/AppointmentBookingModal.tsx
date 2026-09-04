@@ -727,7 +727,7 @@ export const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = (
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+        <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10 sticky bottom-0 bg-dark-900/95 backdrop-blur-md pb-1 -mx-5 sm:-mx-6 px-5 sm:px-6 z-10">
           <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSaving}>
             Cancelar
           </Button>
