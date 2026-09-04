@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
-import { Flow, FlowNode, FlowEdge, BotProfile } from '../../types';
+import { Flow, FlowNode, FlowEdge, BotProfile, AgendaServiceItem } from '../../types';
 import { substituteVariables, executeAiNode } from '../../lib/flowEngine';
 import { StorageService } from '../../lib/storage';
 
@@ -48,6 +48,7 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
   const [messages, setMessages] = useState<SimMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [botProfile, setBotProfile] = useState<BotProfile | null>(null);
+  const [agendaServices, setAgendaServices] = useState<AgendaServiceItem[]>([]);
   const [variables, setVariables] = useState<Record<string, any>>({
     nome_cliente: 'Cliente Teste',
     telefone_cliente: '81996138924',
@@ -58,14 +59,24 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
   const [isRunning, setIsRunning] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load bot profile and start flow simulation
+  // Load bot profile, services and start flow simulation
   useEffect(() => {
     async function init() {
       const profile = await StorageService.getBotProfile();
       const botVars = await StorageService.getBotVariables();
+      let loadedServices: AgendaServiceItem[] = [];
+      try {
+        const agenda = await StorageService.getAgendaSettings();
+        if (agenda?.services && Array.isArray(agenda.services)) {
+          loadedServices = agenda.services.filter((s: any) => s.active !== false && s.is_active !== false);
+          setAgendaServices(loadedServices);
+        }
+      } catch (e) {
+        console.warn('Error loading agenda services for simulator:', e);
+      }
       setBotProfile(profile);
       setVariables((prev) => ({ ...botVars, ...prev }));
-      startFlow(profile, botVars);
+      startFlow(profile, botVars, loadedServices);
     }
     init();
   }, []);
@@ -74,7 +85,7 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const startFlow = (profile?: BotProfile | null, botVars?: Record<string, any>) => {
+  const startFlow = (profile?: BotProfile | null, botVars?: Record<string, any>, initialServices?: AgendaServiceItem[]) => {
     setMessages([]);
     const triggerNode = nodes.find((n) => n.type === 'trigger') || nodes[0];
     if (!triggerNode) {
@@ -99,39 +110,61 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
       },
     ]);
 
-    runNextFromNode(triggerNode.id, profile || botProfile, botVars || variables);
+    runNextFromNode(triggerNode.id, profile || botProfile, botVars || variables, false, initialServices);
   };
 
   const runNextFromNode = async (
     startNodeId: string,
     currentProfile?: BotProfile | null,
-    currentVars?: Record<string, any>
+    currentVars?: Record<string, any>,
+    executeStartNode = false,
+    activeServicesList?: AgendaServiceItem[]
   ) => {
     setIsRunning(true);
     let currentId: string | undefined = startNodeId;
     let stepCount = 0;
     const activeVars = { ...variables, ...(currentVars || {}) };
     const p = currentProfile || botProfile;
+    const currentServices = (activeServicesList && activeServicesList.length > 0)
+      ? activeServicesList
+      : (agendaServices.length > 0 ? agendaServices : [
+          { id: 'srv-1', name: 'Corte Cabelo', duration_minutes: 45, price: 30 },
+          { id: 'srv-2', name: 'Barba', duration_minutes: 20, price: 20 },
+          { id: 'srv-3', name: 'Corte Cabelo + Barba (Promoção)', duration_minutes: 50, price: 45 },
+          { id: 'srv-4', name: 'Sobrancelha', duration_minutes: 12, price: 10 },
+          { id: 'srv-5', name: 'Corte Cabelo + Barba + Sobrancelha (Promoção)', duration_minutes: 10, price: 60 },
+        ]);
+
+    let isFirstStep = executeStartNode;
 
     while (currentId && stepCount < 15) {
       stepCount++;
-      const outgoing = edges.filter((e) => e.source === currentId);
-      if (outgoing.length === 0) break;
+      let nextNode: FlowNode | undefined;
 
-      // Check current node type
-      const startNode = nodes.find(n => n.id === currentId);
-      const startNodeType = startNode?.data?.nodeType || startNode?.type;
+      if (isFirstStep) {
+        // Execute the target node directly on first step
+        nextNode = nodes.find((n) => n.id === currentId);
+        isFirstStep = false;
+      } else {
+        const outgoing = edges.filter((e) => e.source === currentId);
+        if (outgoing.length === 0) break;
 
-      let targetEdge = outgoing[0];
+        // Check current node type
+        const startNode = nodes.find(n => n.id === currentId);
+        const startNodeType = startNode?.data?.nodeType || startNode?.type;
 
-      // Handle check_contact branching in simulator
-      if (startNodeType === 'check_contact') {
-        const isNew = !activeVars.is_existing_contact;
-        const branchEdge = outgoing.find(e => e.sourceHandle === (isNew ? 'is_new' : 'is_existing')) || outgoing[0];
-        targetEdge = branchEdge;
+        let targetEdge = outgoing[0];
+
+        // Handle check_contact branching in simulator
+        if (startNodeType === 'check_contact') {
+          const isNew = !activeVars.is_existing_contact;
+          const branchEdge = outgoing.find(e => e.sourceHandle === (isNew ? 'is_new' : 'is_existing')) || outgoing[0];
+          targetEdge = branchEdge;
+        }
+
+        nextNode = nodes.find((n) => n.id === targetEdge.target);
       }
 
-      const nextNode = nodes.find((n) => n.id === targetEdge.target);
       if (!nextNode) break;
 
       currentId = nextNode.id;
@@ -182,11 +215,22 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
           },
         ]);
         break;
-      } else if (type === 'show_services') {
-        const header = config.headerText || '💈 *Catálogo de Serviços & Preços*';
-        const footer = config.footerText ? `\n\n_${config.footerText}_` : '';
-        const defaultList = '• ✂️ *Corte de Cabelo* — R$ 35,00 (30 min)\n• 🪒 *Barba Terapia* — R$ 40,00 (45 min)\n• ✂️🪒 *Combo Completo* — R$ 70,00 (60 min)';
-        const fullMsg = `${header}\n\n${defaultList}${footer}`;
+      } else if (type === 'show_services' || (type === 'services_catalog' && config.displayFormat !== 'buttons')) {
+        const header = substituteVariables(config.headerText || '💈 *Catálogo de Serviços & Preços*', activeVars, p || undefined);
+        const footer = config.footerText ? `\n\n_${substituteVariables(config.footerText, activeVars, p || undefined)}_` : '';
+
+        const serviceLines = currentServices
+          .map((s, idx) => {
+            const priceFormatted = Number(s.price || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            const desc = s.description ? `\n   _${s.description}_` : '';
+            return `*${idx + 1}️⃣* *${s.name}*\n   💰 ${priceFormatted} • ⏱️ ${s.duration_minutes || 30} min${desc}`;
+          })
+          .join('\n\n');
+
+        const fullMsg = `${header}\n\n${serviceLines}${footer}`;
+        activeVars.catalogo_servicos_texto = fullMsg;
+        activeVars.catalogo_servicos = fullMsg;
+        setVariables((prev) => ({ ...prev, catalogo_servicos_texto: fullMsg, catalogo_servicos: fullMsg }));
 
         setMessages((prev) => [
           ...prev,
@@ -198,25 +242,38 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
             nodeId: nextNode.id,
           },
         ]);
-        // Continuous flow (does not pause for input)
-      } else if (type === 'select_service' || type === 'services_catalog') {
+        // Continuous flow (does not pause for input, moves straight to next node)
+      } else if (type === 'select_service' || (type === 'services_catalog' && config.displayFormat === 'buttons')) {
         const intro = substituteVariables(config.introMessage || 'Qual serviço você deseja agendar hoje?', activeVars, p || undefined);
+        const buttons = currentServices.slice(0, 3).map((s, idx) => ({
+          id: `srv_${s.id || idx + 1}`,
+          title: `${s.name} (R$ ${Number(s.price || 0).toFixed(0)})`,
+        }));
+
+        let content = `✂️ *Escolha o Serviço:*\n${intro}`;
+        if (currentServices.length > 3) {
+          const listLines = currentServices
+            .map((s, idx) => `*${idx + 1}️⃣* *${s.name}* (R$ ${Number(s.price || 0).toFixed(2).replace('.', ',')})`)
+            .join('\n');
+          content += `\n\n${listLines}`;
+        }
+
         setMessages((prev) => [
           ...prev,
           {
             id: `msg-${Date.now()}-${Math.random()}`,
             sender: 'bot',
-            content: `✂️ *Escolha o Serviço:*\n${intro}`,
-            buttons: [
-              { id: 'srv_1', title: 'Corte de Cabelo (R$ 35)' },
-              { id: 'srv_2', title: 'Barba Terapia (R$ 40)' },
-              { id: 'srv_3', title: 'Combo Cabelo + Barba (R$ 70)' },
-            ],
+            content,
+            buttons,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             nodeId: nextNode.id,
           },
         ]);
         break;
+      } else if (type === 'delay') {
+        const waitSec = Math.min(Math.max(Number(config.amount || config.seconds || 2), 1), 5);
+        await new Promise((resolve) => setTimeout(resolve, Math.min(waitSec * 500, 1500)));
+        // Continuous flow (moves to next node)
       } else if (type === 'select_date' || type === 'ask_date') {
         const qText = substituteVariables(config.questionText || 'Para qual dia você deseja agendar?', activeVars, p || undefined);
         const todayStr = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
@@ -410,7 +467,18 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
     // Store variables based on button type
     if (btnId?.startsWith('srv_') || btnTitle.includes('R$')) {
       const srvName = btnTitle.split('(')[0].trim();
-      setVariables(prev => ({ ...prev, servico_selecionado: srvName, opcao_selecionada: srvName }));
+      const matched = agendaServices.find(s => s.name?.toLowerCase().trim() === srvName.toLowerCase().trim());
+      const srvPrice = matched?.price ? `R$ ${Number(matched.price).toFixed(2).replace('.', ',')}` : '';
+      const srvDur = matched?.duration_minutes || 30;
+
+      setVariables(prev => ({
+        ...prev,
+        servico_selecionado: srvName,
+        opcao_selecionada: srvName,
+        valor_servico: srvPrice,
+        duracao_minutos: srvDur,
+        duracao_servico: `${srvDur} min`,
+      }));
     }
     if (btnId?.startsWith('slot_') || btnTitle.includes('🕒')) {
       const timeVal = btnTitle.replace('🕒', '').trim();
@@ -429,11 +497,11 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
       if (matchingEdge) {
         const nextNode = nodes.find((n) => n.id === matchingEdge.target);
         if (nextNode) {
-          runNextFromNode(matchingEdge.target);
+          runNextFromNode(matchingEdge.target, undefined, undefined, true);
           return;
         }
       }
-      runNextFromNode(currentNodeId);
+      runNextFromNode(currentNodeId, undefined, undefined, false);
     }
   };
 

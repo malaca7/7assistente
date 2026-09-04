@@ -17,10 +17,10 @@
       "description": "Fluxo de atendimento automatizado",
       "status": "published",
       "version": 1,
-      "node_count": 9,
+      "node_count": 12,
       "trigger_type": "Mensagem recebida",
       "created_at": "2026-09-03T16:15:26.641Z",
-      "updated_at": "2026-09-04T00:48:52.505Z"
+      "updated_at": "2026-09-04T02:33:28.207Z"
     }
   ],
   "nodes": {
@@ -219,8 +219,8 @@
         "id": "node-trigger-1788453758817",
         "type": "trigger",
         "position": {
-          "x": 430,
-          "y": 80
+          "x": 360,
+          "y": 60
         },
         "data": {
           "label": "Gatilho Inicial",
@@ -234,8 +234,8 @@
           }
         },
         "measured": {
-          "width": 320,
-          "height": 135
+          "width": 330,
+          "height": 181
         },
         "selected": false,
         "dragging": false
@@ -244,8 +244,8 @@
         "id": "node-message-1788453762849",
         "type": "message",
         "position": {
-          "x": 430,
-          "y": 1770
+          "x": 360,
+          "y": 730
         },
         "data": {
           "label": "Enviar Mensagem",
@@ -258,8 +258,8 @@
           }
         },
         "measured": {
-          "width": 320,
-          "height": 139
+          "width": 330,
+          "height": 159
         },
         "selected": false,
         "dragging": false
@@ -268,8 +268,8 @@
         "id": "node-check_contact-1788454082098",
         "type": "check_contact",
         "position": {
-          "x": 430,
-          "y": 380
+          "x": 360,
+          "y": 176
         },
         "data": {
           "label": "Verificar Contato (Novo vs Salvo)",
@@ -279,8 +279,8 @@
           "config": {}
         },
         "measured": {
-          "width": 320,
-          "height": 293
+          "width": 330,
+          "height": 272
         },
         "selected": false,
         "dragging": false
@@ -289,8 +289,8 @@
         "id": "node-message-1788454313555",
         "type": "message",
         "position": {
-          "x": 430,
-          "y": 2430
+          "x": 210,
+          "y": 982
         },
         "data": {
           "label": "Enviar Mensagem (Cópia)",
@@ -303,8 +303,8 @@
           }
         },
         "measured": {
-          "width": 320,
-          "height": 155
+          "width": 330,
+          "height": 177
         },
         "selected": false,
         "dragging": false
@@ -313,8 +313,8 @@
         "id": "node-message-1788454336019",
         "type": "message",
         "position": {
-          "x": 430,
-          "y": 2760
+          "x": 210,
+          "y": 1138
         },
         "data": {
           "label": "Enviar Mensagem (Cópia) (Cópia)",
@@ -327,8 +327,8 @@
           }
         },
         "measured": {
-          "width": 320,
-          "height": 139
+          "width": 330,
+          "height": 159
         },
         "selected": false,
         "dragging": false
@@ -337,8 +337,8 @@
         "id": "node-message-1788454375969",
         "type": "message",
         "position": {
-          "x": 430,
-          "y": 2100
+          "x": 360,
+          "y": 856
         },
         "data": {
           "label": "Enviar Mensagem (Cópia)",
@@ -351,8 +351,8 @@
           }
         },
         "measured": {
-          "width": 320,
-          "height": 139
+          "width": 330,
+          "height": 159
         },
         "selected": false,
         "dragging": false
@@ -361,8 +361,8 @@
         "id": "node-question-1788454431053",
         "type": "question",
         "position": {
-          "x": 430,
-          "y": 730
+          "x": 360,
+          "y": 322
         },
         "data": {
           "label": "Pergunta & Resposta",
@@ -376,8 +376,8 @@
           }
         },
         "measured": {
-          "width": 320,
-          "height": 162
+          "width": 330,
+          "height": 165
         },
         "selected": false,
         "dragging": false
@@ -386,8 +386,8 @@
         "id": "node-update_contact-1788454454642",
         "type": "update_contact",
         "position": {
-          "x": 430,
-          "y": 1070
+          "x": 360,
+          "y": 458
         },
         "data": {
           "label": "Salvar / Vincular Dados",
@@ -403,8 +403,8 @@
           }
         },
         "measured": {
-          "width": 320,
-          "height": 197
+          "width": 330,
+          "height": 180
         },
         "selected": false,
         "dragging": false
@@ -413,8 +413,8 @@
         "id": "node-variable-1788482057050",
         "type": "variable",
         "position": {
-          "x": 430,
-          "y": 1410
+          "x": 360,
+          "y": 594
         },
         "data": {
           "label": "Definir Variável",
@@ -422,15 +422,113 @@
           "description": "Armazena valores ou dados calculados em variáveis de contexto.",
           "isConfigured": true,
           "config": {
-            "varName": "etapa_funil",
-            "varValue": "agendamento_iniciado"
+            "varName": "nome_liente",
+            "varValue": "nome_novocliente",
+            "assignments": [
+              {
+                "varName": "nome_liente",
+                "operation": "copy_var",
+                "value": "nome_novocliente",
+                "contactField": "first_name",
+                "sourceVar": "nome_novocliente",
+                "mathAmount": 1
+              }
+            ],
+            "operation": "copy_var"
           }
         },
         "measured": {
-          "width": 320,
-          "height": 136
+          "width": 330,
+          "height": 131
         },
-        "selected": false
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-buttons-1788485584016",
+        "type": "buttons",
+        "position": {
+          "x": 360,
+          "y": 1264
+        },
+        "data": {
+          "label": "Botões Interativos WhatsApp",
+          "nodeType": "buttons",
+          "description": "Envia menu com opções clicáveis com saídas individuais para cada botão.",
+          "isConfigured": true,
+          "config": {
+            "bodyText": "Escolha uma das opções abaixo para continuarmos:",
+            "footerText": "",
+            "buttons": [
+              {
+                "id": "btn_1",
+                "title": "1. Agendar Horário"
+              },
+              {
+                "id": "btn_2",
+                "title": "2. Consultar Preços"
+              },
+              {
+                "id": "btn_3",
+                "title": "3. Falar com Atendente"
+              }
+            ]
+          }
+        },
+        "measured": {
+          "width": 330,
+          "height": 216
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-show_services-1788485638335",
+        "type": "show_services",
+        "position": {
+          "x": 780,
+          "y": 1440
+        },
+        "data": {
+          "label": "1. Exibir Catálogo de Serviços",
+          "nodeType": "show_services",
+          "description": "Envia uma mensagem com todos os serviços, descrições e valores cadastrados (Apenas Leitura).",
+          "isConfigured": true,
+          "config": {
+            "headerText": "💈 *Catálogo de Serviços & Preços*",
+            "footerText": "Consulte os serviços disponíveis acima."
+          }
+        },
+        "measured": {
+          "width": 330,
+          "height": 174
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-delay-1788485675993",
+        "type": "delay",
+        "position": {
+          "x": 705,
+          "y": 1020
+        },
+        "data": {
+          "label": "Aguardar / Espera",
+          "nodeType": "delay",
+          "description": "Pausa a execução do fluxo por alguns segundos para simular digitação humana.",
+          "isConfigured": true,
+          "config": {
+            "amount": 5,
+            "unit": "segundos"
+          }
+        },
+        "measured": {
+          "width": 330,
+          "height": 129
+        },
+        "selected": false,
+        "dragging": false
       }
     ]
   },
@@ -693,6 +791,70 @@
         "target": "node-message-1788453762849",
         "id": "xy-edge__node-variable-1788482057050-node-message-1788453762849",
         "targetHandle": null
+      },
+      {
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        },
+        "pathOptions": {
+          "offset": 35,
+          "borderRadius": 20
+        },
+        "source": "node-message-1788454336019",
+        "target": "node-buttons-1788485584016",
+        "id": "xy-edge__node-message-1788454336019-node-buttons-1788485584016",
+        "targetHandle": null
+      },
+      {
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        },
+        "pathOptions": {
+          "offset": 35,
+          "borderRadius": 20
+        },
+        "source": "node-buttons-1788485584016",
+        "sourceHandle": "btn_2",
+        "target": "node-show_services-1788485638335",
+        "id": "xy-edge__node-buttons-1788485584016btn_2-node-show_services-1788485638335",
+        "targetHandle": null
+      },
+      {
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        },
+        "pathOptions": {
+          "offset": 35,
+          "borderRadius": 20
+        },
+        "source": "node-delay-1788485675993",
+        "target": "node-buttons-1788485584016",
+        "id": "xy-edge__node-delay-1788485675993-node-buttons-1788485584016",
+        "targetHandle": null
+      },
+      {
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        },
+        "pathOptions": {
+          "offset": 35,
+          "borderRadius": 20
+        },
+        "source": "node-show_services-1788485638335",
+        "target": "node-delay-1788485675993",
+        "id": "xy-edge__node-show_services-1788485638335-node-delay-1788485675993"
       }
     ]
   },
@@ -717,7 +879,8 @@
     "pix_owner": "Rogerio Malaquias",
     "notify_new_bookings": true,
     "notify_phone": "81996138924",
-    "play_audio_alerts": true
+    "play_audio_alerts": true,
+    "custom_variables": []
   },
   "settings": {
     "id": "settings-001",
@@ -747,9 +910,112 @@
     },
     "created_at": "2026-09-03T16:43:07.297Z",
     "updated_at": "2026-09-03T18:19:57.748Z",
-    "backend_url": "https://talvane.discloud.app"
+    "backend_url": "https://talvane.discloud.app",
+    "custom_variables": []
   },
-  "sessions": {},
+  "sessions": {
+    "5511999999999": {
+      "flowId": "flow-1788452126641",
+      "currentNodeId": "node-message-1788454336019",
+      "variables": {
+        "whatsapp_pushname": "Dev Test",
+        "telefone_cliente": "5511999999999",
+        "telefone_whatsapp": "5511999999999",
+        "ultima_mensagem": "2",
+        "nome_cliente": "2",
+        "is_primeiro_contato": true,
+        "is_novo_contato": true,
+        "tipo_cliente": "novo",
+        "nome_novocliente": "2",
+        "{{nome_novocliente}}": "2",
+        "resposta_usuario": "2",
+        "cliente_nome": "2",
+        "nome": "2",
+        "interesse_principal": "servico_selecionado",
+        "etapa_funil": "agendamento_iniciado"
+      },
+      "waitingForVar": null
+    },
+    "5511888888888": {
+      "flowId": "flow-1788452126641",
+      "currentNodeId": "node-buttons-1788485584016",
+      "variables": {
+        "whatsapp_pushname": "Dev User",
+        "telefone_cliente": "5511888888888",
+        "telefone_whatsapp": "5511888888888",
+        "ultima_mensagem": "2",
+        "nome_cliente": "Carlos",
+        "is_primeiro_contato": true,
+        "is_novo_contato": true,
+        "tipo_cliente": "novo",
+        "nome_novocliente": "Carlos",
+        "{{nome_novocliente}}": "Carlos",
+        "resposta_usuario": "Carlos",
+        "cliente_nome": "Carlos",
+        "nome": "Carlos",
+        "interesse_principal": "servico_selecionado",
+        "nome_liente": "Carlos",
+        "opcao_selecionada": "2. Consultar Preços",
+        "botao_id": "btn_2",
+        "catalogo_servicos_texto": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Sobrancelha*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Corte Cabelo + Barba + Sobrancelha (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._"
+      },
+      "waitingForVar": null,
+      "activeButtons": [
+        {
+          "id": "btn_1",
+          "title": "1. Agendar Horário"
+        },
+        {
+          "id": "btn_2",
+          "title": "2. Consultar Preços"
+        },
+        {
+          "id": "btn_3",
+          "title": "3. Falar com Atendente"
+        }
+      ]
+    },
+    "5511777777777": {
+      "flowId": "flow-1788452126641",
+      "currentNodeId": "node-buttons-1788485584016",
+      "variables": {
+        "whatsapp_pushname": "Tester",
+        "telefone_cliente": "5511777777777",
+        "telefone_whatsapp": "5511777777777",
+        "ultima_mensagem": "2",
+        "nome_cliente": "Carlos Silva",
+        "is_primeiro_contato": true,
+        "is_novo_contato": true,
+        "tipo_cliente": "novo",
+        "nome_novocliente": "Carlos Silva",
+        "{{nome_novocliente}}": "Carlos Silva",
+        "resposta_usuario": "Carlos Silva",
+        "cliente_nome": "Carlos Silva",
+        "nome": "Carlos Silva",
+        "interesse_principal": "servico_selecionado",
+        "nome_liente": "Carlos Silva",
+        "opcao_selecionada": "2. Consultar Preços",
+        "botao_id": "btn_2",
+        "catalogo_servicos_texto": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Sobrancelha*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Corte Cabelo + Barba + Sobrancelha (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._",
+        "catalogo_servicos": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Sobrancelha*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Corte Cabelo + Barba + Sobrancelha (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._"
+      },
+      "waitingForVar": null,
+      "activeButtons": [
+        {
+          "id": "btn_1",
+          "title": "1. Agendar Horário"
+        },
+        {
+          "id": "btn_2",
+          "title": "2. Consultar Preços"
+        },
+        {
+          "id": "btn_3",
+          "title": "3. Falar com Atendente"
+        }
+      ]
+    }
+  },
   "appointments": [
     {
       "id": "apt-1788468016809",
@@ -815,6 +1081,66 @@
         "interesse_principal": "servico_selecionado"
       },
       "profile_picture_url": "https://pps.whatsapp.net/v/t61.24694-24/674630155_1633106875192131_9214554452579566382_n.jpg?ccb=11-4&oh=01_Q5Aa5gGqi__JoK8yGnVm0turK54PKzpqHkTvxTKwHqdg5e4NmQ&oe=6AA722A1&_nc_sid=5e03e0&_nc_cat=104"
+    },
+    "5511999999999": {
+      "id": "contact-5511999999999",
+      "phone": "5511999999999",
+      "name": "2",
+      "whatsapp_pushname": "Dev Test",
+      "status": "active",
+      "tags": [
+        "Lead",
+        "Cliente",
+        "Novo Cliente"
+      ],
+      "is_registered": true,
+      "metadata": {},
+      "created_at": "2026-09-04T02:25:22.835Z",
+      "updated_at": "2026-09-04T02:25:23.418Z",
+      "custom_fields": {
+        "nome_novocliente": "2",
+        "interesse_principal": "servico_selecionado"
+      }
+    },
+    "5511888888888": {
+      "id": "contact-5511888888888",
+      "phone": "5511888888888",
+      "name": "Carlos",
+      "whatsapp_pushname": "Dev User",
+      "status": "active",
+      "tags": [
+        "Lead",
+        "Cliente",
+        "Novo Cliente"
+      ],
+      "is_registered": true,
+      "metadata": {},
+      "created_at": "2026-09-04T02:25:45.939Z",
+      "updated_at": "2026-09-04T02:25:52.213Z",
+      "custom_fields": {
+        "nome_novocliente": "Carlos",
+        "interesse_principal": "servico_selecionado"
+      }
+    },
+    "5511777777777": {
+      "id": "contact-5511777777777",
+      "phone": "5511777777777",
+      "name": "Carlos Silva",
+      "whatsapp_pushname": "Tester",
+      "status": "active",
+      "tags": [
+        "Lead",
+        "Cliente",
+        "Novo Cliente"
+      ],
+      "is_registered": true,
+      "metadata": {},
+      "created_at": "2026-09-04T02:33:36.592Z",
+      "updated_at": "2026-09-04T02:33:42.877Z",
+      "custom_fields": {
+        "nome_novocliente": "Carlos Silva",
+        "interesse_principal": "servico_selecionado"
+      }
     }
   },
   "conversations": {
@@ -843,6 +1169,45 @@
       "last_message": "Por favor, me diga o seu nome:",
       "last_message_at": "2026-09-04T00:57:54.897Z",
       "updated_at": "2026-09-04T00:57:54.897Z"
+    },
+    "conv-5511999999999": {
+      "id": "conv-5511999999999",
+      "contact_id": "contact-5511999999999",
+      "contact_name": "2",
+      "contact_phone": "5511999999999",
+      "status": "bot",
+      "started_at": "2026-09-04T02:25:22.835Z",
+      "unread_count": 0,
+      "created_at": "2026-09-04T02:25:22.835Z",
+      "last_message": "Estou aqui para te ajudar!",
+      "last_message_at": "2026-09-04T02:25:23.418Z",
+      "updated_at": "2026-09-04T02:25:23.418Z"
+    },
+    "conv-5511888888888": {
+      "id": "conv-5511888888888",
+      "contact_id": "contact-5511888888888",
+      "contact_name": "Carlos",
+      "contact_phone": "5511888888888",
+      "status": "bot",
+      "started_at": "2026-09-04T02:25:45.939Z",
+      "unread_count": 0,
+      "created_at": "2026-09-04T02:25:45.939Z",
+      "last_message": "Escolha uma das opções abaixo para continuarmos:",
+      "last_message_at": "2026-09-04T02:25:52.213Z",
+      "updated_at": "2026-09-04T02:25:52.213Z"
+    },
+    "conv-5511777777777": {
+      "id": "conv-5511777777777",
+      "contact_id": "contact-5511777777777",
+      "contact_name": "Carlos Silva",
+      "contact_phone": "5511777777777",
+      "status": "bot",
+      "started_at": "2026-09-04T02:33:36.592Z",
+      "unread_count": 0,
+      "created_at": "2026-09-04T02:33:36.592Z",
+      "last_message": "Escolha uma das opções abaixo para continuarmos:",
+      "last_message_at": "2026-09-04T02:33:42.877Z",
+      "updated_at": "2026-09-04T02:33:42.877Z"
     }
   },
   "messages": {
@@ -1528,6 +1893,210 @@
         "status": "delivered",
         "created_at": "2026-09-03T17:21:43.363Z"
       }
+    ],
+    "conv-5511999999999": [
+      {
+        "id": "msg-1788488722835-8ibtt",
+        "conversation_id": "conv-5511999999999",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Por favor, me diga o seu nome:",
+        "status": "delivered",
+        "created_at": "2026-09-04T02:25:22.835Z"
+      },
+      {
+        "id": "msg-1788488723383-74y6t",
+        "conversation_id": "conv-5511999999999",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Oi *2*, Tudo bem?",
+        "status": "delivered",
+        "created_at": "2026-09-04T02:25:23.383Z"
+      },
+      {
+        "id": "msg-1788488723391-da4d7",
+        "conversation_id": "conv-5511999999999",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Espero que sim ☺️",
+        "status": "delivered",
+        "created_at": "2026-09-04T02:25:23.391Z"
+      },
+      {
+        "id": "msg-1788488723401-oxog6",
+        "conversation_id": "conv-5511999999999",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Sou  *Talvane Barber Bot* assistente virtual da  *Talvane Barber Shop*...",
+        "status": "delivered",
+        "created_at": "2026-09-04T02:25:23.401Z"
+      },
+      {
+        "id": "msg-1788488723418-1vhus",
+        "conversation_id": "conv-5511999999999",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Estou aqui para te ajudar!",
+        "status": "delivered",
+        "created_at": "2026-09-04T02:25:23.418Z"
+      }
+    ],
+    "conv-5511888888888": [
+      {
+        "id": "msg-1788488745939-4orqo",
+        "conversation_id": "conv-5511888888888",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Por favor, me diga o seu nome:",
+        "status": "delivered",
+        "created_at": "2026-09-04T02:25:45.939Z"
+      },
+      {
+        "id": "msg-1788488746542-f2w5b",
+        "conversation_id": "conv-5511888888888",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Oi *Carlos*, Tudo bem?",
+        "status": "delivered",
+        "created_at": "2026-09-04T02:25:46.542Z"
+      },
+      {
+        "id": "msg-1788488746549-j04q8",
+        "conversation_id": "conv-5511888888888",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Espero que sim ☺️",
+        "status": "delivered",
+        "created_at": "2026-09-04T02:25:46.549Z"
+      },
+      {
+        "id": "msg-1788488746557-vdv1j",
+        "conversation_id": "conv-5511888888888",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Sou  *Talvane Barber Bot* assistente virtual da  *Talvane Barber Shop*...",
+        "status": "delivered",
+        "created_at": "2026-09-04T02:25:46.557Z"
+      },
+      {
+        "id": "msg-1788488746571-vyvmw",
+        "conversation_id": "conv-5511888888888",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Estou aqui para te ajudar!",
+        "status": "delivered",
+        "created_at": "2026-09-04T02:25:46.571Z"
+      },
+      {
+        "id": "msg-1788488746583-rdf7u",
+        "conversation_id": "conv-5511888888888",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Escolha uma das opções abaixo para continuarmos:",
+        "status": "delivered",
+        "created_at": "2026-09-04T02:25:46.583Z"
+      },
+      {
+        "id": "msg-1788488752191-gujru",
+        "conversation_id": "conv-5511888888888",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Sobrancelha*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Corte Cabelo + Barba + Sobrancelha (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._",
+        "status": "delivered",
+        "created_at": "2026-09-04T02:25:52.191Z"
+      },
+      {
+        "id": "msg-1788488752202-dk394",
+        "conversation_id": "conv-5511888888888",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Sobrancelha*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Corte Cabelo + Barba + Sobrancelha (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._",
+        "status": "delivered",
+        "created_at": "2026-09-04T02:25:52.202Z"
+      },
+      {
+        "id": "msg-1788488752213-yztgu",
+        "conversation_id": "conv-5511888888888",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Escolha uma das opções abaixo para continuarmos:",
+        "status": "delivered",
+        "created_at": "2026-09-04T02:25:52.213Z"
+      }
+    ],
+    "conv-5511777777777": [
+      {
+        "id": "msg-1788489216592-xwq8d",
+        "conversation_id": "conv-5511777777777",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Por favor, me diga o seu nome:",
+        "status": "delivered",
+        "created_at": "2026-09-04T02:33:36.592Z"
+      },
+      {
+        "id": "msg-1788489217173-mklyh",
+        "conversation_id": "conv-5511777777777",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Oi *Carlos Silva*, Tudo bem?",
+        "status": "delivered",
+        "created_at": "2026-09-04T02:33:37.173Z"
+      },
+      {
+        "id": "msg-1788489217181-pvb6s",
+        "conversation_id": "conv-5511777777777",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Espero que sim ☺️",
+        "status": "delivered",
+        "created_at": "2026-09-04T02:33:37.181Z"
+      },
+      {
+        "id": "msg-1788489217189-zzun6",
+        "conversation_id": "conv-5511777777777",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Sou  *Talvane Barber Bot* assistente virtual da  *Talvane Barber Shop*...",
+        "status": "delivered",
+        "created_at": "2026-09-04T02:33:37.189Z"
+      },
+      {
+        "id": "msg-1788489217205-6cmze",
+        "conversation_id": "conv-5511777777777",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "Estou aqui para te ajudar!",
+        "status": "delivered",
+        "created_at": "2026-09-04T02:33:37.205Z"
+      },
+      {
+        "id": "msg-1788489217217-ivkw6",
+        "conversation_id": "conv-5511777777777",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Escolha uma das opções abaixo para continuarmos:",
+        "status": "delivered",
+        "created_at": "2026-09-04T02:33:37.217Z"
+      },
+      {
+        "id": "msg-1788489222869-hua5a",
+        "conversation_id": "conv-5511777777777",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Sobrancelha*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Corte Cabelo + Barba + Sobrancelha (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._",
+        "status": "delivered",
+        "created_at": "2026-09-04T02:33:42.869Z"
+      },
+      {
+        "id": "msg-1788489222877-jghiz",
+        "conversation_id": "conv-5511777777777",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Escolha uma das opções abaixo para continuarmos:",
+        "status": "delivered",
+        "created_at": "2026-09-04T02:33:42.877Z"
+      }
     ]
   },
   "attendants": [
@@ -1638,5 +2207,20 @@
     }
   ],
   "rolePermissions": {},
-  "customVariables": []
+  "customVariables": [],
+  "logs": [
+    {
+      "id": "log-1788489222881-w79o3",
+      "type": "message_outbound",
+      "title": "Resposta para Tester",
+      "description": "Mensagem Interativa",
+      "contact_phone": "5511777777777",
+      "contact_name": "Tester",
+      "details": {
+        "direction": "outbound",
+        "messageId": "msg-1788489222877-jghiz"
+      },
+      "created_at": "2026-09-04T02:33:42.881Z"
+    }
+  ]
 }

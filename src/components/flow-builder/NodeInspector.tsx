@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FlowNode } from '../../types';
+import { FlowNode, AgendaServiceItem } from '../../types';
 import { Input, Textarea } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { 
@@ -23,10 +23,12 @@ import {
   RotateCcw,
   FileText,
   Wand2,
-  Tag
+  Tag,
+  Scissors
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { VariableBadge } from './ui/VariableBadge';
+import { StorageService } from '../../lib/storage';
 
 const SYSTEM_VARIABLES_LIST = [
   { key: 'etapa_funil', label: 'etapa_funil (Funil CRM)', category: 'Funil' },
@@ -68,8 +70,17 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
 }) => {
   const [localWidth, setLocalWidth] = useState(width);
   const [isResizing, setIsResizing] = useState(false);
+  const [agendaServices, setAgendaServices] = useState<AgendaServiceItem[]>([]);
   const startXRef = useRef(0);
   const startWidthRef = useRef(localWidth);
+
+  useEffect(() => {
+    StorageService.getAgendaSettings().then((res) => {
+      if (res?.services && Array.isArray(res.services)) {
+        setAgendaServices(res.services.filter((s: any) => s.active !== false && s.is_active !== false));
+      }
+    }).catch(() => {});
+  }, []);
 
   const currentWidth = onWidthChange ? width : localWidth;
 
@@ -1115,6 +1126,41 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
               onChange={(e) => handleConfigChange('footerText', e.target.value)}
               placeholder="Ex: _Valores sujeitos a alteração sem aviso prévio._"
             />
+
+            {/* Live Services Preview */}
+            <div className="p-3 rounded-xl bg-dark-950/80 border border-amber-500/20 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-amber-300 flex items-center gap-1.5">
+                  <Scissors className="w-3.5 h-3.5 text-amber-400" />
+                  Serviços Ativos na Agenda:
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30">
+                  {agendaServices.length} ativo{agendaServices.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                {agendaServices.length > 0 ? (
+                  agendaServices.map((srv, i) => (
+                    <div
+                      key={srv.id || i}
+                      className="p-2 rounded-lg bg-dark-900/90 border border-white/5 text-[11px] flex items-center justify-between hover:border-amber-500/30 transition-colors"
+                    >
+                      <div className="min-w-0 pr-2">
+                        <span className="font-semibold text-white truncate block">{srv.name}</span>
+                        <span className="text-[10px] text-slate-400">⏱️ {srv.duration_minutes || 30} min</span>
+                      </div>
+                      <span className="text-emerald-400 font-bold text-[11px] flex-shrink-0">
+                        R$ {Number(srv.price || 0).toFixed(2).replace('.', ',')}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-[10.5px] text-slate-400 italic py-1">
+                    Carregando serviços ou nenhum serviço ativo cadastrado na Agenda.
+                  </p>
+                )}
+              </div>
+            </div>
 
             <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-2">
               <span className="text-xs font-semibold text-amber-400 block">

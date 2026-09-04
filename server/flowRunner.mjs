@@ -1418,6 +1418,15 @@ function parseCustomDateString(input) {
       }
     }
 
+    // 1.2 Show Services continuation (if client sends a message after catalog exhibition)
+    else if (prevNode && (prevType === 'show_services' || (prevType === 'services_catalog' && prevNode.data?.config?.displayFormat !== 'buttons'))) {
+      const nextEdge = edges.find((e) => e.source === prevNode.id);
+      if (nextEdge) {
+        currentNode = nodes.find((n) => n.id === nextEdge.target);
+        session.currentNodeId = currentNode?.id || null;
+      }
+    }
+
     // 2. Buttons / Available slots / Services Catalog / Date selection
     else if (
       prevNode &&
@@ -1572,7 +1581,12 @@ function parseCustomDateString(input) {
     // 1. Message Node
     else if (nodeType === 'message') {
       const text = replaceVars(config.text || 'Olá!', session.variables, botProfile);
-      replies.push(text);
+      if (text) {
+        const lastReply = replies[replies.length - 1];
+        if (typeof lastReply !== 'string' || lastReply.trim() !== text.trim()) {
+          replies.push(text);
+        }
+      }
     }
 
     // 2. Buttons Node (Native Interactive Buttons)
@@ -1665,22 +1679,31 @@ function parseCustomDateString(input) {
     }
 
     // 5. Show Services Node (Apenas Exibição / Leitura do Catálogo)
-    else if (nodeType === 'show_services') {
-      const services = (db.agendaSettings?.services && db.agendaSettings.services.length > 0) ? db.agendaSettings.services : [
-        { id: 'srv-1', name: 'Corte de Cabelo', duration_minutes: 30, price: 35 },
-        { id: 'srv-2', name: 'Barba Terapia', duration_minutes: 45, price: 40 },
-        { id: 'srv-3', name: 'Combo Cabelo + Barba', duration_minutes: 60, price: 70 },
+    else if (nodeType === 'show_services' || (nodeType === 'services_catalog' && config.displayFormat !== 'buttons')) {
+      const rawServices = (db.agendaSettings?.services && db.agendaSettings.services.length > 0) ? db.agendaSettings.services : [
+        { id: 'srv-1', name: 'Corte Cabelo', duration_minutes: 45, price: 30 },
+        { id: 'srv-2', name: 'Barba', duration_minutes: 20, price: 20 },
+        { id: 'srv-3', name: 'Corte Cabelo + Barba (Promoção)', duration_minutes: 50, price: 45 },
+        { id: 'srv-4', name: 'Sobrancelha', duration_minutes: 12, price: 10 },
+        { id: 'srv-5', name: 'Corte Cabelo + Barba + Sobrancelha (Promoção)', duration_minutes: 10, price: 60 },
       ];
+      const activeServices = rawServices.filter((s) => s.active !== false && s.is_active !== false);
+      const services = activeServices.length > 0 ? activeServices : rawServices;
 
       const header = replaceVars(config.headerText || '💈 *Catálogo de Serviços & Preços*', session.variables, botProfile);
       const footer = config.footerText ? `\n\n_${replaceVars(config.footerText, session.variables, botProfile)}_` : '';
 
       const serviceLines = services
-        .map((s, idx) => `*${idx + 1}️⃣* *${s.name}*\n   💰 R$ ${Number(s.price || 0).toFixed(2).replace('.', ',')} • ⏱️ ${s.duration_minutes || 30} min`)
+        .map((s, idx) => {
+          const priceStr = Number(s.price || 0).toFixed(2).replace('.', ',');
+          const descStr = s.description ? `\n   _${s.description}_` : '';
+          return `*${idx + 1}️⃣* *${s.name}*\n   💰 R$ ${priceStr} • ⏱️ ${s.duration_minutes || 30} min${descStr}`;
+        })
         .join('\n\n');
 
       const fullCatalogText = `${header}\n\n${serviceLines}${footer}`;
       session.variables['catalogo_servicos_texto'] = fullCatalogText;
+      session.variables['catalogo_servicos'] = fullCatalogText;
       replies.push(fullCatalogText);
 
       // Continues straight to the next connected node
@@ -1692,16 +1715,21 @@ function parseCustomDateString(input) {
           continue;
         }
       }
+      session.currentNodeId = currentNode.id;
       break;
     }
 
     // 5.2 Select Service Node (Escolha de Serviço via Botões Interativos)
-    else if (nodeType === 'select_service' || nodeType === 'services_catalog') {
-      const services = (db.agendaSettings?.services && db.agendaSettings.services.length > 0) ? db.agendaSettings.services : [
-        { id: 'srv-1', name: 'Corte de Cabelo', duration_minutes: 30, price: 35 },
-        { id: 'srv-2', name: 'Barba Terapia', duration_minutes: 45, price: 40 },
-        { id: 'srv-3', name: 'Combo Cabelo + Barba', duration_minutes: 60, price: 70 },
+    else if (nodeType === 'select_service' || (nodeType === 'services_catalog' && config.displayFormat === 'buttons')) {
+      const rawServices = (db.agendaSettings?.services && db.agendaSettings.services.length > 0) ? db.agendaSettings.services : [
+        { id: 'srv-1', name: 'Corte Cabelo', duration_minutes: 45, price: 30 },
+        { id: 'srv-2', name: 'Barba', duration_minutes: 20, price: 20 },
+        { id: 'srv-3', name: 'Corte Cabelo + Barba (Promoção)', duration_minutes: 50, price: 45 },
+        { id: 'srv-4', name: 'Sobrancelha', duration_minutes: 12, price: 10 },
+        { id: 'srv-5', name: 'Corte Cabelo + Barba + Sobrancelha (Promoção)', duration_minutes: 10, price: 60 },
       ];
+      const activeServices = rawServices.filter((s) => s.active !== false && s.is_active !== false);
+      const services = activeServices.length > 0 ? activeServices : rawServices;
 
       const intro = replaceVars(config.introMessage || 'Qual serviço você deseja agendar hoje?', session.variables, botProfile);
       const footer = config.footerText ? replaceVars(config.footerText, session.variables, botProfile) : 'Toque no serviço desejado:';
