@@ -3,7 +3,6 @@ import {
   ReactFlow,
   Background,
   Controls,
-  MiniMap,
   BackgroundVariant,
   NodeTypes,
   Edge,
@@ -167,24 +166,6 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
           showInteractive={false}
           position="bottom-left"
           className="m-4 bg-dark-900 border border-slate-800 rounded-xl shadow-xl"
-        />
-        <MiniMap
-          position="bottom-right"
-          nodeColor={(node) => {
-            switch (node.type) {
-              case 'trigger': return '#f59e0b';
-              case 'message': return '#06b6d4';
-              case 'buttons': return '#3b82f6';
-              case 'condition': return '#a855f7';
-              case 'ai_agent': return '#c084fc';
-              case 'human_handoff': return '#f43f5e';
-              case 'schedule_contact': return '#10b981';
-              case 'update_contact': return '#06b6d4';
-              default: return '#38bdf8';
-            }
-          }}
-          maskColor="rgba(7, 9, 14, 0.85)"
-          className="m-4 rounded-xl border border-slate-800 shadow-xl"
         />
       </ReactFlow>
     </div>
