@@ -506,6 +506,18 @@ export const MobileFlowBuilder: React.FC<MobileFlowBuilderProps> = ({
                         Salva o nome informado pelo cliente na base oficial de contatos.
                       </p>
                     )}
+                    {nodeType === 'variable' && (
+                      <div>
+                        <p className="text-[11px] text-violet-300 font-medium">
+                          Define {Array.isArray(node.data?.config?.assignments) ? `${node.data.config.assignments.length} variável(is)` : 'variável'}:
+                        </p>
+                        <p className="text-[10px] text-slate-400 font-mono truncate">
+                          {Array.isArray(node.data?.config?.assignments) && node.data.config.assignments.length > 0
+                            ? node.data.config.assignments.map((a: any) => `{{${a.varName}}}`).join(', ')
+                            : `{{${node.data?.config?.varName || 'etapa_funil'}}}`}
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Target Connection Controls (Where does this step go?) */}

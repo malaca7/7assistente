@@ -2,9 +2,50 @@ import React, { useState, useRef, useEffect } from 'react';
 import { FlowNode } from '../../types';
 import { Input, Textarea } from '../ui/Input';
 import { Button } from '../ui/Button';
-import { Trash2, Copy, SlidersHorizontal, Sparkles, X, Plus, Check, Calendar, DollarSign, Users, CheckCircle2 } from 'lucide-react';
+import { 
+  Trash2, 
+  Copy, 
+  SlidersHorizontal, 
+  Sparkles, 
+  X, 
+  Plus, 
+  Check, 
+  Calendar, 
+  DollarSign, 
+  Users, 
+  CheckCircle2,
+  Sliders,
+  Hash,
+  Type,
+  Clock,
+  CalendarDays,
+  Calculator,
+  RotateCcw,
+  FileText,
+  Wand2,
+  Tag
+} from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { VariableBadge } from './ui/VariableBadge';
+
+const SYSTEM_VARIABLES_LIST = [
+  { key: 'etapa_funil', label: 'etapa_funil (Funil CRM)', category: 'Funil' },
+  { key: 'interesse', label: 'interesse (Serviço/Produto)', category: 'CRM' },
+  { key: 'nome_cliente', label: 'nome_cliente (Nome Completo)', category: 'Contato' },
+  { key: 'primeiro_nome', label: 'primeiro_nome (1º Nome)', category: 'Contato' },
+  { key: 'telefone_cliente', label: 'telefone_cliente (WhatsApp)', category: 'Contato' },
+  { key: 'status', label: 'status (Status Geral)', category: 'Status' },
+  { key: 'data_agendamento', label: 'data_agendamento (Data da Reserva)', category: 'Agenda' },
+  { key: 'horario_agendamento', label: 'horario_agendamento (Horário da Reserva)', category: 'Agenda' },
+  { key: 'servico_selecionado', label: 'servico_selecionado (Serviço)', category: 'Agenda' },
+  { key: 'valor_total', label: 'valor_total (Financeiro)', category: 'Financeiro' },
+  { key: 'tentativas_contato', label: 'tentativas_contato (Contador)', category: 'Controle' },
+  { key: 'observacoes', label: 'observacoes (Notas do Lead)', category: 'CRM' },
+  { key: 'atendente_responsavel', label: 'atendente_responsavel (Equipe)', category: 'Equipe' },
+  { key: 'origem_lead', label: 'origem_lead (Canal de Entrada)', category: 'Marketing' },
+  { key: 'nota_avaliacao', label: 'nota_avaliacao (NPS)', category: 'Avaliação' },
+];
+
 
 export interface NodeInspectorProps {
   node: FlowNode | null;
@@ -362,6 +403,452 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
             />
           </div>
         )}
+
+        {/* 5.1 Variable Setter (Definir Variável) */}
+        {nodeType === 'variable' && (() => {
+          const rawAssignments = Array.isArray(config.assignments) && config.assignments.length > 0
+            ? config.assignments
+            : [{
+                varName: config.varName || 'etapa_funil',
+                operation: config.operation || 'set_value',
+                value: config.varValue !== undefined ? config.varValue : 'agendamento_iniciado',
+                contactField: config.contactField || 'first_name',
+                sourceVar: config.sourceVar || '',
+                mathAmount: config.mathAmount ?? 1,
+              }];
+
+          const updateAssignmentsList = (newAssignments: any[]) => {
+            const first = newAssignments[0] || {};
+            onUpdateConfig(node.id, data.label, {
+              ...config,
+              assignments: newAssignments,
+              varName: first.varName || '',
+              varValue: first.value !== undefined ? first.value : '',
+              operation: first.operation || 'set_value',
+            });
+          };
+
+          const handleUpdateItem = (index: number, updatedFields: Record<string, any>) => {
+            const next = rawAssignments.map((item: any, i: number) => {
+              if (i !== index) return item;
+              return { ...item, ...updatedFields };
+            });
+            updateAssignmentsList(next);
+          };
+
+          const handleAddItem = () => {
+            const next = [
+              ...rawAssignments,
+              {
+                varName: '',
+                operation: 'set_value',
+                value: '',
+                contactField: 'first_name',
+                sourceVar: '',
+                mathAmount: 1,
+              }
+            ];
+            updateAssignmentsList(next);
+          };
+
+          const handleRemoveItem = (index: number) => {
+            if (rawAssignments.length <= 1) return;
+            const next = rawAssignments.filter((_: any, i: number) => i !== index);
+            updateAssignmentsList(next);
+          };
+
+          const handleApplyTemplate = (preset: any[]) => {
+            updateAssignmentsList(preset);
+          };
+
+          return (
+            <div className="space-y-4">
+              {/* Quick Templates Header */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[11px] font-semibold text-slate-300 flex items-center gap-1.5">
+                    <Wand2 className="w-3.5 h-3.5 text-violet-400" />
+                    Modelos Rápidos (1-Clique)
+                  </label>
+                  <span className="text-[10px] text-slate-500">Auto-preencher</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleApplyTemplate([
+                      { varName: 'etapa_funil', operation: 'set_value', value: 'agendamento_iniciado' }
+                    ])}
+                    className="px-2 py-1 rounded-lg bg-dark-850 hover:bg-violet-950/70 border border-slate-700/80 hover:border-violet-500/50 text-[10px] font-medium text-violet-300 transition-colors flex items-center gap-1"
+                  >
+                    🎯 Etapa Funil
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyTemplate([
+                      { varName: 'primeiro_nome', operation: 'contact_field', contactField: 'first_name' }
+                    ])}
+                    className="px-2 py-1 rounded-lg bg-dark-850 hover:bg-cyan-950/70 border border-slate-700/80 hover:border-cyan-500/50 text-[10px] font-medium text-cyan-300 transition-colors flex items-center gap-1"
+                  >
+                    👤 1º Nome
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyTemplate([
+                      { varName: 'data_registro', operation: 'date_today_br' }
+                    ])}
+                    className="px-2 py-1 rounded-lg bg-dark-850 hover:bg-emerald-950/70 border border-slate-700/80 hover:border-emerald-500/50 text-[10px] font-medium text-emerald-300 transition-colors flex items-center gap-1"
+                  >
+                    📅 Data Hoje
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyTemplate([
+                      { varName: 'tentativas_contato', operation: 'math_increment', mathAmount: 1 }
+                    ])}
+                    className="px-2 py-1 rounded-lg bg-dark-850 hover:bg-amber-950/70 border border-slate-700/80 hover:border-amber-500/50 text-[10px] font-medium text-amber-300 transition-colors flex items-center gap-1"
+                  >
+                    ➕ Contador (+1)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyTemplate([
+                      { varName: 'interesse', operation: 'set_value', value: 'corte_e_barba' }
+                    ])}
+                    className="px-2 py-1 rounded-lg bg-dark-850 hover:bg-pink-950/70 border border-slate-700/80 hover:border-pink-500/50 text-[10px] font-medium text-pink-300 transition-colors flex items-center gap-1"
+                  >
+                    🏷️ Interesse
+                  </button>
+                </div>
+              </div>
+
+              {/* Assignments List */}
+              <div className="space-y-3 pt-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                    <Sliders className="w-3.5 h-3.5 text-violet-400" />
+                    Variáveis a Definir ({rawAssignments.length})
+                  </label>
+                  <span className="text-[10px] text-slate-400">Executadas em ordem</span>
+                </div>
+
+                {rawAssignments.map((assignment: any, index: number) => {
+                  const op = assignment.operation || 'set_value';
+
+                  return (
+                    <div 
+                      key={index} 
+                      className="p-3 rounded-xl bg-dark-950/80 border border-slate-800/80 hover:border-violet-500/40 transition-all space-y-3"
+                    >
+                      {/* Item Header */}
+                      <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-violet-600/30 border border-violet-500/40 text-[10px] font-bold text-violet-300 flex items-center justify-center">
+                            #{index + 1}
+                          </span>
+                          <span className="text-xs font-semibold text-slate-200">
+                            {assignment.varName ? (
+                              <code className="text-violet-300">{'{{' + assignment.varName + '}}'}</code>
+                            ) : (
+                              <span className="text-slate-500 italic">Variável sem nome</span>
+                            )}
+                          </span>
+                        </div>
+                        {rawAssignments.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveItem(index)}
+                            className="p-1 rounded text-slate-500 hover:text-red-400 hover:bg-red-950/40 transition-colors"
+                            title="Remover esta variável"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Variable Name Selection */}
+                      <div className="space-y-1.5">
+                        <label className="block text-[11px] font-medium text-slate-300">Nome da Variável</label>
+                        <div className="grid grid-cols-1 gap-1.5">
+                          <select
+                            value={SYSTEM_VARIABLES_LIST.some(v => v.key === assignment.varName) ? assignment.varName : '__custom__'}
+                            onChange={(e) => {
+                              if (e.target.value !== '__custom__') {
+                                handleUpdateItem(index, { varName: e.target.value });
+                              }
+                            }}
+                            className="w-full rounded-xl bg-dark-850 border border-slate-700/60 px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                          >
+                            <option value="__custom__">-- Digitar nome personalizado --</option>
+                            {SYSTEM_VARIABLES_LIST.map((sv) => (
+                              <option key={sv.key} value={sv.key}>
+                                {sv.label}
+                              </option>
+                            ))}
+                          </select>
+                          <Input
+                            value={assignment.varName || ''}
+                            onChange={(e) => {
+                              const cleaned = e.target.value.replace(/[\s{{}}]/g, '_').toLowerCase();
+                              handleUpdateItem(index, { varName: cleaned });
+                            }}
+                            placeholder="Ex: status_lead, interesse_plano..."
+                            className="font-mono text-xs"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Operation Type Selector */}
+                      <div className="space-y-1.5">
+                        <label className="block text-[11px] font-medium text-slate-300">Modo de Atribuição / Operação</label>
+                        <select
+                          value={op}
+                          onChange={(e) => handleUpdateItem(index, { operation: e.target.value })}
+                          className="w-full rounded-xl bg-dark-850 border border-slate-700/60 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                        >
+                          <optgroup label="📝 Valores & Textos">
+                            <option value="set_value">Texto / Valor Fixo (com {{tags}})</option>
+                            <option value="set_number">Número Fixo</option>
+                            <option value="set_boolean">Booleano (Verdadeiro / Falso)</option>
+                            <option value="copy_var">Copiar de Outra Variável</option>
+                          </optgroup>
+                          <optgroup label="👤 Dados do Contato">
+                            <option value="contact_field">Extrair Campo do Contato</option>
+                          </optgroup>
+                          <optgroup label="🧮 Cálculos Matemáticos">
+                            <option value="math_increment">Incrementar (+1 ou +N)</option>
+                            <option value="math_decrement">Decrementar (-1 ou -N)</option>
+                            <option value="math_add">Somar (+ N)</option>
+                            <option value="math_subtract">Subtrair (- N)</option>
+                            <option value="math_multiply">Multiplicar (* N)</option>
+                            <option value="math_divide">Dividir (/ N)</option>
+                          </optgroup>
+                          <optgroup label="🔤 Transformações de Texto">
+                            <option value="text_first_name">Apenas Primeiro Nome</option>
+                            <option value="text_uppercase">Converter para MAIÚSCULAS</option>
+                            <option value="text_lowercase">Converter para minúsculas</option>
+                            <option value="text_capitalize">Primeira Letra Maiúscula (Aa)</option>
+                            <option value="text_numbers_only">Apenas Dígitos / Números</option>
+                            <option value="text_trim">Remover Espaços Extras (Trim)</option>
+                          </optgroup>
+                          <optgroup label="📅 Data & Hora Dinâmica">
+                            <option value="date_today_br">Data de Hoje (DD/MM/AAAA)</option>
+                            <option value="date_today_iso">Data de Hoje (AAAA-MM-DD)</option>
+                            <option value="date_tomorrow_br">Data de Amanhã (DD/MM/AAAA)</option>
+                            <option value="time_now">Hora Atual (HH:mm)</option>
+                            <option value="datetime_now">Data e Hora Atual (DD/MM/AAAA HH:mm)</option>
+                            <option value="timestamp_now">Timestamp Atual (Milissegundos)</option>
+                          </optgroup>
+                          <optgroup label="🗑️ Limpeza">
+                            <option value="clear_var">Limpar / Esvaziar Variável</option>
+                          </optgroup>
+                        </select>
+                      </div>
+
+                      {/* Dynamic Inputs based on Operation */}
+                      {op === 'set_value' && (
+                        <div className="space-y-2">
+                          <Input
+                            label="Valor a Atribuir"
+                            value={assignment.value !== undefined ? assignment.value : ''}
+                            onChange={(e) => handleUpdateItem(index, { value: e.target.value })}
+                            placeholder="Ex: agendamento_confirmado ou Olá {{nome_cliente}}"
+                          />
+                          {/* Variables Quick Tags Panel */}
+                          <div className="p-2 rounded-lg bg-dark-900/90 border border-slate-800 text-[10px] text-slate-400 space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold text-slate-300">Inserir tag dinâmica:</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {[
+                                '{{bot_nome}}',
+                                '{{empresa}}',
+                                '{{nome_cliente}}',
+                                '{{primeiro_nome}}',
+                                '{{telefone}}',
+                                '{{data_agendamento}}',
+                                '{{horario_agendamento}}',
+                                '{{servico_selecionado}}',
+                                '{{valor_total}}'
+                              ].map((tag) => (
+                                <button
+                                  key={tag}
+                                  type="button"
+                                  onClick={() => {
+                                    const curr = assignment.value !== undefined ? String(assignment.value) : '';
+                                    handleUpdateItem(index, { value: curr ? `${curr} ${tag}` : tag });
+                                  }}
+                                  className="px-1.5 py-0.5 rounded bg-dark-850 hover:bg-violet-950 text-violet-300 border border-slate-700/70 hover:border-violet-500/50 font-mono text-[9px] transition-colors"
+                                >
+                                  +{tag}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {op === 'set_number' && (
+                        <Input
+                          label="Valor Numérico"
+                          type="number"
+                          step="any"
+                          value={assignment.value !== undefined ? assignment.value : 0}
+                          onChange={(e) => handleUpdateItem(index, { value: Number(e.target.value) })}
+                          placeholder="Ex: 100 ou 49.90"
+                        />
+                      )}
+
+                      {op === 'set_boolean' && (
+                        <div className="space-y-1.5">
+                          <label className="block text-[11px] font-medium text-slate-300">Valor Booleano</label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateItem(index, { value: true })}
+                              className={cn(
+                                'py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all',
+                                assignment.value === true || assignment.value === 'true'
+                                  ? 'bg-emerald-600/30 border-emerald-500 text-emerald-300 shadow-sm'
+                                  : 'bg-dark-850 border-slate-800 text-slate-400 hover:text-slate-200'
+                              )}
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              Verdadeiro (true)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateItem(index, { value: false })}
+                              className={cn(
+                                'py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all',
+                                assignment.value === false || assignment.value === 'false'
+                                  ? 'bg-rose-600/30 border-rose-500 text-rose-300 shadow-sm'
+                                  : 'bg-dark-850 border-slate-800 text-slate-400 hover:text-slate-200'
+                              )}
+                            >
+                              <X className="w-3.5 h-3.5" />
+                              Falso (false)
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {op === 'copy_var' && (
+                        <div className="space-y-1.5">
+                          <Input
+                            label="Variável de Origem para Copiar"
+                            value={assignment.sourceVar || assignment.value || ''}
+                            onChange={(e) => {
+                              const cleaned = e.target.value.replace(/[\s{{}}]/g, '');
+                              handleUpdateItem(index, { sourceVar: cleaned, value: cleaned });
+                            }}
+                            placeholder="Ex: servico_selecionado ou resposta_usuario"
+                            className="font-mono text-xs"
+                          />
+                          <span className="text-[10px] text-slate-400">
+                            O conteúdo de <code className="text-violet-300">{'{{' + (assignment.sourceVar || 'origem') + '}}'}</code> será copiado para esta variável.
+                          </span>
+                        </div>
+                      )}
+
+                      {op === 'contact_field' && (
+                        <div className="space-y-1.5">
+                          <label className="block text-[11px] font-medium text-slate-300">Campo do Contato</label>
+                          <select
+                            value={assignment.contactField || 'first_name'}
+                            onChange={(e) => handleUpdateItem(index, { contactField: e.target.value })}
+                            className="w-full rounded-xl bg-dark-850 border border-slate-700/60 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                          >
+                            <option value="first_name">Primeiro Nome (Ex: Carlos)</option>
+                            <option value="name">Nome Completo / Pushname WhatsApp</option>
+                            <option value="phone">Telefone / WhatsApp (Apenas números)</option>
+                            <option value="email">E-mail Cadastrado</option>
+                            <option value="tags">Tags do Contato</option>
+                            <option value="id">ID do Contato</option>
+                          </select>
+                        </div>
+                      )}
+
+                      {(op === 'math_increment' || op === 'math_decrement') && (
+                        <Input
+                          label="Quantidade do Passo"
+                          type="number"
+                          min="1"
+                          value={assignment.mathAmount ?? 1}
+                          onChange={(e) => handleUpdateItem(index, { mathAmount: Number(e.target.value) })}
+                          placeholder="Padrão: 1"
+                        />
+                      )}
+
+                      {(op === 'math_add' || op === 'math_subtract' || op === 'math_multiply' || op === 'math_divide') && (
+                        <Input
+                          label="Valor da Operação Numérica"
+                          type="number"
+                          step="any"
+                          value={assignment.mathAmount !== undefined ? assignment.mathAmount : (assignment.value || 0)}
+                          onChange={(e) => handleUpdateItem(index, { mathAmount: Number(e.target.value), value: Number(e.target.value) })}
+                          placeholder="Ex: 10 ou 2.5"
+                        />
+                      )}
+
+                      {(op.startsWith('text_')) && (
+                        <div className="space-y-1.5">
+                          <Input
+                            label="Variável de Texto de Origem (Opcional)"
+                            value={assignment.sourceVar || ''}
+                            onChange={(e) => {
+                              const cleaned = e.target.value.replace(/[\s{{}}]/g, '');
+                              handleUpdateItem(index, { sourceVar: cleaned });
+                            }}
+                            placeholder="Deixe em branco para usar o próprio nome do contato ou da variável"
+                            className="font-mono text-xs"
+                          />
+                          <span className="text-[10px] text-slate-400">
+                            {op === 'text_first_name' && 'Extrai apenas a primeira palavra/nome do cliente.'}
+                            {op === 'text_uppercase' && 'Converte todo o texto para MAIÚSCULAS.'}
+                            {op === 'text_lowercase' && 'Converte todo o texto para minúsculas.'}
+                            {op === 'text_capitalize' && 'Deixa apenas a primeira letra em maiúscula.'}
+                            {op === 'text_numbers_only' && 'Remove letras e símbolos, mantendo somente números.'}
+                            {op === 'text_trim' && 'Remove espaços em branco sobrando no início e fim.'}
+                          </span>
+                        </div>
+                      )}
+
+                      {(op.startsWith('date_') || op.startsWith('time_') || op === 'timestamp_now') && (
+                        <div className="p-2.5 rounded-xl bg-violet-950/30 border border-violet-800/40 text-[11px] text-violet-300 flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-violet-400 shrink-0" />
+                          <span>
+                            Gera automaticamente o valor temporal dinâmico no exato momento da execução do nó.
+                          </span>
+                        </div>
+                      )}
+
+                      {op === 'clear_var' && (
+                        <div className="p-2.5 rounded-xl bg-rose-950/30 border border-rose-800/40 text-[11px] text-rose-300 flex items-center gap-2">
+                          <Trash2 className="w-4 h-4 text-rose-400 shrink-0" />
+                          <span>
+                            Esta variável será resetada (esvaziada) da memória do cliente durante a conversa.
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Add Variable Button */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddItem}
+                  className="w-full border-dashed border-slate-700/80 hover:border-violet-500/60 hover:bg-violet-950/30 text-violet-300 flex items-center justify-center gap-2 py-2"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Adicionar Outra Variável neste Nó
+                </Button>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* 6. Delay */}
         {nodeType === 'delay' && (

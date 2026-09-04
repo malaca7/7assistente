@@ -27,6 +27,186 @@ export interface FlowExecutionResult {
   nextContext: FlowExecutionContext;
 }
 
+// Intelligent executor for Variable assignments
+export function executeVariableAssignment(
+  assignment: any,
+  variables: Record<string, any>,
+  contact?: Contact,
+  botProfile?: Partial<BotProfile>
+) {
+  const varName = assignment?.varName?.trim();
+  if (!varName) return;
+
+  const op = assignment.operation || 'set_value';
+
+  switch (op) {
+    case 'set_value': {
+      const rawVal = assignment.value !== undefined ? assignment.value : (assignment.varValue ?? '');
+      variables[varName] = substituteVariables(String(rawVal), variables, botProfile);
+      break;
+    }
+    case 'set_number': {
+      const num = Number(assignment.value);
+      variables[varName] = isNaN(num) ? 0 : num;
+      break;
+    }
+    case 'set_boolean': {
+      variables[varName] = assignment.value === true || assignment.value === 'true';
+      break;
+    }
+    case 'copy_var': {
+      const src = assignment.sourceVar || assignment.value;
+      variables[varName] = src ? (variables[src] ?? '') : '';
+      break;
+    }
+    case 'contact_field': {
+      const field = assignment.contactField || 'first_name';
+      if (field === 'first_name') {
+        const full = contact?.name || contact?.phone || 'Cliente';
+        variables[varName] = full.trim().split(/\s+/)[0] || full;
+      } else if (field === 'name') {
+        variables[varName] = contact?.name || 'Cliente';
+      } else if (field === 'phone') {
+        variables[varName] = contact?.phone || '';
+      } else if (field === 'email') {
+        variables[varName] = contact?.email || '';
+      } else if (field === 'tags') {
+        variables[varName] = Array.isArray(contact?.tags) ? contact.tags.join(', ') : (contact?.tags || '');
+      } else if (field === 'id') {
+        variables[varName] = contact?.id || '';
+      }
+      break;
+    }
+    case 'math_increment': {
+      const step = Number(assignment.mathAmount ?? 1);
+      const cur = Number(variables[varName]) || 0;
+      variables[varName] = cur + (isNaN(step) ? 1 : step);
+      break;
+    }
+    case 'math_decrement': {
+      const step = Number(assignment.mathAmount ?? 1);
+      const cur = Number(variables[varName]) || 0;
+      variables[varName] = cur - (isNaN(step) ? 1 : step);
+      break;
+    }
+    case 'math_add': {
+      const amt = Number(assignment.mathAmount ?? assignment.value ?? 0);
+      const cur = Number(variables[varName]) || 0;
+      variables[varName] = cur + (isNaN(amt) ? 0 : amt);
+      break;
+    }
+    case 'math_subtract': {
+      const amt = Number(assignment.mathAmount ?? assignment.value ?? 0);
+      const cur = Number(variables[varName]) || 0;
+      variables[varName] = cur - (isNaN(amt) ? 0 : amt);
+      break;
+    }
+    case 'math_multiply': {
+      const factor = Number(assignment.mathAmount ?? assignment.value ?? 1);
+      const cur = Number(variables[varName]) || 0;
+      variables[varName] = cur * (isNaN(factor) ? 1 : factor);
+      break;
+    }
+    case 'math_divide': {
+      const div = Number(assignment.mathAmount ?? assignment.value ?? 1);
+      const cur = Number(variables[varName]) || 0;
+      variables[varName] = div === 0 ? 0 : (cur / div);
+      break;
+    }
+    case 'text_first_name': {
+      const srcKey = assignment.sourceVar || varName;
+      const fullText = String(variables[srcKey] !== undefined ? variables[srcKey] : (contact?.name || ''));
+      variables[varName] = fullText.trim().split(/\s+/)[0] || fullText;
+      break;
+    }
+    case 'text_uppercase': {
+      const srcKey = assignment.sourceVar || varName;
+      const text = String(variables[srcKey] !== undefined ? variables[srcKey] : (assignment.value ?? ''));
+      variables[varName] = text.toUpperCase();
+      break;
+    }
+    case 'text_lowercase': {
+      const srcKey = assignment.sourceVar || varName;
+      const text = String(variables[srcKey] !== undefined ? variables[srcKey] : (assignment.value ?? ''));
+      variables[varName] = text.toLowerCase();
+      break;
+    }
+    case 'text_capitalize': {
+      const srcKey = assignment.sourceVar || varName;
+      const text = String(variables[srcKey] !== undefined ? variables[srcKey] : (assignment.value ?? ''));
+      variables[varName] = text ? text.charAt(0).toUpperCase() + text.slice(1).toLowerCase() : '';
+      break;
+    }
+    case 'text_numbers_only': {
+      const srcKey = assignment.sourceVar || varName;
+      const text = String(variables[srcKey] !== undefined ? variables[srcKey] : (assignment.value ?? ''));
+      variables[varName] = text.replace(/\D/g, '');
+      break;
+    }
+    case 'text_trim': {
+      const srcKey = assignment.sourceVar || varName;
+      const text = String(variables[srcKey] !== undefined ? variables[srcKey] : (assignment.value ?? ''));
+      variables[varName] = text.trim();
+      break;
+    }
+    case 'date_today_br': {
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2, '0');
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const yyyy = now.getFullYear();
+      variables[varName] = `${dd}/${mm}/${yyyy}`;
+      break;
+    }
+    case 'date_today_iso': {
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2, '0');
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const yyyy = now.getFullYear();
+      variables[varName] = `${yyyy}-${mm}-${dd}`;
+      break;
+    }
+    case 'date_tomorrow_br': {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const dd = String(tomorrow.getDate()).padStart(2, '0');
+      const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+      const yyyy = tomorrow.getFullYear();
+      variables[varName] = `${dd}/${mm}/${yyyy}`;
+      break;
+    }
+    case 'time_now': {
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, '0');
+      const min = String(now.getMinutes()).padStart(2, '0');
+      variables[varName] = `${hh}:${min}`;
+      break;
+    }
+    case 'datetime_now': {
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2, '0');
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const yyyy = now.getFullYear();
+      const hh = String(now.getHours()).padStart(2, '0');
+      const min = String(now.getMinutes()).padStart(2, '0');
+      variables[varName] = `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+      break;
+    }
+    case 'timestamp_now': {
+      variables[varName] = Date.now();
+      break;
+    }
+    case 'clear_var': {
+      delete variables[varName];
+      break;
+    }
+    default: {
+      const rawVal = assignment.value !== undefined ? assignment.value : (assignment.varValue ?? '');
+      variables[varName] = rawVal;
+      break;
+    }
+  }
+}
+
 // Replace global {{variables}} in text strings
 export function substituteVariables(
   text: string,
@@ -224,8 +404,21 @@ export const FlowEngine = {
 
       // 9. Variable Setter Node
       else if (nodeType === 'variable') {
-        if (config.varName) {
-          variables[config.varName] = config.varValue;
+        const assignments = Array.isArray(config.assignments) && config.assignments.length > 0
+          ? config.assignments
+          : config.varName
+            ? [{
+                varName: config.varName,
+                operation: config.operation || 'set_value',
+                value: config.varValue,
+                contactField: config.contactField,
+                sourceVar: config.sourceVar,
+                mathAmount: config.mathAmount,
+              }]
+            : [];
+
+        for (const item of assignments) {
+          executeVariableAssignment(item, variables, contact, botProfile);
         }
       }
 

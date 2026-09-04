@@ -279,11 +279,21 @@ export const NODE_DEFINITIONS: NodeDefinition[] = [
     type: 'variable',
     label: 'Definir Variável',
     category: 'CRM & Logic',
-    description: 'Armazena valores ou dados calculados em variáveis de contexto.',
+    description: 'Armazena valores, cálculos, dados de contato ou datas em variáveis.',
     icon: <Sliders className="w-4 h-4" />,
     iconBg: 'bg-violet-600',
     accentColor: 'border-violet-500/40',
-    defaultConfig: { varName: 'etapa_funil', varValue: 'agendamento_iniciado' },
+    defaultConfig: {
+      varName: 'etapa_funil',
+      varValue: 'agendamento_iniciado',
+      assignments: [
+        {
+          varName: 'etapa_funil',
+          operation: 'set_value',
+          value: 'agendamento_iniciado',
+        },
+      ],
+    },
   },
   {
     type: 'delay',
