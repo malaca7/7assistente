@@ -529,6 +529,73 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
     setIsRunning(false);
   };
 
+  const handleButtonClick = (btnTitle: string, btnId?: string, btnIndex?: number, addMessage = true) => {
+    if (addMessage) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `user-btn-${Date.now()}`,
+          sender: 'user',
+          content: btnTitle,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+      ]);
+    }
+
+    const updatedVars = { ...variables };
+    updatedVars.opcao_selecionada = btnTitle;
+    if (btnId) updatedVars.botao_id = btnId;
+
+    // Store variables based on button type
+    if (btnId?.startsWith('srv_') || btnTitle.includes('R$')) {
+      const srvName = btnTitle.split('(')[0].trim();
+      const matched = agendaServices.find(s => s.name?.toLowerCase().trim() === srvName.toLowerCase().trim());
+      const srvPrice = matched?.price ? `R$ ${Number(matched.price).toFixed(2).replace('.', ',')}` : '';
+      const srvDur = matched?.duration_minutes || 30;
+
+      updatedVars.servico_selecionado = srvName;
+      updatedVars.opcao_selecionada = srvName;
+      updatedVars.valor_servico = srvPrice;
+      updatedVars.duracao_minutos = srvDur;
+      updatedVars.duracao_servico = `${srvDur} min`;
+    }
+    if (btnId?.startsWith('slot_') || btnTitle.includes('🕒')) {
+      const timeVal = btnTitle.replace('🕒', '').trim();
+      updatedVars.horario_agendamento = timeVal;
+      updatedVars.horario_escolhido = timeVal;
+    }
+    if (btnId?.startsWith('date_') || btnTitle.toLowerCase().includes('hoje') || btnTitle.toLowerCase().includes('amanh')) {
+      const isTomorrow = btnId === 'date_tomorrow' || btnTitle.toLowerCase().includes('amanh');
+      const dateObj = new Date();
+      if (isTomorrow) dateObj.setDate(dateObj.getDate() + 1);
+      const dateVal = dateObj.toLocaleDateString('pt-BR');
+      updatedVars.data_agendamento = dateVal;
+      updatedVars.data_formatada = dateVal;
+    }
+
+    setVariables(updatedVars);
+
+    if (currentNodeId) {
+      const idx = typeof btnIndex === 'number' ? btnIndex : -1;
+      const matchingEdge =
+        edges.find((e) => e.source === currentNodeId && (
+          e.sourceHandle === btnId ||
+          (idx >= 0 && (e.sourceHandle === `btn_${idx + 1}` || e.sourceHandle === `btn_${idx}`))
+        )) ||
+        edges.find((e) => e.source === currentNodeId && e.sourceHandle === btnId) ||
+        edges.find((e) => e.source === currentNodeId);
+
+      if (matchingEdge) {
+        const nextNode = nodes.find((n) => n.id === matchingEdge.target);
+        if (nextNode) {
+          runNextFromNode(matchingEdge.target, undefined, updatedVars, true);
+          return;
+        }
+      }
+      runNextFromNode(currentNodeId, undefined, updatedVars, false);
+    }
+  };
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim()) return;
@@ -546,9 +613,104 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
       },
     ]);
 
+    const activeNode = nodes.find(n => n.id === currentNodeId);
+    const activeType = activeNode?.data?.nodeType || activeNode?.type;
+
+    // Check if active node is expecting button / option selection
+    const lastMsgWithButtons = [...messages].reverse().find(m => m.buttons && m.buttons.length > 0 && m.nodeId === currentNodeId);
+    const availableButtons = lastMsgWithButtons?.buttons || activeNode?.data?.config?.buttons || [];
+
+    if (
+      (activeType === 'buttons' ||
+        activeType === 'select_service' ||
+        activeType === 'select_date' ||
+        activeType === 'select_time_slot') &&
+      availableButtons.length > 0
+    ) {
+      const normalize = (str: string) =>
+        String(str || '')
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase()
+          .trim();
+
+      const normInput = normalize(userText);
+      const cleanDigits = normInput.replace(/\D/g, '');
+      let matchedBtnIndex = -1;
+
+      // 1. Exact numeric index match (e.g. '1', '2', '3')
+      if (cleanDigits) {
+        const num = parseInt(cleanDigits, 10);
+        if (!isNaN(num) && num >= 1 && num <= availableButtons.length) {
+          matchedBtnIndex = num - 1;
+        }
+      }
+
+      // 2. ID match
+      if (matchedBtnIndex === -1) {
+        matchedBtnIndex = availableButtons.findIndex(
+          (b) => b.id === userText || b.id === normInput || (b.id && normInput.includes(b.id))
+        );
+      }
+
+      // 3. Exact, keyword, or substring title match
+      if (matchedBtnIndex === -1) {
+        for (let i = 0; i < availableButtons.length; i++) {
+          const b = availableButtons[i];
+          const normTitle = normalize(b.title || '');
+          const cleanTitle = normalize(normTitle.replace(/^\d+[\.\-\)]\s*/, ''));
+
+          if (normInput === normTitle || normInput === cleanTitle) {
+            matchedBtnIndex = i;
+            break;
+          }
+          if (cleanTitle.includes(normInput) && normInput.length >= 3) {
+            matchedBtnIndex = i;
+            break;
+          }
+          if (normInput.includes(cleanTitle) && cleanTitle.length >= 3) {
+            matchedBtnIndex = i;
+            break;
+          }
+          const inputWords = normInput.split(/\s+/).filter((w) => w.length >= 3);
+          const titleWords = cleanTitle.split(/\s+/).filter((w) => w.length >= 3);
+          const hasCommonWord = inputWords.some((w) => titleWords.some((tw) => tw.includes(w) || w.includes(tw)));
+          if (hasCommonWord) {
+            matchedBtnIndex = i;
+            break;
+          }
+        }
+      }
+
+      if (matchedBtnIndex >= 0) {
+        const matched = availableButtons[matchedBtnIndex];
+        handleButtonClick(matched.title, matched.id, matchedBtnIndex, false);
+        return;
+      } else {
+        // Unrecognized option - resend options reminder identical to WhatsApp bot
+        const retryLines = availableButtons.map((b, i) => {
+          const numEmoji = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'][i] || `*${i + 1}*`;
+          const cleanTitle = (b.title || `Opção ${i + 1}`).replace(/^\d+[\.\-\)]\s*/, '').trim();
+          return `${numEmoji} *${cleanTitle}*`;
+        }).join('\n\n');
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg-${Date.now()}`,
+            sender: 'bot',
+            content: `*Opção não reconhecida.*\n\nPor favor, escolha uma das opções abaixo:\n\n${retryLines}\n\n_👉 Digite o número ou o nome da opção desejada:_`,
+            buttons: availableButtons,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            nodeId: currentNodeId || undefined,
+          },
+        ]);
+        return;
+      }
+    }
+
     // Save variable if answering a question
     const updatedVars = { ...variables };
-    const activeNode = nodes.find(n => n.id === currentNodeId);
     if (activeNode && (activeNode.data?.nodeType || activeNode.type) === 'question') {
       const rawVarKey = activeNode.data?.config?.variableName || 'resposta_usuario';
       const cleanKey = rawVarKey.replace(/[{}]/g, '').trim();
@@ -567,59 +729,6 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
     } else {
       const trigger = nodes.find((n) => (n.data?.nodeType || n.type) === 'trigger') || nodes[0];
       if (trigger) runNextFromNode(trigger.id, undefined, updatedVars, false);
-    }
-  };
-
-  const handleButtonClick = (btnTitle: string, btnId?: string) => {
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `user-btn-${Date.now()}`,
-        sender: 'user',
-        content: btnTitle,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      },
-    ]);
-
-    const updatedVars = { ...variables };
-
-    // Store variables based on button type
-    if (btnId?.startsWith('srv_') || btnTitle.includes('R$')) {
-      const srvName = btnTitle.split('(')[0].trim();
-      const matched = agendaServices.find(s => s.name?.toLowerCase().trim() === srvName.toLowerCase().trim());
-      const srvPrice = matched?.price ? `R$ ${Number(matched.price).toFixed(2).replace('.', ',')}` : '';
-      const srvDur = matched?.duration_minutes || 30;
-
-      updatedVars.servico_selecionado = srvName;
-      updatedVars.opcao_selecionada = srvName;
-      updatedVars.valor_servico = srvPrice;
-      updatedVars.duracao_minutos = srvDur;
-      updatedVars.duracao_servico = `${srvDur} min`;
-    }
-    if (btnId?.startsWith('slot_') || btnTitle.includes('🕒')) {
-      const timeVal = btnTitle.replace('🕒', '').trim();
-      updatedVars.horario_agendamento = timeVal;
-    }
-    if (btnId?.startsWith('date_')) {
-      const dateVal = btnId === 'date_tomorrow' ? 'Amanhã' : 'Hoje';
-      updatedVars.data_agendamento = dateVal;
-    }
-
-    setVariables(updatedVars);
-
-    if (currentNodeId) {
-      const matchingEdge =
-        edges.find((e) => e.source === currentNodeId && e.sourceHandle === btnId) ||
-        edges.find((e) => e.source === currentNodeId);
-
-      if (matchingEdge) {
-        const nextNode = nodes.find((n) => n.id === matchingEdge.target);
-        if (nextNode) {
-          runNextFromNode(matchingEdge.target, undefined, updatedVars, true);
-          return;
-        }
-      }
-      runNextFromNode(currentNodeId, undefined, updatedVars, false);
     }
   };
 
@@ -876,10 +985,10 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
                     {/* Interactive Buttons */}
                     {m.buttons && m.buttons.length > 0 && (
                       <div className="pt-2.5 space-y-1.5">
-                        {m.buttons.map((btn) => (
+                        {m.buttons.map((btn, bIdx) => (
                           <button
                             key={btn.id}
-                            onClick={() => handleButtonClick(btn.title, btn.id)}
+                            onClick={() => handleButtonClick(btn.title, btn.id, bIdx)}
                             className="w-full py-2 px-3 rounded-xl bg-dark-950 hover:bg-dark-800 border border-brand-500/40 text-brand-300 hover:text-white text-xs font-semibold text-center transition-all flex items-center justify-between gap-1 shadow-sm active:scale-[0.98]"
                           >
                             <span className="truncate">{btn.title}</span>
