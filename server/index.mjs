@@ -1598,26 +1598,132 @@ app.get('/api/whatsapp/settings', (req, res) => {
     botProfile: db.botProfile || {},
     agendaSettings: db.agendaSettings || {},
     attendants: db.attendants || [],
+    customVariables: db.customVariables || db.botProfile?.custom_variables || [],
   });
 });
 
 app.post('/api/whatsapp/settings', async (req, res) => {
   try {
-    const { settings, botProfile, agendaSettings } = req.body;
+    const { settings, botProfile, agendaSettings, customVariables, systemUsers } = req.body;
     const db = loadDb();
 
     if (settings) db.settings = { ...db.settings, ...settings };
     if (botProfile) db.botProfile = { ...db.botProfile, ...botProfile };
     if (agendaSettings) db.agendaSettings = { ...db.agendaSettings, ...agendaSettings };
+    if (customVariables && Array.isArray(customVariables)) {
+      db.customVariables = customVariables;
+      if (db.botProfile) {
+        db.botProfile.custom_variables = customVariables;
+      }
+    }
+    if (systemUsers && Array.isArray(systemUsers)) {
+      db.systemUsers = systemUsers;
+    }
 
     saveDb(db);
-    console.log('[WhatsApp Server] ⚙️ Configurações e Perfil do Robô salvos com sucesso no banco de dados!');
+    console.log('[WhatsApp Server] ⚙️ Configurações, Perfil e Variáveis salvos com sucesso no banco de dados!');
     res.json({
       success: true,
       settings: db.settings,
       botProfile: db.botProfile,
       agendaSettings: db.agendaSettings,
+      customVariables: db.customVariables || [],
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Custom Variables REST API
+app.get('/api/whatsapp/custom-variables', (req, res) => {
+  const db = loadDb();
+  const vars = db.customVariables || db.botProfile?.custom_variables || [];
+  res.json(vars);
+});
+
+app.post('/api/whatsapp/custom-variables', (req, res) => {
+  try {
+    const variable = req.body;
+    if (!variable || !variable.name) {
+      return res.status(400).json({ error: 'Nome da variável é obrigatório' });
+    }
+    const db = loadDb();
+    if (!db.customVariables) db.customVariables = [];
+
+    const rawName = String(variable.name).replace(/^\{\{|\}\}$/g, '').trim().toLowerCase();
+    const formattedName = `{{${rawName}}}`;
+    const cleanVar = {
+      ...variable,
+      id: variable.id || `var-${Date.now()}`,
+      name: formattedName,
+      rawName: rawName,
+      value: variable.value !== undefined ? String(variable.value) : '',
+      description: variable.description || '',
+      updated_at: new Date().toISOString(),
+      created_at: variable.created_at || new Date().toISOString(),
+    };
+
+    const index = db.customVariables.findIndex((v) => v.id === cleanVar.id || v.name.toLowerCase() === formattedName);
+    if (index >= 0) {
+      db.customVariables[index] = cleanVar;
+    } else {
+      db.customVariables.unshift(cleanVar);
+    }
+
+    if (!db.botProfile) db.botProfile = {};
+    db.botProfile.custom_variables = db.customVariables;
+
+    saveDb(db);
+    res.json({ success: true, variable: cleanVar, variables: db.customVariables });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/whatsapp/custom-variables/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = loadDb();
+    if (db.customVariables) {
+      db.customVariables = db.customVariables.filter((v) => v.id !== id && v.name !== id && v.rawName !== id);
+      if (db.botProfile) {
+        db.botProfile.custom_variables = db.customVariables;
+      }
+      saveDb(db);
+    }
+    res.json({ success: true, variables: db.customVariables || [] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Database Backup Dump & Real-time Stats API
+app.get('/api/whatsapp/database/dump', (req, res) => {
+  try {
+    const db = loadDb();
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    res.setHeader('Content-Disposition', `attachment; filename=backup-7assistente-${timestamp}.json`);
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(db, null, 2));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/whatsapp/database/stats', (req, res) => {
+  try {
+    const db = loadDb();
+    const stats = {
+      contacts_count: Object.keys(db.contacts || {}).length,
+      appointments_count: (db.appointments || []).length,
+      flows_count: (db.flows || []).length,
+      attendants_count: (db.attendants || []).length,
+      custom_variables_count: (db.customVariables || db.botProfile?.custom_variables || []).length,
+      system_users_count: (db.systemUsers || []).length,
+      conversations_count: Object.keys(db.conversations || {}).length,
+      last_backup_at: new Date().toISOString(),
+    };
+    res.json({ success: true, stats });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

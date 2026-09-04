@@ -49,6 +49,15 @@ export interface WhatsAppSession {
   qrExpiresAt?: string;
 }
 
+export interface CustomVariable {
+  id: string;
+  name: string;
+  value: string;
+  description?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Settings {
   id: string;
   whatsapp_phone_number_id?: string;
@@ -61,6 +70,11 @@ export interface Settings {
   ai_model?: string;
   ai_temperature?: number;
   ai_system_prompt?: string;
+  backend_url?: string;
+  supabase_url?: string;
+  supabase_anon_key?: string;
+  admin_password?: string;
+  custom_variables?: CustomVariable[];
   created_at: string;
   updated_at: string;
 }

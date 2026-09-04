@@ -697,19 +697,19 @@
     ]
   },
   "botProfile": {
-    "name": "Joaquim",
+    "name": "Talvane Barber Bot",
     "company_name": "Talvane Barber Shop",
     "gender": "male",
     "tone": "Amigável e Profissional",
-    "support_phone": "81987300915",
+    "support_phone": "81996138924",
     "business_hours": "08:00 às 19:00",
     "welcome_message": "Olá! Seja bem-vindo à Talvane Barber. Como podemos te ajudar hoje?",
     "avatar_url": "",
     "company_segment": "Barbearia e Estética Masculina",
-    "support_email": "",
+    "support_email": "contato@talvanebarber.com.br",
     "website_url": "https://talvane.malaca.com.br",
     "id": "default",
-    "updated_at": "2026-09-04T01:11:30.103Z",
+    "updated_at": "2026-09-03T16:56:59.719Z",
     "handoff_message": "Vou transferir seu atendimento para um de nossos profissionais. Por favor, aguarde um instante!",
     "company_address": "",
     "pix_key_type": "telefone",
@@ -726,27 +726,19 @@
     "whatsapp_access_token_encrypted": "EAAO...7assistente_token_secret_vault",
     "webhook_verify_token": "7assistente_meta_webhook_token_2026",
     "bot_profile": {
-      "name": "Joaquim",
+      "name": "Talvane Barber Bot",
       "company_name": "Talvane Barber Shop",
       "gender": "male",
       "tone": "Amigável e Profissional",
       "avatar_url": "",
       "company_segment": "Barbearia e Estética Masculina",
-      "support_email": "",
-      "support_phone": "81987300915",
+      "support_email": "contato@talvanebarber.com.br",
+      "support_phone": "81996138924",
       "business_hours": "08:00 às 19:00",
       "website_url": "https://talvane.malaca.com.br",
       "welcome_message": "Olá! Seja bem-vindo à Talvane Barber. Como podemos te ajudar hoje?",
       "id": "default",
-      "updated_at": "2026-09-04T01:11:30.103Z",
-      "handoff_message": "Vou transferir seu atendimento para um de nossos profissionais. Por favor, aguarde um instante!",
-      "company_address": "",
-      "pix_key_type": "telefone",
-      "pix_key": "81996138924",
-      "pix_owner": "Rogerio Malaquias",
-      "notify_new_bookings": true,
-      "notify_phone": "81996138924",
-      "play_audio_alerts": true
+      "updated_at": "2026-09-03T16:56:59.719Z"
     },
     "whatsapp_session": {
       "status": "disconnected",
@@ -754,7 +746,7 @@
       "name": ""
     },
     "created_at": "2026-09-03T16:43:07.297Z",
-    "updated_at": "2026-09-04T01:11:30.493Z",
+    "updated_at": "2026-09-03T18:19:57.748Z",
     "backend_url": "https://talvane.discloud.app"
   },
   "sessions": {},
@@ -789,6 +781,20 @@
     }
   ],
   "contacts": {
+    "5581996138924": {
+      "id": "contact-5581996138924",
+      "phone": "5581996138924",
+      "name": "Rogerio",
+      "whatsapp_pushname": "Rogerio",
+      "status": "lead",
+      "tags": [
+        "Lead"
+      ],
+      "is_registered": false,
+      "metadata": {},
+      "created_at": "2026-09-04T00:57:54.897Z",
+      "updated_at": "2026-09-04T00:57:54.897Z"
+    },
     "558196138924": {
       "id": "contact-558196138924",
       "phone": "558196138924",
@@ -824,6 +830,19 @@
       "last_message": "*Rogerio*, qual serviço você deseja?",
       "last_message_at": "2026-08-30T15:54:58.044Z",
       "updated_at": "2026-08-30T15:54:58.044Z"
+    },
+    "conv-5581996138924": {
+      "id": "conv-5581996138924",
+      "contact_id": "contact-5581996138924",
+      "contact_name": "Rogerio",
+      "contact_phone": "5581996138924",
+      "status": "bot",
+      "started_at": "2026-09-03T17:58:33.868Z",
+      "unread_count": 0,
+      "created_at": "2026-09-03T17:58:33.868Z",
+      "last_message": "Por favor, me diga o seu nome:",
+      "last_message_at": "2026-09-04T00:57:54.897Z",
+      "updated_at": "2026-09-04T00:57:54.897Z"
     }
   },
   "messages": {
@@ -1619,19 +1638,5 @@
     }
   ],
   "rolePermissions": {},
-  "logs": [
-    {
-      "id": "log-1788483474899-4jcgk",
-      "type": "message_outbound",
-      "title": "Resposta para Rogerio",
-      "description": "Por favor, me diga o seu nome:",
-      "contact_phone": "5581996138924",
-      "contact_name": "Rogerio",
-      "details": {
-        "direction": "outbound",
-        "messageId": "msg-1788483474897-6e5rm"
-      },
-      "created_at": "2026-09-04T00:57:54.899Z"
-    }
-  ]
+  "customVariables": []
 }

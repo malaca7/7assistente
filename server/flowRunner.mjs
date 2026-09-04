@@ -240,6 +240,9 @@ export function loadDb() {
           if (backupData.rolePermissions) {
             parsed.rolePermissions = { ...backupData.rolePermissions, ...(parsed.rolePermissions || {}) };
           }
+          if (backupData.customVariables && Array.isArray(backupData.customVariables)) {
+            parsed.customVariables = backupData.customVariables;
+          }
         }
       }
     }
@@ -264,6 +267,7 @@ export function loadDb() {
       agendaSettings: parsed.agendaSettings || DEFAULT_AGENDA_SETTINGS,
       systemUsers: (parsed.systemUsers && parsed.systemUsers.length > 0) ? parsed.systemUsers : DEFAULT_SYSTEM_USERS,
       rolePermissions: parsed.rolePermissions || {},
+      customVariables: parsed.customVariables || parsed.botProfile?.custom_variables || [],
     };
   }
 
@@ -282,6 +286,7 @@ export function loadDb() {
     agendaSettings: DEFAULT_AGENDA_SETTINGS,
     systemUsers: DEFAULT_SYSTEM_USERS,
     rolePermissions: {},
+    customVariables: [],
   };
 }
 
@@ -520,7 +525,7 @@ export function getNextAvailableSlot(dateStr, requestedTime, db, duration = 30) 
 }
 
 // Substitute template variables {{var_name}}
-export function replaceVars(text, vars = {}, botProfile = {}) {
+export function replaceVars(text, vars = {}, botProfile = {}, customVariables = []) {
   if (!text) return '';
   let res = text;
 
@@ -533,6 +538,21 @@ export function replaceVars(text, vars = {}, botProfile = {}) {
   res = res.replace(/\{\{horario_atendimento\}\}/gi, botProfile.business_hours || '08:00 às 19:00');
   res = res.replace(/\{\{site_empresa\}\}/gi, botProfile.website_url || 'https://talvane.malaca.com.br');
   res = res.replace(/\{\{mensagem_boas_vindas\}\}/gi, botProfile.welcome_message || 'Olá! Seja bem-vindo à Talvane Barber.');
+
+  // Custom variables dynamically substituted from database / botProfile
+  const allCustom = [
+    ...(Array.isArray(customVariables) ? customVariables : []),
+    ...(Array.isArray(botProfile.custom_variables) ? botProfile.custom_variables : [])
+  ];
+  allCustom.forEach((cv) => {
+    if (cv && cv.name) {
+      const rawKey = String(cv.name).replace(/^\{\{|\}\}$/g, '').trim();
+      if (rawKey) {
+        const regex = new RegExp(`\\{\\{${rawKey}\\}\\}`, 'gi');
+        res = res.replace(regex, String(cv.value ?? ''));
+      }
+    }
+  });
 
   Object.keys(vars).forEach((key) => {
     const val = vars[key];
@@ -1226,7 +1246,10 @@ export async function executePublishedFlow(senderJid, messageText, pushName, rea
     session.variables.nome_cliente = '';
   }
 
-  const botProfile = db.botProfile || {};
+  const botProfile = { ...(db.botProfile || {}) };
+  if (!botProfile.custom_variables && db.customVariables) {
+    botProfile.custom_variables = db.customVariables;
+  }
   const replies = [];
 
 function parseCustomDateString(input) {
