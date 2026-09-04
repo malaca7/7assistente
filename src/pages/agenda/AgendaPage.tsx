@@ -51,7 +51,7 @@ import { Modal } from '../../components/ui/Modal';
 import { useToast } from '../../contexts/ToastContext';
 import { StorageService, getBackendUrl } from '../../lib/storage';
 import { Appointment, AgendaSettings, AgendaServiceItem, SlotSuggestion, DayScheduleConfig } from '../../types';
-import { formatPhone, formatDate } from '../../lib/utils';
+import { formatPhone, formatDate, getLocalDateStr } from '../../lib/utils';
 import { QuickDateButtons } from '../../components/agenda/QuickDateButtons';
 
 export interface AgendaPageProps {
@@ -85,10 +85,8 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
-  const [selectedDate, setSelectedDate] = useState<string>(() => {
-    return new Date().toISOString().split('T')[0];
-  });
+  const todayStr = useMemo(() => getLocalDateStr(), []);
+  const [selectedDate, setSelectedDate] = useState<string>(() => getLocalDateStr());
   const [searchTerm, setSearchTerm] = useState('');
   const [showHistory, setShowHistory] = useState(false);
 
@@ -101,7 +99,7 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
   const [newClientName, setNewClientName] = useState('');
   const [newClientPhone, setNewClientPhone] = useState('');
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(['srv-1']);
-  const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0]);
+  const [newDate, setNewDate] = useState(() => getLocalDateStr());
   const [newTime, setNewTime] = useState('09:00');
   const [newPrice, setNewPrice] = useState<number | ''>('');
   const [newNotes, setNewNotes] = useState('');
@@ -149,7 +147,7 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
 
   // Simulator State
-  const [simDate, setSimDate] = useState(new Date().toISOString().split('T')[0]);
+  const [simDate, setSimDate] = useState(() => getLocalDateStr());
 
   // Load Data
   const loadData = async (silent = false) => {
@@ -658,6 +656,8 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
   }, [slotsForSelectedDate, filteredAppointments, settings.slot_duration_minutes]);
 
   // Split schedule into past vs upcoming slots
+  // Regra: horários anteriores são EXCLUSIVAMENTE os horários do dia de HOJE que já passaram da hora atual!
+  // Datas e horas depois da data e hora atual mostram normalmente!
   const { pastSlots, upcomingSlots } = useMemo(() => {
     const now = new Date();
     const currentMin = now.getHours() * 60 + now.getMinutes();
@@ -668,14 +668,17 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
       const [sh, sm] = slot.startTime.split(':').map(Number);
       const startMin = (sh || 0) * 60 + (sm || 0);
       const endMin = startMin + slot.durationMinutes;
-      const isPast = selectedDate < todayStr || (selectedDate === todayStr && endMin <= currentMin);
+
+      // Horários anteriores são APENAS os horários do dia de HOJE que já terminaram
+      const isPastOnToday = selectedDate === todayStr && endMin <= currentMin;
 
       // Keep active appointment if in progress
       if (slot.appointment?.status === 'in_progress') {
         upcoming.push(slot);
-      } else if (isPast) {
+      } else if (isPastOnToday) {
         past.push(slot);
       } else {
+        // Datas futuras (selectedDate > todayStr) e horários atuais/futuros de hoje mostram normalmente!
         upcoming.push(slot);
       }
     });
@@ -684,9 +687,11 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
   }, [unifiedSchedule, selectedDate, todayStr]);
 
   const visibleSchedule = useMemo(() => {
+    // Se a data selecionada não for o dia de hoje (ex: datas futuras ou passadas), mostra tudo normalmente!
+    if (selectedDate !== todayStr) return unifiedSchedule;
     if (showHistory) return unifiedSchedule;
     return upcomingSlots;
-  }, [showHistory, unifiedSchedule, upcomingSlots]);
+  }, [showHistory, unifiedSchedule, upcomingSlots, selectedDate, todayStr]);
 
   const { pastAppointmentsCount, visibleAppointmentsList } = useMemo(() => {
     const now = new Date();
@@ -699,11 +704,11 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
       const [sh, sm] = (apt.appointment_time || '09:00').split(':').map(Number);
       const dur = Number(apt.duration_minutes) || 30;
       const endMin = (sh || 0) * 60 + (sm || 0) + dur;
-      const isPast = selectedDate < todayStr || (selectedDate === todayStr && endMin <= currentMin);
+      const isPastOnToday = selectedDate === todayStr && endMin <= currentMin;
 
       if (apt.status === 'in_progress') {
         list.push(apt);
-      } else if (isPast) {
+      } else if (isPastOnToday) {
         pastCount++;
         if (showHistory) list.push(apt);
       } else {
@@ -897,15 +902,15 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
             </div>
           </div>
 
-          {/* History Toggle Bar if there are past slots */}
-          {pastSlots.length > 0 && (
+          {/* History Toggle Bar ONLY for TODAY if there are past slots */}
+          {selectedDate === todayStr && pastSlots.length > 0 && (
             <div className="flex items-center justify-between p-3 rounded-2xl bg-dark-900/60 border border-white/5 shadow-sm">
               <div className="flex items-center gap-2 text-xs text-slate-400">
                 <History className="w-4 h-4 text-brand-400" />
                 <span>
                   {showHistory
-                    ? `Exibindo histórico completo (${pastSlots.length} horários anteriores)`
-                    : `${pastSlots.length} horário(s) anterior(es) oculto(s)`}
+                    ? `Exibindo histórico de hoje (${pastSlots.length} horários anteriores)`
+                    : `${pastSlots.length} horário(s) anterior(es) de hoje oculto(s)`}
                 </span>
               </div>
               <Button
@@ -915,7 +920,7 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
                 className="text-xs h-8 flex items-center gap-1.5"
               >
                 <History className="w-3.5 h-3.5" />
-                <span>{showHistory ? 'Ocultar Histórico' : `Ver Histórico (${pastSlots.length})`}</span>
+                <span>{showHistory ? 'Ocultar Histórico' : `Ver Horários Anteriores (${pastSlots.length})`}</span>
               </Button>
             </div>
           )}
