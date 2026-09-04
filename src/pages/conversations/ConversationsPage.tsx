@@ -58,7 +58,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { useWhatsApp } from '../../contexts/WhatsAppContext';
 import { StorageService, getBackendUrl } from '../../lib/storage';
 import { Conversation, Message, Contact, Flow, Attendant, CannedReply } from '../../types';
-import { formatPhone, formatTimeAgo, formatDate } from '../../lib/utils';
+import { formatPhone, formatTimeAgo, formatDate, getLocalDateStr } from '../../lib/utils';
 
 export const ConversationsPage: React.FC<{ onNavigate?: (path: string) => void }> = ({ onNavigate }) => {
   const { success, info, warning, error: toastError } = useToast();
@@ -104,7 +104,7 @@ export const ConversationsPage: React.FC<{ onNavigate?: (path: string) => void }
   // Quick Appointment Modal
   const [isQuickAptModalOpen, setIsQuickAptModalOpen] = useState(false);
   const [quickService, setQuickService] = useState('Corte Tradicional');
-  const [quickDate, setQuickDate] = useState(new Date().toISOString().split('T')[0]);
+  const [quickDate, setQuickDate] = useState(() => getLocalDateStr());
   const [quickTime, setQuickTime] = useState('09:00');
 
   // Delete Conversation Modal
