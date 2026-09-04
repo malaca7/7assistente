@@ -89,6 +89,19 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
   const [selectedDate, setSelectedDate] = useState<string>(() => getLocalDateStr());
   const [searchTerm, setSearchTerm] = useState('');
   const [showHistory, setShowHistory] = useState(false);
+  const [showFloatingButton, setShowFloatingButton] = useState(false);
+
+  // Monitor page scroll to activate floating action button
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      setShowFloatingButton(scrollY > 150);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Drag & Drop State
   const [draggedAptId, setDraggedAptId] = useState<string | null>(null);
@@ -2140,6 +2153,31 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
           </div>
         </form>
       </Modal>
+
+      {/* Botão Flutuante (FAB) de Novo Agendamento ao rolar a página */}
+      {activeTab === 'appointments' && (
+        <div
+          className={`fixed bottom-6 right-6 z-40 transition-all duration-300 transform ${
+            showFloatingButton
+              ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
+              : 'opacity-0 translate-y-8 scale-90 pointer-events-none'
+          }`}
+        >
+          <button
+            type="button"
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex items-center gap-2.5 px-5 py-3 rounded-full bg-gradient-to-r from-brand-600 via-brand-500 to-emerald-500 text-white font-black text-xs shadow-2xl shadow-brand-500/40 border border-white/20 hover:scale-105 active:scale-95 transition-all group backdrop-blur-md"
+            title="Novo Agendamento"
+          >
+            <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center group-hover:rotate-90 transition-transform duration-300">
+              <Plus className="w-3.5 h-3.5 text-white" />
+            </div>
+            <span className="tracking-wide uppercase font-extrabold drop-shadow-sm">
+              Novo Agendamento
+            </span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };
