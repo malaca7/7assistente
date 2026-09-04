@@ -30,6 +30,7 @@ import {
   initialAttendants,
   defaultCannedReplies
 } from './mockData';
+import { DEFAULT_ROLE_CONFIGS, RoleConfig } from './permissions';
 
 const STORAGE_KEYS = {
   ADMIN: '7assistente_admin_profile',
@@ -48,6 +49,7 @@ const STORAGE_KEYS = {
   CANNED_REPLIES: '7assistente_canned_replies',
   ATTENDANT_AUTH: '7assistente_attendant_session',
   SYSTEM_USERS: '7assistente_system_users',
+  ROLE_PERMISSIONS: '7assistente_role_permissions',
   BARBER_AUTH: '7assistente_barber_auth',
   CUSTOM_BACKEND_URL: '7assistente_custom_backend_url',
 };
@@ -1427,6 +1429,11 @@ export const StorageService = {
 
   async getAvailableSlots(dateStr: string, duration?: number): Promise<string[]> {
     const backendUrl = getBackendUrl();
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const minTimeTodayMinutes = now.getHours() * 60 + now.getMinutes() + 60; // strictly 1h ahead for today
+
+    let rawSlots: string[] = [];
     try {
       const url = duration
         ? `${backendUrl}/api/whatsapp/agenda/available-slots?date=${dateStr}&duration=${duration}`
@@ -1434,10 +1441,22 @@ export const StorageService = {
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        return data.available_slots || [];
+        rawSlots = data.available_slots || [];
+      } else {
+        rawSlots = ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00'];
       }
-    } catch {}
-    return ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00'];
+    } catch {
+      rawSlots = ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00'];
+    }
+
+    if (dateStr === todayStr) {
+      return rawSlots.filter((slot) => {
+        const [h, m] = slot.split(':').map(Number);
+        return (h || 0) * 60 + (m || 0) >= minTimeTodayMinutes;
+      });
+    }
+
+    return rawSlots;
   },
 
   async getNextAvailableSlot(dateStr: string, requestedTime: string, duration: number = 30): Promise<SlotSuggestion | null> {
@@ -1462,12 +1481,12 @@ export const StorageService = {
       const slots = await this.getAvailableSlots(curDateStr, duration);
       if (!slots || slots.length === 0) continue;
 
-      // Filter out slots that have already passed if checking today (with 5 min buffer)
+      // Filter out slots that have already passed if checking today (with 60 min advance buffer)
       const isCheckingToday = curDateStr === todayStr;
       const validSlots = slots.filter((s) => {
         if (!isCheckingToday) return true;
         const [sh, sm] = s.split(':').map(Number);
-        return (sh || 0) * 60 + (sm || 0) > nowMin + 5;
+        return (sh || 0) * 60 + (sm || 0) >= nowMin + 60;
       });
 
       if (validSlots.length === 0) continue;
@@ -1746,6 +1765,35 @@ export const StorageService = {
     }
 
     return { success: true, user: found };
+  },
+
+  // Role Permissions Persistence (Sincronização entre Usuários e Cargos)
+  getRolePermissions(): Record<string, RoleConfig> {
+    const saved = getItem<Record<string, RoleConfig>>(STORAGE_KEYS.ROLE_PERMISSIONS, DEFAULT_ROLE_CONFIGS);
+    return { ...DEFAULT_ROLE_CONFIGS, ...saved };
+  },
+
+  async saveRolePermissions(roleId: string, permissions: UserPermissions): Promise<Record<string, RoleConfig>> {
+    const current = this.getRolePermissions();
+    if (current[roleId]) {
+      current[roleId] = {
+        ...current[roleId],
+        permissions: { ...permissions },
+      };
+    }
+    setItem(STORAGE_KEYS.ROLE_PERMISSIONS, current);
+
+    // Sync to backend if possible
+    try {
+      const backendUrl = getBackendUrl();
+      await fetch(`${backendUrl}/api/whatsapp/roles`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roleId, permissions }),
+      });
+    } catch {}
+
+    return current;
   },
 
   // Barber Auth Session

@@ -17,6 +17,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { StorageService } from '../../lib/storage';
+import { QuickDateButtons } from './QuickDateButtons';
 import { 
   Appointment, 
   AgendaSettings, 
@@ -326,6 +327,23 @@ export const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = (
       }
     }
 
+    // 3.5. Enforce at least 1 hour ahead for today
+    const now = new Date();
+    const todayFormatted = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const isToday = appointmentDate === todayFormatted;
+    const minAdvanceMinutes = now.getHours() * 60 + now.getMinutes() + 60; // strictly 1 hour ahead
+
+    if (isToday && startMin < minAdvanceMinutes) {
+      const minH = Math.floor(minAdvanceMinutes / 60);
+      const minM = minAdvanceMinutes % 60;
+      const minFormatted = `${String(minH).padStart(2, '0')}:${String(minM).padStart(2, '0')}`;
+      toastError(
+        'Antecedência Mínima',
+        `Para agendamentos no dia de hoje, escolha um horário com no mínimo 1 hora de antecedência da hora atual (a partir de ${minFormatted}).`
+      );
+      return;
+    }
+
     // 4. Conflicts & simultaneous capacity check
     const maxCapacity = Number(settings?.simultaneous_barbers) || 1;
     const activeAppointments = existingAppointments.filter(
@@ -504,11 +522,30 @@ export const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = (
           </div>
         </div>
 
+        {/* Quick Date Selection Buttons */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <label className="text-slate-300 font-bold block">Escolha a Data do Atendimento *</label>
+            {appointmentDate === todayStr && (
+              <span className="text-[10px] text-amber-400 font-bold flex items-center gap-1">
+                <Clock className="w-3 h-3" /> Mínimo +1h à frente
+              </span>
+            )}
+          </div>
+          <QuickDateButtons
+            selectedDate={appointmentDate}
+            onSelectDate={(d) => {
+              setAppointmentDate(d);
+              setSuggestedSlot(null);
+            }}
+          />
+        </div>
+
         {/* Date & Time Selection */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <label className="text-slate-300 font-bold block">Data do Atendimento *</label>
+              <label className="text-slate-300 font-bold block">Data Selecionada *</label>
               <span className="text-[10px] text-slate-400 font-semibold">
                 {weekDaysNames[dayOfWeekIndex] || ''}
               </span>

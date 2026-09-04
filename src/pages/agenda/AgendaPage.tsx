@@ -52,6 +52,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { StorageService, getBackendUrl } from '../../lib/storage';
 import { Appointment, AgendaSettings, AgendaServiceItem, SlotSuggestion, DayScheduleConfig } from '../../types';
 import { formatPhone, formatDate } from '../../lib/utils';
+import { QuickDateButtons } from '../../components/agenda/QuickDateButtons';
 
 export interface AgendaPageProps {
   onNavigate: (path: string) => void;
@@ -366,6 +367,23 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
       const endTimeStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
       const baseSlot = settings.slot_duration_minutes || 30;
       const slotsCount = Math.max(1, Math.ceil(duration / baseSlot));
+
+      // Enforce at least 1 hour ahead for today
+      const now = new Date();
+      const todayFormatted = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const isToday = newDate === todayFormatted;
+      const minAdvanceMinutes = now.getHours() * 60 + now.getMinutes() + 60; // 1 hour ahead
+
+      if (isToday && startMin < minAdvanceMinutes) {
+        const minH = Math.floor(minAdvanceMinutes / 60);
+        const minM = minAdvanceMinutes % 60;
+        const minFormatted = `${String(minH).padStart(2, '0')}:${String(minM).padStart(2, '0')}`;
+        toastError(
+          'Antecedência Mínima',
+          `Para agendamentos no dia de hoje, escolha um horário com no mínimo 1 hora de antecedência da hora atual (a partir de ${minFormatted}).`
+        );
+        return;
+      }
 
       // Conflict detection: verify if requested time collides with existing appointments
       const conflict = appointments.find((a) => {
@@ -826,29 +844,19 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
       {/* ========================================================================= */}
       {activeTab === 'appointments' && (
         <div className="space-y-4 animate-in fade-in">
-          {/* Calendar Toolbar (Date Selector, Filters, Search) */}
-          <div className="flex flex-col md:flex-row items-center justify-between gap-3 bg-dark-900/50 p-3.5 rounded-2xl border border-white/5">
-            <div className="flex items-center gap-2 w-full md:w-auto">
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="bg-dark-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+          {/* Calendar Toolbar (Date Selector, Quick Date Buttons, Filters, Search) */}
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 bg-dark-900/50 p-3.5 rounded-2xl border border-white/5">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 w-full lg:w-auto">
+              <QuickDateButtons
+                selectedDate={selectedDate}
+                onSelectDate={(d) => setSelectedDate(d)}
+                showCustomInput={true}
               />
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
-                className="text-xs h-8"
-              >
-                Hoje
-              </Button>
 
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="bg-dark-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="bg-dark-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 w-full sm:w-auto"
               >
                 <option value="all">Todos os Status</option>
                 <option value="confirmed">Confirmados</option>
@@ -1944,9 +1952,28 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
             </div>
           </div>
 
+          {/* Quick Date Selection Buttons in Modal */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-slate-300 block">Atalhos de Data:</label>
+              {newDate === todayStr && (
+                <span className="text-[10px] text-amber-400 font-bold flex items-center gap-1">
+                  <Clock className="w-3 h-3" /> Horários com +1h de antecedência
+                </span>
+              )}
+            </div>
+            <QuickDateButtons
+              selectedDate={newDate}
+              onSelectDate={(d) => {
+                setNewDate(d);
+                setSuggestedSlot(null);
+              }}
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">Data *</label>
+              <label className="text-xs font-semibold text-slate-300 block mb-1">Data Selecionada *</label>
               <Input
                 type="date"
                 value={newDate}
@@ -1956,7 +1983,12 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">Horário *</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-slate-300 block">Horário *</label>
+                {newDate === todayStr && (
+                  <span className="text-[10px] text-amber-400 font-bold">(Mínimo 1h à frente)</span>
+                )}
+              </div>
               <Input
                 type="time"
                 value={newTime}

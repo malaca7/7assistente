@@ -1243,6 +1243,23 @@ app.post('/api/whatsapp/users/verify', (req, res) => {
   res.json({ success: true, user: found });
 });
 
+// Roles & Permissions API
+app.get('/api/whatsapp/roles', (req, res) => {
+  const db = loadDb();
+  res.json(db.rolePermissions || {});
+});
+
+app.post('/api/whatsapp/roles', (req, res) => {
+  const { roleId, permissions } = req.body || {};
+  const db = loadDb();
+  if (!db.rolePermissions) db.rolePermissions = {};
+  if (roleId && permissions) {
+    db.rolePermissions[roleId] = permissions;
+    saveDb(db);
+  }
+  res.json({ success: true, roles: db.rolePermissions });
+});
+
 app.delete('/api/whatsapp/agenda/appointments/:id', (req, res) => {
   const { id } = req.params;
   const db = loadDb();

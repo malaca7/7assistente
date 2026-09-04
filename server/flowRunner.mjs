@@ -237,6 +237,9 @@ export function loadDb() {
           if (backupData.systemUsers && backupData.systemUsers.length > 0) {
             parsed.systemUsers = backupData.systemUsers;
           }
+          if (backupData.rolePermissions) {
+            parsed.rolePermissions = { ...backupData.rolePermissions, ...(parsed.rolePermissions || {}) };
+          }
         }
       }
     }
@@ -260,6 +263,7 @@ export function loadDb() {
       attendants: parsed.attendants || [],
       agendaSettings: parsed.agendaSettings || DEFAULT_AGENDA_SETTINGS,
       systemUsers: (parsed.systemUsers && parsed.systemUsers.length > 0) ? parsed.systemUsers : DEFAULT_SYSTEM_USERS,
+      rolePermissions: parsed.rolePermissions || {},
     };
   }
 
@@ -277,6 +281,7 @@ export function loadDb() {
     attendants: [],
     agendaSettings: DEFAULT_AGENDA_SETTINGS,
     systemUsers: DEFAULT_SYSTEM_USERS,
+    rolePermissions: {},
   };
 }
 
@@ -370,6 +375,15 @@ export function getAvailableSlots(dateStr, db, requiredDuration = null) {
     }
 
     currentMinutes += baseSlotDuration;
+  // If requesting today, only return slots with at least 1 hour (60 min) advance notice
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  if (dateStr === todayStr) {
+    const minM = now.getHours() * 60 + now.getMinutes() + 60;
+    return slots.filter((s) => {
+      const [sh, sm] = s.split(':').map(Number);
+      return (sh * 60 + sm) >= minM;
+    });
   }
 
   return slots;
