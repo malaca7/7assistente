@@ -149,24 +149,123 @@ export const VariableNode: React.FC<NodeProps> = ({ id, selected, data }) => {
   const nodeData = data as unknown as FlowNodeData;
   const config = nodeData.config || {};
 
+  const assignments = Array.isArray(config.assignments) && config.assignments.length > 0
+    ? config.assignments
+    : config.varName
+      ? [{
+          varName: config.varName,
+          operation: config.operation || 'set_value',
+          value: config.varValue !== undefined ? config.varValue : '',
+          contactField: config.contactField || 'first_name',
+          sourceVar: config.sourceVar || '',
+          mathAmount: config.mathAmount ?? 1,
+        }]
+      : [];
+
+  const isConfigured = assignments.length > 0 && assignments.some((a: any) => Boolean(a.varName));
+
+  const formatOperationPreview = (item: any) => {
+    const op = item.operation || 'set_value';
+    switch (op) {
+      case 'set_value':
+        return <span className="truncate max-w-[90px] text-slate-200">"{String(item.value ?? '')}"</span>;
+      case 'set_number':
+        return <span className="text-emerald-400 font-bold">{String(item.value ?? 0)}</span>;
+      case 'set_boolean':
+        return (
+          <span className={item.value === true || item.value === 'true' ? 'text-emerald-400' : 'text-rose-400'}>
+            {item.value === true || item.value === 'true' ? 'true' : 'false'}
+          </span>
+        );
+      case 'copy_var':
+        return <span className="text-violet-300">← {'{{' + (item.sourceVar || item.value || 'origem') + '}}'}</span>;
+      case 'contact_field':
+        return <span className="text-cyan-300">👤 {item.contactField || 'nome'}</span>;
+      case 'math_increment':
+        return <span className="text-amber-300 font-bold">+{item.mathAmount ?? 1}</span>;
+      case 'math_decrement':
+        return <span className="text-amber-300 font-bold">-{item.mathAmount ?? 1}</span>;
+      case 'math_add':
+        return <span className="text-amber-300 font-bold">+{item.mathAmount ?? item.value ?? 0}</span>;
+      case 'math_subtract':
+        return <span className="text-amber-300 font-bold">-{item.mathAmount ?? item.value ?? 0}</span>;
+      case 'math_multiply':
+        return <span className="text-amber-300 font-bold">*{item.mathAmount ?? item.value ?? 1}</span>;
+      case 'math_divide':
+        return <span className="text-amber-300 font-bold">/{item.mathAmount ?? item.value ?? 1}</span>;
+      case 'text_first_name':
+        return <span className="text-indigo-300">🔤 1º nome</span>;
+      case 'text_uppercase':
+        return <span className="text-indigo-300">🔤 MAIÚSC.</span>;
+      case 'text_lowercase':
+        return <span className="text-indigo-300">🔤 minúsc.</span>;
+      case 'text_capitalize':
+        return <span className="text-indigo-300">🔤 Capitalize</span>;
+      case 'text_numbers_only':
+        return <span className="text-indigo-300">🔢 123</span>;
+      case 'text_trim':
+        return <span className="text-indigo-300">✂ Trim</span>;
+      case 'date_today_br':
+        return <span className="text-emerald-300">📅 Hoje (BR)</span>;
+      case 'date_today_iso':
+        return <span className="text-emerald-300">📅 Hoje (ISO)</span>;
+      case 'date_tomorrow_br':
+        return <span className="text-emerald-300">📅 Amanhã</span>;
+      case 'time_now':
+        return <span className="text-emerald-300">⏰ Hora Atual</span>;
+      case 'datetime_now':
+        return <span className="text-emerald-300">📅⏰ Data/Hora</span>;
+      case 'timestamp_now':
+        return <span className="text-emerald-300">⚡ Timestamp</span>;
+      case 'clear_var':
+        return <span className="text-rose-400">🗑️ Limpar</span>;
+      default:
+        return <span className="truncate max-w-[90px] text-slate-200">{String(item.value ?? '')}</span>;
+    }
+  };
+
   return (
     <BaseNode
       id={id}
       selected={selected}
       title={nodeData.label || 'Definir Variável'}
-      subtitle="Armazenar estado"
+      subtitle={
+        assignments.length > 1
+          ? `${assignments.length} variáveis`
+          : assignments[0]?.varName
+            ? `{{${assignments[0].varName}}}`
+            : 'Armazenar estado'
+      }
       icon={<Sliders className="w-4 h-4" />}
-      iconBg="bg-violet-500"
+      iconBg="bg-violet-600"
       accentColor="bg-violet-500"
       hasInput={true}
       hasOutput={true}
-      isConfigured={Boolean(config.varName)}
+      isConfigured={isConfigured}
     >
-      <div className="p-2 rounded-lg bg-dark-950/70 border border-slate-800 text-[11px] text-slate-300 flex items-center justify-between font-mono gap-2">
-        <VariableBadge name={config.varName || 'variavel'} />
-        <span className="text-slate-500">=</span>
-        <span className="truncate max-w-[100px] text-slate-200">{config.varValue || 'valor'}</span>
-      </div>
+      {assignments.length > 0 ? (
+        <div className="space-y-1.5">
+          {assignments.slice(0, 3).map((item: any, idx: number) => (
+            <div
+              key={idx}
+              className="p-1.5 rounded-lg bg-dark-950/70 border border-slate-800/80 text-[11px] text-slate-300 flex items-center justify-between font-mono gap-1.5"
+            >
+              <VariableBadge name={item.varName || 'variavel'} />
+              <span className="text-slate-500 text-[10px]">=</span>
+              <div className="text-[10px]">{formatOperationPreview(item)}</div>
+            </div>
+          ))}
+          {assignments.length > 3 && (
+            <p className="text-[9px] text-slate-400 text-center font-medium">
+              +{assignments.length - 3} mais variável(is)
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className="p-2 rounded-lg bg-dark-950/40 border border-dashed border-slate-800 text-[10px] text-slate-400 text-center">
+          Clique para configurar variáveis
+        </div>
+      )}
     </BaseNode>
   );
 };
