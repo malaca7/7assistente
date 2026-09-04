@@ -225,8 +225,8 @@ export function loadDb() {
           if (backupData.settings && Object.keys(backupData.settings).length > 0) {
             parsed.settings = { ...parsed.settings, ...backupData.settings };
           }
-          if (backupData.contacts && Object.keys(backupData.contacts).length > 0) {
-            parsed.contacts = { ...backupData.contacts, ...parsed.contacts };
+          if (parsed.contacts === undefined && backupData.contacts && Object.keys(backupData.contacts).length > 0) {
+            parsed.contacts = { ...backupData.contacts };
           }
           if (backupData.conversations && Object.keys(backupData.conversations).length > 0) {
             parsed.conversations = { ...backupData.conversations, ...parsed.conversations };

@@ -125,17 +125,15 @@ async function mergeLive() {
       const contactsRes = await fetch(`${LIVE_URL}/api/whatsapp/contacts`, { signal: AbortSignal.timeout(5000) });
       if (contactsRes.ok) {
         const liveContacts = await contactsRes.json();
-        if (Array.isArray(liveContacts) && liveContacts.length > 0) {
-          if (!localDb.contacts) localDb.contacts = {};
+        if (Array.isArray(liveContacts)) {
+          const freshContacts = {};
           liveContacts.forEach(c => {
             const cleanPhone = (c.phone || c.id || '').replace(/\D/g, '');
             if (cleanPhone && (c.is_registered === true || (c.tags && c.tags.includes('Cliente')))) {
-              localDb.contacts[cleanPhone] = {
-                ...(localDb.contacts[cleanPhone] || {}),
-                ...c,
-              };
+              freshContacts[cleanPhone] = c;
             }
           });
+          localDb.contacts = freshContacts;
           console.log(`[MergeLive] ✅ ${Object.keys(localDb.contacts).length} contatos sincronizados.`);
         }
       }
