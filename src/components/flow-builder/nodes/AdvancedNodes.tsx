@@ -30,8 +30,8 @@ export const ConditionNode: React.FC<NodeProps> = ({ id, selected, data }) => {
   const config = nodeData.config || {};
 
   const outputs = [
-    { id: 'true', label: 'Verdadeiro (TRUE)', color: '!bg-brand-400' },
-    { id: 'false', label: 'Falso (FALSE)', color: '!bg-rose-400' },
+    { id: 'true', label: 'SIM / Verdadeiro', color: '!bg-emerald-400' },
+    { id: 'false', label: 'NÃO / Falso', color: '!bg-rose-400' },
   ];
 
   return (
@@ -39,24 +39,27 @@ export const ConditionNode: React.FC<NodeProps> = ({ id, selected, data }) => {
       id={id}
       selected={selected}
       title={nodeData.label || 'Condição / IF'}
-      subtitle="Desvio condicional"
+      subtitle="Desvio Condicional"
       icon={<GitBranch className="w-4 h-4" />}
-      iconBg="bg-purple-500"
+      iconBg="bg-gradient-to-tr from-purple-600 to-indigo-600"
       accentColor="bg-purple-500"
       hasInput={true}
       hasOutput={false}
       customOutputs={outputs}
       isConfigured={Boolean(config.variable && config.operator)}
     >
-      <div className="p-2 rounded-lg bg-dark-950/70 border border-slate-800 text-[11px] text-slate-300 font-mono flex items-center gap-1.5 flex-wrap">
+      <div className="p-2.5 rounded-xl bg-dark-950/90 border border-purple-500/20 text-[11px] text-slate-300 font-mono flex items-center gap-1.5 flex-wrap">
         {config.variable ? (
           <>
+            <span className="text-[10px] text-slate-400 font-sans">Se:</span>
             <VariableBadge name={config.variable} />
-            <span className="text-purple-400 font-bold">{config.operator || '=='}</span>
-            <span className="text-slate-200 truncate font-sans">"{config.value || ''}"</span>
+            <span className="text-purple-400 font-bold px-1 py-0.5 rounded bg-purple-950/80 border border-purple-800/60 text-[10px]">
+              {config.operator || '=='}
+            </span>
+            <span className="text-slate-200 truncate font-sans font-semibold">"{config.value || ''}"</span>
           </>
         ) : (
-          <span className="italic text-slate-500 font-sans">Configure a regra de condição...</span>
+          <span className="italic text-slate-500 font-sans text-[10.5px]">Clique para configurar a regra IF...</span>
         )}
       </div>
     </BaseNode>
