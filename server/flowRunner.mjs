@@ -375,6 +375,8 @@ export function getAvailableSlots(dateStr, db, requiredDuration = null) {
     }
 
     currentMinutes += baseSlotDuration;
+  }
+
   // If requesting today, only return slots with at least 1 hour (60 min) advance notice
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
