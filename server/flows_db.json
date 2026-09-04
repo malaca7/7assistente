@@ -29,7 +29,7 @@
         "id": "node-trigger-1788033748050",
         "type": "trigger",
         "position": {
-          "x": 430,
+          "x": 275,
           "y": 80
         },
         "data": {
@@ -48,8 +48,8 @@
         "id": "node-check_contact-1788102919201",
         "type": "check_contact",
         "position": {
-          "x": 430,
-          "y": 380
+          "x": 275,
+          "y": 250
         },
         "data": {
           "label": "Verificar Contato (Novo vs Salvo)",
@@ -63,8 +63,8 @@
         "id": "node-message-1788033773183",
         "type": "message",
         "position": {
-          "x": 210,
-          "y": 730
+          "x": 80,
+          "y": 460
         },
         "data": {
           "label": "Enviar Mensagem",
@@ -81,8 +81,8 @@
         "id": "node-question-1788033927695",
         "type": "question",
         "position": {
-          "x": 210,
-          "y": 1060
+          "x": 80,
+          "y": 680
         },
         "data": {
           "label": "Pergunta & Resposta",
@@ -100,8 +100,8 @@
         "id": "node-update_contact-1788041687381",
         "type": "update_contact",
         "position": {
-          "x": 210,
-          "y": 1400
+          "x": 80,
+          "y": 880
         },
         "data": {
           "label": "Salvar / Vincular Dados",
@@ -120,8 +120,8 @@
         "id": "node-message-1788102948794",
         "type": "message",
         "position": {
-          "x": 650,
-          "y": 730
+          "x": 470,
+          "y": 460
         },
         "data": {
           "label": "Enviar Mensagem",
@@ -138,8 +138,8 @@
         "id": "node-ask_date-1788104674417",
         "type": "ask_date",
         "position": {
-          "x": 430,
-          "y": 1740
+          "x": 275,
+          "y": 1080
         },
         "data": {
           "label": "1. Escolher Dia do Agendamento",
@@ -157,8 +157,8 @@
         "id": "node-services_catalog-1788105189425",
         "type": "services_catalog",
         "position": {
-          "x": 430,
-          "y": 2100
+          "x": 275,
+          "y": 1290
         },
         "data": {
           "label": "2. Catálogo de Serviços & Preços",
@@ -179,8 +179,8 @@
         "id": "node-schedule_contact-1788104743355",
         "type": "schedule_contact",
         "position": {
-          "x": 430,
-          "y": 2480
+          "x": 275,
+          "y": 1510
         },
         "data": {
           "label": "3. Horários Livres da Agenda",
@@ -200,8 +200,8 @@
         "id": "node-confirm_booking-1788104787175",
         "type": "confirm_booking",
         "position": {
-          "x": 430,
-          "y": 2860
+          "x": 275,
+          "y": 1730
         },
         "data": {
           "label": "4. Confirmar & Gravar Agendamento",
@@ -219,8 +219,8 @@
         "id": "node-trigger-1788453758817",
         "type": "trigger",
         "position": {
-          "x": 360,
-          "y": 60
+          "x": 275,
+          "y": 80
         },
         "data": {
           "label": "Gatilho Inicial",
@@ -244,8 +244,8 @@
         "id": "node-message-1788453762849",
         "type": "message",
         "position": {
-          "x": 360,
-          "y": 730
+          "x": 275,
+          "y": 1060
         },
         "data": {
           "label": "Enviar Mensagem",
@@ -268,8 +268,8 @@
         "id": "node-check_contact-1788454082098",
         "type": "check_contact",
         "position": {
-          "x": 360,
-          "y": 176
+          "x": 275,
+          "y": 250
         },
         "data": {
           "label": "Verificar Contato (Novo vs Salvo)",
@@ -289,8 +289,8 @@
         "id": "node-message-1788454313555",
         "type": "message",
         "position": {
-          "x": 210,
-          "y": 982
+          "x": 275,
+          "y": 1440
         },
         "data": {
           "label": "Enviar Mensagem (Cópia)",
@@ -313,8 +313,8 @@
         "id": "node-message-1788454336019",
         "type": "message",
         "position": {
-          "x": 210,
-          "y": 1138
+          "x": 275,
+          "y": 1630
         },
         "data": {
           "label": "Enviar Mensagem (Cópia) (Cópia)",
@@ -337,8 +337,8 @@
         "id": "node-message-1788454375969",
         "type": "message",
         "position": {
-          "x": 360,
-          "y": 856
+          "x": 275,
+          "y": 1250
         },
         "data": {
           "label": "Enviar Mensagem (Cópia)",
@@ -361,8 +361,8 @@
         "id": "node-question-1788454431053",
         "type": "question",
         "position": {
-          "x": 360,
-          "y": 322
+          "x": 80,
+          "y": 460
         },
         "data": {
           "label": "Pergunta & Resposta",
@@ -386,8 +386,8 @@
         "id": "node-update_contact-1788454454642",
         "type": "update_contact",
         "position": {
-          "x": 360,
-          "y": 458
+          "x": 80,
+          "y": 660
         },
         "data": {
           "label": "Salvar / Vincular Dados",
@@ -413,8 +413,8 @@
         "id": "node-variable-1788482057050",
         "type": "variable",
         "position": {
-          "x": 360,
-          "y": 594
+          "x": 80,
+          "y": 860
         },
         "data": {
           "label": "Definir Variável",
@@ -448,8 +448,8 @@
         "id": "node-buttons-1788485584016",
         "type": "buttons",
         "position": {
-          "x": 360,
-          "y": 1264
+          "x": 275,
+          "y": 1820
         },
         "data": {
           "label": "Botões Interativos WhatsApp",
@@ -486,8 +486,8 @@
         "id": "node-show_services-1788485638335",
         "type": "show_services",
         "position": {
-          "x": 780,
-          "y": 1440
+          "x": 665,
+          "y": 2106
         },
         "data": {
           "label": "1. Exibir Catálogo de Serviços",
@@ -510,8 +510,8 @@
         "id": "node-delay-1788485675993",
         "type": "delay",
         "position": {
-          "x": 705,
-          "y": 1020
+          "x": 665,
+          "y": 2326
         },
         "data": {
           "label": "Aguardar / Espera",

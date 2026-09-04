@@ -414,12 +414,12 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
     [screenToFlowPosition, spawnNodeAtPosition]
   );
 
-  // Advanced Top-to-Bottom Auto-Layout Algorithm (Hierarchical Sugiyama DAG with Zero Overlap & Straight Paths)
+  // Advanced Top-to-Bottom Auto-Layout Algorithm (Strict Hierarchical DAG with Zero Overlap & Downward Flow)
   const handleAutoLayout = useCallback(() => {
     if (!nodes || nodes.length === 0) return;
 
     try {
-      // 1. Dynamic Height Estimator (Compact & Proportional)
+      // 1. Dynamic Height Estimator
       const getNodeHeight = (n: Node): number => {
         const type = n.data?.nodeType || n.type;
         const cfg = (n.data as any)?.config || {};
@@ -428,68 +428,74 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
             return 90;
           case 'message': {
             const text = cfg.text || '';
-            return text.length > 80 ? 130 : 100;
+            return text.length > 80 ? 140 : 110;
           }
           case 'buttons': {
             const btnCount = (cfg.buttons || []).length || 2;
-            return 100 + Math.min(btnCount, 4) * 26;
+            return 110 + Math.min(btnCount, 4) * 32;
           }
           case 'question':
-            return 110;
-          case 'check_contact':
             return 120;
+          case 'check_contact':
+            return 130;
           case 'services_catalog':
           case 'select_service':
           case 'show_services':
-            return 130;
+            return 140;
           case 'schedule_contact':
           case 'select_time_slot':
-            return 130;
+            return 140;
           case 'ask_date':
           case 'select_date':
-            return 120;
-          case 'confirm_booking':
             return 130;
+          case 'confirm_booking':
+            return 140;
           case 'condition':
-            return 120;
+            return 130;
           case 'variable': {
             const count = Array.isArray(cfg.assignments) ? cfg.assignments.length : 1;
-            return 90 + Math.min(count, 3) * 20;
+            return 95 + Math.min(count, 3) * 25;
           }
           case 'ai_agent':
-            return 110;
+            return 120;
           case 'human_handoff':
-            return 100;
-          case 'delay':
-            return 75;
-          case 'media':
             return 110;
+          case 'delay':
+            return 85;
+          case 'media':
+            return 120;
           case 'end_flow':
           case 'finish_flow':
           case 'end':
-            return 80;
+            return 85;
           default:
-            return 110;
+            return 120;
         }
       };
 
-      const NODE_WIDTH = 280;
-      const HORIZONTAL_GAP = 20; // Distância horizontal próxima e compacta entre os nós
-      const VERTICAL_GAP = 26; // Distância vertical próxima e compacta entre as linhas
-      const START_X = 60;
-      const START_Y = 60;
-      const MAIN_CENTER_X = 500;
+      const NODE_WIDTH = 320;
+      const HORIZONTAL_GAP = 70;
+      const VERTICAL_GAP = 80;
+      const COL_WIDTH = NODE_WIDTH + HORIZONTAL_GAP; // 390px
+      const START_X = 80;
+      const START_Y = 80;
+      const MAIN_CENTER_X = 550;
 
       // 2. Build Adjacency Graph
-      const childrenMap = new Map<string, string[]>();
-      const parentMap = new Map<string, string[]>();
+      const allChildrenMap = new Map<string, string[]>();
+      const allParentMap = new Map<string, string[]>();
+      const forwardChildrenMap = new Map<string, string[]>();
+      const forwardParentMap = new Map<string, string[]>();
+      const edgeHandleMap = new Map<string, string | undefined>();
 
       nodes.forEach((n) => {
-        childrenMap.set(n.id, []);
-        parentMap.set(n.id, []);
+        allChildrenMap.set(n.id, []);
+        allParentMap.set(n.id, []);
+        forwardChildrenMap.set(n.id, []);
+        forwardParentMap.set(n.id, []);
       });
 
-      // Sort edges so branching handles preserve left-to-right order
+      // Sort edges so branching handles preserve natural left-to-right order
       const sortedEdges = [...(edges || [])].sort((a, b) => {
         const hA = a.sourceHandle || '';
         const hB = b.sourceHandle || '';
@@ -501,212 +507,259 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
       });
 
       sortedEdges.forEach((e) => {
-        if (childrenMap.has(e.source) && childrenMap.has(e.target)) {
-          if (!childrenMap.get(e.source)!.includes(e.target)) {
-            childrenMap.get(e.source)!.push(e.target);
+        if (allChildrenMap.has(e.source) && allChildrenMap.has(e.target)) {
+          if (!allChildrenMap.get(e.source)!.includes(e.target)) {
+            allChildrenMap.get(e.source)!.push(e.target);
           }
-          if (!parentMap.get(e.target)!.includes(e.source)) {
-            parentMap.get(e.target)!.push(e.source);
+          if (!allParentMap.get(e.target)!.includes(e.source)) {
+            allParentMap.get(e.target)!.push(e.source);
           }
+          edgeHandleMap.set(`${e.source}->${e.target}`, e.sourceHandle || undefined);
         }
       });
 
-      // 3. Identify Roots
-      let roots = nodes.filter(
-        (n) => (n.data?.nodeType || n.type) === 'trigger' || (parentMap.get(n.id)?.length || 0) === 0
-      );
-      if (roots.length === 0 && nodes.length > 0) {
-        roots.push(nodes[0]);
-      }
+      // 3. Cycle Detection (DFS 3-color) to identify loop back-edges
+      const WHITE = 0, GRAY = 1, BLACK = 2;
+      const state = new Map<string, number>();
+      nodes.forEach((n) => state.set(n.id, WHITE));
 
-      // 4. BFS Level Assignment (Strictly Cycle-Proof, guarantees no infinite loop or inflated ranks)
-      const rankMap = new Map<string, number>();
-      const visited = new Set<string>();
-      const queue: string[] = [];
-
-      roots.forEach((r) => {
-        rankMap.set(r.id, 0);
-        visited.add(r.id);
-        queue.push(r.id);
+      const inDegree = new Map<string, number>();
+      nodes.forEach((n) => inDegree.set(n.id, 0));
+      (edges || []).forEach((e) => {
+        if (inDegree.has(e.target)) {
+          inDegree.set(e.target, inDegree.get(e.target)! + 1);
+        }
       });
 
-      while (queue.length > 0) {
-        const u = queue.shift()!;
-        const curLevel = rankMap.get(u) || 0;
-        const children = childrenMap.get(u) || [];
+      const startNodes = nodes.slice().sort((a, b) => {
+        const isTrigA = (a.data?.nodeType || a.type) === 'trigger' ? 1 : 0;
+        const isTrigB = (b.data?.nodeType || b.type) === 'trigger' ? 1 : 0;
+        if (isTrigA !== isTrigB) return isTrigB - isTrigA;
+        return (inDegree.get(a.id) || 0) - (inDegree.get(b.id) || 0);
+      });
 
-        for (const v of children) {
-          if (!visited.has(v)) {
-            visited.add(v);
-            rankMap.set(v, curLevel + 1);
-            queue.push(v);
+      const backEdges = new Set<string>();
+      const dfs = (u: string) => {
+        state.set(u, GRAY);
+        for (const v of allChildrenMap.get(u) || []) {
+          if (state.get(v) === GRAY) {
+            // v is an active ancestor on DFS recursion stack => back-edge!
+            backEdges.add(`${u}->${v}`);
           } else {
-            // Already visited. If it is a forward branch, advance rank only if v is NOT an ancestor of u (cycle check)
-            const vLevel = rankMap.get(v) || 0;
-            if (curLevel + 1 > vLevel) {
-              let isAncestor = false;
-              const reachQueue: string[] = [v];
-              const reachVisited = new Set<string>([v]);
-              while (reachQueue.length > 0) {
-                const curr = reachQueue.shift()!;
-                if (curr === u) {
-                  isAncestor = true;
-                  break;
-                }
-                for (const nxt of childrenMap.get(curr) || []) {
-                  if (!reachVisited.has(nxt)) {
-                    reachVisited.add(nxt);
-                    reachQueue.push(nxt);
-                  }
-                }
-              }
-
-              if (!isAncestor) {
-                rankMap.set(v, curLevel + 1);
-                queue.push(v);
-              }
+            if (!forwardChildrenMap.get(u)!.includes(v)) {
+              forwardChildrenMap.get(u)!.push(v);
             }
+            if (!forwardParentMap.get(v)!.includes(u)) {
+              forwardParentMap.get(v)!.push(u);
+            }
+            if (state.get(v) === WHITE) {
+              dfs(v);
+            }
+          }
+        }
+        state.set(u, BLACK);
+      };
+
+      startNodes.forEach((n) => {
+        if (state.get(n.id) === WHITE) dfs(n.id);
+      });
+
+      // 4. Longest-Path Layering on Forward DAG
+      // Strictly guarantees that for every forward connection, rank[target] >= rank[source] + 1
+      const dagInDegree = new Map<string, number>();
+      nodes.forEach((n) => dagInDegree.set(n.id, 0));
+      for (const [, children] of forwardChildrenMap.entries()) {
+        for (const v of children) {
+          dagInDegree.set(v, (dagInDegree.get(v) || 0) + 1);
+        }
+      }
+
+      const dagQueue: string[] = [];
+      nodes.forEach((n) => {
+        if (dagInDegree.get(n.id) === 0) dagQueue.push(n.id);
+      });
+
+      const rankMap = new Map<string, number>();
+      nodes.forEach((n) => rankMap.set(n.id, 0));
+
+      while (dagQueue.length > 0) {
+        const u = dagQueue.shift()!;
+        const uRank = rankMap.get(u) || 0;
+        for (const v of forwardChildrenMap.get(u) || []) {
+          rankMap.set(v, Math.max(rankMap.get(v) || 0, uRank + 1));
+          dagInDegree.set(v, (dagInDegree.get(v) || 0) - 1);
+          if (dagInDegree.get(v) === 0) {
+            dagQueue.push(v);
           }
         }
       }
 
-      // Visit any disconnected nodes
+      // Handle any disconnected components
       nodes.forEach((n) => {
-        if (!visited.has(n.id)) {
-          visited.add(n.id);
-          rankMap.set(n.id, 0);
-          queue.push(n.id);
-          while (queue.length > 0) {
-            const u = queue.shift()!;
-            const curLevel = rankMap.get(u) || 0;
-            for (const v of childrenMap.get(u) || []) {
-              if (!visited.has(v)) {
-                visited.add(v);
-                rankMap.set(v, curLevel + 1);
-                queue.push(v);
-              }
-            }
-          }
-        }
+        if (!rankMap.has(n.id)) rankMap.set(n.id, 0);
       });
 
-      // 5. Rank Compression: strictly eliminate all empty row gaps (garante totalRows <= nodes.length)
+      // Rank Compression: eliminate any empty gaps while strictly preserving rank(target) > rank(source)
       const distinctRanks = Array.from(new Set(rankMap.values())).sort((a, b) => a - b);
       const compressedRankMap = new Map<number, number>();
       distinctRanks.forEach((oldR, newR) => {
         compressedRankMap.set(oldR, newR);
       });
-
       nodes.forEach((n) => {
-        const oldR = rankMap.get(n.id) ?? 0;
-        rankMap.set(n.id, compressedRankMap.get(oldR) ?? 0);
+        rankMap.set(n.id, compressedRankMap.get(rankMap.get(n.id) ?? 0) ?? 0);
       });
 
       const maxRank = Math.max(...Array.from(rankMap.values()), 0);
       const totalRows = Math.min(maxRank + 1, nodes.length);
       const rows: Node[][] = Array.from({ length: totalRows }, () => []);
-
       nodes.forEach((n) => {
         const r = Math.min(rankMap.get(n.id) || 0, totalRows - 1);
         rows[r].push(n);
       });
 
-      // 6. Calculate Uniform Vertical Position (Y) for each Linha (Row)
+      // 5. Compute Y position for each row with uniform VERTICAL_GAP
       const rowYPositions = new Map<number, number>();
       let currentY = START_Y;
       for (let r = 0; r < totalRows; r++) {
         rowYPositions.set(r, currentY);
         const rowNodes = rows[r];
-        const maxHeightInRow = rowNodes.length > 0 
+        const maxHeightInRow = rowNodes.length > 0
           ? Math.max(...rowNodes.map(getNodeHeight))
           : 110;
         currentY += maxHeightInRow + VERTICAL_GAP;
       }
 
-      // 7. Horizontal (X) Positioning by Row (Linha)
+      // Check if a node leads to a back-edge loop back to an ancestor
+      const nodeLeadsToBackEdge = (startNodeId: string, targetAncestorId: string): boolean => {
+        const q = [startNodeId];
+        const vis = new Set<string>([startNodeId]);
+        while (q.length > 0) {
+          const cur = q.shift()!;
+          if (backEdges.has(`${cur}->${targetAncestorId}`)) return true;
+          for (const nxt of forwardChildrenMap.get(cur) || []) {
+            if (!vis.has(nxt)) {
+              vis.add(nxt);
+              q.push(nxt);
+            }
+          }
+        }
+        return false;
+      };
+
+      // 6. Branch Offset Calculator
+      const getHandleOffset = (parent: Node, childId: string): number => {
+        const pType = parent.data?.nodeType || parent.type;
+        const pCfg = (parent.data as any)?.config || {};
+        const handle = edgeHandleMap.get(`${parent.id}->${childId}`) || '';
+
+        // Check contact: 2 handles: is_new (left) vs is_existing (right)
+        if (pType === 'check_contact' || handle === 'is_new' || handle === 'is_existing') {
+          if (handle === 'is_new' || handle.includes('new') || handle === 'true') {
+            return -COL_WIDTH / 2;
+          }
+          if (handle === 'is_existing' || handle.includes('exist') || handle === 'false') {
+            return COL_WIDTH / 2;
+          }
+        }
+
+        // Condition: true (left) vs false (right)
+        if (pType === 'condition' || handle === 'true' || handle === 'false') {
+          return handle === 'true' ? -COL_WIDTH / 2 : COL_WIDTH / 2;
+        }
+
+        // If this branch loops back to the parent, offset to side lane so wire has clear corridor
+        const loopsBackToParent = nodeLeadsToBackEdge(childId, parent.id);
+        if (loopsBackToParent) {
+          if (handle === 'btn_1' || handle.includes('left') || handle === 'is_new') {
+            return -COL_WIDTH;
+          }
+          return COL_WIDTH;
+        }
+
+        // Buttons: 2 or 3 buttons
+        if (pType === 'buttons' || handle.startsWith('btn_')) {
+          const btnCount = (pCfg.buttons || []).length || 2;
+          let btnIdx = 0;
+          if (handle.startsWith('btn_')) {
+            const num = parseInt(handle.replace('btn_', ''), 10);
+            if (Number.isFinite(num) && num > 0) btnIdx = num - 1;
+          }
+          return (btnIdx - (btnCount - 1) / 2) * COL_WIDTH;
+        }
+
+        // Multiple generic children
+        const children = forwardChildrenMap.get(parent.id) || [];
+        if (children.length > 1) {
+          const idx = children.indexOf(childId);
+          if (idx !== -1) {
+            return (idx - (children.length - 1) / 2) * COL_WIDTH;
+          }
+        }
+
+        return 0;
+      };
+
+      // 7. Compute X positions with Branch Offsets + Barycenter + Collision Prevention
       const xPositions = new Map<string, number>();
 
       for (let r = 0; r < totalRows; r++) {
         const rowNodes = rows[r];
-        if (rowNodes.length === 1) {
-          const node = rowNodes[0];
-          const upstreamParents = (parentMap.get(node.id) || []).filter(
-            (p) => (rankMap.get(p) ?? 999) < r && xPositions.has(p)
-          );
 
-          if (upstreamParents.length === 1 && Number.isFinite(xPositions.get(upstreamParents[0]))) {
-            xPositions.set(node.id, xPositions.get(upstreamParents[0])!);
-          } else {
-            xPositions.set(node.id, MAIN_CENTER_X - NODE_WIDTH / 2);
-          }
-        } else {
+        if (r === 0) {
+          // Row 0 roots: center around MAIN_CENTER_X
           const totalWidth = rowNodes.length * NODE_WIDTH + (rowNodes.length - 1) * HORIZONTAL_GAP;
           let startX = MAIN_CENTER_X - totalWidth / 2;
-
-          rowNodes.sort((a, b) => {
-            const parentsA = (parentMap.get(a.id) || []).filter((p) => xPositions.has(p));
-            const parentsB = (parentMap.get(b.id) || []).filter((p) => xPositions.has(p));
-            const avgParentXA = parentsA.length > 0 
-              ? parentsA.map((p) => xPositions.get(p) ?? MAIN_CENTER_X).reduce((s, c) => s + c, 0) / parentsA.length 
-              : MAIN_CENTER_X;
-            const avgParentXB = parentsB.length > 0 
-              ? parentsB.map((p) => xPositions.get(p) ?? MAIN_CENTER_X).reduce((s, c) => s + c, 0) / parentsB.length 
-              : MAIN_CENTER_X;
-            return avgParentXA - avgParentXB;
+          rowNodes.forEach((n) => {
+            xPositions.set(n.id, startX);
+            startX += COL_WIDTH;
           });
-
-          rowNodes.forEach((node) => {
-            xPositions.set(node.id, startX);
-            startX += NODE_WIDTH + HORIZONTAL_GAP;
-          });
+          continue;
         }
-      }
 
-      // 8. Forward sweep: align single-child chains directly under their parents if no conflict
-      for (let r = 1; r < totalRows; r++) {
-        const rowNodes = rows[r];
-        rowNodes.forEach((node) => {
-          const upstreamParents = (parentMap.get(node.id) || []).filter(
-            (p) => (rankMap.get(p) ?? 999) < r && xPositions.has(p)
-          );
+        // Row r >= 1: compute ideal X for each node based on its parents and branch offsets
+        rowNodes.forEach((n) => {
+          const upstreamParents = (forwardParentMap.get(n.id) || []).filter((p) => xPositions.has(p));
           if (upstreamParents.length === 1) {
-            const parentX = xPositions.get(upstreamParents[0]);
-            if (Number.isFinite(parentX)) {
-              const wouldCollide = rowNodes.some((other) => {
-                if (other.id === node.id) return false;
-                const otherX = xPositions.get(other.id);
-                if (!Number.isFinite(otherX)) return false;
-                return Math.abs(otherX! - parentX!) < NODE_WIDTH + HORIZONTAL_GAP;
-              });
-              if (!wouldCollide) {
-                xPositions.set(node.id, parentX!);
-              }
-            }
+            const pId = upstreamParents[0];
+            const pNode = nodes.find((nd) => nd.id === pId);
+            const pX = xPositions.get(pId) ?? (MAIN_CENTER_X - NODE_WIDTH / 2);
+            const offset = pNode ? getHandleOffset(pNode, n.id) : 0;
+            xPositions.set(n.id, pX + offset);
+          } else if (upstreamParents.length > 1) {
+            // Merge node: center between effective incoming branch positions
+            const incomingXs = upstreamParents.map((pId) => {
+              const pNode = nodes.find((nd) => nd.id === pId);
+              const pX = xPositions.get(pId) ?? (MAIN_CENTER_X - NODE_WIDTH / 2);
+              const offset = pNode ? getHandleOffset(pNode, n.id) : 0;
+              return pX + offset;
+            });
+            const avgX = incomingXs.reduce((sum, x) => sum + x, 0) / incomingXs.length;
+            xPositions.set(n.id, avgX);
+          } else {
+            xPositions.set(n.id, MAIN_CENTER_X - NODE_WIDTH / 2);
           }
         });
-      }
 
-      // 9. Strict Collision Prevention: ensure minimum horizontal gap on every row
-      for (let r = 0; r < totalRows; r++) {
-        const rowNodes = rows[r];
-        if (rowNodes.length <= 1) continue;
+        // If multiple nodes in row, sort by current X to resolve collisions
+        if (rowNodes.length > 1) {
+          rowNodes.sort((a, b) => (xPositions.get(a.id) || 0) - (xPositions.get(b.id) || 0));
 
-        rowNodes.sort((a, b) => (xPositions.get(a.id) ?? 0) - (xPositions.get(b.id) ?? 0));
-
-        for (let i = 1; i < rowNodes.length; i++) {
-          const prevX = xPositions.get(rowNodes[i - 1].id) ?? (MAIN_CENTER_X - NODE_WIDTH / 2);
-          const curX = xPositions.get(rowNodes[i].id) ?? (MAIN_CENTER_X - NODE_WIDTH / 2);
-          const minX = prevX + NODE_WIDTH + HORIZONTAL_GAP;
-          if (curX < minX) {
-            xPositions.set(rowNodes[i].id, minX);
+          // Left-to-right collision resolution
+          for (let i = 1; i < rowNodes.length; i++) {
+            const prevX = xPositions.get(rowNodes[i - 1].id) ?? 0;
+            const curX = xPositions.get(rowNodes[i].id) ?? 0;
+            const minX = prevX + COL_WIDTH;
+            if (curX < minX) {
+              xPositions.set(rowNodes[i].id, minX);
+            }
           }
         }
       }
 
-      // 10. Global Normalization: ensure left-most coordinate is at START_X
+      // 8. Global Normalization: align left-most node to START_X
       const allXs = Array.from(xPositions.values()).filter(Number.isFinite);
       const minX = allXs.length > 0 ? Math.min(...allXs) : START_X;
-      const shiftX = minX < START_X ? START_X - minX : 0;
+      const shiftX = START_X - minX;
 
       const layoutedNodes: Node[] = nodes.map((n) => {
         const rank = rankMap.get(n.id) ?? 0;
@@ -725,8 +778,8 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
       setNodes(layoutedNodes);
       pushHistory(layoutedNodes, edges);
       success(
-        'Fluxo Organizado em Linhas',
-        `Fluxo organizado de cima para baixo em ${totalRows} linhas perfeitamente alinhadas!`
+        'Fluxo Auto-Organizado',
+        `Fluxo organizado de cima para baixo em ${totalRows} linhas perfeitamente alinhadas com espaçamento ideal!`
       );
 
       setTimeout(() => {
