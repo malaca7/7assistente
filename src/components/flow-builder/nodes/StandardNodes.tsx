@@ -1,29 +1,64 @@
 import React from 'react';
 import { NodeProps } from '@xyflow/react';
-import { Zap, MessageSquare, ListChecks, HelpCircle } from 'lucide-react';
+import { Zap, MessageSquare, ListChecks, HelpCircle, CheckCheck } from 'lucide-react';
 import { BaseNode } from './BaseNode';
 import { FlowNodeData } from '../../../types';
+import { VariableBadge } from '../ui/VariableBadge';
 
 export const TriggerNode: React.FC<NodeProps> = ({ id, selected, data }) => {
   const nodeData = data as unknown as FlowNodeData;
   const config = nodeData.config || {};
+
+  const isKeyword = config.eventType === 'keyword';
+  const keywordsList = (config.keywords || '')
+    .split(',')
+    .map((k: string) => k.trim())
+    .filter(Boolean);
 
   return (
     <BaseNode
       id={id}
       selected={selected}
       title={nodeData.label || 'Gatilho Inicial'}
-      subtitle={config.eventType === 'keyword' ? `Palavra: ${config.keywords || '...'}` : 'Mensagem Recebida'}
-      icon={<Zap className="w-4 h-4" />}
-      iconBg="bg-amber-500"
+      subtitle="Início da Automação"
+      icon={<Zap className="w-4 h-4 text-amber-300 fill-amber-400/30" />}
+      iconBg="bg-gradient-to-tr from-amber-600 to-yellow-500"
       accentColor="bg-amber-500"
       hasInput={false}
       hasOutput={true}
-      isConfigured={Boolean(config.eventType || true)}
+      isConfigured={true}
     >
-      <div className="p-2 rounded-lg bg-dark-950/70 border border-slate-800 text-[11px] text-slate-300">
-        <span className="font-semibold text-amber-400">Evento: </span>
-        {config.eventType === 'keyword' ? `Contém "${config.keywords || 'palavra-chave'}"` : 'Qualquer mensagem recebida'}
+      <div className="p-2.5 rounded-xl bg-dark-950/80 border border-amber-500/20 text-[11px] text-slate-300 space-y-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1">
+            ⚡ {isKeyword ? 'Palavra-chave' : 'Mensagem Recebida'}
+          </span>
+          <span className="text-[9px] text-slate-500 font-mono">WhatsApp</span>
+        </div>
+
+        {isKeyword ? (
+          <div className="space-y-1">
+            <span className="text-[10px] text-slate-400">Ativa quando conter:</span>
+            <div className="flex flex-wrap gap-1">
+              {keywordsList.length > 0 ? (
+                keywordsList.map((kw: string, i: number) => (
+                  <span
+                    key={i}
+                    className="px-1.5 py-0.5 rounded bg-amber-950/70 border border-amber-600/40 text-amber-300 font-mono text-[10px]"
+                  >
+                    "{kw}"
+                  </span>
+                ))
+              ) : (
+                <span className="italic text-slate-500 text-[10px]">Nenhuma palavra definida</span>
+              )}
+            </div>
+          </div>
+        ) : (
+          <p className="text-[10.5px] text-slate-300">
+            Dispara automaticamente ao receber qualquer mensagem do cliente.
+          </p>
+        )}
       </div>
     </BaseNode>
   );
@@ -32,22 +67,52 @@ export const TriggerNode: React.FC<NodeProps> = ({ id, selected, data }) => {
 export const MessageNode: React.FC<NodeProps> = ({ id, selected, data }) => {
   const nodeData = data as unknown as FlowNodeData;
   const config = nodeData.config || {};
+  const text = config.text || '';
+
+  // Highlight {{variables}} inside message preview
+  const renderMessageContent = (content: string) => {
+    if (!content) {
+      return <span className="italic text-slate-500">Clique para escrever a mensagem...</span>;
+    }
+
+    const parts = content.split(/(\{\{[^}]+\}\})/g);
+    return parts.map((part, index) => {
+      if (part.startsWith('{{') && part.endsWith('}}')) {
+        return (
+          <span
+            key={index}
+            className="px-1 py-0.2 rounded bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 font-mono text-[10px] mx-0.5"
+          >
+            {part}
+          </span>
+        );
+      }
+      return part;
+    });
+  };
 
   return (
     <BaseNode
       id={id}
       selected={selected}
       title={nodeData.label || 'Enviar Mensagem'}
-      subtitle="Texto / Variáveis"
+      subtitle="Mensagem WhatsApp"
       icon={<MessageSquare className="w-4 h-4" />}
-      iconBg="bg-primary-500"
-      accentColor="bg-primary-500"
+      iconBg="bg-gradient-to-tr from-cyan-600 to-sky-500"
+      accentColor="bg-cyan-500"
       hasInput={true}
       hasOutput={true}
       isConfigured={Boolean(config.text)}
     >
-      <div className="p-2.5 rounded-lg bg-dark-950/70 border border-slate-800 text-[11px] text-slate-300 line-clamp-3">
-        {config.text || <span className="italic text-slate-500">Clique para escrever a mensagem...</span>}
+      {/* WhatsApp-Style Chat Bubble */}
+      <div className="relative p-3 rounded-2xl rounded-tl-none bg-dark-950/90 border border-slate-800/80 text-[11px] text-slate-200 shadow-inner">
+        <div className="line-clamp-4 leading-relaxed font-sans select-none">
+          {renderMessageContent(text)}
+        </div>
+        <div className="flex items-center justify-end gap-1 mt-1 text-[9px] text-slate-500">
+          <span>{text.length} caracteres</span>
+          <CheckCheck className="w-3 h-3 text-cyan-400" />
+        </div>
       </div>
     </BaseNode>
   );
@@ -63,7 +128,7 @@ export const ButtonsNode: React.FC<NodeProps> = ({ id, selected, data }) => {
 
   const outputs = buttons.map((b, i) => ({
     id: b.id || `btn_${i + 1}`,
-    label: `${i + 1}. ${b.title || `Botão ${i + 1}`}`,
+    label: b.title || `Botão ${i + 1}`,
     color: '!bg-brand-400',
   }));
 
@@ -71,10 +136,10 @@ export const ButtonsNode: React.FC<NodeProps> = ({ id, selected, data }) => {
     <BaseNode
       id={id}
       selected={selected}
-      title={nodeData.label || 'Botões Interativos WhatsApp'}
-      subtitle="Botões de Resposta Rápida"
+      title={nodeData.label || 'Botões Interativos'}
+      subtitle="Mensagem de Escolha"
       icon={<ListChecks className="w-4 h-4" />}
-      iconBg="bg-brand-600"
+      iconBg="bg-gradient-to-tr from-brand-600 to-indigo-500"
       accentColor="bg-brand-500"
       hasInput={true}
       hasOutput={false}
@@ -82,8 +147,9 @@ export const ButtonsNode: React.FC<NodeProps> = ({ id, selected, data }) => {
       isConfigured={buttons.length > 0}
     >
       <div className="space-y-2">
-        <div className="p-2.5 rounded-xl bg-dark-950/80 border border-white/5 text-[11px] text-slate-200">
-          <p className="font-medium leading-tight text-white mb-1">
+        {/* WhatsApp Message Body */}
+        <div className="p-2.5 rounded-xl bg-dark-950/90 border border-white/5 text-[11px] text-slate-200">
+          <p className="font-medium leading-snug text-white mb-0.5 line-clamp-2">
             {config.bodyText || 'Escolha uma das opções abaixo:'}
           </p>
           {config.footerText && (
@@ -93,23 +159,15 @@ export const ButtonsNode: React.FC<NodeProps> = ({ id, selected, data }) => {
           )}
         </div>
 
-        <div className="space-y-1">
-          {buttons.map((b, i) => (
-            <div
-              key={b.id || i}
-              className="py-1 px-2.5 rounded-lg bg-dark-850 border border-brand-500/30 text-brand-300 text-[10px] font-semibold flex items-center justify-between shadow-sm"
-            >
-              <span>{b.title || `Botão ${i + 1}`}</span>
-              <span className="text-[9px] text-slate-400 font-mono">Saída #{i + 1}</span>
-            </div>
-          ))}
+        {/* Buttons List Summary */}
+        <div className="text-[10px] text-brand-300 font-semibold flex items-center justify-between px-1">
+          <span>Opções Interativas:</span>
+          <span className="text-[9px] text-slate-500">{buttons.length} saídas ativas</span>
         </div>
       </div>
     </BaseNode>
   );
 };
-
-import { VariableBadge } from '../ui/VariableBadge';
 
 export const QuestionNode: React.FC<NodeProps> = ({ id, selected, data }) => {
   const nodeData = data as unknown as FlowNodeData;
@@ -120,22 +178,28 @@ export const QuestionNode: React.FC<NodeProps> = ({ id, selected, data }) => {
       id={id}
       selected={selected}
       title={nodeData.label || 'Fazer Pergunta'}
-      subtitle="Pergunta & Resposta"
+      subtitle="Coleta de Resposta"
       icon={<HelpCircle className="w-4 h-4" />}
-      iconBg="bg-cyan-500"
-      accentColor="bg-cyan-500"
+      iconBg="bg-gradient-to-tr from-blue-600 to-cyan-500"
+      accentColor="bg-blue-500"
       hasInput={true}
       hasOutput={true}
       isConfigured={Boolean(config.questionText)}
     >
-      <div className="space-y-1.5">
-        <div className="p-2 rounded-lg bg-dark-950/70 border border-slate-800 text-[11px] text-slate-300 line-clamp-2">
-          {config.questionText || <span className="italic text-slate-500">Qual pergunta deseja fazer?</span>}
+      <div className="space-y-2">
+        <div className="p-2.5 rounded-xl bg-dark-950/80 border border-slate-800 text-[11px] text-slate-200 line-clamp-2">
+          {config.questionText ? (
+            <span>"{config.questionText}"</span>
+          ) : (
+            <span className="italic text-slate-500">Qual pergunta deseja fazer?</span>
+          )}
         </div>
-        <div className="flex items-center justify-between text-[10px] text-slate-400">
-          <span>Tipo: {config.expectedType || 'Texto livre'}</span>
-          <div className="flex items-center gap-1">
-            <span className="text-[9px] text-slate-500">Salva:</span>
+        <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+          <span className="px-1.5 py-0.5 rounded bg-dark-850 border border-slate-700/60 text-[9.5px]">
+            Tipo: {config.expectedType || 'Texto livre'}
+          </span>
+          <div className="flex items-center gap-1 font-mono text-[9px]">
+            <span className="text-slate-500">Salva:</span>
             <VariableBadge name={config.variableName || 'resposta'} />
           </div>
         </div>
@@ -143,3 +207,4 @@ export const QuestionNode: React.FC<NodeProps> = ({ id, selected, data }) => {
     </BaseNode>
   );
 };
+
