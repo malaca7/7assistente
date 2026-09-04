@@ -418,64 +418,64 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
   const handleAutoLayout = useCallback(() => {
     if (nodes.length === 0) return;
 
-    // 1. Dynamic Height Estimator
+    // 1. Dynamic Height Estimator (Compact & Proportional)
     const getNodeHeight = (n: Node): number => {
       const type = n.data?.nodeType || n.type;
       const cfg = (n.data as any)?.config || {};
       switch (type) {
         case 'trigger':
-          return 160;
+          return 90;
         case 'message':
-          return 190;
+          return 120;
         case 'question':
-          return 210;
+          return 110;
         case 'buttons': {
           const btnCount = (cfg.buttons || []).length || 2;
-          return 180 + btnCount * 45;
+          return 100 + btnCount * 30;
         }
         case 'check_contact':
-          return 250;
+          return 130;
         case 'services_catalog':
         case 'select_service':
         case 'show_services':
-          return 260;
+          return 130;
         case 'schedule_contact':
         case 'select_time_slot':
-          return 250;
+          return 130;
         case 'ask_date':
         case 'select_date':
-          return 240;
+          return 120;
         case 'confirm_booking':
-          return 250;
+          return 130;
         case 'condition':
-          return 230;
+          return 120;
         case 'variable': {
           const count = Array.isArray(cfg.assignments) ? cfg.assignments.length : 1;
-          return 160 + Math.min(count, 3) * 35;
+          return 90 + Math.min(count, 3) * 20;
         }
         case 'ai_agent':
-          return 220;
+          return 110;
         case 'human_handoff':
-          return 200;
+          return 100;
         case 'delay':
-          return 160;
+          return 75;
         case 'media':
-          return 220;
+          return 110;
         case 'end_flow':
         case 'finish_flow':
         case 'end':
-          return 180;
+          return 80;
         default:
-          return 220;
+          return 110;
       }
     };
 
-    const NODE_WIDTH = 340;
-    const HORIZONTAL_GAP = 100; // Minimum horizontal distance between node cards
-    const VERTICAL_GAP = 140; // Generous vertical distance between rows for smooth downward curves
-    const START_X = 100;
-    const START_Y = 80;
-    const MAIN_CENTER_X = 600;
+    const NODE_WIDTH = 280;
+    const HORIZONTAL_GAP = 28; // Distância horizontal compacta e próxima entre os nós
+    const VERTICAL_GAP = 36; // Distância vertical compacta e próxima entre as linhas
+    const START_X = 60;
+    const START_Y = 60;
+    const MAIN_CENTER_X = 500;
 
     // 2. Build Adjacency Graph
     const childrenMap = new Map<string, string[]>();

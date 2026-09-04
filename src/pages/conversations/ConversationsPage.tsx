@@ -75,7 +75,6 @@ export const ConversationsPage: React.FC<{ onNavigate?: (path: string) => void }
   const [showRightDrawer, setShowRightDrawer] = useState(true);
   const [flows, setFlows] = useState<Flow[]>([]);
   const [attendants, setAttendants] = useState<Attendant[]>([]);
-  const [cannedReplies, setCannedReplies] = useState<CannedReply[]>([]);
   
   // Chat modes: WhatsApp Message vs Internal Team Note
   const [messageMode, setMessageMode] = useState<'whatsapp' | 'note'>('whatsapp');
@@ -84,7 +83,6 @@ export const ConversationsPage: React.FC<{ onNavigate?: (path: string) => void }
   const [contactData, setContactData] = useState<Contact | null>(null);
   const [newTagInput, setNewTagInput] = useState('');
   const [agentNote, setAgentNote] = useState('');
-  const [showCannedMenu, setShowCannedMenu] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
   const [mediaUrlInput, setMediaUrlInput] = useState('');
@@ -210,7 +208,6 @@ export const ConversationsPage: React.FC<{ onNavigate?: (path: string) => void }
     isSendingRef.current = true;
     setIsSending(true);
     setInputText('');
-    setShowCannedMenu(false);
 
     try {
       if (messageMode === 'note') {
@@ -863,67 +860,8 @@ export const ConversationsPage: React.FC<{ onNavigate?: (path: string) => void }
             </div>
           )}
 
-          {/* Canned Replies Popup Menu */}
-          {showCannedMenu && (
-            <div className="p-3 bg-[#202c33] border-t border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-2 animate-in slide-in-from-bottom-2">
-              {cannedReplies.map((item, idx) => (
-                <button
-                  key={item.id || idx}
-                  type="button"
-                  disabled={isSending}
-                  onClick={() => {
-                    if (isSending) return;
-                    handleSendMessage(item.text);
-                  }}
-                  className="p-2 rounded-xl bg-[#111b21] hover:bg-[#2a3942] border border-white/5 text-left transition-colors space-y-0.5 disabled:opacity-50"
-                >
-                  <div className="flex items-center justify-between text-xs font-bold text-white">
-                    <span>{item.label}</span>
-                    <span className="text-[10px] text-emerald-400 font-mono">{item.cmd}</span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 line-clamp-1">{item.text}</p>
-                </button>
-              ))}
-            </div>
-          )}
-
           {/* Bottom Chat Input Bar */}
           <div className="p-3 bg-[#202c33] border-t border-white/5 space-y-2">
-            {/* Quick Canned Suggestions Chips & AI button */}
-            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
-              <button
-                type="button"
-                onClick={handleGenerateAiSuggestions}
-                className="px-2.5 py-1 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-[10px] font-bold flex items-center gap-1 shadow-glow-primary hover:opacity-90 whitespace-nowrap"
-              >
-                <Sparkles className="w-3 h-3" />
-                Sugerir com IA
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowCannedMenu(!showCannedMenu)}
-                className="px-2.5 py-1 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30 text-[10px] font-bold flex items-center gap-1 hover:bg-brand-500/30 whitespace-nowrap"
-              >
-                <Zap className="w-3 h-3" />
-                Respostas Rápidas
-              </button>
-
-              {cannedReplies.slice(0, 4).map((reply, idx) => (
-                <button
-                  key={reply.id || idx}
-                  type="button"
-                  disabled={isSending}
-                  onClick={() => {
-                    if (isSending) return;
-                    handleSendMessage(reply.text);
-                  }}
-                  className="px-2.5 py-1 rounded-full bg-[#111b21] text-slate-300 border border-white/5 text-[10px] hover:bg-[#2a3942] whitespace-nowrap disabled:opacity-50"
-                >
-                  {reply.label}
-                </button>
-              ))}
-            </div>
 
             {/* Mode Switcher */}
             <div className="flex items-center justify-between text-[10px]">
