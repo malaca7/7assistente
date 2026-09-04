@@ -133,9 +133,24 @@ export interface AuditLog {
 }
 
 export interface UserPermissions {
+  // Portais de Acesso
   can_access_admin: boolean;
   can_access_atendimento: boolean;
   can_access_barbeiro: boolean;
+
+  // Módulos do Sistema
+  can_manage_agenda?: boolean;
+  can_manage_clients?: boolean;
+  can_manage_conversations?: boolean;
+  can_manage_flows?: boolean;
+  can_manage_users?: boolean;
+  can_manage_settings?: boolean;
+  can_view_logs?: boolean;
+
+  // Ações Operacionais
+  can_create_appointments?: boolean;
+  can_cancel_appointments?: boolean;
+  can_send_whatsapp_messages?: boolean;
 }
 
 export interface SystemUser {
@@ -144,7 +159,7 @@ export interface SystemUser {
   phone: string;
   password: string;
   pin?: string;
-  role: 'admin' | 'barber' | 'attendant' | 'custom';
+  role: 'admin' | 'barber' | 'attendant' | 'manager' | 'custom';
   permissions: UserPermissions;
   status: 'active' | 'inactive';
   created_at: string;
