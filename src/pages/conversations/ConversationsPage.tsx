@@ -771,7 +771,7 @@ export const ConversationsPage: React.FC<{ onNavigate?: (path: string) => void }
 
             {messages.length === 0 ? (
               <div className="h-full flex items-center justify-center text-center p-8 text-xs text-slate-500">
-                Inicie a conversa enviando uma mensagem abaixo ou selecione uma resposta rápida.
+                Inicie a conversa digitando uma mensagem abaixo.
               </div>
             ) : (
               messages.map((msg, index) => {
