@@ -382,12 +382,101 @@ export const FlowEngine = {
         });
       }
 
+      // 6.5 Show Services Node (Apenas Leitura / Catálogo de Serviços)
+      else if (nodeType === 'show_services' || (nodeType === 'services_catalog' && config.displayFormat !== 'buttons')) {
+        let services = [
+          { id: 'srv-1', name: 'Corte Cabelo', duration_minutes: 45, price: 30 },
+          { id: 'srv-2', name: 'Barba', duration_minutes: 20, price: 20 },
+          { id: 'srv-3', name: 'Corte Cabelo + Barba (Promoção)', duration_minutes: 50, price: 45 },
+          { id: 'srv-4', name: 'Sobrancelha', duration_minutes: 12, price: 10 },
+          { id: 'srv-5', name: 'Corte Cabelo + Barba + Sobrancelha (Promoção)', duration_minutes: 10, price: 60 },
+        ];
+        try {
+          const agenda = await StorageService.getAgendaSettings();
+          if (agenda?.services && Array.isArray(agenda.services)) {
+            const active = agenda.services.filter((s: any) => s.active !== false && s.is_active !== false);
+            if (active.length > 0) services = active;
+          }
+        } catch {}
+
+        const header = substituteVariables(config.headerText || '💈 *Catálogo de Serviços & Preços*', variables, botProfile);
+        const footer = config.footerText ? `\n\n_${substituteVariables(config.footerText, variables, botProfile)}_` : '';
+
+        const serviceLines = services
+          .map((s: any, idx: number) => {
+            const priceStr = Number(s.price || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            const descStr = s.description ? `\n   _${s.description}_` : '';
+            return `*${idx + 1}️⃣* *${s.name}*\n   💰 ${priceStr} • ⏱️ ${s.duration_minutes || 30} min${descStr}`;
+          })
+          .join('\n\n');
+
+        const fullCatalogText = `${header}\n\n${serviceLines}${footer}`;
+        variables.catalogo_servicos_texto = fullCatalogText;
+        variables.catalogo_servicos = fullCatalogText;
+        replies.push({ type: 'text', content: fullCatalogText });
+      }
+
+      // 6.6 Select Service Node (Escolha de Serviço via Botões)
+      else if (nodeType === 'select_service' || (nodeType === 'services_catalog' && config.displayFormat === 'buttons')) {
+        let services = [
+          { id: 'srv-1', name: 'Corte Cabelo', duration_minutes: 45, price: 30 },
+          { id: 'srv-2', name: 'Barba', duration_minutes: 20, price: 20 },
+        ];
+        try {
+          const agenda = await StorageService.getAgendaSettings();
+          if (agenda?.services && Array.isArray(agenda.services)) {
+            const active = agenda.services.filter((s: any) => s.active !== false && s.is_active !== false);
+            if (active.length > 0) services = active;
+          }
+        } catch {}
+
+        const intro = substituteVariables(config.introMessage || 'Qual serviço você deseja agendar hoje?', variables, botProfile);
+        replies.push({
+          type: 'buttons',
+          content: `✂️ *Escolha o Serviço:*\n${intro}`,
+          buttons: services.slice(0, 3).map((s: any, idx: number) => ({
+            id: `srv_${s.id || idx + 1}`,
+            title: `${s.name} (R$ ${Number(s.price || 0).toFixed(0)})`,
+          })),
+        });
+      }
+
+      // 6.7 Select Date / Ask Date Node
+      else if (nodeType === 'select_date' || nodeType === 'ask_date') {
+        const qText = substituteVariables(config.questionText || 'Para qual dia você gostaria de agendar seu atendimento?', variables, botProfile);
+        const todayStr = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+        const tomDate = new Date();
+        tomDate.setDate(tomDate.getDate() + 1);
+        const tomStr = tomDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+
+        replies.push({
+          type: 'buttons',
+          content: `📅 *Escolha a Data:*\n${qText}`,
+          buttons: [
+            { id: 'date_today', title: `Hoje (${todayStr})` },
+            { id: 'date_tomorrow', title: `Amanhã (${tomStr})` },
+            { id: 'date_custom', title: 'Outra Data' },
+          ],
+        });
+      }
+
       // 7. Schedule Contact Node
-      else if (nodeType === 'schedule_contact') {
-        const srvName = config.serviceName || 'Atendimento Geral';
-        const dateVal = variables[config.dateVariable] || 'Hoje';
-        const timeVal = variables[config.timeVariable] || 'Horário Comercial';
+      else if (nodeType === 'schedule_contact' || nodeType === 'select_time_slot') {
+        const srvName = variables.servico_selecionado || config.serviceName || 'Atendimento Geral';
+        const dateVal = variables.data_agendamento || variables[config.dateVariable] || 'Hoje';
+        const timeVal = variables.horario_agendamento || variables[config.timeVariable] || 'Horário Comercial';
         const defaultConfirm = `📅 Agendamento Confirmado!\n• Serviço: ${srvName}\n• Data: ${dateVal}\n• Horário: ${timeVal}\n\nVinculado com sucesso ao WhatsApp!`;
+        const confirmText = substituteVariables(config.confirmMessage || defaultConfirm, variables, botProfile);
+        replies.push({ type: 'text', content: confirmText });
+      }
+
+      // 7.5 Confirm Booking Node
+      else if (nodeType === 'confirm_booking') {
+        const clientName = variables.nome_cliente || 'Cliente';
+        const srvName = variables.servico_selecionado || 'Atendimento';
+        const dateVal = variables.data_agendamento || new Date().toLocaleDateString('pt-BR');
+        const timeVal = variables.horario_agendamento || '10:00';
+        const defaultConfirm = `✅ *Agendamento Confirmado com Sucesso!*\n\n• *Cliente:* ${clientName}\n• *Serviço:* ${srvName}\n• *Data:* ${dateVal}\n• *Horário:* ${timeVal}\n\nSeu horário foi reservado em nossa Agenda com sucesso!`;
         const confirmText = substituteVariables(config.confirmMessage || defaultConfirm, variables, botProfile);
         replies.push({ type: 'text', content: confirmText });
       }
