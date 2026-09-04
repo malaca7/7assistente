@@ -886,7 +886,7 @@ export function recordLiveLog(type, title, description, contactPhone = null, con
     saveDb(db);
 
     if (supabaseClient) {
-      supabaseClient.from('audit_logs').insert(newLog).catch(() => {});
+      Promise.resolve(supabaseClient.from('audit_logs').insert(newLog)).catch(() => {});
     }
 
     return newLog;
@@ -984,14 +984,20 @@ export async function findRegisteredContact(cleanPhone, senderName, db) {
   // Helper to determine if contact has verified client status
   const isVerifiedClient = (c) => {
     if (!c) return false;
+    // Explicitly unverified/leads or unregistered contacts are NEVER existing clients
+    if (c.status === 'lead' || c.is_registered === false) return false;
     if (c.is_registered === true || c.is_verified === true) return true;
+    
+    // Check tags: must have an explicit client tag
     const tagList = (c.tags || []).map((t) => String(t).toLowerCase().trim());
-    if (tagList.includes('cliente') || tagList.includes('vip') || tagList.includes('recorrente') || tagList.includes('mensalista') || tagList.includes('agendado')) {
+    if (tagList.includes('cliente') || tagList.includes('vip') || tagList.includes('recorrente') || tagList.includes('mensalista')) {
       return true;
     }
+    
+    // Status active with custom_fields can only qualify if NOT a lead and NOT unnamed
     const cleanName = String(c.name || '').trim();
-    if (cleanName && cleanName !== 'Cliente' && cleanName !== 'Cliente WhatsApp' && cleanName !== 'nome_cliente' && cleanName !== 'undefined') {
-      if (c.status === 'active' || (c.custom_fields && Object.keys(c.custom_fields).length > 0)) {
+    if (c.status === 'active' && cleanName && cleanName !== 'Cliente' && cleanName !== 'Cliente WhatsApp' && cleanName !== 'nome_cliente' && cleanName !== 'undefined') {
+      if (c.custom_fields && Object.keys(c.custom_fields).length > 0) {
         return true;
       }
     }
@@ -1036,7 +1042,8 @@ export async function findRegisteredContact(cleanPhone, senderName, db) {
   }
 
   // 3. Search in Appointments (Historic bookings)
-  const apts = db.appointments || [];
+  // Only consider appointment if contact is active in db.contacts and not deleted
+  const apts = (db.appointments || []).filter(a => a.status === 'confirmed' || a.status === 'completed');
   const aptMatch = apts.find((a) => {
     const aDigits = (a.contact_phone || a.phone || '').replace(/\D/g, '');
     for (const v of variations) {
@@ -1045,12 +1052,20 @@ export async function findRegisteredContact(cleanPhone, senderName, db) {
     return false;
   });
 
-  if (aptMatch && aptMatch.contact_name && aptMatch.contact_name.toLowerCase() !== 'cliente') {
-    return {
-      isRegistered: true,
-      contact: { name: aptMatch.contact_name, phone: cleanPhone, is_registered: true },
-      hasRealName: true,
-    };
+  if (aptMatch && aptMatch.contact_name && aptMatch.contact_name.toLowerCase() !== 'cliente' && !aptMatch.contact_name.includes('{{')) {
+    // Cross-check with db.contacts: if contact was marked as lead or unregistered, do NOT consider as registered client
+    const existingContact = contactsList.find(c => {
+      const cd = (c.phone || c.id || '').replace(/\D/g, '');
+      return cd && variations.has(cd);
+    });
+
+    if (!existingContact || (existingContact.status !== 'lead' && existingContact.is_registered !== false)) {
+      return {
+        isRegistered: true,
+        contact: { name: aptMatch.contact_name, phone: cleanPhone, is_registered: true },
+        hasRealName: true,
+      };
+    }
   }
 
   return { isRegistered: false, contact: null, hasRealName: false };

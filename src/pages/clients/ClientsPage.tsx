@@ -31,7 +31,8 @@ import {
   List, 
   TrendingUp, 
   CalendarPlus,
-  Scissors
+  Scissors,
+  RefreshCw
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -82,6 +83,8 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
   const [formNotes, setFormNotes] = useState('');
   const [formStatus, setFormStatus] = useState<'active' | 'blocked' | 'archived'>('active');
 
+  const [isSyncing, setIsSyncing] = useState(false);
+
   const loadData = async (silent = false) => {
     try {
       if (!silent) setIsLoading(true);
@@ -97,6 +100,29 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
       console.error('Error loading clients data:', e);
     } finally {
       if (!silent) setIsLoading(false);
+    }
+  };
+
+  const handleSyncData = async () => {
+    try {
+      setIsSyncing(true);
+      StorageService.clearDeletedContactsCache();
+      const freshContacts = await StorageService.getContacts();
+      const [aptsData, settingsData] = await Promise.all([
+        StorageService.getAppointments(),
+        StorageService.getAgendaSettings(),
+      ]);
+      setClients(freshContacts);
+      setAppointments(aptsData);
+      setAgendaSettings(settingsData);
+      success(
+        'Base Sincronizada',
+        `${freshContacts.length} clientes sincronizados entre Painel Admin, Bot e Banco de Dados.`
+      );
+    } catch (e: any) {
+      toastError('Erro ao sincronizar', e?.message || 'Falha ao conectar com o banco.');
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -461,6 +487,16 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
           <Button
             variant="outline"
             size="sm"
+            onClick={handleSyncData}
+            disabled={isSyncing}
+            leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-brand-400' : ''}`} />}
+            className="text-xs border-white/10 hover:border-white/20"
+          >
+            {isSyncing ? 'Sincronizando...' : 'Sincronizar Banco'}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleExportCSV}
             leftIcon={<Download className="w-4 h-4" />}
             className="text-xs border-white/10 hover:border-white/20"
@@ -586,13 +622,24 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
       {filteredClients.length === 0 ? (
         <Card className="p-12 text-center space-y-3 bg-dark-900/40 border-white/5">
           <Users className="w-12 h-12 text-slate-600 mx-auto" />
-          <h3 className="text-sm font-bold text-white">Nenhum cliente encontrado</h3>
+          <h3 className="text-sm font-bold text-white">Nenhum cliente cadastrado</h3>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
-            Cadastre novos clientes ou aguarde as mensagens dos clientes pelo WhatsApp para registrar a base automaticamente.
+            Não há clientes cadastrados no painel. Novos números que enviarem mensagens pelo WhatsApp serão atendidos como <strong>Primeiro Contato (Novo Cliente)</strong>.
           </p>
-          <Button variant="brand" size="sm" onClick={handleOpenAddClient} className="mt-2">
-            Cadastrar Primeiro Cliente
-          </Button>
+          <div className="flex items-center justify-center gap-2 pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSyncData}
+              disabled={isSyncing}
+              leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />}
+            >
+              {isSyncing ? 'Sincronizando...' : 'Sincronizar com Banco'}
+            </Button>
+            <Button variant="brand" size="sm" onClick={handleOpenAddClient} leftIcon={<Plus className="w-3.5 h-3.5" />}>
+              Cadastrar Primeiro Cliente
+            </Button>
+          </div>
         </Card>
       ) : viewMode === 'cards' ? (
         /* CARDS GRID VIEW */

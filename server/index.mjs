@@ -893,7 +893,7 @@ app.get('/api/whatsapp/contacts', async (req, res) => {
   res.json(contacts);
 });
 
-// 8. Save / Update / Delete Contact
+// 8. Save / Update / Delete / Sync Contact
 app.post('/api/whatsapp/contacts', async (req, res) => {
   const contact = req.body;
   const db = loadDb();
@@ -904,6 +904,9 @@ app.post('/api/whatsapp/contacts', async (req, res) => {
       ...contact,
       id: contact.id || `contact-${cleanPhone}`,
       phone: cleanPhone,
+      is_registered: contact.is_registered !== false,
+      status: contact.status || 'active',
+      tags: contact.tags && contact.tags.length > 0 ? contact.tags : ['Cliente'],
       updated_at: new Date().toISOString(),
       created_at: contact.created_at || new Date().toISOString(),
     };
@@ -922,6 +925,43 @@ app.post('/api/whatsapp/contacts', async (req, res) => {
   res.status(400).json({ error: 'Telefone inválido' });
 });
 
+app.post('/api/whatsapp/contacts/sync', (req, res) => {
+  const { contacts } = req.body;
+  const db = loadDb();
+  if (!db.contacts) db.contacts = {};
+
+  if (Array.isArray(contacts)) {
+    contacts.forEach(c => {
+      const p = (c.phone || c.id || '').replace(/\D/g, '');
+      if (p) {
+        db.contacts[p] = {
+          ...c,
+          id: c.id || `contact-${p}`,
+          phone: p,
+          is_registered: c.is_registered !== false,
+          status: c.status || 'active',
+          tags: c.tags && c.tags.length > 0 ? c.tags : ['Cliente'],
+          updated_at: new Date().toISOString(),
+        };
+      }
+    });
+    saveDb(db);
+  }
+
+  res.json({ success: true, contacts: getLiveContacts() });
+});
+
+app.post('/api/whatsapp/contacts/reset-all', (req, res) => {
+  const db = loadDb();
+  db.contacts = {};
+  db.sessions = {};
+  // Keep real appointments or clear placeholder/test appointments
+  db.appointments = (db.appointments || []).filter(a => a.contact_name && !a.contact_name.includes('{{') && a.contact_name !== 'Teste');
+  saveDb(db);
+  console.log('[WhatsApp Server] 🧹 Todos os contatos e sessões de teste foram resetados');
+  res.json({ success: true, message: 'Base de contatos e sessões resetada com sucesso' });
+});
+
 app.put('/api/whatsapp/contacts/:id', async (req, res) => {
   const { id } = req.params;
   const contact = req.body;
@@ -934,6 +974,7 @@ app.put('/api/whatsapp/contacts/:id', async (req, res) => {
       ...contact,
       id: id || contact.id || `contact-${cleanPhone}`,
       phone: cleanPhone,
+      is_registered: contact.is_registered !== false,
       updated_at: new Date().toISOString(),
     };
     db.contacts[cleanPhone] = updated;
@@ -959,51 +1000,91 @@ app.delete('/api/whatsapp/contacts/:id', async (req, res) => {
     String(phoneQuery).replace(/\D/g, ''),
   ].filter(d => d.length >= 8);
 
+  // Generate all variations for matching (with/without 55, with/without 9th digit)
+  const allVariations = new Set();
+  digits.forEach(d => {
+    allVariations.add(d);
+    let withoutDdi = d;
+    if (d.startsWith('55') && d.length >= 12) {
+      withoutDdi = d.substring(2);
+      allVariations.add(withoutDdi);
+    } else if (d.length === 10 || d.length === 11) {
+      allVariations.add(`55${d}`);
+    }
+    if (withoutDdi.length === 11 && withoutDdi[2] === '9') {
+      const without9 = withoutDdi.substring(0, 2) + withoutDdi.substring(3);
+      allVariations.add(without9);
+      allVariations.add(`55${without9}`);
+    } else if (withoutDdi.length === 10) {
+      const with9 = withoutDdi.substring(0, 2) + '9' + withoutDdi.substring(2);
+      allVariations.add(with9);
+      allVariations.add(`55${with9}`);
+    }
+  });
+
+  const matchTarget = (testPhone) => {
+    if (!testPhone) return false;
+    const clean = String(testPhone).replace(/\D/g, '');
+    if (!clean) return false;
+    for (const v of allVariations) {
+      if (clean === v || clean.endsWith(v) || v.endsWith(clean)) return true;
+    }
+    return false;
+  };
+
   // 1. Delete from Supabase Database
   if (supabaseServer) {
     try {
       if (id) {
         await supabaseServer.from('contacts').delete().eq('id', id);
       }
-      for (const d of digits) {
-        const alt = d.startsWith('55') ? d.substring(2) : `55${d}`;
-        await supabaseServer.from('contacts').delete().eq('phone', d);
-        await supabaseServer.from('contacts').delete().eq('phone', alt);
-        await supabaseServer.from('contacts').delete().eq('id', `contact-${d}`);
-        await supabaseServer.from('contacts').delete().eq('id', `contact-${alt}`);
+      for (const v of allVariations) {
+        await supabaseServer.from('contacts').delete().eq('phone', v);
+        await supabaseServer.from('contacts').delete().eq('id', `contact-${v}`);
       }
     } catch (sbErr) {
       console.warn('[WhatsApp Server] Falha ao deletar contato no Supabase:', sbErr.message);
     }
   }
 
-  // 2. Delete from Memory / Local DB
+  // 2. Delete from Memory / Local DB (db.contacts)
   if (db.contacts) {
-    const targets = [
-      String(id),
-      String(id).replace('contact-', ''),
-      ...digits,
-    ];
-
     Object.keys(db.contacts).forEach((k) => {
       const c = db.contacts[k];
       const match =
-        targets.includes(String(k)) ||
-        targets.includes(String(k).replace(/\D/g, '')) ||
-        (c && targets.includes(String(c.id))) ||
-        (c && targets.includes(String(c.phone))) ||
-        (c && targets.includes(String(c.phone).replace(/\D/g, '')));
+        k === id ||
+        matchTarget(k) ||
+        (c && (c.id === id || matchTarget(c.phone) || matchTarget(c.id)));
 
       if (match) {
         delete db.contacts[k];
-        console.log(`[WhatsApp Server] 🗑️ Contato removido: key=${k}, name=${c?.name}`);
+        console.log(`[WhatsApp Server] 🗑️ Contato removido de db.contacts: key=${k}, name=${c?.name}`);
       }
     });
-
-    saveDb(db);
   }
 
-  res.json({ success: true, message: 'Contato excluído com sucesso' });
+  // 3. Remove or disassociate from db.appointments so it never resurrects
+  if (db.appointments && Array.isArray(db.appointments)) {
+    const prevApts = db.appointments.length;
+    db.appointments = db.appointments.filter(a => !matchTarget(a.contact_phone) && !matchTarget(a.phone));
+    if (db.appointments.length < prevApts) {
+      console.log(`[WhatsApp Server] 🗑️ ${prevApts - db.appointments.length} agendamentos removidos para o contato excluído`);
+    }
+  }
+
+  // 4. Reset Session in db.sessions so Bot treats them as 100% NEW CONTACT
+  if (db.sessions) {
+    Object.keys(db.sessions).forEach(k => {
+      if (k === id || matchTarget(k)) {
+        delete db.sessions[k];
+        console.log(`[WhatsApp Server] 🔄 Sessão do bot resetada para contato excluído: ${k}`);
+      }
+    });
+  }
+
+  saveDb(db);
+
+  res.json({ success: true, message: 'Contato, agendamentos e sessões removidos com sucesso' });
 });
 
 app.delete('/api/whatsapp/conversations/:id', (req, res) => {
