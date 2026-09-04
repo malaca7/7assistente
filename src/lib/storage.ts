@@ -707,27 +707,63 @@ export const StorageService = {
     setItem(STORAGE_KEYS.DELETED_CONTACTS, []);
   },
 
+  getPhoneVariations(phoneOrId: string): string[] {
+    const digits = String(phoneOrId || '').replace(/\D/g, '');
+    if (!digits || digits.length < 8) return digits ? [digits] : [];
+    const set = new Set<string>();
+    set.add(digits);
+
+    let without55 = digits;
+    if (digits.startsWith('55') && digits.length >= 12) {
+      without55 = digits.substring(2);
+      set.add(without55);
+    } else if (digits.length === 10 || digits.length === 11) {
+      set.add(`55${digits}`);
+    }
+
+    if (without55.length === 11 && without55[2] === '9') {
+      const without9 = without55.substring(0, 2) + without55.substring(3);
+      set.add(without9);
+      set.add(`55${without9}`);
+    } else if (without55.length === 10) {
+      const with9 = without55.substring(0, 2) + '9' + without55.substring(2);
+      set.add(with9);
+      set.add(`55${with9}`);
+    }
+
+    if (without55.length >= 8) {
+      set.add(without55.slice(-8));
+    }
+
+    return Array.from(set);
+  },
+
   isContactDeleted(contact: Contact | any): boolean {
     const deletedList = this.getDeletedContactIds();
     if (!deletedList || deletedList.length === 0) return false;
     const cId = String(contact.id || '');
     const cPhone = String(contact.phone || '').replace(/\D/g, '');
-    const altPhone = cPhone.startsWith('55') ? cPhone.substring(2) : `55${cPhone}`;
+    const contactVariations = new Set([
+      cId,
+      ...this.getPhoneVariations(cPhone),
+      ...this.getPhoneVariations(cId),
+    ]);
+
     return deletedList.some(d => {
+      if (contactVariations.has(d)) return true;
       const cleanD = d.replace(/\D/g, '');
-      return d === cId || 
-             d === `contact-${cPhone}` || 
-             d === `contact-${altPhone}` ||
-             d === cPhone || 
-             d === altPhone || 
-             (cPhone && cleanD === cPhone) ||
-             (altPhone && cleanD === altPhone);
+      if (cleanD && cleanD.length >= 8) {
+        const dVariations = this.getPhoneVariations(cleanD);
+        for (const dv of dVariations) {
+          if (contactVariations.has(dv)) return true;
+        }
+      }
+      return false;
     });
   },
 
   async getContacts(): Promise<Contact[]> {
     const backendUrl = getBackendUrl();
-    const deletedList = this.getDeletedContactIds();
 
     // 1. WhatsApp Backend Server is the operational single source of truth for WhatsApp bot & DB
     try {
@@ -735,20 +771,9 @@ export const StorageService = {
       if (res.ok) {
         const serverContacts = await res.json();
         if (Array.isArray(serverContacts)) {
-          // If server returns contacts, auto-clear tombstones for any contact that is currently active on server
-          const activePhones = new Set(serverContacts.map(c => (c.phone || c.id || '').replace(/\D/g, '')));
-          if (deletedList.length > 0) {
-            const cleanedDeleted = deletedList.filter(d => {
-              const cleanD = d.replace(/\D/g, '');
-              return !activePhones.has(cleanD);
-            });
-            if (cleanedDeleted.length !== deletedList.length) {
-              setItem(STORAGE_KEYS.DELETED_CONTACTS, cleanedDeleted);
-            }
-          }
-
-          setItem(STORAGE_KEYS.CONTACTS, serverContacts);
-          return serverContacts;
+          const valid = serverContacts.filter(c => !this.isContactDeleted(c));
+          setItem(STORAGE_KEYS.CONTACTS, valid);
+          return valid;
         }
       }
     } catch {
@@ -845,48 +870,55 @@ export const StorageService = {
   async deleteContact(id: string, phone?: string): Promise<void> {
     const backendUrl = getBackendUrl();
     const cleanPhone = (phone || id || '').replace(/\D/g, '');
-    const altPhone = cleanPhone.startsWith('55') ? cleanPhone.substring(2) : `55${cleanPhone}`;
+    const phoneVars = this.getPhoneVariations(cleanPhone);
+    const idVars = this.getPhoneVariations(id);
+
+    const allVariations = new Set([
+      id,
+      phone,
+      cleanPhone,
+      `contact-${cleanPhone}`,
+      ...phoneVars,
+      ...idVars,
+      ...phoneVars.map(v => `contact-${v}`),
+    ].filter(Boolean) as string[]);
 
     // 1. Mark as permanently deleted in persistent tombstone
     const deleted = this.getDeletedContactIds();
-    const toAdd = [id, phone, cleanPhone, altPhone, `contact-${cleanPhone}`, `contact-${altPhone}`].filter(Boolean) as string[];
-    const newDeleted = Array.from(new Set([...deleted, ...toAdd]));
+    const newDeleted = Array.from(new Set([...deleted, ...Array.from(allVariations)]));
     setItem(STORAGE_KEYS.DELETED_CONTACTS, newDeleted);
 
-    // 2. Immediately purge from Local Storage Cache
+    // 2. Immediately purge from Local Storage Contacts Cache
     const contacts = getItem<Contact[]>(STORAGE_KEYS.CONTACTS, []);
-    const filtered = contacts.filter(c => {
-      const cPhone = (c.phone || '').replace(/\D/g, '');
-      const isMatch = c.id === id || 
-                      c.id === `contact-${cleanPhone}` || 
-                      c.id === `contact-${altPhone}` ||
-                      c.phone === phone || 
-                      c.phone === cleanPhone || 
-                      c.phone === altPhone || 
-                      cPhone === cleanPhone || 
-                      cPhone === altPhone;
-      return !isMatch;
-    });
-    setItem(STORAGE_KEYS.CONTACTS, filtered);
+    const filteredContacts = contacts.filter(c => !this.isContactDeleted(c));
+    setItem(STORAGE_KEYS.CONTACTS, filteredContacts);
 
-    // 3. Immediately delete from Supabase Database
+    // 3. Immediately purge linked appointments from Local Storage
+    const appointments = getItem<Appointment[]>(STORAGE_KEYS.APPOINTMENTS, []);
+    const filteredApts = appointments.filter(a => {
+      const aPhone = (a.contact_phone || a.client_phone || '').replace(/\D/g, '');
+      if (!aPhone) return true;
+      const aVars = this.getPhoneVariations(aPhone);
+      return !aVars.some(v => allVariations.has(v));
+    });
+    setItem(STORAGE_KEYS.APPOINTMENTS, filteredApts);
+
+    // 4. Immediately delete from Supabase Database
     if (isSupabaseConfigured && supabase) {
       try {
         if (id) {
           await supabase.from('contacts').delete().eq('id', id);
         }
-        if (cleanPhone) {
-          await supabase.from('contacts').delete().eq('phone', cleanPhone);
-          await supabase.from('contacts').delete().eq('phone', altPhone);
-          await supabase.from('contacts').delete().eq('id', `contact-${cleanPhone}`);
-          await supabase.from('contacts').delete().eq('id', `contact-${altPhone}`);
+        for (const v of allVariations) {
+          await supabase.from('contacts').delete().eq('phone', v);
+          await supabase.from('contacts').delete().eq('id', `contact-${v}`);
         }
       } catch (e) {
         console.warn('Supabase contact delete fallback:', e);
       }
     }
 
-    // 4. Immediately delete from WhatsApp Backend Server (Baileys memory, appointments, and sessions)
+    // 5. Immediately delete from WhatsApp Backend Server (Baileys memory, appointments, and sessions)
     try {
       const target = cleanPhone || id;
       await fetch(`${backendUrl}/api/whatsapp/contacts/${encodeURIComponent(target)}?phone=${encodeURIComponent(cleanPhone)}`, {
