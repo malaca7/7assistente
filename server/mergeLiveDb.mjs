@@ -104,7 +104,11 @@ async function mergeLive() {
         if (Array.isArray(liveApts) && liveApts.length > 0) {
           const aptMap = new Map();
           (localDb.appointments || []).forEach(a => aptMap.set(a.id, a));
-          liveApts.forEach(a => aptMap.set(a.id, a));
+          liveApts.forEach(a => {
+            if (!['apt-1788043578235', 'apt-1788104116622', 'apt-1788104123641'].includes(a.id) && !a.contact_name?.includes('{{')) {
+              aptMap.set(a.id, a);
+            }
+          });
           localDb.appointments = Array.from(aptMap.values());
           console.log(`[MergeLive] ✅ ${localDb.appointments.length} agendamentos sincronizados.`);
         }
@@ -120,14 +124,14 @@ async function mergeLive() {
           if (!localDb.contacts) localDb.contacts = {};
           liveContacts.forEach(c => {
             const cleanPhone = (c.phone || c.id || '').replace(/\D/g, '');
-            if (cleanPhone) {
+            if (cleanPhone && (c.is_registered === true || (c.tags && c.tags.includes('Cliente')))) {
               localDb.contacts[cleanPhone] = {
                 ...(localDb.contacts[cleanPhone] || {}),
                 ...c,
               };
             }
           });
-          console.log(`[MergeLive] ✅ ${liveContacts.length} contatos vivos sincronizados.`);
+          console.log(`[MergeLive] ✅ ${Object.keys(localDb.contacts).length} contatos sincronizados.`);
         }
       }
     } catch {}

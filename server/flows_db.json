@@ -4,12 +4,12 @@
       "id": "flow-1788033465058",
       "name": "Atendimento",
       "description": "Novo fluxo de automação",
-      "status": "published",
+      "status": "paused",
       "version": 7,
       "node_count": 10,
       "trigger_type": "Mensagem recebida",
       "created_at": "2026-08-29T19:57:45.058Z",
-      "updated_at": "2026-08-30T15:53:39.736Z"
+      "updated_at": "2026-09-03T16:15:17.089Z"
     },
     {
       "id": "flow-1788452126641",
@@ -17,10 +17,10 @@
       "description": "Fluxo de atendimento automatizado",
       "status": "published",
       "version": 1,
-      "node_count": 8,
+      "node_count": 9,
       "trigger_type": "Mensagem recebida",
       "created_at": "2026-09-03T16:15:26.641Z",
-      "updated_at": "2026-09-03T20:21:22.156Z"
+      "updated_at": "2026-09-04T00:48:52.505Z"
     }
   ],
   "nodes": {
@@ -42,13 +42,22 @@
             "keywords": "",
             "matchType": "contains"
           }
+        }
+      },
+      {
+        "id": "node-check_contact-1788102919201",
+        "type": "check_contact",
+        "position": {
+          "x": 470,
+          "y": 225
         },
-        "measured": {
-          "width": 288,
-          "height": 129
-        },
-        "selected": false,
-        "dragging": false
+        "data": {
+          "label": "Verificar Contato (Novo vs Salvo)",
+          "nodeType": "check_contact",
+          "description": "Verifica se é o primeiro contato do cliente ou contato existente e cria variáveis.",
+          "isConfigured": true,
+          "config": {}
+        }
       },
       {
         "id": "node-message-1788033773183",
@@ -66,12 +75,7 @@
             "text": "Olá, me chamo *{{bot_nome}}*. e sou assistente de atendimento da *{{empresa}}*! e vou lhe auxiliar para ter um melhor atendimento",
             "previewUrl": false
           }
-        },
-        "measured": {
-          "width": 288,
-          "height": 165
-        },
-        "selected": false
+        }
       },
       {
         "id": "node-question-1788033927695",
@@ -90,13 +94,7 @@
             "expectedType": "text",
             "variableName": "nome_cliente"
           }
-        },
-        "measured": {
-          "width": 288,
-          "height": 156
-        },
-        "selected": false,
-        "dragging": false
+        }
       },
       {
         "id": "node-update_contact-1788041687381",
@@ -116,34 +114,7 @@
             "customFieldKey": "interesse_principal",
             "customFieldValue": "opcao_selecionada"
           }
-        },
-        "measured": {
-          "width": 288,
-          "height": 191
-        },
-        "selected": false,
-        "dragging": false
-      },
-      {
-        "id": "node-check_contact-1788102919201",
-        "type": "check_contact",
-        "position": {
-          "x": 470,
-          "y": 225
-        },
-        "data": {
-          "label": "Verificar Contato (Novo vs Salvo)",
-          "nodeType": "check_contact",
-          "description": "Verifica se é o primeiro contato do cliente ou contato existente e cria variáveis.",
-          "isConfigured": true,
-          "config": {}
-        },
-        "measured": {
-          "width": 288,
-          "height": 303
-        },
-        "selected": false,
-        "dragging": false
+        }
       },
       {
         "id": "node-message-1788102948794",
@@ -161,13 +132,7 @@
             "text": "Olá {{nome_cliente}}, me chamo *{{bot_nome}}*. e sou assistente de atendimento da *{{empresa}}*! e vou lhe auxiliar para ter um melhor atendimento",
             "previewUrl": false
           }
-        },
-        "measured": {
-          "width": 288,
-          "height": 165
-        },
-        "selected": false,
-        "dragging": false
+        }
       },
       {
         "id": "node-ask_date-1788104674417",
@@ -186,63 +151,7 @@
             "dateVariable": "data_agendamento",
             "allowCustomDate": true
           }
-        },
-        "measured": {
-          "width": 288,
-          "height": 168
-        },
-        "selected": false,
-        "dragging": false
-      },
-      {
-        "id": "node-schedule_contact-1788104743355",
-        "type": "schedule_contact",
-        "position": {
-          "x": 2810,
-          "y": 120
-        },
-        "data": {
-          "label": "3. Horários Livres da Agenda",
-          "nodeType": "schedule_contact",
-          "description": "Calcula horários realmente livres para a data e serviço, enviando opções para o cliente.",
-          "isConfigured": true,
-          "config": {
-            "mode": "show_slots",
-            "dateType": "variable",
-            "dateVariable": "data_agendamento",
-            "serviceName": "{{servico_selecionado}}",
-            "introMessage": "Estes são os horários disponíveis para agendamento. Toque no seu horário preferido:"
-          }
-        },
-        "measured": {
-          "width": 288,
-          "height": 194
-        },
-        "selected": false,
-        "dragging": false
-      },
-      {
-        "id": "node-confirm_booking-1788104787175",
-        "type": "confirm_booking",
-        "position": {
-          "x": 3200,
-          "y": 120
-        },
-        "data": {
-          "label": "4. Confirmar & Gravar Agendamento",
-          "nodeType": "confirm_booking",
-          "description": "Exibe resumo com serviço, valor, data e horário, grava na Agenda e adiciona tag Agendado.",
-          "isConfigured": true,
-          "config": {
-            "confirmMessage": "✅ Perfeito {{nome_cliente}}! Seu agendamento de *{{servico_selecionado}}* foi confirmado para o dia *{{data_agendamento}}* às *{{horario_agendamento}}*!"
-          }
-        },
-        "measured": {
-          "width": 288,
-          "height": 218
-        },
-        "selected": false,
-        "dragging": false
+        }
       },
       {
         "id": "node-services_catalog-1788105189425",
@@ -264,76 +173,395 @@
             "priceVarName": "valor_servico",
             "durationVarName": "duracao_servico"
           }
+        }
+      },
+      {
+        "id": "node-schedule_contact-1788104743355",
+        "type": "schedule_contact",
+        "position": {
+          "x": 2810,
+          "y": 120
+        },
+        "data": {
+          "label": "3. Horários Livres da Agenda",
+          "nodeType": "schedule_contact",
+          "description": "Calcula horários realmente livres para a data e serviço, enviando opções para o cliente.",
+          "isConfigured": true,
+          "config": {
+            "mode": "show_slots",
+            "dateType": "variable",
+            "dateVariable": "data_agendamento",
+            "serviceName": "{{servico_selecionado}}",
+            "introMessage": "Estes são os horários disponíveis para agendamento. Toque no seu horário preferido:"
+          }
+        }
+      },
+      {
+        "id": "node-confirm_booking-1788104787175",
+        "type": "confirm_booking",
+        "position": {
+          "x": 3200,
+          "y": 120
+        },
+        "data": {
+          "label": "4. Confirmar & Gravar Agendamento",
+          "nodeType": "confirm_booking",
+          "description": "Exibe resumo com serviço, valor, data e horário, grava na Agenda e adiciona tag Agendado.",
+          "isConfigured": true,
+          "config": {
+            "confirmMessage": "✅ Perfeito {{nome_cliente}}! Seu agendamento de *{{servico_selecionado}}* foi confirmado para o dia *{{data_agendamento}}* às *{{horario_agendamento}}*!"
+          }
+        }
+      }
+    ],
+    "flow-1788452126641": [
+      {
+        "id": "node-trigger-1788453758817",
+        "type": "trigger",
+        "position": {
+          "x": 120,
+          "y": 185
+        },
+        "data": {
+          "label": "Gatilho Inicial",
+          "nodeType": "trigger",
+          "description": "Inicia o fluxo ao receber mensagens de texto ou palavras-chave no WhatsApp.",
+          "isConfigured": true,
+          "config": {
+            "eventType": "keyword",
+            "keywords": "testedevmlc",
+            "matchType": "contains"
+          }
         },
         "measured": {
-          "width": 288,
-          "height": 303
+          "width": 320,
+          "height": 135
         },
-        "selected": true,
+        "selected": false,
         "dragging": false
+      },
+      {
+        "id": "node-message-1788453762849",
+        "type": "message",
+        "position": {
+          "x": 2420,
+          "y": 185
+        },
+        "data": {
+          "label": "Enviar Mensagem",
+          "nodeType": "message",
+          "description": "Envia texto formatado no WhatsApp com variáveis dinâmicas (ex: {{nome_cliente}}).",
+          "isConfigured": true,
+          "config": {
+            "text": "Oi *{{nome_cliente}}*, Tudo bem?",
+            "previewUrl": false
+          }
+        },
+        "measured": {
+          "width": 320,
+          "height": 139
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-check_contact-1788454082098",
+        "type": "check_contact",
+        "position": {
+          "x": 580,
+          "y": 185
+        },
+        "data": {
+          "label": "Verificar Contato (Novo vs Salvo)",
+          "nodeType": "check_contact",
+          "description": "Bifurca o fluxo entre Primeiro Contato (1ª Vez) e Contato Salvo (Recorrente).",
+          "isConfigured": true,
+          "config": {}
+        },
+        "measured": {
+          "width": 320,
+          "height": 293
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-message-1788454313555",
+        "type": "message",
+        "position": {
+          "x": 3340,
+          "y": 185
+        },
+        "data": {
+          "label": "Enviar Mensagem (Cópia)",
+          "nodeType": "message",
+          "description": "Envia texto formatado no WhatsApp com variáveis dinâmicas (ex: {{nome_cliente}}).",
+          "isConfigured": true,
+          "config": {
+            "text": "Sou  *{{bot_nome}}* assistente virtual da  *{{empresa}}*...",
+            "previewUrl": false
+          }
+        },
+        "measured": {
+          "width": 320,
+          "height": 155
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-message-1788454336019",
+        "type": "message",
+        "position": {
+          "x": 3800,
+          "y": 185
+        },
+        "data": {
+          "label": "Enviar Mensagem (Cópia) (Cópia)",
+          "nodeType": "message",
+          "description": "Envia texto formatado no WhatsApp com variáveis dinâmicas (ex: {{nome_cliente}}).",
+          "isConfigured": true,
+          "config": {
+            "text": "Estou aqui para te ajudar!",
+            "previewUrl": false
+          }
+        },
+        "measured": {
+          "width": 320,
+          "height": 139
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-message-1788454375969",
+        "type": "message",
+        "position": {
+          "x": 2880,
+          "y": 185
+        },
+        "data": {
+          "label": "Enviar Mensagem (Cópia)",
+          "nodeType": "message",
+          "description": "Envia texto formatado no WhatsApp com variáveis dinâmicas (ex: {{nome_cliente}}).",
+          "isConfigured": true,
+          "config": {
+            "text": "Espero que sim ☺️",
+            "previewUrl": false
+          }
+        },
+        "measured": {
+          "width": 320,
+          "height": 139
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-question-1788454431053",
+        "type": "question",
+        "position": {
+          "x": 1040,
+          "y": 185
+        },
+        "data": {
+          "label": "Pergunta & Resposta",
+          "nodeType": "question",
+          "description": "Faz uma pergunta ao cliente e salva o texto digitado em uma variável.",
+          "isConfigured": true,
+          "config": {
+            "questionText": "Por favor, me diga o seu nome:",
+            "expectedType": "text",
+            "variableName": "nome_novocliente"
+          }
+        },
+        "measured": {
+          "width": 320,
+          "height": 162
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-update_contact-1788454454642",
+        "type": "update_contact",
+        "position": {
+          "x": 1500,
+          "y": 185
+        },
+        "data": {
+          "label": "Salvar / Vincular Dados",
+          "nodeType": "update_contact",
+          "description": "Salva nome, foto oficial, tags e campos customizados direto no perfil do WhatsApp.",
+          "isConfigured": true,
+          "config": {
+            "phoneVarName": "telefone_whatsapp",
+            "contactName": "nome_novocliente",
+            "tags": "Novo Cliente",
+            "customFieldKey": "interesse_principal",
+            "customFieldValue": "servico_selecionado"
+          }
+        },
+        "measured": {
+          "width": 320,
+          "height": 197
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-variable-1788482057050",
+        "type": "variable",
+        "position": {
+          "x": 1960,
+          "y": 185
+        },
+        "data": {
+          "label": "Definir Variável",
+          "nodeType": "variable",
+          "description": "Armazena valores ou dados calculados em variáveis de contexto.",
+          "isConfigured": true,
+          "config": {
+            "varName": "etapa_funil",
+            "varValue": "agendamento_iniciado"
+          }
+        },
+        "measured": {
+          "width": 320,
+          "height": 136
+        },
+        "selected": false
       }
     ]
   },
   "edges": {
     "flow-1788033465058": [
       {
-        "animated": true,
-        "style": {
-          "stroke": "#6366f1",
-          "strokeWidth": 2.5
-        },
-        "source": "node-message-1788033773183",
-        "target": "node-question-1788033927695",
-        "id": "xy-edge__node-message-1788033773183-node-question-1788033927695",
-        "targetHandle": null
-      },
-      {
-        "animated": true,
-        "style": {
-          "stroke": "#6366f1",
-          "strokeWidth": 2.5
-        },
-        "source": "node-question-1788033927695",
-        "target": "node-update_contact-1788041687381",
-        "id": "xy-edge__node-question-1788033927695-node-update_contact-1788041687381",
-        "targetHandle": null
-      },
-      {
+        "id": "xy-edge__node-trigger-1788033748050-node-check_contact-1788102919201",
+        "source": "node-trigger-1788033748050",
+        "target": "node-check_contact-1788102919201",
         "type": "smoothstep",
         "animated": true,
         "style": {
           "stroke": "#06b6d4",
           "strokeWidth": 2.5
-        },
+        }
+      },
+      {
+        "id": "xy-edge__node-check_contact-1788102919201is_new-node-message-1788033773183",
         "source": "node-check_contact-1788102919201",
         "sourceHandle": "is_new",
         "target": "node-message-1788033773183",
-        "id": "xy-edge__node-check_contact-1788102919201is_new-node-message-1788033773183",
-        "targetHandle": null
-      },
-      {
         "type": "smoothstep",
         "animated": true,
         "style": {
           "stroke": "#06b6d4",
           "strokeWidth": 2.5
-        },
-        "source": "node-trigger-1788033748050",
-        "target": "node-check_contact-1788102919201",
-        "id": "xy-edge__node-trigger-1788033748050-node-check_contact-1788102919201",
-        "targetHandle": null
+        }
       },
       {
-        "type": "smoothstep",
-        "animated": true,
-        "style": {
-          "stroke": "#06b6d4",
-          "strokeWidth": 2.5
-        },
+        "id": "xy-edge__node-check_contact-1788102919201is_existing-node-message-1788102948794",
         "source": "node-check_contact-1788102919201",
         "sourceHandle": "is_existing",
         "target": "node-message-1788102948794",
-        "id": "xy-edge__node-check_contact-1788102919201is_existing-node-message-1788102948794",
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        }
+      },
+      {
+        "id": "xy-edge__node-message-1788033773183-node-question-1788033927695",
+        "source": "node-message-1788033773183",
+        "target": "node-question-1788033927695",
+        "animated": true,
+        "style": {
+          "stroke": "#6366f1",
+          "strokeWidth": 2.5
+        }
+      },
+      {
+        "id": "xy-edge__node-question-1788033927695-node-update_contact-1788041687381",
+        "source": "node-question-1788033927695",
+        "target": "node-update_contact-1788041687381",
+        "animated": true,
+        "style": {
+          "stroke": "#6366f1",
+          "strokeWidth": 2.5
+        }
+      },
+      {
+        "id": "xy-edge__node-update_contact-1788041687381-node-ask_date-1788104674417",
+        "source": "node-update_contact-1788041687381",
+        "target": "node-ask_date-1788104674417",
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        }
+      },
+      {
+        "id": "xy-edge__node-message-1788102948794-node-ask_date-1788104674417",
+        "source": "node-message-1788102948794",
+        "target": "node-ask_date-1788104674417",
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        }
+      },
+      {
+        "id": "xy-edge__node-ask_date-1788104674417-node-services_catalog-1788105189425",
+        "source": "node-ask_date-1788104674417",
+        "target": "node-services_catalog-1788105189425",
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        }
+      },
+      {
+        "id": "xy-edge__node-services_catalog-1788105189425-node-schedule_contact-1788104743355",
+        "source": "node-services_catalog-1788105189425",
+        "target": "node-schedule_contact-1788104743355",
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        }
+      },
+      {
+        "id": "xy-edge__node-schedule_contact-1788104743355-node-confirm_booking-1788104787175",
+        "source": "node-schedule_contact-1788104743355",
+        "target": "node-confirm_booking-1788104787175",
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        }
+      }
+    ],
+    "flow-1788452126641": [
+      {
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        },
+        "pathOptions": {
+          "offset": 35,
+          "borderRadius": 20
+        },
+        "source": "node-trigger-1788453758817",
+        "target": "node-check_contact-1788454082098",
+        "id": "xy-edge__node-trigger-1788453758817-node-check_contact-1788454082098",
         "targetHandle": null
       },
       {
@@ -343,9 +571,15 @@
           "stroke": "#06b6d4",
           "strokeWidth": 2.5
         },
-        "source": "node-schedule_contact-1788104743355",
-        "target": "node-confirm_booking-1788104787175",
-        "id": "xy-edge__node-schedule_contact-1788104743355-node-confirm_booking-1788104787175"
+        "pathOptions": {
+          "offset": 35,
+          "borderRadius": 20
+        },
+        "source": "node-check_contact-1788454082098",
+        "sourceHandle": "is_existing",
+        "target": "node-message-1788453762849",
+        "id": "xy-edge__node-check_contact-1788454082098is_existing-node-message-1788453762849",
+        "targetHandle": null
       },
       {
         "type": "smoothstep",
@@ -354,9 +588,14 @@
           "stroke": "#06b6d4",
           "strokeWidth": 2.5
         },
-        "source": "node-update_contact-1788041687381",
-        "target": "node-ask_date-1788104674417",
-        "id": "xy-edge__node-update_contact-1788041687381-node-ask_date-1788104674417"
+        "pathOptions": {
+          "offset": 35,
+          "borderRadius": 20
+        },
+        "source": "node-message-1788454313555",
+        "target": "node-message-1788454336019",
+        "id": "xy-edge__node-message-1788454313555-node-message-1788454336019",
+        "targetHandle": null
       },
       {
         "type": "smoothstep",
@@ -365,9 +604,14 @@
           "stroke": "#06b6d4",
           "strokeWidth": 2.5
         },
-        "source": "node-message-1788102948794",
-        "target": "node-ask_date-1788104674417",
-        "id": "xy-edge__node-message-1788102948794-node-ask_date-1788104674417"
+        "pathOptions": {
+          "offset": 35,
+          "borderRadius": 20
+        },
+        "source": "node-message-1788453762849",
+        "target": "node-message-1788454375969",
+        "id": "xy-edge__node-message-1788453762849-node-message-1788454375969",
+        "targetHandle": null
       },
       {
         "type": "smoothstep",
@@ -376,9 +620,14 @@
           "stroke": "#06b6d4",
           "strokeWidth": 2.5
         },
-        "source": "node-services_catalog-1788105189425",
-        "target": "node-schedule_contact-1788104743355",
-        "id": "xy-edge__node-services_catalog-1788105189425-node-schedule_contact-1788104743355"
+        "pathOptions": {
+          "offset": 35,
+          "borderRadius": 20
+        },
+        "source": "node-message-1788454375969",
+        "target": "node-message-1788454313555",
+        "id": "xy-edge__node-message-1788454375969-node-message-1788454313555",
+        "targetHandle": null
       },
       {
         "type": "smoothstep",
@@ -387,9 +636,63 @@
           "stroke": "#06b6d4",
           "strokeWidth": 2.5
         },
-        "source": "node-ask_date-1788104674417",
-        "target": "node-services_catalog-1788105189425",
-        "id": "xy-edge__node-ask_date-1788104674417-node-services_catalog-1788105189425"
+        "pathOptions": {
+          "offset": 35,
+          "borderRadius": 20
+        },
+        "source": "node-question-1788454431053",
+        "target": "node-update_contact-1788454454642",
+        "id": "xy-edge__node-question-1788454431053-node-update_contact-1788454454642",
+        "targetHandle": null
+      },
+      {
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        },
+        "pathOptions": {
+          "offset": 35,
+          "borderRadius": 20
+        },
+        "source": "node-check_contact-1788454082098",
+        "sourceHandle": "is_new",
+        "target": "node-question-1788454431053",
+        "id": "xy-edge__node-check_contact-1788454082098is_new-node-question-1788454431053",
+        "targetHandle": null
+      },
+      {
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        },
+        "pathOptions": {
+          "offset": 35,
+          "borderRadius": 20
+        },
+        "source": "node-update_contact-1788454454642",
+        "target": "node-variable-1788482057050",
+        "id": "xy-edge__node-update_contact-1788454454642-node-variable-1788482057050",
+        "targetHandle": null
+      },
+      {
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        },
+        "pathOptions": {
+          "offset": 35,
+          "borderRadius": 20
+        },
+        "source": "node-variable-1788482057050",
+        "target": "node-message-1788453762849",
+        "id": "xy-edge__node-variable-1788482057050-node-message-1788453762849",
+        "targetHandle": null
       }
     ]
   },
@@ -438,72 +741,8 @@
     "updated_at": "2026-09-03T18:19:57.748Z",
     "backend_url": "https://talvane.discloud.app"
   },
-  "sessions": {
-    "5581996138924": {
-      "flowId": "flow-1788033465058",
-      "currentNodeId": "node-ask_date-1788104674417",
-      "variables": {
-        "whatsapp_pushname": "Rogerio",
-        "telefone_cliente": "5581996138924",
-        "telefone_whatsapp": "5581996138924",
-        "ultima_mensagem": "oi",
-        "nome_cliente": "Rogerio",
-        "is_primeiro_contato": false,
-        "is_novo_contato": false,
-        "tipo_cliente": "recorrente",
-        "cliente_nome": "Rogerio",
-        "nome": "Rogerio",
-        "tags_contato": "Cliente, Agendado"
-      },
-      "activeButtons": [
-        {
-          "id": "date_today",
-          "title": "Hoje (03/09)"
-        },
-        {
-          "id": "date_tomorrow",
-          "title": "Amanhã (04/09)"
-        },
-        {
-          "id": "date_custom",
-          "title": "Outra Data"
-        }
-      ]
-    }
-  },
+  "sessions": {},
   "appointments": [
-    {
-      "id": "apt-1788043578235",
-      "contact_name": "malaquias",
-      "contact_phone": "81996138924",
-      "service_name": "Corte Cabelo + Barba",
-      "appointment_date": "2026-08-30",
-      "appointment_time": "14:30",
-      "status": "confirmed",
-      "created_at": "2026-08-29T23:14:30.301Z"
-    },
-    {
-      "id": "apt-1788104116622",
-      "contact_phone": "558196138924",
-      "contact_name": "Rogerio",
-      "service_name": "{{servico_selecionado}}",
-      "duration_minutes": 30,
-      "appointment_date": "2026-08-30",
-      "appointment_time": "08:00",
-      "status": "confirmed",
-      "created_at": "2026-08-30T15:35:16.622Z"
-    },
-    {
-      "id": "apt-1788104123641",
-      "contact_phone": "558196138924",
-      "contact_name": "Rogerio",
-      "service_name": "{{servico_selecionado}}",
-      "duration_minutes": 30,
-      "appointment_date": "2026-08-30",
-      "appointment_time": "08:30",
-      "status": "confirmed",
-      "created_at": "2026-08-30T15:35:23.641Z"
-    },
     {
       "id": "apt-1788468016809",
       "contact_name": "Julio",
@@ -533,50 +772,7 @@
       "created_at": "2026-09-03T21:12:59.200Z"
     }
   ],
-  "contacts": {
-    "558196138924": {
-      "id": "contact-558196138924",
-      "phone": "558196138924",
-      "name": "Rogerio",
-      "status": "active",
-      "tags": [
-        "Cliente",
-        "Agendado"
-      ],
-      "metadata": {
-        "interesse_principal": "Consultar Valores"
-      },
-      "created_at": "2026-08-29T23:23:18.236Z",
-      "updated_at": "2026-08-30T15:54:58.044Z",
-      "profile_picture_url": "https://pps.whatsapp.net/v/t61.24694-24/674630155_1633106875192131_9214554452579566382_n.jpg?ccb=11-4&oh=01_Q5Aa5QH8Rcsf-hGOlkVBBpTEo5nl3x1xEqmhIqKGisBkzVPZ0g&oe=6AA16C21&_nc_sid=5e03e0&_nc_cat=104"
-    },
-    "81996138924": {
-      "id": "contact-81996138924",
-      "phone": "81996138924",
-      "name": "Julio",
-      "status": "active",
-      "tags": [
-        "Possivel Cliente"
-      ],
-      "metadata": {},
-      "created_at": "2026-09-03T17:43:19.161Z",
-      "updated_at": "2026-09-03T17:43:20.035Z"
-    },
-    "5581996138924": {
-      "id": "contact-5581996138924",
-      "phone": "5581996138924",
-      "name": "Teste",
-      "whatsapp_pushname": "Rogerio",
-      "status": "lead",
-      "tags": [
-        "Lead"
-      ],
-      "is_registered": false,
-      "metadata": {},
-      "created_at": "2026-09-03T17:58:33.868Z",
-      "updated_at": "2026-09-03T18:27:10.283Z"
-    }
-  },
+  "contacts": {},
   "conversations": {
     "conv-558196138924": {
       "id": "conv-558196138924",
@@ -590,19 +786,6 @@
       "last_message": "*Rogerio*, qual serviço você deseja?",
       "last_message_at": "2026-08-30T15:54:58.044Z",
       "updated_at": "2026-08-30T15:54:58.044Z"
-    },
-    "conv-5581996138924": {
-      "id": "conv-5581996138924",
-      "contact_id": "contact-5581996138924",
-      "contact_name": "Teste",
-      "contact_phone": "5581996138924",
-      "status": "bot",
-      "started_at": "2026-09-03T17:58:33.868Z",
-      "unread_count": 0,
-      "created_at": "2026-09-03T17:58:33.868Z",
-      "last_message": "📅 *Escolha a Data do Agendamento*\n\n*Rogerio*, para qual dia você gostaria de agendar seu atendimento?",
-      "last_message_at": "2026-09-03T18:27:10.283Z",
-      "updated_at": "2026-09-03T18:27:10.283Z"
     }
   },
   "messages": {
@@ -1288,44 +1471,6 @@
         "status": "delivered",
         "created_at": "2026-09-03T17:21:43.363Z"
       }
-    ],
-    "conv-5581996138924": [
-      {
-        "id": "msg-1788458313868-r989n",
-        "conversation_id": "conv-5581996138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Olá Rogerio, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber Shop*! e vou lhe auxiliar para ter um melhor atendimento",
-        "status": "delivered",
-        "created_at": "2026-09-03T17:58:33.868Z"
-      },
-      {
-        "id": "msg-1788458313871-hs9kc",
-        "conversation_id": "conv-5581996138924",
-        "direction": "outbound",
-        "message_type": "button",
-        "content": "📅 *Escolha a Data do Agendamento*\n\n*Rogerio*, para qual dia você gostaria de agendar seu atendimento?",
-        "status": "delivered",
-        "created_at": "2026-09-03T17:58:33.871Z"
-      },
-      {
-        "id": "msg-1788460030281-c0d9c",
-        "conversation_id": "conv-5581996138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Olá Rogerio, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber Shop*! e vou lhe auxiliar para ter um melhor atendimento",
-        "status": "delivered",
-        "created_at": "2026-09-03T18:27:10.281Z"
-      },
-      {
-        "id": "msg-1788460030283-x9piv",
-        "conversation_id": "conv-5581996138924",
-        "direction": "outbound",
-        "message_type": "button",
-        "content": "📅 *Escolha a Data do Agendamento*\n\n*Rogerio*, para qual dia você gostaria de agendar seu atendimento?",
-        "status": "delivered",
-        "created_at": "2026-09-03T18:27:10.283Z"
-      }
     ]
   },
   "attendants": [
@@ -1381,8 +1526,25 @@
         "name": "Corte Cabelo + Barba (Promoção)",
         "duration_minutes": 50,
         "price": 45
+      },
+      {
+        "id": "srv-1788481456390",
+        "name": "Sobrancelha",
+        "duration_minutes": 12,
+        "price": 10,
+        "category": "Cabelo",
+        "is_active": true
+      },
+      {
+        "id": "srv-1788481506751",
+        "name": "Corte Cabelo + Barba + Sobrancelha (Promoção)",
+        "duration_minutes": 10,
+        "price": 60,
+        "category": "Cabelo",
+        "is_active": true
       }
-    ]
+    ],
+    "updated_at": "2026-09-04T00:25:31.358Z"
   },
   "systemUsers": [
     {
@@ -1416,6 +1578,22 @@
       "status": "active",
       "created_at": "2026-09-03T23:23:37.718Z",
       "updated_at": "2026-09-03T23:26:14.663Z"
+    }
+  ],
+  "rolePermissions": {},
+  "logs": [
+    {
+      "id": "log-1788483474899-4jcgk",
+      "type": "message_outbound",
+      "title": "Resposta para Rogerio",
+      "description": "Por favor, me diga o seu nome:",
+      "contact_phone": "5581996138924",
+      "contact_name": "Rogerio",
+      "details": {
+        "direction": "outbound",
+        "messageId": "msg-1788483474897-6e5rm"
+      },
+      "created_at": "2026-09-04T00:57:54.899Z"
     }
   ]
 }

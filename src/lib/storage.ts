@@ -627,6 +627,10 @@ export const StorageService = {
     return getItem<string[]>(STORAGE_KEYS.DELETED_CONTACTS, []);
   },
 
+  clearDeletedContactsCache(): void {
+    setItem(STORAGE_KEYS.DELETED_CONTACTS, []);
+  },
+
   isContactDeleted(contact: Contact | any): boolean {
     const deletedList = this.getDeletedContactIds();
     if (!deletedList || deletedList.length === 0) return false;
@@ -649,26 +653,24 @@ export const StorageService = {
     const backendUrl = getBackendUrl();
     const deletedList = this.getDeletedContactIds();
 
-    // 1. Supabase Cloud Database is the primary Source of Truth
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { data, error } = await supabase.from('contacts').select('*').order('created_at', { ascending: false });
-        if (data && !error) {
-          const valid = (data as Contact[]).filter(c => !this.isContactDeleted(c));
-          setItem(STORAGE_KEYS.CONTACTS, valid);
-          return valid;
-        }
-      } catch (e) {
-        console.warn('Supabase contacts fetch fallback:', e);
-      }
-    }
-
-    // 2. WhatsApp Backend Server Fallback
+    // 1. WhatsApp Backend Server is the operational single source of truth for WhatsApp bot & DB
     try {
-      const res = await fetch(`${backendUrl}/api/whatsapp/contacts`);
+      const res = await fetch(`${backendUrl}/api/whatsapp/contacts`, { signal: AbortSignal.timeout(4000) });
       if (res.ok) {
         const serverContacts = await res.json();
         if (Array.isArray(serverContacts)) {
+          // If server returns contacts, auto-clear tombstones for any contact that is currently active on server
+          const activePhones = new Set(serverContacts.map(c => (c.phone || c.id || '').replace(/\D/g, '')));
+          if (deletedList.length > 0) {
+            const cleanedDeleted = deletedList.filter(d => {
+              const cleanD = d.replace(/\D/g, '');
+              return !activePhones.has(cleanD);
+            });
+            if (cleanedDeleted.length !== deletedList.length) {
+              setItem(STORAGE_KEYS.DELETED_CONTACTS, cleanedDeleted);
+            }
+          }
+
           const valid = serverContacts.filter(c => !this.isContactDeleted(c));
           setItem(STORAGE_KEYS.CONTACTS, valid);
           return valid;
@@ -676,6 +678,20 @@ export const StorageService = {
       }
     } catch {
       // Ignore if server is not reachable
+    }
+
+    // 2. Supabase Cloud Database (if configured and table exists)
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('contacts').select('*').order('created_at', { ascending: false });
+        if (data && !error && Array.isArray(data)) {
+          const valid = (data as Contact[]).filter(c => !this.isContactDeleted(c));
+          setItem(STORAGE_KEYS.CONTACTS, valid);
+          return valid;
+        }
+      } catch (e) {
+        console.warn('Supabase contacts fetch fallback:', e);
+      }
     }
 
     // 3. Local Cache Fallback
@@ -688,6 +704,10 @@ export const StorageService = {
     return contacts.find(c => c.id === id || c.phone === id) || null;
   },
 
+  async syncContactsWithBackend(): Promise<Contact[]> {
+    return this.getContacts();
+  },
+
   async saveContact(contact: Contact): Promise<Contact> {
     const backendUrl = getBackendUrl();
     const cleanPhone = (contact.phone || contact.id || '').replace(/\D/g, '');
@@ -696,6 +716,9 @@ export const StorageService = {
       ...contact, 
       id: contact.id || `contact-${cleanPhone}`,
       phone: cleanPhone,
+      is_registered: true,
+      status: contact.status || 'active',
+      tags: contact.tags && contact.tags.length > 0 ? contact.tags : ['Cliente'],
       updated_at: new Date().toISOString() 
     };
 
@@ -788,7 +811,7 @@ export const StorageService = {
       }
     }
 
-    // 4. Immediately delete from WhatsApp Backend Server (Baileys memory)
+    // 4. Immediately delete from WhatsApp Backend Server (Baileys memory, appointments, and sessions)
     try {
       const target = cleanPhone || id;
       await fetch(`${backendUrl}/api/whatsapp/contacts/${encodeURIComponent(target)}?phone=${encodeURIComponent(cleanPhone)}`, {
