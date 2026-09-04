@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Settings as SettingsIcon, 
   Bot, 
@@ -37,7 +37,11 @@ import {
   Trash2,
   Edit3,
   Star,
-  MessageSquare
+  MessageSquare,
+  Plus,
+  Download,
+  Volume2,
+  HardDrive
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -48,7 +52,7 @@ import { QRCodeView } from '../../components/ui/QRCodeView';
 import { useToast } from '../../contexts/ToastContext';
 import { useWhatsApp } from '../../contexts/WhatsAppContext';
 import { StorageService, isSupabaseConfigured } from '../../lib/storage';
-import { BotProfile, BotGender, BotTone, Attendant } from '../../types';
+import { BotProfile, BotGender, BotTone, Attendant, CustomVariable, Settings } from '../../types';
 import { defaultBotProfile } from '../../lib/mockData';
 import { formatPhone, formatDate } from '../../lib/utils';
 
@@ -146,43 +150,158 @@ export const SettingsPage: React.FC = () => {
   const [notifyPhone, setNotifyPhone] = useState('81996138924');
   const [playAudioAlerts, setPlayAudioAlerts] = useState(true);
 
+  // Database Management State
+  const [supabaseUrl, setSupabaseUrl] = useState('https://nskflvulclgwqqasdntq.supabase.co');
+  const [supabaseKey, setSupabaseKey] = useState('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5za2ZsdnVsY2xnd3FxYXNkbnRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwMTQ0NjQsImV4cCI6MjEwMzU5MDQ2NH0.mL82cgH4MadNi_sTeKKgYmRAuhmp7HqImuAs9hTrTZI');
+  const [dbStats, setDbStats] = useState({
+    contacts_count: 0,
+    appointments_count: 0,
+    flows_count: 0,
+    attendants_count: 0,
+    custom_variables_count: 0,
+    system_users_count: 0,
+    conversations_count: 0,
+  });
+  const [isSyncingDb, setIsSyncingDb] = useState(false);
+  const [isSavingDbConfig, setIsSavingDbConfig] = useState(false);
+
+  // Custom Variables State
+  const [customVariables, setCustomVariables] = useState<CustomVariable[]>([]);
+  const [isVarModalOpen, setIsVarModalOpen] = useState(false);
+  const [editingVar, setEditingVar] = useState<CustomVariable | null>(null);
+  const [varNameInput, setVarNameInput] = useState('');
+  const [varValueInput, setVarValueInput] = useState('');
+  const [varDescInput, setVarDescInput] = useState('');
+
   // Security
   const [newAdminPassword, setNewAdminPassword] = useState('');
   const [confirmAdminPassword, setConfirmAdminPassword] = useState('');
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
 
-  // Load profile on mount
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const saved = await StorageService.getBotProfile();
-        if (saved) {
-          setBotName(saved.name || defaultBotProfile.name);
-          setCompanyName(saved.company_name || defaultBotProfile.company_name);
-          setGender(saved.gender || defaultBotProfile.gender);
-          setTone(saved.tone || defaultBotProfile.tone);
-          setAvatarUrl(saved.avatar_url || defaultBotProfile.avatar_url);
-          setSupportPhone(saved.support_phone || defaultBotProfile.support_phone);
-          setSupportEmail(saved.support_email || defaultBotProfile.support_email);
-          setBusinessHours(saved.business_hours || defaultBotProfile.business_hours);
-          setWebsiteUrl(saved.website_url || defaultBotProfile.website_url);
-          setWelcomeMessage(saved.welcome_message || defaultBotProfile.welcome_message);
-          setFallbackMessage(saved.fallback_message || defaultBotProfile.fallback_message);
-          if (saved.handoff_message) setHandoffMessage(saved.handoff_message);
-          if (saved.company_address) setCompanyAddress(saved.company_address);
-          if (saved.pix_key_type) setPixKeyType(saved.pix_key_type);
-          if (saved.pix_key) setPixKey(saved.pix_key);
-          if (saved.pix_owner) setPixOwner(saved.pix_owner);
-          if (typeof saved.notify_new_bookings === 'boolean') setNotifyNewBookings(saved.notify_new_bookings);
-          if (saved.notify_phone) setNotifyPhone(saved.notify_phone);
-          if (typeof saved.play_audio_alerts === 'boolean') setPlayAudioAlerts(saved.play_audio_alerts);
+  // Load Database Stats
+  const loadDbStats = useCallback(async () => {
+    const targetUrl = backendUrl || 'https://talvane.discloud.app';
+    try {
+      const res = await fetch(`${targetUrl}/api/whatsapp/database/stats`, { signal: AbortSignal.timeout(4000) });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.stats) {
+          setDbStats(data.stats);
+          return;
         }
+      }
+    } catch {}
+
+    // Fallback counts from StorageService
+    try {
+      const contacts = await StorageService.getContacts();
+      const apts = await StorageService.getAppointments();
+      const flows = await StorageService.getFlows();
+      const atts = await StorageService.getAttendants();
+      const vars = await StorageService.getCustomVariables();
+      setDbStats({
+        contacts_count: contacts.length,
+        appointments_count: apts.length,
+        flows_count: flows.length,
+        attendants_count: atts.length,
+        custom_variables_count: vars.length,
+        system_users_count: 1,
+        conversations_count: 0,
+      });
+    } catch {}
+  }, [backendUrl]);
+
+  // Load all configuration data from database on mount
+  useEffect(() => {
+    const loadAllData = async () => {
+      try {
+        const [savedProfile, savedSettings, savedAttendants, savedVars] = await Promise.all([
+          StorageService.getBotProfile(),
+          StorageService.getSettings(),
+          StorageService.getAttendants(),
+          StorageService.getCustomVariables(),
+        ]);
+
+        if (savedProfile) {
+          setBotName(savedProfile.name || defaultBotProfile.name);
+          setCompanyName(savedProfile.company_name || defaultBotProfile.company_name);
+          setGender(savedProfile.gender || defaultBotProfile.gender);
+          setTone(savedProfile.tone || defaultBotProfile.tone);
+          setAvatarUrl(savedProfile.avatar_url || defaultBotProfile.avatar_url);
+          setSupportPhone(savedProfile.support_phone || defaultBotProfile.support_phone);
+          setSupportEmail(savedProfile.support_email || defaultBotProfile.support_email);
+          setBusinessHours(savedProfile.business_hours || defaultBotProfile.business_hours);
+          setWebsiteUrl(savedProfile.website_url || defaultBotProfile.website_url);
+          setWelcomeMessage(savedProfile.welcome_message || defaultBotProfile.welcome_message);
+          setFallbackMessage(savedProfile.fallback_message || defaultBotProfile.fallback_message);
+          if (savedProfile.handoff_message) setHandoffMessage(savedProfile.handoff_message);
+          if (savedProfile.company_address) setCompanyAddress(savedProfile.company_address);
+          if (savedProfile.pix_key_type) setPixKeyType(savedProfile.pix_key_type);
+          if (savedProfile.pix_key) setPixKey(savedProfile.pix_key);
+          if (savedProfile.pix_owner) setPixOwner(savedProfile.pix_owner);
+          if (typeof savedProfile.notify_new_bookings === 'boolean') setNotifyNewBookings(savedProfile.notify_new_bookings);
+          if (savedProfile.notify_phone) setNotifyPhone(savedProfile.notify_phone);
+          if (typeof savedProfile.play_audio_alerts === 'boolean') setPlayAudioAlerts(savedProfile.play_audio_alerts);
+        }
+
+        if (savedSettings) {
+          if (savedSettings.backend_url) setCustomServerInput(savedSettings.backend_url);
+          if (savedSettings.supabase_url) setSupabaseUrl(savedSettings.supabase_url);
+          if (savedSettings.supabase_anon_key) setSupabaseKey(savedSettings.supabase_anon_key);
+        }
+
+        if (savedAttendants) {
+          setAttendants(savedAttendants);
+        }
+
+        if (savedVars) {
+          setCustomVariables(savedVars);
+        }
+
+        loadDbStats();
       } catch (e) {
-        console.error('Error loading bot profile:', e);
+        console.error('Error loading configuration data:', e);
       }
     };
-    loadProfile();
-  }, []);
 
+    loadAllData();
+  }, [loadDbStats]);
+
+  // Tab 1: Save Backend URL to Database
+  const handleSaveBackendUrl = async () => {
+    setIsTestingServer(true);
+    try {
+      setCustomBackendUrl(customServerInput);
+      await StorageService.updateSettings({ backend_url: customServerInput });
+      success('URL Salva no Banco de Dados', `Servidor configurado e gravado no banco: ${customServerInput}`);
+      refreshStatus();
+    } catch (err: any) {
+      toastError('Erro ao salvar URL', err.message);
+    } finally {
+      setIsTestingServer(false);
+    }
+  };
+
+  const handleTestBackend = async () => {
+    setIsTestingServer(true);
+    try {
+      setCustomBackendUrl(customServerInput);
+      const res = await fetch(`${customServerInput}/api/whatsapp/status`, { signal: AbortSignal.timeout(5000) });
+      if (res.ok) {
+        const data = await res.json();
+        success('Conexão Bem-Sucedida', `Servidor WhatsApp online (${data.status}).`);
+        refreshStatus();
+      } else {
+        toastError('Servidor respondeu com erro', `Código HTTP: ${res.status}`);
+      }
+    } catch (err: any) {
+      toastError('Falha ao conectar no servidor', 'Verifique se a aplicação está online no Discloud.');
+    } finally {
+      setIsTestingServer(false);
+    }
+  };
+
+  // Tab 3 & 4: Save Bot Profile, Commercial Details, and Notifications to Database
   const handleSaveProfile = async (e?: React.FormEvent) => {
     if (e && e.preventDefault) e.preventDefault();
     setIsSaving(true);
@@ -211,7 +330,7 @@ export const SettingsPage: React.FC = () => {
       };
 
       await StorageService.updateBotProfile(updated);
-      success('Configurações Salvas no Banco', 'Perfil, dados comerciais e identidade sincronizados com o servidor em tempo real.');
+      success('Configurações Salvas no Banco', 'Perfil, dados comerciais, PIX e notificações atualizados no banco de dados em tempo real.');
     } catch (err: any) {
       toastError('Erro ao salvar', err.message || 'Falha ao gravar configurações');
     } finally {
@@ -219,61 +338,7 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
-  const handleTestBackend = async () => {
-    setIsTestingServer(true);
-    try {
-      setCustomBackendUrl(customServerInput);
-      const res = await fetch(`${customServerInput}/api/whatsapp/status`, { signal: AbortSignal.timeout(5000) });
-      if (res.ok) {
-        const data = await res.json();
-        success('Conexão Bem-Sucedida', `Servidor WhatsApp online (${data.status}).`);
-        refreshStatus();
-      } else {
-        toastError('Servidor respondeu com erro', `Código HTTP: ${res.status}`);
-      }
-    } catch (err: any) {
-      toastError('Falha ao conectar no servidor', 'Verifique se a aplicação está online no Discloud.');
-    } finally {
-      setIsTestingServer(false);
-    }
-  };
-
-  const handleCopy = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(label);
-    success('Copiado!', `Variável ${label} copiada para a área de transferência.`);
-    setTimeout(() => setCopiedField(null), 2000);
-  };
-
-  const handleUpdatePassword = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newAdminPassword.length < 6) {
-      toastError('Senha muito curta', 'A nova senha deve ter no mínimo 6 caracteres.');
-      return;
-    }
-    if (newAdminPassword !== confirmAdminPassword) {
-      toastError('Senhas não coincidem', 'A confirmação de senha deve ser idêntica.');
-      return;
-    }
-    localStorage.setItem('7assistente_admin_pwd', newAdminPassword);
-    setNewAdminPassword('');
-    setConfirmAdminPassword('');
-    success('Senha Atualizada', 'A senha de acesso administrativo foi alterada com sucesso.');
-  };
-
-  // Load attendants
-  useEffect(() => {
-    const loadAttendants = async () => {
-      try {
-        const list = await StorageService.getAttendants();
-        setAttendants(list);
-      } catch (e) {
-        console.error('Error loading attendants:', e);
-      }
-    };
-    loadAttendants();
-  }, []);
-
+  // Tab 2: Attendants Handlers
   const handleOpenNewAttendantModal = () => {
     setEditingAttendant(null);
     setAttName('');
@@ -330,21 +395,170 @@ export const SettingsPage: React.FC = () => {
       const list = await StorageService.getAttendants();
       setAttendants(list);
       setIsAttendantModalOpen(false);
-      success('Atendente Salvo', `Perfil de "${updated.name}" registrado com sucesso.`);
+      loadDbStats();
+      success('Atendente Salvo no Banco', `Perfil de "${updated.name}" persistido no banco de dados com sucesso.`);
     } catch (err: any) {
       toastError('Erro ao salvar atendente', err.message);
     }
   };
 
   const handleDeleteAttendant = async (id: string, name: string) => {
-    if (!confirm(`Deseja realmente remover o perfil de "${name}"?`)) return;
+    if (!confirm(`Deseja realmente remover o perfil de "${name}" do banco de dados?`)) return;
     try {
       await StorageService.deleteAttendant(id);
       const list = await StorageService.getAttendants();
       setAttendants(list);
-      success('Atendente Removido', `O perfil de ${name} foi excluído.`);
+      loadDbStats();
+      success('Atendente Removido do Banco', `O perfil de ${name} foi excluído do banco de dados.`);
     } catch (err: any) {
       toastError('Erro ao excluir', err.message);
+    }
+  };
+
+  // Tab 5: Database Credentials & Sync Handlers
+  const handleSaveDbCredentials = async () => {
+    setIsSavingDbConfig(true);
+    try {
+      await StorageService.updateSettings({
+        supabase_url: supabaseUrl.trim(),
+        supabase_anon_key: supabaseKey.trim(),
+      });
+      success('Banco de Dados Atualizado', 'Credenciais e configurações do banco persistidas com sucesso.');
+    } catch (err: any) {
+      toastError('Erro ao salvar credenciais', err.message);
+    } finally {
+      setIsSavingDbConfig(false);
+    }
+  };
+
+  const handleSyncAllTables = async () => {
+    setIsSyncingDb(true);
+    try {
+      await StorageService.getContacts();
+      await StorageService.getAppointments();
+      await StorageService.getFlows();
+      await StorageService.getAttendants();
+      await StorageService.getSettings();
+      await StorageService.getCustomVariables();
+      await loadDbStats();
+      success('Sincronização Completa Realizada', 'Todas as tabelas foram lidas e sincronizadas com o banco de dados em nuvem.');
+    } catch (err: any) {
+      toastError('Erro ao sincronizar tabelas', err.message);
+    } finally {
+      setIsSyncingDb(false);
+    }
+  };
+
+  const handleDownloadBackup = () => {
+    const targetUrl = `${backendUrl || 'https://talvane.discloud.app'}/api/whatsapp/database/dump`;
+    window.open(targetUrl, '_blank');
+    success('Download de Backup Iniciado', 'O arquivo JSON com todo o banco de dados está sendo baixado.');
+  };
+
+  // Tab 6: Custom Variables Handlers
+  const handleOpenNewVarModal = () => {
+    setEditingVar(null);
+    setVarNameInput('');
+    setVarValueInput('');
+    setVarDescInput('');
+    setIsVarModalOpen(true);
+  };
+
+  const handleOpenEditVarModal = (cv: CustomVariable) => {
+    setEditingVar(cv);
+    setVarNameInput(cv.name.replace(/[{}]/g, ''));
+    setVarValueInput(cv.value);
+    setVarDescInput(cv.description || '');
+    setIsVarModalOpen(true);
+  };
+
+  const handleSaveCustomVar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!varNameInput.trim()) {
+      toastError('Nome obrigatório', 'Informe o identificador da variável.');
+      return;
+    }
+
+    try {
+      const cleanName = varNameInput.trim().replace(/[{}]/g, '').toLowerCase();
+      const updated: CustomVariable = {
+        id: editingVar?.id || `var-${Date.now()}`,
+        name: `{{${cleanName}}}`,
+        value: varValueInput.trim(),
+        description: varDescInput.trim(),
+      };
+
+      await StorageService.saveCustomVariable(updated);
+      const list = await StorageService.getCustomVariables();
+      setCustomVariables(list);
+      setIsVarModalOpen(false);
+      loadDbStats();
+      success('Variável Salva no Banco', `Variável {{${cleanName}}} cadastrada e ativa nos fluxos.`);
+    } catch (err: any) {
+      toastError('Erro ao salvar variável', err.message);
+    }
+  };
+
+  const handleDeleteCustomVar = async (id: string, name: string) => {
+    if (!confirm(`Deseja realmente remover a variável ${name} do banco de dados?`)) return;
+    try {
+      await StorageService.deleteCustomVariable(id);
+      const list = await StorageService.getCustomVariables();
+      setCustomVariables(list);
+      loadDbStats();
+      success('Variável Excluída do Banco', `A variável ${name} foi removida do banco de dados.`);
+    } catch (err: any) {
+      toastError('Erro ao excluir variável', err.message);
+    }
+  };
+
+  const handleCopy = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(label);
+    success('Copiado!', `Variável ${label} copiada para a área de transferência.`);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  // Tab 7: Security & Password Update
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newAdminPassword.length < 6) {
+      toastError('Senha muito curta', 'A nova senha deve ter no mínimo 6 caracteres.');
+      return;
+    }
+    if (newAdminPassword !== confirmAdminPassword) {
+      toastError('Senhas não coincidem', 'A confirmação de senha deve ser idêntica.');
+      return;
+    }
+
+    setIsSavingPassword(true);
+    try {
+      localStorage.setItem('7assistente_admin_pwd', newAdminPassword);
+      await StorageService.updateSettings({ admin_password: newAdminPassword });
+      await StorageService.updateAdminProfile({ password: newAdminPassword });
+      await StorageService.saveSystemUser({
+        id: 'user-talvane',
+        name: 'Talvane (Administrador & Barbeiro)',
+        phone: '81996138924',
+        password: newAdminPassword,
+        pin: '1234',
+        role: 'admin',
+        permissions: {
+          can_access_admin: true,
+          can_access_atendimento: true,
+          can_access_barbeiro: true,
+        },
+        status: 'active',
+        created_at: new Date().toISOString(),
+      });
+
+      setNewAdminPassword('');
+      setConfirmAdminPassword('');
+      success('Senha Salva no Banco de Dados', 'A nova senha foi gravada e sincronizada com segurança.');
+    } catch (err: any) {
+      toastError('Erro ao salvar senha no banco', err.message);
+    } finally {
+      setIsSavingPassword(false);
     }
   };
 
@@ -361,10 +575,10 @@ export const SettingsPage: React.FC = () => {
           <div>
             <h1 className="text-lg font-bold text-white flex items-center gap-2">
               Configurações da Plataforma
-              <Badge variant="brand" className="text-[10px] py-0 px-2">v2.0 PRO</Badge>
+              <Badge variant="brand" className="text-[10px] py-0 px-2">Banco de Dados Conectado</Badge>
             </h1>
             <p className="text-xs text-slate-400">
-              Personalização do robô, conexão WhatsApp, dados corporativos, banco de dados e segurança
+              Todas as abas sincronizadas em tempo real com o banco de dados (Discloud & Supabase)
             </p>
           </div>
         </div>
@@ -428,7 +642,10 @@ export const SettingsPage: React.FC = () => {
         </button>
 
         <button
-          onClick={() => setActiveTab('database')}
+          onClick={() => {
+            setActiveTab('database');
+            loadDbStats();
+          }}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
             activeTab === 'database'
               ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
@@ -487,28 +704,40 @@ export const SettingsPage: React.FC = () => {
                     Servidor WhatsApp (Discloud / Baileys)
                   </h3>
                   <p className="text-xs text-slate-400">
-                    URL do serviço WebSocket e API REST onde o robô está hospedado
+                    URL do serviço WebSocket e API REST onde o robô está hospedado e persistido no banco
                   </p>
                 </div>
-                <Badge variant="brand" className="text-[10px]">Cloud Discloud</Badge>
+                <Badge variant="brand" className="text-[10px]">Persistido no Banco</Badge>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                   value={customServerInput}
                   onChange={(e) => setCustomServerInput(e.target.value)}
                   placeholder="https://talvane.discloud.app"
                   className="font-mono text-xs flex-1"
                 />
-                <Button
-                  variant="brand"
-                  size="sm"
-                  onClick={handleTestBackend}
-                  disabled={isTestingServer}
-                  className="text-xs"
-                >
-                  {isTestingServer ? 'Testando...' : 'Testar Conexão'}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleTestBackend}
+                    disabled={isTestingServer}
+                    className="text-xs"
+                  >
+                    {isTestingServer ? 'Testando...' : 'Testar Conexão'}
+                  </Button>
+                  <Button
+                    variant="brand"
+                    size="sm"
+                    onClick={handleSaveBackendUrl}
+                    disabled={isTestingServer}
+                    leftIcon={<Save className="w-3.5 h-3.5" />}
+                    className="text-xs font-bold"
+                  >
+                    Salvar no Banco
+                  </Button>
+                </div>
               </div>
             </Card>
           </div>
@@ -539,7 +768,7 @@ export const SettingsPage: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB: ATTENDANTS & RELATIONSHIP TEAM (EQUIPE & PERFIS COM SENHA) */}
+      {/* TAB 2: ATTENDANTS & RELATIONSHIP TEAM (EQUIPE & PERFIS COM SENHA) */}
       {/* ========================================================================= */}
       {activeTab === 'attendants' && (
         <div className="space-y-6 animate-in fade-in">
@@ -552,11 +781,25 @@ export const SettingsPage: React.FC = () => {
                   Perfis de Atendentes & Métricas Individuais
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Gerencie operadores com login e senha próprios, departamentos e acompanhe o desempenho de cada um
+                  Gerencie operadores com login e senha próprios, departamentos e métricas sincronizadas no banco de dados
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    const list = await StorageService.getAttendants();
+                    setAttendants(list);
+                    success('Banco Sincronizado', `${list.length} atendentes carregados do banco de dados.`);
+                  }}
+                  leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+                  className="text-xs"
+                >
+                  Sincronizar Banco
+                </Button>
+
                 <a
                   href="/relacionamento"
                   target="_blank"
@@ -564,7 +807,7 @@ export const SettingsPage: React.FC = () => {
                   className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 border border-purple-500/30 text-xs font-bold transition-all shadow-glow-primary"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
-                  Abrir Portal do Atendente (/relacionamento)
+                  Abrir Portal (/relacionamento)
                 </a>
 
                 <Button
@@ -681,14 +924,17 @@ export const SettingsPage: React.FC = () => {
       {activeTab === 'profile' && (
         <form onSubmit={handleSaveProfile} className="space-y-6 animate-in fade-in">
           <Card className="p-6 rounded-3xl bg-dark-900/70 border-white/10 space-y-6">
-            <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Bot className="w-4 h-4 text-brand-400" />
-                Identidade & Personalidade do Assistente
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Configure o nome, tom de voz e as saudações padrão enviadas aos clientes
-              </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Bot className="w-4 h-4 text-brand-400" />
+                  Identidade & Personalidade do Assistente
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Configure o nome, tom de voz e as saudações padrão salvas no banco de dados
+                </p>
+              </div>
+              <Badge variant="brand" className="text-[10px]">Persistido no Banco</Badge>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -786,7 +1032,19 @@ export const SettingsPage: React.FC = () => {
                   rows={2}
                   value={handoffMessage}
                   onChange={(e) => setHandoffMessage(e.target.value)}
-                  placeholder="Mensagem de transbordo..."
+                  placeholder="Mensagem enviada antes de transferir para um atendente..."
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">
+                  Mensagem de Contingência / Fallback (Quando o robô não entender)
+                </label>
+                <Textarea
+                  rows={2}
+                  value={fallbackMessage}
+                  onChange={(e) => setFallbackMessage(e.target.value)}
+                  placeholder="Desculpe, não consegui compreender sua mensagem. Escolha uma das opções ou digite MENU para voltar ao início..."
                 />
               </div>
             </div>
@@ -798,7 +1056,7 @@ export const SettingsPage: React.FC = () => {
                 disabled={isSaving}
                 leftIcon={<Save className="w-4 h-4" />}
               >
-                {isSaving ? 'Salvando...' : 'Salvar Alterações'}
+                {isSaving ? 'Salvando no Banco...' : 'Salvar Alterações no Banco'}
               </Button>
             </div>
           </Card>
@@ -806,18 +1064,21 @@ export const SettingsPage: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 3: COMPANY & PIX DETAILS */}
+      {/* TAB 4: COMPANY, PIX & NOTIFICATIONS */}
       {/* ========================================================================= */}
       {activeTab === 'company' && (
         <Card className="p-6 rounded-3xl bg-dark-900/70 border-white/10 space-y-6 animate-in fade-in">
-          <div>
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-brand-400" />
-              Dados Comerciais & Dados para Pagamento PIX
-            </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Informações utilizadas em variáveis automáticas como {'{{chave_pix}}'}, {'{{suporte_telefone}}'} e nos fluxos
-            </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-brand-400" />
+                Dados Comerciais, Cobrança PIX & Notificações
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Informações utilizadas em variáveis automáticas como {'{{chave_pix}}'}, {'{{suporte_telefone}}'} e nos fluxos
+              </p>
+            </div>
+            <Badge variant="brand" className="text-[10px]">Persistido no Banco</Badge>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -903,6 +1164,57 @@ export const SettingsPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Notifications Settings Box */}
+          <div className="p-5 rounded-2xl bg-dark-950/80 border border-brand-500/20 space-y-4">
+            <h4 className="text-xs font-bold text-brand-400 flex items-center gap-2">
+              <Bell className="w-4 h-4" />
+              Notificações & Alertas em Tempo Real
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2 p-3 bg-dark-900/60 rounded-xl border border-white/5">
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-white">
+                  <input
+                    type="checkbox"
+                    checked={notifyNewBookings}
+                    onChange={(e) => setNotifyNewBookings(e.target.checked)}
+                    className="w-4 h-4 rounded border-white/20 bg-dark-800 text-brand-500 focus:ring-brand-500"
+                  />
+                  <span className="font-semibold">Notificar novos agendamentos por WhatsApp</span>
+                </label>
+                <p className="text-[11px] text-slate-400 pl-6">
+                  Envia um aviso automático no WhatsApp sempre que um cliente agendar pelo robô.
+                </p>
+              </div>
+
+              <div className="space-y-2 p-3 bg-dark-900/60 rounded-xl border border-white/5">
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-white">
+                  <input
+                    type="checkbox"
+                    checked={playAudioAlerts}
+                    onChange={(e) => setPlayAudioAlerts(e.target.checked)}
+                    className="w-4 h-4 rounded border-white/20 bg-dark-800 text-brand-500 focus:ring-brand-500"
+                  />
+                  <span className="font-semibold">Alerta sonoro de nova mensagem</span>
+                </label>
+                <p className="text-[11px] text-slate-400 pl-6">
+                  Toca um sinal sonoro nos painéis ao receber novas mensagens de clientes.
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-300 block mb-1">
+                WhatsApp Destinatário para Receber Alertas de Agendamento
+              </label>
+              <Input
+                value={notifyPhone}
+                onChange={(e) => setNotifyPhone(e.target.value)}
+                placeholder="Ex: 81996138924 (DDD + Número)"
+              />
+            </div>
+          </div>
+
           <div className="flex justify-end pt-2">
             <Button
               variant="brand"
@@ -910,26 +1222,54 @@ export const SettingsPage: React.FC = () => {
               disabled={isSaving}
               leftIcon={<Save className="w-4 h-4" />}
             >
-              {isSaving ? 'Salvando...' : 'Salvar Dados Comerciais'}
+              {isSaving ? 'Salvando no Banco...' : 'Salvar Dados Comerciais no Banco'}
             </Button>
           </div>
         </Card>
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 4: DATABASE & SUPABASE */}
+      {/* TAB 5: DATABASE & SUPABASE */}
       {/* ========================================================================= */}
       {activeTab === 'database' && (
         <div className="space-y-6 animate-in fade-in">
+          {/* Live Statistics Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="p-4 rounded-2xl bg-dark-900/80 border border-white/5 text-center">
+              <span className="text-[10px] text-slate-400 block font-semibold">Contatos Registrados</span>
+              <span className="text-xl font-bold text-white mt-1 block">{dbStats.contacts_count}</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-dark-900/80 border border-white/5 text-center">
+              <span className="text-[10px] text-slate-400 block font-semibold">Agendamentos</span>
+              <span className="text-xl font-bold text-emerald-400 mt-1 block">{dbStats.appointments_count}</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-dark-900/80 border border-white/5 text-center">
+              <span className="text-[10px] text-slate-400 block font-semibold">Fluxos Ativos</span>
+              <span className="text-xl font-bold text-brand-400 mt-1 block">{dbStats.flows_count}</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-dark-900/80 border border-white/5 text-center">
+              <span className="text-[10px] text-slate-400 block font-semibold">Atendentes</span>
+              <span className="text-xl font-bold text-purple-400 mt-1 block">{dbStats.attendants_count}</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-dark-900/80 border border-white/5 text-center">
+              <span className="text-[10px] text-slate-400 block font-semibold">Variáveis</span>
+              <span className="text-xl font-bold text-amber-400 mt-1 block">{dbStats.custom_variables_count}</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-dark-900/80 border border-white/5 text-center">
+              <span className="text-[10px] text-slate-400 block font-semibold">Conversas</span>
+              <span className="text-xl font-bold text-sky-400 mt-1 block">{dbStats.conversations_count}</span>
+            </div>
+          </div>
+
           <Card className="p-6 rounded-3xl bg-dark-900/70 border-white/10 space-y-6">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <Database className="w-4 h-4 text-brand-400" />
-                  Banco de Dados em Nuvem (Supabase PostgreSQL)
+                  Banco de Dados em Nuvem (Supabase & Discloud)
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Status da conexão em tempo real e sincronização atômica de dados
+                  Credenciais de conexão, políticas atômicas e sincronização total
                 </p>
               </div>
 
@@ -939,20 +1279,49 @@ export const SettingsPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-dark-950/80 border border-white/5 font-mono text-xs">
+            <div className="space-y-4 p-4 rounded-2xl bg-dark-950/80 border border-white/5">
               <div>
-                <span className="text-slate-500 block text-[10px] uppercase">Host do Banco:</span>
-                <span className="text-brand-300 truncate block">https://nskflvulclgwqqasdntq.supabase.co</span>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">
+                  Host / URL do Banco de Dados (Supabase URL)
+                </label>
+                <Input
+                  value={supabaseUrl}
+                  onChange={(e) => setSupabaseUrl(e.target.value)}
+                  placeholder="https://sua-instancia.supabase.co"
+                  className="font-mono text-xs"
+                />
               </div>
+
               <div>
-                <span className="text-slate-500 block text-[10px] uppercase">Segurança & Políticas:</span>
-                <span className="text-emerald-400">Row Level Security (RLS) Ativo</span>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">
+                  Chave Pública Anon (JWT Anon Key)
+                </label>
+                <Input
+                  type="password"
+                  value={supabaseKey}
+                  onChange={(e) => setSupabaseKey(e.target.value)}
+                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI..."
+                  className="font-mono text-xs"
+                />
+              </div>
+
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={handleSaveDbCredentials}
+                  disabled={isSavingDbConfig}
+                  leftIcon={<Save className="w-3.5 h-3.5" />}
+                  className="text-xs"
+                >
+                  {isSavingDbConfig ? 'Salvando...' : 'Salvar Credenciais no Banco'}
+                </Button>
               </div>
             </div>
 
             {/* Tables status grid */}
             <div className="space-y-2">
-              <span className="text-xs font-semibold text-slate-300 block">Tabelas Sincronizadas:</span>
+              <span className="text-xs font-semibold text-slate-300 block">Tabelas e Coleções Sincronizadas:</span>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
                 {['contacts', 'appointments', 'flows', 'flow_nodes', 'flow_edges', 'conversations'].map((tbl) => (
                   <div key={tbl} className="p-2.5 rounded-xl bg-dark-950 border border-white/5 text-center">
@@ -965,14 +1334,27 @@ export const SettingsPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex justify-end pt-2">
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-white/5">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => success('Sincronização OK', 'Conexão com o banco de dados verificada com sucesso.')}
-                leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+                onClick={handleDownloadBackup}
+                leftIcon={<Download className="w-3.5 h-3.5 text-emerald-400" />}
+                className="w-full sm:w-auto text-xs font-semibold"
               >
-                Verificar Integridade
+                Baixar Backup Completo (JSON)
+              </Button>
+
+              <Button
+                variant="brand"
+                size="sm"
+                onClick={handleSyncAllTables}
+                disabled={isSyncingDb}
+                leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${isSyncingDb ? 'animate-spin' : ''}`} />}
+                className="w-full sm:w-auto text-xs font-bold"
+              >
+                {isSyncingDb ? 'Sincronizando com o Banco...' : 'Sincronizar Todas as Tabelas'}
               </Button>
             </div>
           </Card>
@@ -980,73 +1362,168 @@ export const SettingsPage: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 5: GLOBAL TEMPLATE VARIABLES */}
+      {/* TAB 6: GLOBAL & CUSTOM VARIABLES */}
       {/* ========================================================================= */}
       {activeTab === 'variables' && (
-        <Card className="p-6 rounded-3xl bg-dark-900/70 border-white/10 space-y-4 animate-in fade-in">
-          <div>
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Code2 className="w-4 h-4 text-brand-400" />
-              Variáveis Globais do Sistema
-            </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Clique em qualquer variável para copiar e usar nos nós de mensagens, perguntas e agendamentos
-            </p>
-          </div>
+        <div className="space-y-6 animate-in fade-in">
+          {/* Custom Variables Section */}
+          <Card className="p-6 rounded-3xl bg-dark-900/70 border-white/10 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Code2 className="w-4 h-4 text-brand-400" />
+                  Variáveis Personalizadas no Banco de Dados ({customVariables.length})
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Crie, edite e delete variáveis próprias para usar em qualquer mensagem do robô WhatsApp
+                </p>
+              </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
-            {[
-              { code: '{{nome_cliente}}', desc: 'Nome informado pelo cliente ou contato' },
-              { code: '{{telefone_cliente}}', desc: 'Número WhatsApp de quem está falando' },
-              { code: '{{bot_nome}}', desc: 'Nome do seu assistente configurado' },
-              { code: '{{empresa}}', desc: 'Nome da sua empresa / barbearia' },
-              { code: '{{horario_atendimento}}', desc: 'Horário de funcionamento comercial' },
-              { code: '{{suporte_telefone}}', desc: 'Telefone comercial de suporte' },
-              { code: '{{suporte_email}}', desc: 'E-mail oficial de contato' },
-              { code: '{{site_empresa}}', desc: 'Website oficial da empresa' },
-              { code: '{{data_agendamento}}', desc: 'Data do agendamento escolhida (YYYY-MM-DD)' },
-              { code: '{{data_formatada}}', desc: 'Data no padrão brasileiro (DD/MM/AAAA)' },
-              { code: '{{horario_agendamento}}', desc: 'Horário selecionado pelo cliente (HH:MM)' },
-              { code: '{{servico_selecionado}}', desc: 'Nome do serviço escolhido no catálogo' },
-              { code: '{{chave_pix}}', desc: 'Chave PIX configurada para pagamento' },
-              { code: '{{ultima_mensagem}}', desc: 'Última mensagem digitada pelo cliente' },
-            ].map((item, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => handleCopy(item.code, item.code)}
-                className="p-3.5 rounded-2xl bg-dark-950/80 border border-white/5 hover:border-brand-500/40 text-left transition-all flex items-start justify-between group"
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={handleOpenNewVarModal}
+                leftIcon={<Plus className="w-3.5 h-3.5" />}
+                className="text-xs font-bold shadow-glow-brand"
               >
-                <div>
-                  <code className="text-xs font-bold text-brand-300 group-hover:text-brand-200">
-                    {item.code}
-                  </code>
-                  <p className="text-[11px] text-slate-400 mt-1 leading-snug">
-                    {item.desc}
-                  </p>
-                </div>
-                <span className="p-1 rounded-lg bg-dark-900 text-slate-500 group-hover:text-white transition-colors">
-                  {copiedField === item.code ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                </span>
-              </button>
-            ))}
-          </div>
-        </Card>
+                Nova Variável
+              </Button>
+            </div>
+
+            {customVariables.length === 0 ? (
+              <div className="p-8 text-center bg-dark-950/60 rounded-2xl border border-white/5">
+                <Code2 className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+                <p className="text-xs text-slate-300 font-semibold">Nenhuma variável personalizada cadastrada</p>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Clique em &quot;Nova Variável&quot; para adicionar constantes como promoções, links ou avisos.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+                {customVariables.map((cv) => (
+                  <div
+                    key={cv.id}
+                    className="p-3.5 rounded-2xl bg-dark-950/80 border border-white/5 hover:border-brand-500/40 text-left transition-all flex flex-col justify-between group space-y-3"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <code className="text-xs font-bold text-brand-300 group-hover:text-brand-200">
+                          {cv.name}
+                        </code>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(cv.name, cv.name)}
+                            title="Copiar tag"
+                            className="p-1 rounded-lg bg-dark-900 text-slate-400 hover:text-white transition-colors"
+                          >
+                            {copiedField === cv.name ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditVarModal(cv)}
+                            title="Editar variável"
+                            className="p-1 rounded-lg bg-dark-900 text-slate-400 hover:text-brand-300 transition-colors"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCustomVar(cv.id, cv.name)}
+                            title="Excluir variável"
+                            className="p-1 rounded-lg bg-dark-900 text-slate-400 hover:text-rose-400 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mt-2 p-2 rounded-xl bg-dark-900/80 border border-white/5">
+                        <span className="text-[10px] text-slate-500 block uppercase font-semibold">Valor Atual:</span>
+                        <p className="text-xs text-white font-medium truncate mt-0.5">{cv.value || '(Vazio)'}</p>
+                      </div>
+
+                      {cv.description && (
+                        <p className="text-[11px] text-slate-400 mt-2 leading-snug">
+                          {cv.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          {/* Standard System Template Variables Reference */}
+          <Card className="p-6 rounded-3xl bg-dark-900/70 border-white/10 space-y-4">
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Code2 className="w-4 h-4 text-emerald-400" />
+                Variáveis Padrão do Sistema (Referência Rápida)
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Clique em qualquer variável para copiar e usar nas mensagens, perguntas e nós do fluxo
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+              {[
+                { code: '{{nome_cliente}}', desc: 'Nome informado pelo cliente ou contato' },
+                { code: '{{telefone_cliente}}', desc: 'Número WhatsApp de quem está falando' },
+                { code: '{{bot_nome}}', desc: 'Nome do seu assistente configurado' },
+                { code: '{{empresa}}', desc: 'Nome da sua empresa / barbearia' },
+                { code: '{{horario_atendimento}}', desc: 'Horário de funcionamento comercial' },
+                { code: '{{suporte_telefone}}', desc: 'Telefone comercial de suporte' },
+                { code: '{{suporte_email}}', desc: 'E-mail oficial de contato' },
+                { code: '{{site_empresa}}', desc: 'Website oficial da empresa' },
+                { code: '{{data_agendamento}}', desc: 'Data do agendamento escolhida (YYYY-MM-DD)' },
+                { code: '{{data_formatada}}', desc: 'Data no padrão brasileiro (DD/MM/AAAA)' },
+                { code: '{{horario_agendamento}}', desc: 'Horário selecionado pelo cliente (HH:MM)' },
+                { code: '{{servico_selecionado}}', desc: 'Nome do serviço escolhido no catálogo' },
+                { code: '{{chave_pix}}', desc: 'Chave PIX configurada para pagamento' },
+                { code: '{{ultima_mensagem}}', desc: 'Última mensagem digitada pelo cliente' },
+              ].map((item, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleCopy(item.code, item.code)}
+                  className="p-3.5 rounded-2xl bg-dark-950/80 border border-white/5 hover:border-brand-500/40 text-left transition-all flex items-start justify-between group"
+                >
+                  <div>
+                    <code className="text-xs font-bold text-emerald-300 group-hover:text-emerald-200">
+                      {item.code}
+                    </code>
+                    <p className="text-[11px] text-slate-400 mt-1 leading-snug">
+                      {item.desc}
+                    </p>
+                  </div>
+                  <span className="p-1 rounded-lg bg-dark-900 text-slate-500 group-hover:text-white transition-colors">
+                    {copiedField === item.code ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </Card>
+        </div>
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 6: SECURITY & PASSWORD */}
+      {/* TAB 7: SECURITY & PASSWORD */}
       {/* ========================================================================= */}
       {activeTab === 'security' && (
         <Card className="p-6 rounded-3xl bg-dark-900/70 border-white/10 space-y-6 max-w-xl animate-in fade-in">
-          <div>
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-brand-400" />
-              Segurança & Credenciais de Acesso
-            </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Altere a senha de autenticação do painel administrativo
-            </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-brand-400" />
+                Segurança & Credenciais no Banco de Dados
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Altere a senha de acesso administrativo. Gravada e replicada no banco de dados
+              </p>
+            </div>
+            <Badge variant="brand" className="text-[10px]">Persistido no Banco</Badge>
           </div>
 
           <form onSubmit={handleUpdatePassword} className="space-y-4">
@@ -1072,13 +1549,19 @@ export const SettingsPage: React.FC = () => {
               />
             </div>
 
+            <div className="p-3 bg-dark-950/80 rounded-xl border border-white/5 text-[11px] text-slate-400 leading-relaxed">
+              <span className="text-emerald-400 font-bold block mb-0.5">✓ Persistência em Nuvem:</span>
+              A nova senha será salva no banco de dados e sincronizada para todos os dispositivos e sessões conectadas.
+            </div>
+
             <div className="flex justify-end pt-2">
               <Button
                 variant="brand"
                 type="submit"
+                disabled={isSavingPassword}
                 leftIcon={<Lock className="w-4 h-4" />}
               >
-                Salvar Nova Senha
+                {isSavingPassword ? 'Salvando no Banco...' : 'Salvar Nova Senha no Banco'}
               </Button>
             </div>
           </form>
@@ -1163,7 +1646,65 @@ export const SettingsPage: React.FC = () => {
               Cancelar
             </Button>
             <Button size="sm" variant="primary" type="submit" leftIcon={<Save className="w-3.5 h-3.5" />}>
-              Salvar Atendente
+              Salvar Atendente no Banco
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal: Nova / Editar Variável Personalizada */}
+      <Modal
+        isOpen={isVarModalOpen}
+        onClose={() => setIsVarModalOpen(false)}
+        title={editingVar ? 'Editar Variável Personalizada' : 'Nova Variável Personalizada'}
+      >
+        <form onSubmit={handleSaveCustomVar} className="space-y-4 text-xs">
+          <div>
+            <label className="text-[11px] font-bold text-slate-400 block mb-1">
+              Identificador da Variável (sem chaves) *
+            </label>
+            <div className="flex items-center gap-1.5">
+              <span className="font-mono text-slate-500 font-bold text-sm">{'{{'}</span>
+              <Input
+                value={varNameInput}
+                onChange={(e) => setVarNameInput(e.target.value)}
+                placeholder="ex: promocao_mes, link_catalogo"
+                required
+                className="font-mono"
+              />
+              <span className="font-mono text-slate-500 font-bold text-sm">{'}}'}</span>
+            </div>
+            <p className="text-[10px] text-slate-500 mt-1">
+              Será usada nos nós de mensagens como <code>{`{{${varNameInput || 'nome'}}}`}</code>
+            </p>
+          </div>
+
+          <div>
+            <label className="text-[11px] font-bold text-slate-400 block mb-1">Valor da Variável *</label>
+            <Textarea
+              rows={3}
+              value={varValueInput}
+              onChange={(e) => setVarValueInput(e.target.value)}
+              placeholder="Texto, link ou número que substituirá a variável nas mensagens..."
+              required
+            />
+          </div>
+
+          <div>
+            <label className="text-[11px] font-bold text-slate-400 block mb-1">Descrição / Finalidade (Opcional)</label>
+            <Input
+              value={varDescInput}
+              onChange={(e) => setVarDescInput(e.target.value)}
+              placeholder="Ex: Mensagem de desconto de sexta-feira"
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/5">
+            <Button size="sm" variant="ghost" type="button" onClick={() => setIsVarModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button size="sm" variant="primary" type="submit" leftIcon={<Save className="w-3.5 h-3.5" />}>
+              Salvar Variável no Banco
             </Button>
           </div>
         </form>

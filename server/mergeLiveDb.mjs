@@ -19,6 +19,7 @@ async function mergeLive() {
     attendants: [],
     agendaSettings: {},
     systemUsers: [],
+    customVariables: [],
   };
 
   if (fs.existsSync(DB_PATH)) {
@@ -28,7 +29,7 @@ async function mergeLive() {
   }
 
   try {
-    // 1. Fetch Live Settings & Bot Profile (Identidade do Robô, Empresa, Mensagens)
+    // 1. Fetch Live Settings & Bot Profile (Identidade do Robô, Empresa, Mensagens, Variáveis)
     try {
       const settingsRes = await fetch(`${LIVE_URL}/api/whatsapp/settings`, { signal: AbortSignal.timeout(5000) });
       if (settingsRes.ok) {
@@ -43,6 +44,10 @@ async function mergeLive() {
         }
         if (liveData.agendaSettings && Object.keys(liveData.agendaSettings).length > 0) {
           localDb.agendaSettings = { ...(localDb.agendaSettings || {}), ...liveData.agendaSettings };
+        }
+        if (Array.isArray(liveData.customVariables)) {
+          localDb.customVariables = liveData.customVariables;
+          console.log(`[MergeLive] ✅ ${localDb.customVariables.length} variáveis personalizadas sincronizadas.`);
         }
       }
     } catch (e) {

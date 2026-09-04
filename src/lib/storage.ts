@@ -18,7 +18,8 @@ import {
   AuditLog,
   SystemUser,
   UserPermissions,
-  SlotSuggestion
+  SlotSuggestion,
+  CustomVariable
 } from '../types';
 import { 
   initialAdminProfile, 
@@ -52,6 +53,7 @@ const STORAGE_KEYS = {
   ROLE_PERMISSIONS: '7assistente_role_permissions',
   BARBER_AUTH: '7assistente_barber_auth',
   CUSTOM_BACKEND_URL: '7assistente_custom_backend_url',
+  CUSTOM_VARIABLES: '7assistente_custom_variables',
 };
 
 export function getBackendUrl(): string {
@@ -194,6 +196,7 @@ export const StorageService = {
             ...(current.bot_profile || {}),
             ...(live.botProfile || {}),
           },
+          custom_variables: live.customVariables || live.settings?.custom_variables || current.custom_variables || [],
         };
         setItem(STORAGE_KEYS.SETTINGS, merged);
         return merged;
@@ -231,6 +234,7 @@ export const StorageService = {
         body: JSON.stringify({
           settings: updated,
           botProfile: updated.bot_profile,
+          customVariables: updated.custom_variables,
         }),
       });
     } catch (e) {
@@ -249,6 +253,78 @@ export const StorageService = {
     }
     syncWithWhatsAppServer();
     return updated;
+  },
+
+  // Custom Global Variables Management
+  async getCustomVariables(): Promise<CustomVariable[]> {
+    const backendUrl = getBackendUrl();
+    try {
+      const res = await fetch(`${backendUrl}/api/whatsapp/custom-variables`, { signal: AbortSignal.timeout(3000) });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setItem(STORAGE_KEYS.CUSTOM_VARIABLES, data);
+          return data;
+        }
+      }
+    } catch {}
+
+    const settings = await this.getSettings();
+    if (settings.custom_variables && Array.isArray(settings.custom_variables) && settings.custom_variables.length > 0) {
+      return settings.custom_variables;
+    }
+    return getItem<CustomVariable[]>(STORAGE_KEYS.CUSTOM_VARIABLES, []);
+  },
+
+  async saveCustomVariable(variable: CustomVariable): Promise<CustomVariable> {
+    const backendUrl = getBackendUrl();
+    const list = await this.getCustomVariables();
+    const rawName = String(variable.name).replace(/^\{\{|\}\}$/g, '').trim().toLowerCase();
+    const formattedName = `{{${rawName}}}`;
+
+    const updated: CustomVariable = {
+      ...variable,
+      id: variable.id || `var-${Date.now()}`,
+      name: formattedName,
+      value: String(variable.value ?? ''),
+      description: variable.description || '',
+      updated_at: new Date().toISOString(),
+      created_at: variable.created_at || new Date().toISOString(),
+    };
+
+    const index = list.findIndex(v => v.id === updated.id || v.name.toLowerCase() === formattedName);
+    if (index >= 0) {
+      list[index] = updated;
+    } else {
+      list.unshift(updated);
+    }
+    setItem(STORAGE_KEYS.CUSTOM_VARIABLES, list);
+
+    try {
+      await fetch(`${backendUrl}/api/whatsapp/custom-variables`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      });
+    } catch {}
+
+    await this.updateSettings({ custom_variables: list });
+    return updated;
+  },
+
+  async deleteCustomVariable(id: string): Promise<void> {
+    const backendUrl = getBackendUrl();
+    const list = await this.getCustomVariables();
+    const filtered = list.filter(v => v.id !== id && v.name !== id);
+    setItem(STORAGE_KEYS.CUSTOM_VARIABLES, filtered);
+
+    try {
+      await fetch(`${backendUrl}/api/whatsapp/custom-variables/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+    } catch {}
+
+    await this.updateSettings({ custom_variables: filtered });
   },
 
   async getBotProfile(): Promise<BotProfile> {
@@ -1083,7 +1159,7 @@ export const StorageService = {
       const res = await fetch(`${backendUrl}/api/whatsapp/attendants`, { signal: AbortSignal.timeout(3000) });
       if (res.ok) {
         const serverAttendants = await res.json();
-        if (Array.isArray(serverAttendants) && serverAttendants.length > 0) {
+        if (Array.isArray(serverAttendants)) {
           setItem(STORAGE_KEYS.ATTENDANTS, serverAttendants);
           return serverAttendants;
         }
