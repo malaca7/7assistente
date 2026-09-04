@@ -471,8 +471,8 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
     };
 
     const NODE_WIDTH = 280;
-    const HORIZONTAL_GAP = 28; // Distância horizontal compacta e próxima entre os nós
-    const VERTICAL_GAP = 36; // Distância vertical compacta e próxima entre as linhas
+    const HORIZONTAL_GAP = 20; // Distância horizontal próxima e compacta entre os nós
+    const VERTICAL_GAP = 26; // Distância vertical próxima e compacta entre as linhas
     const START_X = 60;
     const START_Y = 60;
     const MAIN_CENTER_X = 500;
