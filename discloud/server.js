@@ -160,6 +160,99 @@ const defaultDb = {
     },
   ],
   tickets: [],
+  flows: [
+    {
+      id: 'flow-pitoco-001',
+      name: 'Atendimento & Vendas Principal (WhatsApp Geral)',
+      description: 'Fluxo oficial com catálogo de bebês, guia de medidas, mala de maternidade, frete, PIX e transbordo por loja.',
+      status: 'published',
+      is_active: true,
+      version: 3,
+      node_count: 8,
+      trigger_type: 'Qualquer Mensagem Recebida',
+      store_id: null,
+      store_name: 'Toda a Rede',
+      steps: [
+        { id: 'step-1', title: 'Gatilho de Mensagem', type: 'trigger', category: 'Início', description: 'Dispara quando o cliente envia qualquer texto.' },
+        { id: 'step-2', title: 'Boas-Vindas Pitoco de Gente', type: 'message', category: 'Atendimento', description: 'Saudação com menu de opções de 1 a 7.' },
+        { id: 'step-3', title: 'Catálogo de Produtos & Enxovais', type: 'show_catalog', category: 'Vendas', description: 'Exibe bodies, macacões e saídas de maternidade.' },
+        { id: 'step-4', title: 'Guia de Medidas (RN a 3 anos)', type: 'measure_guide', category: 'Consultoria', description: 'Tabela de peso, altura e tamanho ideal.' },
+        { id: 'step-5', title: 'Checklist Mala de Maternidade', type: 'layette_checklist', category: 'Consultoria', description: 'Checklist completo das primeiras 48h no hospital.' },
+        { id: 'step-6', title: 'Consultoria VIP com Agendamento', type: 'vip_consultation', category: 'Atendimento', description: 'Agendamento com especialista (online ou presencial).' },
+        { id: 'step-7', title: 'Cálculo de Frete & Entrega', type: 'shipping_calculator', category: 'Logística', description: 'Motoboy, Correios e Retirada Grátis em loja.' },
+        { id: 'step-8', title: 'Pagamento PIX Copia e Cola', type: 'pix_payment', category: 'Financeiro', description: 'Chave oficial, QR Code e Copia e Cola.' },
+      ],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: 'flow-pitoco-002',
+      name: 'Consultoria VIP de Enxoval & Agendamento Exclusivo',
+      description: 'Fluxo especializado para captação e reserva de consultorias personalizadas com consultora de bebês.',
+      status: 'published',
+      is_active: true,
+      version: 2,
+      node_count: 5,
+      trigger_type: 'Palavra-Chave / Menu 4',
+      store_id: null,
+      store_name: 'Toda a Rede',
+      steps: [
+        { id: 'step-vip-1', title: 'Gatilho de Consultoria', type: 'trigger', category: 'Início', description: 'Disparado ao selecionar opção 4 ou digitar "enxoval".' },
+        { id: 'step-vip-2', title: 'Apresentação da Especialista', type: 'message', category: 'Atendimento', description: 'Explicação dos benefícios do atendimento VIP de enxoval.' },
+        { id: 'step-vip-3', title: 'Seleção do Formato', type: 'question', category: 'Atendimento', description: 'Cliente escolhe entre Online (WhatsApp) ou Presencial em loja.' },
+        { id: 'step-vip-4', title: 'Coleta de DPP & Sexo do Bebê', type: 'variable', category: 'CRM', description: 'Salva a data provável do parto e nome do bebê.' },
+        { id: 'step-vip-5', title: 'Confirmação & Transbordo', type: 'human_handoff', category: 'Multi-Lojas', description: 'Cria ticket de atendimento prioritário no CRM.' },
+      ],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+  ],
+  users: [
+    {
+      id: 'user-ceo-1',
+      name: 'Malaca CEO',
+      username: 'ceo', // APENAS LETRAS
+      password: '123456', // APENAS NÚMEROS
+      role: 'ceo',
+      store_id: null,
+      store_name: 'Toda a Rede (Global)',
+      status: 'active',
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: 'user-adm-1',
+      name: 'Administrador Geral',
+      username: 'admin', // APENAS LETRAS
+      password: '123456', // APENAS NÚMEROS
+      role: 'admin',
+      store_id: null,
+      store_name: 'Toda a Rede (Global)',
+      status: 'active',
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: 'user-mgr-1',
+      name: 'Juliana Paes (Gerente Matriz)',
+      username: 'gerente', // APENAS LETRAS
+      password: '123456', // APENAS NÚMEROS
+      role: 'manager',
+      store_id: 'store-001',
+      store_name: 'Loja Matriz — Centro',
+      status: 'active',
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: 'user-att-1',
+      name: 'Sofia Alencar (Consultora VIP)',
+      username: 'consultora', // APENAS LETRAS
+      password: '123456', // APENAS NÚMEROS
+      role: 'attendant',
+      store_id: 'store-001',
+      store_name: 'Loja Matriz — Centro',
+      status: 'active',
+      created_at: new Date().toISOString(),
+    },
+  ],
 };
 
 class DbManager {
@@ -178,6 +271,8 @@ class DbManager {
           stores: Array.isArray(parsed.stores) && parsed.stores.length > 0 ? parsed.stores : defaultDb.stores,
           products: Array.isArray(parsed.products) && parsed.products.length > 0 ? parsed.products : defaultDb.products,
           tickets: Array.isArray(parsed.tickets) ? parsed.tickets : defaultDb.tickets,
+          flows: Array.isArray(parsed.flows) && parsed.flows.length > 0 ? parsed.flows : defaultDb.flows,
+          users: Array.isArray(parsed.users) && parsed.users.length > 0 ? parsed.users : defaultDb.users,
         };
       }
     } catch (e) {
@@ -339,6 +434,139 @@ class DbManager {
       supabase.from('support_tickets').upsert([updated]).catch(() => {});
     }
     return updated;
+  }
+
+  // FLOWS
+  getFlows() { return this.data.flows || defaultDb.flows; }
+  saveFlow(flow) {
+    const flows = this.getFlows();
+    const idx = flows.findIndex(f => f.id === flow.id);
+    const updated = {
+      id: flow.id || `flow-${Date.now()}`,
+      name: flow.name || 'Novo Fluxo',
+      description: flow.description || '',
+      status: flow.status || 'published',
+      is_active: flow.is_active !== undefined ? flow.is_active : true,
+      version: flow.version || 1,
+      node_count: flow.steps ? flow.steps.length : (flow.node_count || 4),
+      trigger_type: flow.trigger_type || 'Qualquer Mensagem Recebida',
+      store_id: flow.store_id || null,
+      store_name: flow.store_name || (flow.store_id ? 'Filial Vinculada' : 'Toda a Rede'),
+      steps: flow.steps || [],
+      created_at: flow.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      ...flow,
+    };
+    if (idx >= 0) flows[idx] = updated;
+    else flows.unshift(updated);
+    this.save();
+    return updated;
+  }
+  deleteFlow(id) {
+    this.data.flows = this.getFlows().filter(f => f.id !== id);
+    this.save();
+    return true;
+  }
+  toggleFlowStatus(id) {
+    const flows = this.getFlows();
+    const target = flows.find(f => f.id === id);
+    if (target) {
+      target.is_active = !target.is_active;
+      target.status = target.is_active ? 'published' : 'paused';
+      target.updated_at = new Date().toISOString();
+      this.save();
+      return target;
+    }
+    return null;
+  }
+
+  // ACESSO / USUÁRIOS (REGRA: Usuário APENAS LETRAS / Senha APENAS NÚMEROS)
+  getUsers() { return this.data.users || defaultDb.users; }
+  saveUser(user) {
+    const cleanUsername = (user.username || '').trim().toLowerCase();
+    if (!cleanUsername || !/^[a-zA-Z]+$/.test(cleanUsername)) {
+      throw new Error('O nome de usuário deve conter exclusivamente letras (sem números, espaços ou símbolos).');
+    }
+    let cleanPass = user.password;
+    if (cleanPass !== undefined && cleanPass !== '') {
+      cleanPass = String(cleanPass).trim();
+      if (!/^[0-9]+$/.test(cleanPass)) {
+        throw new Error('A senha de acesso deve conter exclusivamente dígitos numéricos (sem letras ou símbolos).');
+      }
+    }
+    const users = this.getUsers();
+    const idx = users.findIndex(u => u.id === user.id || u.username.toLowerCase() === cleanUsername);
+    const updated = {
+      id: user.id || `user-${Date.now()}`,
+      name: user.name || cleanUsername,
+      username: cleanUsername,
+      password: cleanPass || (idx >= 0 ? users[idx].password : '123456'),
+      role: user.role || 'attendant',
+      store_id: user.store_id || null,
+      store_name: user.store_name || (user.store_id ? 'Filial Vinculada' : 'Toda a Rede (Global)'),
+      status: user.status || 'active',
+      created_at: user.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    if (idx >= 0) users[idx] = updated;
+    else users.push(updated);
+    this.save();
+    return updated;
+  }
+  deleteUser(id) {
+    this.data.users = this.getUsers().filter(u => u.id !== id && u.username !== id);
+    this.save();
+    return true;
+  }
+  toggleUserStatus(id) {
+    const users = this.getUsers();
+    const target = users.find(u => u.id === id || u.username === id);
+    if (target) {
+      target.status = target.status === 'active' ? 'inactive' : 'active';
+      target.updated_at = new Date().toISOString();
+      this.save();
+      return target;
+    }
+    return null;
+  }
+  authenticate(username, password) {
+    const cleanUser = String(username || '').trim().toLowerCase();
+    const cleanPass = String(password || '').trim();
+
+    if (!cleanUser || !/^[a-zA-Z]+$/.test(cleanUser)) {
+      return { success: false, error: 'Usuário deve conter apenas letras.' };
+    }
+    if (!cleanPass || !/^[0-9]+$/.test(cleanPass)) {
+      return { success: false, error: 'Senha deve conter apenas números.' };
+    }
+
+    const users = this.getUsers();
+    const matched = users.find(u => u.username.toLowerCase() === cleanUser);
+    if (matched) {
+      if (matched.status === 'inactive') {
+        return { success: false, error: 'Acesso bloqueado ou inativo.' };
+      }
+      if (matched.password === cleanPass) {
+        return { success: true, user: matched };
+      }
+      return { success: false, error: 'Senha incorreta.' };
+    }
+
+    // Default Fallbacks
+    if ((cleanUser === 'ceo' || cleanUser === 'malaca') && (cleanPass === '123456' || cleanPass === '199425')) {
+      return { success: true, user: { id: 'user-ceo', username: cleanUser, name: 'Malaca CEO', role: 'ceo' } };
+    }
+    if (cleanUser === 'admin' && (cleanPass === '123456' || cleanPass === '1234')) {
+      return { success: true, user: { id: 'user-admin', username: 'admin', name: 'Administrador Geral', role: 'admin' } };
+    }
+    if (cleanUser === 'gerente' && (cleanPass === '123456' || cleanPass === '1234')) {
+      return { success: true, user: { id: 'user-mgr-1', username: 'gerente', name: 'Juliana Gerente', role: 'manager' } };
+    }
+    if ((cleanUser === 'consultora' || cleanUser === 'sofia') && (cleanPass === '123456' || cleanPass === '1234')) {
+      return { success: true, user: { id: 'user-att-1', username: cleanUser, name: 'Sofia Consultora', role: 'attendant' } };
+    }
+
+    return { success: false, error: 'Usuário ou senha inválidos.' };
   }
 }
 
@@ -772,6 +1000,8 @@ app.get('/api/data', (req, res) => {
     products: db.getProducts(),
     botConfig: db.getBotConfig(),
     tickets: db.getTickets(),
+    flows: db.getFlows(),
+    users: db.getUsers(),
     whatsapp: {
       status: connectionStatus,
       phone: connectedPhone,
@@ -881,7 +1111,102 @@ app.put('/api/tickets/:id', (req, res) => {
   }
 });
 
-// 7. WHATSAPP BAILEYS CONTROLS
+// 7. FLUXOS DE ATENDIMENTO CRUD & TOGGLE
+app.get('/api/flows', (req, res) => {
+  res.json(db.getFlows());
+});
+
+app.post('/api/flows', (req, res) => {
+  try {
+    const flow = db.saveFlow(req.body);
+    res.json({ success: true, flow });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/flows/:id', (req, res) => {
+  try {
+    const flow = db.saveFlow({ ...req.body, id: req.params.id });
+    res.json({ success: true, flow });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.patch('/api/flows/:id/toggle', (req, res) => {
+  try {
+    const flow = db.toggleFlowStatus(req.params.id);
+    if (!flow) return res.status(404).json({ success: false, error: 'Fluxo não encontrado' });
+    res.json({ success: true, flow });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/flows/:id', (req, res) => {
+  try {
+    db.deleteFlow(req.params.id);
+    res.json({ success: true, message: 'Fluxo excluído com sucesso' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 8. GERENCIAMENTO DE ACESSOS / USUÁRIOS (APENAS LETRAS / APENAS NÚMEROS)
+app.get('/api/users', (req, res) => {
+  res.json(db.getUsers());
+});
+
+app.post('/api/users', (req, res) => {
+  try {
+    const user = db.saveUser(req.body);
+    res.json({ success: true, user });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/users/:id', (req, res) => {
+  try {
+    const user = db.saveUser({ ...req.body, id: req.params.id });
+    res.json({ success: true, user });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.patch('/api/users/:id/toggle', (req, res) => {
+  try {
+    const user = db.toggleUserStatus(req.params.id);
+    if (!user) return res.status(404).json({ success: false, error: 'Usuário não encontrado' });
+    res.json({ success: true, user });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/users/:id', (req, res) => {
+  try {
+    db.deleteUser(req.params.id);
+    res.json({ success: true, message: 'Usuário excluído com sucesso' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Autenticação Unificada por Usuário (letras) e Senha (números)
+app.post('/api/auth/login', (req, res) => {
+  const { username, password } = req.body;
+  const result = db.authenticate(username, password);
+  if (result.success) {
+    res.json({ success: true, user: result.user });
+  } else {
+    res.status(401).json({ success: false, error: result.error });
+  }
+});
+
+// 9. WHATSAPP BAILEYS CONTROLS
 app.get('/api/whatsapp/qr', (req, res) => {
   res.json({
     status: connectionStatus,

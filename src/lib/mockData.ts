@@ -4,6 +4,7 @@ import {
   Conversation, 
   Settings, 
   AdminProfile, 
+  SystemAccessUser,
   DashboardKPIs, 
   BotProfile, 
   Store, 
@@ -167,9 +168,11 @@ export const initialProducts: Product[] = [
 
 export const initialAdminProfile: AdminProfile = {
   id: 'admin-001',
+  username: 'ceo', // APENAS LETRAS
   phone: '81996138924',
   name: 'Malaca CEO',
   email: 'ceo@pitocodegente.com.br',
+  password: '123456', // APENAS NÚMEROS
   role: 'ceo',
   store_id: null,
   store_name: 'Rede Pitoco de Gente (Todas as Lojas)',
@@ -177,6 +180,71 @@ export const initialAdminProfile: AdminProfile = {
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
 };
+
+// Usuários do Sistema para Gerenciamento de Acessos
+// REGRA: Usuário APENAS LETRAS (regex ^[a-zA-Z]+$) | Senha APENAS NÚMEROS (regex ^[0-9]+$)
+export const initialAccessUsers: SystemAccessUser[] = [
+  {
+    id: 'user-ceo-1',
+    name: 'Malaca CEO',
+    username: 'ceo', // APENAS LETRAS
+    password: '123456', // APENAS NÚMEROS
+    role: 'ceo',
+    store_id: null,
+    store_name: 'Toda a Rede (Global)',
+    status: 'active',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'user-adm-1',
+    name: 'Administrador Geral',
+    username: 'admin', // APENAS LETRAS
+    password: '123456', // APENAS NÚMEROS
+    role: 'admin',
+    store_id: null,
+    store_name: 'Toda a Rede (Global)',
+    status: 'active',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'user-mgr-1',
+    name: 'Juliana Paes (Gerente Matriz)',
+    username: 'gerente', // APENAS LETRAS
+    password: '123456', // APENAS NÚMEROS
+    role: 'manager',
+    store_id: 'store-001',
+    store_name: 'Loja Matriz — Centro',
+    status: 'active',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'user-att-1',
+    name: 'Sofia Alencar (Consultora VIP)',
+    username: 'consultora', // APENAS LETRAS
+    password: '123456', // APENAS NÚMEROS
+    role: 'attendant',
+    store_id: 'store-001',
+    store_name: 'Loja Matriz — Centro',
+    status: 'active',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'user-att-2',
+    name: 'Camila Lima (Consultora Boulevard)',
+    username: 'especialista', // APENAS LETRAS
+    password: '123456', // APENAS NÚMEROS
+    role: 'attendant',
+    store_id: 'store-002',
+    store_name: 'Loja Shopping Boulevard',
+    status: 'active',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
 
 export const defaultBotProfile: BotProfile = {
   name: 'Pitoco Bot',
@@ -229,15 +297,88 @@ export const initialKPIs: DashboardKPIs = {
 export const sampleFlows: Flow[] = [
   {
     id: 'flow-pitoco-001',
-    name: 'Atendimento & Vendas Pitoco de Gente',
+    name: 'Atendimento & Vendas Principal (WhatsApp Geral)',
     description: 'Fluxo oficial com catálogo de bebês, guia de medidas, mala de maternidade, frete, PIX e transbordo por loja.',
     status: 'published',
+    is_active: true,
     version: 3,
     node_count: 8,
-    trigger_type: 'Mensagem recebida',
-    created_at: new Date().toISOString(),
+    trigger_type: 'Qualquer Mensagem Recebida',
+    store_id: null,
+    store_name: 'Toda a Rede',
+    steps: [
+      { id: 'step-1', title: 'Gatilho de Mensagem', type: 'trigger', category: 'Início', description: 'Dispara quando o cliente envia qualquer texto.' },
+      { id: 'step-2', title: 'Boas-Vindas Pitoco de Gente', type: 'message', category: 'Atendimento', description: 'Saudação com menu de opções de 1 a 7.' },
+      { id: 'step-3', title: 'Catálogo de Produtos & Enxovais', type: 'show_catalog', category: 'Vendas', description: 'Exibe bodies, macacões e saídas de maternidade.' },
+      { id: 'step-4', title: 'Guia de Medidas (RN a 3 anos)', type: 'measure_guide', category: 'Consultoria', description: 'Tabela de peso, altura e tamanho ideal.' },
+      { id: 'step-5', title: 'Checklist Mala de Maternidade', type: 'layette_checklist', category: 'Consultoria', description: 'Checklist completo das primeiras 48h no hospital.' },
+      { id: 'step-6', title: 'Consultoria VIP com Agendamento', type: 'vip_consultation', category: 'Atendimento', description: 'Agendamento com especialista (online ou presencial).' },
+      { id: 'step-7', title: 'Cálculo de Frete & Entrega', type: 'shipping_calculator', category: 'Logística', description: 'Motoboy, Correios e Retirada Grátis em loja.' },
+      { id: 'step-8', title: 'Pagamento PIX Copia e Cola', type: 'pix_payment', category: 'Financeiro', description: 'Chave oficial, QR Code e Copia e Cola.' },
+    ],
+    created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
     updated_at: new Date().toISOString(),
-  }
+  },
+  {
+    id: 'flow-pitoco-002',
+    name: 'Consultoria VIP de Enxoval & Agendamento Exclusivo',
+    description: 'Fluxo especializado para captação e reserva de consultorias personalizadas com consultora de bebês.',
+    status: 'published',
+    is_active: true,
+    version: 2,
+    node_count: 5,
+    trigger_type: 'Palavra-Chave / Menu 4',
+    store_id: null,
+    store_name: 'Toda a Rede',
+    steps: [
+      { id: 'step-vip-1', title: 'Gatilho de Consultoria', type: 'trigger', category: 'Início', description: 'Disparado ao selecionar opção 4 ou digitar "enxoval".' },
+      { id: 'step-vip-2', title: 'Apresentação da Especialista', type: 'message', category: 'Atendimento', description: 'Explicação dos benefícios do atendimento VIP de enxoval.' },
+      { id: 'step-vip-3', title: 'Seleção do Formato', type: 'question', category: 'Atendimento', description: 'Cliente escolhe entre Online (WhatsApp) ou Presencial em loja.' },
+      { id: 'step-vip-4', title: 'Coleta de DPP & Sexo do Bebê', type: 'variable', category: 'CRM', description: 'Salva a data provável do parto e nome do bebê.' },
+      { id: 'step-vip-5', title: 'Confirmação & Transbordo', type: 'human_handoff', category: 'Multi-Lojas', description: 'Cria ticket de atendimento prioritário no CRM.' },
+    ],
+    created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'flow-pitoco-003',
+    name: 'Recepção Direcionada Loja Matriz Centro',
+    description: 'Atendimento e roteamento para a equipe presencial da unidade Centro Recife.',
+    status: 'published',
+    is_active: true,
+    version: 1,
+    node_count: 4,
+    trigger_type: 'Transbordo Matriz Centro',
+    store_id: 'store-001',
+    store_name: 'Loja Matriz — Centro',
+    steps: [
+      { id: 'step-mat-1', title: 'Gatilho Filial Matriz', type: 'trigger', category: 'Início', description: 'Cliente escolheu a Loja Matriz Centro.' },
+      { id: 'step-mat-2', title: 'Horários & Endereço Matriz', type: 'message', category: 'Informativo', description: 'Envia localização na Rua do Sol e horários de funcionamento.' },
+      { id: 'step-mat-3', title: 'Verificação de Estoque Local', type: 'condition', category: 'Estoque', description: 'Verifica disponibilidade para pronta retirada.' },
+      { id: 'step-mat-4', title: 'Conectar com Juliana ou Sofia', type: 'human_handoff', category: 'Transbordo', description: 'Transfere direto para as atendentes da loja física.' },
+    ],
+    created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'flow-pitoco-004',
+    name: 'Recepção Direcionada Loja Shopping Boulevard',
+    description: 'Atendimento e suporte aos clientes da loja Shopping Boulevard.',
+    status: 'paused',
+    is_active: false,
+    version: 1,
+    node_count: 4,
+    trigger_type: 'Transbordo Shopping Boulevard',
+    store_id: 'store-002',
+    store_name: 'Loja Shopping Boulevard',
+    steps: [
+      { id: 'step-blv-1', title: 'Gatilho Boulevard', type: 'trigger', category: 'Início', description: 'Cliente selecionou Shopping Boulevard.' },
+      { id: 'step-blv-2', title: 'Localização Piso L2', type: 'message', category: 'Informativo', description: 'Instruções para encontrar a loja 204 no Shopping.' },
+      { id: 'step-blv-3', title: 'Conectar com Camila', type: 'human_handoff', category: 'Transbordo', description: 'Direciona conversa para a equipe do Boulevard.' },
+    ],
+    created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+    updated_at: new Date().toISOString(),
+  },
 ];
 
 export const sampleContacts: Contact[] = [

@@ -2,6 +2,7 @@ import {
   AdminProfile, 
   Settings, 
   Flow, 
+  FlowStep,
   Contact, 
   Conversation, 
   Message, 
@@ -15,6 +16,7 @@ import {
   SupportTicket, 
   VIPConsultation, 
   SystemUser, 
+  SystemAccessUser,
   UserPermissions, 
   Attendant, 
   CannedReply, 
@@ -36,7 +38,8 @@ import {
   defaultCannedReplies, 
   sampleContacts, 
   sampleConversations, 
-  initialKPIs 
+  initialKPIs,
+  initialAccessUsers
 } from './mockData';
 
 import * as SupabaseService from './supabaseClient';
@@ -638,15 +641,100 @@ export const StorageService = {
   },
 
   // ==============================================================================
-  // 9. FLOWS & NODES
+  // 9. FLOWS & GESTÃO COMPLETA DE FLUXOS
   // ==============================================================================
   async getFlows(): Promise<Flow[]> {
-    return getItem<Flow[]>(STORAGE_KEYS.FLOWS, sampleFlows);
+    let flows = getItem<Flow[]>(STORAGE_KEYS.FLOWS, sampleFlows);
+    try {
+      const res = await fetch(`${API_BASE}/api/flows`, { signal: AbortSignal.timeout(2000) });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          flows = data;
+          setItem(STORAGE_KEYS.FLOWS, flows);
+        }
+      }
+    } catch {
+      // Usar cache local em caso de offline
+    }
+    return flows;
   },
 
   async getFlow(id: string): Promise<Flow | null> {
     const flows = await this.getFlows();
     return flows.find(f => f.id === id) || null;
+  },
+
+  async saveFlow(flow: Partial<Flow>): Promise<Flow> {
+    const flows = getItem<Flow[]>(STORAGE_KEYS.FLOWS, sampleFlows);
+    const existingIndex = flows.findIndex(f => f.id === flow.id);
+    
+    const updatedFlow: Flow = {
+      id: flow.id || `flow-${Date.now()}`,
+      name: flow.name || 'Novo Fluxo de Atendimento',
+      description: flow.description || '',
+      status: flow.status || 'published',
+      is_active: flow.is_active !== undefined ? flow.is_active : (flow.status === 'published'),
+      version: flow.version || 1,
+      node_count: flow.steps ? flow.steps.length : (flow.node_count || 4),
+      trigger_type: flow.trigger_type || 'Qualquer Mensagem Recebida',
+      store_id: flow.store_id || null,
+      store_name: flow.store_name || (flow.store_id ? 'Filial Específica' : 'Toda a Rede'),
+      steps: flow.steps || [],
+      created_at: flow.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      ...flow,
+    };
+
+    if (existingIndex >= 0) {
+      flows[existingIndex] = updatedFlow;
+    } else {
+      flows.unshift(updatedFlow);
+    }
+    setItem(STORAGE_KEYS.FLOWS, flows);
+
+    try {
+      await fetch(`${API_BASE}/api/flows`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedFlow),
+      });
+    } catch {}
+
+    return updatedFlow;
+  },
+
+  async deleteFlow(id: string): Promise<boolean> {
+    let flows = getItem<Flow[]>(STORAGE_KEYS.FLOWS, sampleFlows);
+    flows = flows.filter(f => f.id !== id);
+    setItem(STORAGE_KEYS.FLOWS, flows);
+
+    try {
+      await fetch(`${API_BASE}/api/flows/${id}`, {
+        method: 'DELETE',
+      });
+    } catch {}
+
+    return true;
+  },
+
+  async toggleFlowStatus(id: string): Promise<Flow | null> {
+    const flows = getItem<Flow[]>(STORAGE_KEYS.FLOWS, sampleFlows);
+    const target = flows.find(f => f.id === id);
+    if (!target) return null;
+
+    target.is_active = !target.is_active;
+    target.status = target.is_active ? 'published' : 'paused';
+    target.updated_at = new Date().toISOString();
+    setItem(STORAGE_KEYS.FLOWS, flows);
+
+    try {
+      await fetch(`${API_BASE}/api/flows/${id}/toggle`, {
+        method: 'PATCH',
+      });
+    } catch {}
+
+    return target;
   },
 
   async getFlowNodes(flowId: string): Promise<FlowNode[]> {
@@ -666,13 +754,124 @@ export const StorageService = {
   },
 
   // ==============================================================================
-  // 10. AUTH & SESSÃO
+  // 10. GESTÃO DE ACESSOS (USUÁRIO APENAS LETRAS / SENHA APENAS NÚMEROS)
   // ==============================================================================
-  getSession(): { authenticated: boolean; phone: string; role?: string } | null {
+  async getAccessUsers(): Promise<SystemAccessUser[]> {
+    let users = getItem<SystemAccessUser[]>(STORAGE_KEYS.SYSTEM_USERS, initialAccessUsers);
+    try {
+      const res = await fetch(`${API_BASE}/api/users`, { signal: AbortSignal.timeout(2000) });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          users = data;
+          setItem(STORAGE_KEYS.SYSTEM_USERS, users);
+        }
+      }
+    } catch {}
+    return users;
+  },
+
+  // Alias para retrocompatibilidade
+  async getSystemUsers(): Promise<SystemAccessUser[]> {
+    return this.getAccessUsers();
+  },
+
+  async saveAccessUser(user: Partial<SystemAccessUser>): Promise<SystemAccessUser> {
+    const rawUsername = (user.username || '').trim().toLowerCase();
+    
+    // Regra Obrigatória: Usuário APENAS LETRAS
+    if (!rawUsername || !/^[a-zA-Z]+$/.test(rawUsername)) {
+      throw new Error('O nome de usuário deve conter exclusivamente letras (sem números, espaços ou símbolos).');
+    }
+
+    // Regra Obrigatória: Senha APENAS NÚMEROS (se fornecida)
+    let rawPassword = user.password;
+    if (rawPassword !== undefined && rawPassword !== '') {
+      const cleanPass = String(rawPassword).trim();
+      if (!/^[0-9]+$/.test(cleanPass)) {
+        throw new Error('A senha de acesso deve conter exclusivamente dígitos numéricos (sem letras ou símbolos).');
+      }
+      rawPassword = cleanPass;
+    }
+
+    const users = getItem<SystemAccessUser[]>(STORAGE_KEYS.SYSTEM_USERS, initialAccessUsers);
+    const existingIndex = users.findIndex(u => u.id === user.id || u.username.toLowerCase() === rawUsername);
+
+    const updatedUser: SystemAccessUser = {
+      id: user.id || `user-${Date.now()}`,
+      name: user.name || rawUsername,
+      username: rawUsername,
+      password: rawPassword || (existingIndex >= 0 ? users[existingIndex].password : '123456'),
+      role: user.role || 'attendant',
+      store_id: user.store_id || null,
+      store_name: user.store_name || (user.store_id ? 'Filial Vinculada' : 'Toda a Rede (Global)'),
+      status: user.status || 'active',
+      created_at: user.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    if (existingIndex >= 0) {
+      users[existingIndex] = updatedUser;
+    } else {
+      users.push(updatedUser);
+    }
+    setItem(STORAGE_KEYS.SYSTEM_USERS, users);
+
+    try {
+      await fetch(`${API_BASE}/api/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedUser),
+      });
+    } catch {}
+
+    return updatedUser;
+  },
+
+  async deleteAccessUser(id: string): Promise<boolean> {
+    let users = getItem<SystemAccessUser[]>(STORAGE_KEYS.SYSTEM_USERS, initialAccessUsers);
+    users = users.filter(u => u.id !== id && u.username !== id);
+    setItem(STORAGE_KEYS.SYSTEM_USERS, users);
+
+    try {
+      await fetch(`${API_BASE}/api/users/${id}`, {
+        method: 'DELETE',
+      });
+    } catch {}
+
+    return true;
+  },
+
+  async toggleAccessUserStatus(id: string): Promise<SystemAccessUser | null> {
+    const users = getItem<SystemAccessUser[]>(STORAGE_KEYS.SYSTEM_USERS, initialAccessUsers);
+    const target = users.find(u => u.id === id || u.username === id);
+    if (!target) return null;
+
+    target.status = target.status === 'active' ? 'inactive' : 'active';
+    target.updated_at = new Date().toISOString();
+    setItem(STORAGE_KEYS.SYSTEM_USERS, users);
+
+    try {
+      await fetch(`${API_BASE}/api/users/${id}/toggle`, {
+        method: 'PATCH',
+      });
+    } catch {}
+
+    return target;
+  },
+
+  getRolePermissions() {
+    return DEFAULT_ROLE_CONFIGS;
+  },
+
+  // ==============================================================================
+  // 11. AUTH & SESSÃO (USUÁRIO APENAS LETRAS / SENHA APENAS NÚMEROS)
+  // ==============================================================================
+  getSession(): { authenticated: boolean; username: string; phone?: string; role?: string; name?: string; store_id?: string | null; store_name?: string } | null {
     return getItem(STORAGE_KEYS.AUTH_TOKEN, null);
   },
 
-  setSession(session: { authenticated: boolean; phone: string; role?: string } | null): void {
+  setSession(session: { authenticated: boolean; username: string; phone?: string; role?: string; name?: string; store_id?: string | null; store_name?: string } | null): void {
     if (session) setItem(STORAGE_KEYS.AUTH_TOKEN, session);
     else if (typeof window !== 'undefined') localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
   },
@@ -689,76 +888,130 @@ export const StorageService = {
   },
 
   async verifyUserAccess(
-    phone: string, 
-    pinOrPass: string, 
+    usernameInput: string, 
+    passwordInput: string, 
     _requiredPermission?: keyof UserPermissions
   ): Promise<{ success: boolean; user?: AdminProfile; error?: string }> {
-    const cleanPhone = phone.replace(/\D/g, '');
-    const admin = await this.getAdminProfile();
+    const cleanUser = String(usernameInput || '').trim().toLowerCase();
+    const cleanPass = String(passwordInput || '').trim();
 
-    // 1. CEO Master Login
-    if (cleanPhone === '81996138924' || cleanPhone.endsWith('996138924')) {
-      if (pinOrPass === 'admin' || pinOrPass === '199425' || pinOrPass === '1234') {
+    // 1. Validação estrita: Usuário APENAS LETRAS
+    if (!cleanUser || !/^[a-zA-Z]+$/.test(cleanUser)) {
+      return {
+        success: false,
+        error: 'O usuário deve conter apenas letras (sem números, espaços ou caracteres especiais).',
+      };
+    }
+
+    // 2. Validação estrita: Senha APENAS NÚMEROS
+    if (!cleanPass || !/^[0-9]+$/.test(cleanPass)) {
+      return {
+        success: false,
+        error: 'A senha de acesso deve conter apenas números (sem letras ou caracteres especiais).',
+      };
+    }
+
+    // 3. Verificar na lista de usuários cadastrados
+    const users = await this.getAccessUsers();
+    const matched = users.find(u => u.username.toLowerCase() === cleanUser);
+
+    if (matched) {
+      if (matched.status === 'inactive') {
         return {
-          success: true,
-          user: {
-            ...admin,
-            role: 'ceo',
-            name: 'Malaca CEO',
-            phone: '81996138924',
-          },
+          success: false,
+          error: 'Acesso bloqueado: Este usuário está inativo no momento. Fale com a administração.',
+        };
+      }
+
+      if (matched.password === cleanPass) {
+        const profile: AdminProfile = {
+          id: matched.id,
+          username: matched.username,
+          name: matched.name,
+          role: matched.role,
+          store_id: matched.store_id || null,
+          store_name: matched.store_name,
+          created_at: matched.created_at,
+          updated_at: new Date().toISOString(),
+        };
+        await this.saveAdminProfile(profile);
+        return { success: true, user: profile };
+      } else {
+        return {
+          success: false,
+          error: 'Senha numérica incorreta. Verifique os dígitos digitados.',
         };
       }
     }
 
-    // 2. Gerente Matriz Centro
-    if (cleanPhone === '81999990001' || pinOrPass === 'gerente1') {
-      return {
-        success: true,
-        user: {
-          id: 'user-mgr-1',
-          name: 'Juliana (Gerente Matriz Centro)',
-          phone: '81999990001',
-          role: 'manager',
-          store_id: 'store-001',
-          store_name: 'Loja Matriz — Centro',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
+    // 4. Credenciais padrão de emergência / Demonstração
+    // CEO: ceo / 123456
+    if ((cleanUser === 'ceo' || cleanUser === 'malaca') && (cleanPass === '123456' || cleanPass === '199425')) {
+      const profile: AdminProfile = {
+        id: 'admin-ceo',
+        username: cleanUser,
+        name: 'Malaca CEO',
+        role: 'ceo',
+        store_id: null,
+        store_name: 'Toda a Rede (Global)',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
+      await this.saveAdminProfile(profile);
+      return { success: true, user: profile };
     }
 
-    // 3. Consultora Sofia VIP
-    if (cleanPhone === '81999990003' || pinOrPass === 'sofia') {
-      return {
-        success: true,
-        user: {
-          id: 'user-att-1',
-          name: 'Sofia (Consultora VIP)',
-          phone: '81999990003',
-          role: 'attendant',
-          store_id: 'store-001',
-          store_name: 'Loja Matriz — Centro',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
+    // Administrador: admin / 123456
+    if (cleanUser === 'admin' && (cleanPass === '123456' || cleanPass === '1234')) {
+      const profile: AdminProfile = {
+        id: 'admin-master',
+        username: 'admin',
+        name: 'Administrador do Sistema',
+        role: 'admin',
+        store_id: null,
+        store_name: 'Toda a Rede (Global)',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
+      await this.saveAdminProfile(profile);
+      return { success: true, user: profile };
     }
 
-    // Generic fallback for testing credentials
-    if (pinOrPass === 'admin' || pinOrPass === '1234') {
-      return {
-        success: true,
-        user: {
-          ...admin,
-          phone: cleanPhone,
-        },
+    // Gerente: gerente / 123456
+    if (cleanUser === 'gerente' && (cleanPass === '123456' || cleanPass === '1234')) {
+      const profile: AdminProfile = {
+        id: 'user-mgr-1',
+        username: 'gerente',
+        name: 'Juliana Paes (Gerente Matriz)',
+        role: 'manager',
+        store_id: 'store-001',
+        store_name: 'Loja Matriz — Centro',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
+      await this.saveAdminProfile(profile);
+      return { success: true, user: profile };
+    }
+
+    // Consultora: consultora / 123456
+    if ((cleanUser === 'consultora' || cleanUser === 'sofia') && (cleanPass === '123456' || cleanPass === '1234')) {
+      const profile: AdminProfile = {
+        id: 'user-att-1',
+        username: cleanUser,
+        name: 'Sofia Alencar (Consultora VIP)',
+        role: 'attendant',
+        store_id: 'store-001',
+        store_name: 'Loja Matriz — Centro',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      await this.saveAdminProfile(profile);
+      return { success: true, user: profile };
     }
 
     return {
       success: false,
-      error: 'Telefone ou senha incorretos.',
+      error: 'Usuário ou senha inválidos. Certifique-se de que o usuário tem apenas letras e a senha apenas números.',
     };
   },
 

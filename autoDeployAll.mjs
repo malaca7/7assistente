@@ -47,6 +47,8 @@ async function main() {
       'atendimento', 
       'lojas', 
       'fluxos', 
+      'acessos',
+      'usuarios',
       'whatsapp', 
       'catalogo', 
       'enxoval', 
@@ -95,7 +97,7 @@ async function main() {
     const status = execSync('git status --porcelain', { cwd: __dirname, encoding: 'utf8' }).trim();
     if (status.length > 0) {
       console.log('📌 Mudanças detectadas. Criando commit de deploy...');
-      execSync('git commit -m "fix(router): eliminar 404 no /admin do GitHub Pages e adicionar sincronizacao realtime CEO"', { cwd: __dirname, stdio: 'inherit' });
+      execSync('git commit -m "feat: gestao completa de fluxos bot e novo login por usuario (apenas letras) e senha (apenas numeros)"', { cwd: __dirname, stdio: 'inherit' });
       console.log('✅ Commit criado com sucesso!');
     } else {
       console.log('ℹ️ Nenhuma alteração pendente para commit.');

@@ -101,9 +101,9 @@ export const App: React.FC = () => {
     title = 'Conexão WhatsApp Baileys';
     subtitle = 'Gerenciamento de sessão, QR Code e status do microsserviço Discloud';
     pageContent = <WhatsappConnectView />;
-  } else if (currentPath === '/usuarios') {
-    title = 'Usuários & Permissões';
-    subtitle = 'Acesso por papéis: CEO (global), Gerentes (por filial) e Consultoras';
+  } else if (currentPath === '/acessos' || currentPath === '/usuarios') {
+    title = 'Gerenciamento de Acessos & Usuários';
+    subtitle = 'Controle de credenciais: Usuário apenas letras [a-z] e Senha apenas números [0-9]';
     pageContent = <UsersPage />;
   } else if (currentPath === '/logs') {
     title = 'Logs & Auditoria';

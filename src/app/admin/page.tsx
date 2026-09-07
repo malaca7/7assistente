@@ -36,6 +36,7 @@ import { RedeLojasView } from '../../components/RedeLojasView';
 import { AtendimentoHumanoInbox } from '../../components/AtendimentoHumanoInbox';
 import { WhatsappConnectView } from '../../components/WhatsappConnectView';
 import { FlowBuilderView } from '../../components/FlowBuilderView';
+import { AccessManagementView } from '../../components/AccessManagementView';
 import { StorageService } from '../../lib/storage';
 import { Product, Store, SupportTicket, VIPConsultation, DashboardKPIs, BotConfig } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
@@ -46,7 +47,7 @@ export default function AdminPage() {
   const { success, info, warning } = useToast();
 
   const [activeTab, setActiveTab] = useState<
-    'dashboard' | 'lojas' | 'produtos' | 'bot_config' | 'atendimento' | 'tickets' | 'agendamentos' | 'fluxos' | 'whatsapp'
+    'dashboard' | 'lojas' | 'produtos' | 'bot_config' | 'atendimento' | 'tickets' | 'agendamentos' | 'fluxos' | 'whatsapp' | 'acessos'
   >('dashboard');
 
   const [kpis, setKpis] = useState<DashboardKPIs | null>(null);
@@ -270,6 +271,7 @@ export default function AdminPage() {
             { id: 'agendamentos', label: 'Consultoria VIP', icon: Calendar },
             { id: 'fluxos', label: 'Fluxos Bot', icon: GitFork },
             { id: 'whatsapp', label: 'Conexão QR', icon: QrCode },
+            { id: 'acessos', label: 'Acessos', icon: Users },
           ].map(tab => {
             const IconC = tab.icon;
             const isActive = activeTab === tab.id;
@@ -799,6 +801,11 @@ export default function AdminPage() {
         {/* TAB 9: WHATSAPP QR */}
         {activeTab === 'whatsapp' && (
           <WhatsappConnectView onNavigate={tab => setActiveTab(tab as any)} />
+        )}
+
+        {/* TAB 10: GERENCIAMENTO DE ACESSOS */}
+        {activeTab === 'acessos' && (
+          <AccessManagementView />
         )}
       </main>
 

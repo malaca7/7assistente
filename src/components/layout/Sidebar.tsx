@@ -86,8 +86,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: 'users',
-      label: 'Usuários & Papéis',
-      path: '/usuarios',
+      label: 'Gestão de Acessos',
+      path: '/acessos',
       icon: Users,
       badge: null,
     },

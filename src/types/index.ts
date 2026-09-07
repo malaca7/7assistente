@@ -4,16 +4,30 @@ export type SystemRole = 'ceo' | 'manager' | 'attendant' | 'admin';
 
 export interface AdminProfile {
   id: string;
-  phone: string;
+  username: string; // EXCLUSIVAMENTE LETRAS: ^[a-zA-Z]+$
+  phone?: string;
   name: string;
   email?: string;
-  password?: string;
+  password?: string; // EXCLUSIVAMENTE NÚMEROS: ^[0-9]+$
   role: SystemRole;
   store_id?: string | null; // null = Rede inteira (CEO)
   store_name?: string;
   avatar_url?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface SystemAccessUser {
+  id: string;
+  name: string;
+  username: string; // EXCLUSIVAMENTE LETRAS: ^[a-zA-Z]+$
+  password?: string; // EXCLUSIVAMENTE NÚMEROS: ^[0-9]+$
+  role: SystemRole;
+  store_id?: string | null; // null = Toda a Rede
+  store_name?: string;
+  status: 'active' | 'inactive';
+  created_at: string;
+  updated_at?: string;
 }
 
 export type BabySize = 'RN' | 'P' | 'M' | 'G' | 'GG' | '1 ano' | '2 anos' | '3 anos';
@@ -272,14 +286,28 @@ export interface Settings {
 
 export type FlowStatus = 'draft' | 'published' | 'paused' | 'archived';
 
+export interface FlowStep {
+  id: string;
+  title: string;
+  type: NodeTypeEnum;
+  category?: string;
+  description?: string;
+  config?: Record<string, any>;
+  icon?: string;
+}
+
 export interface Flow {
   id: string;
   name: string;
   description: string;
   status: FlowStatus;
+  is_active: boolean;
   version: number;
   node_count?: number;
   trigger_type?: string;
+  store_id?: string | null; // null = Toda a Rede
+  store_name?: string;
+  steps?: FlowStep[];
   created_at: string;
   updated_at: string;
 }

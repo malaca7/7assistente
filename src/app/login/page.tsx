@@ -19,18 +19,28 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 
 export default function LoginPage() {
-  const { loginWithPhone, isLoading } = useAuth();
+  const { login, isLoading } = useAuth();
   const { success, error: toastError } = useToast();
 
-  const [phone, setPhone] = useState('81996138924');
-  const [password, setPassword] = useState('admin');
+  const [username, setUsername] = useState('ceo');
+  const [password, setPassword] = useState('123456');
   const [selectedRoleHint, setSelectedRoleHint] = useState<'ceo' | 'manager' | 'attendant'>('ceo');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone || !password) return;
+    if (!username || !password) return;
 
-    const res = await loginWithPhone(phone, password);
+    // Validações
+    if (!/^[a-zA-Z]+$/.test(username)) {
+      toastError('Usuário Inválido', 'O usuário deve conter apenas letras (sem números, espaços ou símbolos).');
+      return;
+    }
+    if (!/^[0-9]+$/.test(password)) {
+      toastError('Senha Inválida', 'A senha deve conter apenas números (sem letras ou símbolos).');
+      return;
+    }
+
+    const res = await login(username, password);
     if (res.success) {
       success('Login realizado com sucesso!', 'Redirecionando para o painel administrativo...');
       if (typeof window !== 'undefined') {
@@ -44,14 +54,14 @@ export default function LoginPage() {
   const setRoleCredentials = (role: 'ceo' | 'manager' | 'attendant') => {
     setSelectedRoleHint(role);
     if (role === 'ceo') {
-      setPhone('81996138924');
-      setPassword('admin');
+      setUsername('ceo');
+      setPassword('123456');
     } else if (role === 'manager') {
-      setPhone('81999990001');
-      setPassword('gerente1');
+      setUsername('gerente');
+      setPassword('123456');
     } else {
-      setPhone('81999990003');
-      setPassword('sofia');
+      setUsername('consultora');
+      setPassword('123456');
     }
   };
 
@@ -68,7 +78,7 @@ export default function LoginPage() {
             <img 
               src="/logo.png" 
               alt="Logo Pitoco de Gente" 
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain" 
             />
           </div>
           <div>
@@ -100,7 +110,7 @@ export default function LoginPage() {
               >
                 <Crown className="w-4 h-4 mx-auto mb-1 text-pitoco-blue" />
                 <span className="text-[10px] font-bold block">CEO</span>
-                <span className="text-[8px] text-slate-500 block">Toda a Rede</span>
+                <span className="text-[8px] text-slate-500 block">@ceo</span>
               </button>
 
               <button
@@ -114,7 +124,7 @@ export default function LoginPage() {
               >
                 <Store className="w-4 h-4 mx-auto mb-1 text-emerald-400" />
                 <span className="text-[10px] font-bold block">Gerente</span>
-                <span className="text-[8px] text-slate-500 block">Filial Centro</span>
+                <span className="text-[8px] text-slate-500 block">@gerente</span>
               </button>
 
               <button
@@ -128,41 +138,55 @@ export default function LoginPage() {
               >
                 <Heart className="w-4 h-4 mx-auto mb-1 text-pitoco-pink" />
                 <span className="text-[10px] font-bold block">Consultora</span>
-                <span className="text-[8px] text-slate-500 block">Atendimento</span>
+                <span className="text-[8px] text-slate-500 block">@consultora</span>
               </button>
             </div>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1.5">
-                Telefone / WhatsApp:
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-slate-300">
+                  Nome de Usuário:
+                </label>
+                <span className="text-[10px] text-pitoco-blue font-medium bg-pitoco-blue/10 px-2 py-0.5 rounded-full border border-pitoco-blue/20">
+                  Apenas Letras [a-z]
+                </span>
+              </div>
               <div className="relative">
-                <Phone className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Users className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  value={phone}
-                  onChange={e => setPhone(e.target.value)}
-                  placeholder="81996138924"
-                  className="w-full pl-9 pr-3 py-2.5 bg-dark-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-pitoco-blue transition-colors"
+                  value={username}
+                  onChange={e => setUsername(e.target.value.replace(/[^a-zA-Z]/g, '').toLowerCase())}
+                  placeholder="ex: ceo, gerente, consultora"
+                  className="w-full pl-9 pr-3 py-2.5 bg-dark-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-pitoco-blue transition-colors font-mono"
                   required
+                  autoCapitalize="none"
+                  autoCorrect="off"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1.5">
-                Senha de Acesso:
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-slate-300">
+                  Senha de Acesso:
+                </label>
+                <span className="text-[10px] text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                  Apenas Números [0-9]
+                </span>
+              </div>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="password"
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-9 pr-3 py-2.5 bg-dark-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-pitoco-blue transition-colors"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  onChange={e => setPassword(e.target.value.replace(/\D/g, ''))}
+                  placeholder="ex: 123456"
+                  className="w-full pl-9 pr-3 py-2.5 bg-dark-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-pitoco-blue transition-colors font-mono tracking-widest"
                   required
                 />
               </div>
