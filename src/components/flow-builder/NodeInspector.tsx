@@ -96,7 +96,7 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
       if (!isResizing) return;
       // Dragging left increases width, dragging right decreases width
       const delta = startXRef.current - e.clientX;
-      const newWidth = Math.min(Math.max(startWidthRef.current + delta, 280), 650);
+      const newWidth = Math.min(Math.max(startWidthRef.current + delta, 220), 650);
       if (onWidthChange) {
         onWidthChange(newWidth);
       } else {
@@ -177,21 +177,73 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
       </div>
 
       {/* Header */}
-      <div className="p-4 border-b border-white/5 flex items-center justify-between pl-5 select-none">
-        <div className="flex items-center gap-2">
-          <SlidersHorizontal className="w-4 h-4 text-primary-400" />
-          <h3 className="text-sm font-bold text-white tracking-tight">Propriedades do Nó</h3>
+      <div className="p-3 sm:p-4 border-b border-white/5 flex items-center justify-between pl-4 sm:pl-5 select-none gap-1.5">
+        <div className="flex items-center gap-1.5 truncate">
+          <SlidersHorizontal className="w-4 h-4 text-primary-400 flex-shrink-0" />
+          <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight truncate">
+            {currentWidth < 280 ? 'Propriedades' : 'Propriedades do Nó'}
+          </h3>
         </div>
-        <button
-          onClick={onClose}
-          className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {/* Botões de Dimensionamento Rápido do Inspetor */}
+          <div className="flex items-center bg-dark-850 p-0.5 rounded-lg border border-white/10 text-[9.5px]">
+            <button
+              type="button"
+              onClick={() => {
+                if (onWidthChange) onWidthChange(235);
+                else setLocalWidth(235);
+              }}
+              className={cn(
+                "px-1.5 py-0.5 rounded transition-colors font-bold",
+                currentWidth <= 260 ? "bg-primary-600 text-white shadow-xs" : "text-slate-400 hover:text-white"
+              )}
+              title="Diminuir para tamanho Mini (235px)"
+            >
+              Mini
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (onWidthChange) onWidthChange(350);
+                else setLocalWidth(350);
+              }}
+              className={cn(
+                "px-1.5 py-0.5 rounded transition-colors font-bold",
+                currentWidth > 260 && currentWidth <= 420 ? "bg-primary-600 text-white shadow-xs" : "text-slate-400 hover:text-white"
+              )}
+              title="Tamanho Normal (350px)"
+            >
+              Normal
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (onWidthChange) onWidthChange(480);
+                else setLocalWidth(480);
+              }}
+              className={cn(
+                "px-1.5 py-0.5 rounded transition-colors font-bold",
+                currentWidth > 420 ? "bg-primary-600 text-white shadow-xs" : "text-slate-400 hover:text-white"
+              )}
+              title="Modo Amplo (480px)"
+            >
+              Amplo
+            </button>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            title="Fechar propriedades"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Body / Config fields */}
-      <div className="flex-1 p-5 overflow-y-auto space-y-5">
+      <div className={cn("flex-1 overflow-y-auto", currentWidth < 280 ? "p-3 space-y-3.5" : "p-5 space-y-5")}>
         {/* Node Name */}
         <Input
           label="Título do Nó"

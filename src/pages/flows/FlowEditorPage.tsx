@@ -217,6 +217,34 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
     }
   }, [autoSaveMode, autoSaveIntervalSec, isDirty, handleSave]);
 
+  // Intercept React Flow node changes to trigger Auto-Save on dragging, dimension, or removing
+  const handleCustomNodesChange = useCallback(
+    (changes: any[]) => {
+      onNodesChange(changes);
+      const hasMeaningful = changes.some(
+        (c) => (c.type === 'position' && c.dragging === false) || c.type === 'remove' || c.type === 'add' || c.type === 'replace'
+      );
+      if (hasMeaningful) {
+        setIsDirty(true);
+      }
+    },
+    [onNodesChange]
+  );
+
+  // Intercept React Flow edge changes to trigger Auto-Save
+  const handleCustomEdgesChange = useCallback(
+    (changes: any[]) => {
+      onEdgesChange(changes);
+      const hasMeaningful = changes.some(
+        (c) => c.type === 'remove' || c.type === 'add' || c.type === 'replace'
+      );
+      if (hasMeaningful) {
+        setIsDirty(true);
+      }
+    },
+    [onEdgesChange]
+  );
+
   // Connect edges
   const onConnect = useCallback(
     (params: Connection) => {
@@ -792,6 +820,7 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
       const layoutedNodes = computeOrganizedNodes(nodes, edges);
       setNodes(layoutedNodes);
       pushHistory(layoutedNodes, edges);
+      setIsDirty(true);
       success(
         'Fluxo Auto-Organizado',
         'Fluxo organizado com espaçamento ampliado e conexões perfeitamente alinhadas de cima para baixo!'
@@ -805,6 +834,21 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
       toastError('Erro ao Organizar', err.message || 'Ocorreu um erro ao organizar o fluxo.');
     }
   }, [nodes, edges, computeOrganizedNodes, setNodes, pushHistory, fitView, success, toastError]);
+
+  // Global Keyboard Shortcut: Alt + O for Auto-Layout
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) {
+        return;
+      }
+      if (e.altKey && (e.key === 'o' || e.key === 'O')) {
+        e.preventDefault();
+        handleAutoLayout();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleAutoLayout]);
 
   // Always Auto-Organize and Save Flow Before Exiting the Studio
   const handleExitStudio = useCallback(async () => {
@@ -1111,8 +1155,8 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
           <FlowCanvas
             nodes={nodes}
             edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
+            onNodesChange={handleCustomNodesChange}
+            onEdgesChange={handleCustomEdgesChange}
             onConnect={onConnect}
             onNodeClick={onNodeClick}
             onPaneClick={onPaneClick}
@@ -1449,6 +1493,7 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
         <div className="space-y-4 text-xs">
           <div className="grid grid-cols-1 gap-2.5">
             {[
+              { desc: 'Auto-Organizar Nós de Cima para Baixo', keys: ['Alt', 'O'] },
               { desc: 'Salvar Fluxo Manualmente', keys: ['Ctrl', 'S'] },
               { desc: 'Desfazer última alteração', keys: ['Ctrl', 'Z'] },
               { desc: 'Refazer alteração', keys: ['Ctrl', 'Y'] },

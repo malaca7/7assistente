@@ -265,10 +265,10 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
   // Contadores
   const activeFlowsCount = useMemo(() => flows.filter(f => f.is_active).length, [flows]);
 
-  // Se o usuário estiver no modo Studio Visual N8N / BotGhost
+  // Se o usuário estiver no modo Studio Visual N8N / BotGhost (Tela Cheia Imersiva)
   if (viewMode === 'studio') {
     return (
-      <div className="w-full -mx-4 -my-6 min-h-[calc(100vh-100px)]">
+      <div className="fixed inset-0 z-50 w-screen h-screen bg-dark-950 flex flex-col overflow-hidden m-0 p-0">
         <FlowEditorPage
           flowId={studioFlowId || flows[0]?.id || 'flow-principal-pitoco'}
           onNavigate={(path) => {

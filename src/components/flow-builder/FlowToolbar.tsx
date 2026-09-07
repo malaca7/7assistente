@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Save, 
   Play, 
@@ -16,7 +16,9 @@ import {
   Check,
   ChevronDown,
   Smartphone,
-  List
+  List,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
@@ -75,7 +77,31 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
 }) => {
   const [isAutoSaveMenuOpen, setIsAutoSaveMenuOpen] = useState(false);
   const [isLinesMenuOpen, setIsLinesMenuOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const isPublished = flow.status === 'published';
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  const handleToggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    } else {
+      document.exitFullscreen?.().catch(() => {});
+    }
+  };
+
+  const formattedSavedTime = lastSavedTime
+    ? new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(lastSavedTime)
+    : null;
 
   return (
     <div className="h-16 bg-dark-900 border-b border-white/5 px-4 flex items-center justify-between z-20 flex-shrink-0 relative">
@@ -83,13 +109,14 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}
-          className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-          title="Voltar para Lista de Fluxos"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-dark-850 border border-white/10 hover:border-white/20 text-slate-300 hover:text-white transition-all text-xs font-semibold shadow-sm"
+          title="Sair do Studio e voltar para a Lista de Fluxos"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-4 h-4 text-slate-400 group-hover:text-white" />
+          <span>Sair do Studio</span>
         </button>
 
-        <div>
+        <div className="hidden sm:block">
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-bold text-white tracking-tight">{flow.name}</h2>
             <Badge
@@ -99,39 +126,38 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
               {isPublished ? 'Publicado (Ativo)' : flow.status === 'paused' ? 'Pausado' : 'Rascunho'}
             </Badge>
           </div>
-          <p className="text-[11px] text-slate-400">Versão {flow.version || 1} • Studio Visual 7 Assistente</p>
+          <p className="text-[11px] text-slate-400">Versão {flow.version || 1} • Studio Visual Tela Cheia</p>
         </div>
       </div>
 
       {/* Center: Live Auto-save & Validation status */}
-      <div className="hidden lg:flex items-center gap-3">
-        {/* Auto-save Status Indicator */}
+      <div className="hidden md:flex items-center gap-3">
+        {/* Auto-save Status Indicator with Real-Time Feedback */}
         <div className="relative">
           <button
             onClick={() => setIsAutoSaveMenuOpen(!isAutoSaveMenuOpen)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-dark-850 border border-white/10 hover:border-white/20 text-xs transition-colors"
-            title="Configurar salvamento automático do fluxo"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-dark-850/90 border border-white/10 hover:border-white/20 text-xs transition-colors shadow-sm"
+            title="Clique para alterar modo de salvamento automático"
           >
             {isSaving ? (
               <>
-                <div className="w-3 h-3 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" />
-                <span className="text-brand-300 font-medium">Salvando alterações...</span>
+                <div className="w-3.5 h-3.5 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" />
+                <span className="text-brand-300 font-bold">Salvando alterações...</span>
               </>
             ) : isDirty ? (
               <>
-                <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                <span className="text-amber-300 font-medium">Alterações pendentes</span>
+                <div className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
+                <span className="text-amber-300 font-semibold">Gravando em tempo real...</span>
               </>
             ) : (
               <>
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-slate-300 font-medium">
-                  {autoSaveMode === 'instant'
-                    ? 'Salvamento em Tempo Real'
-                    : autoSaveMode === 'interval'
-                    ? `Auto-save a cada ${autoSaveIntervalSec}s`
-                    : 'Salvo (Manual)'}
-                </span>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-sm shadow-emerald-500/50" />
+                <span className="text-emerald-300 font-bold">Auto-salve Ativo</span>
+                {formattedSavedTime && (
+                  <span className="text-slate-400 text-[11px] font-mono hidden lg:inline">
+                    ({formattedSavedTime})
+                  </span>
+                )}
               </>
             )}
             <ChevronDown className="w-3 h-3 text-slate-400 ml-0.5" />
@@ -280,18 +306,38 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
           </button>
         )}
 
-        {/* Auto-Organize Flow Button */}
+        {/* Auto-Organize Flow Button - Destaque Visual Máximo */}
         {onAutoLayout && (
           <button
             type="button"
             onClick={onAutoLayout}
-            className="p-2 rounded-xl bg-dark-850 border border-white/5 hover:border-emerald-500/30 text-slate-300 hover:text-emerald-300 transition-colors flex items-center gap-1.5 text-xs active:scale-95"
-            title="Auto-Organizar nós e conexões do fluxo de forma alinhada e elegante"
+            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600/30 to-teal-600/30 hover:from-emerald-500/40 hover:to-teal-500/40 border border-emerald-500/40 hover:border-emerald-400 text-emerald-300 hover:text-emerald-100 transition-all flex items-center gap-1.5 text-xs font-bold shadow-sm active:scale-95"
+            title="Auto-Organizar nós e conexões de cima para baixo sem sobreposição (Atalho: Alt+O)"
           >
-            <Sparkles className="w-4 h-4 text-emerald-400" />
-            <span className="hidden md:inline font-medium">Auto-Organizar</span>
+            <Sparkles className="w-4 h-4 text-emerald-400 animate-pulse" />
+            <span className="hidden sm:inline font-bold">Auto-Organizar</span>
+            <span className="hidden xl:inline text-[9.5px] font-mono px-1 py-0.2 rounded bg-dark-900/80 text-emerald-400 border border-emerald-500/30">Alt+O</span>
           </button>
         )}
+
+        {/* Fullscreen Toggle Button */}
+        <button
+          onClick={handleToggleFullscreen}
+          className="p-2 rounded-xl bg-dark-850 border border-white/5 hover:border-white/20 text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 text-xs"
+          title={isFullscreen ? "Sair da Tela Cheia do Navegador" : "Expandir em Tela Cheia Nativa"}
+        >
+          {isFullscreen ? (
+            <>
+              <Minimize2 className="w-4 h-4 text-cyan-400" />
+              <span className="hidden xl:inline font-medium">Restaurar</span>
+            </>
+          ) : (
+            <>
+              <Maximize2 className="w-4 h-4 text-cyan-400" />
+              <span className="hidden xl:inline font-medium">Tela Cheia</span>
+            </>
+          )}
+        </button>
 
         {/* Keyboard Shortcuts Button */}
         <button

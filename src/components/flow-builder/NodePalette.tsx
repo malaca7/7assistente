@@ -434,7 +434,7 @@ export const NodePalette: React.FC<NodePaletteProps> = ({
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) return;
       const delta = e.clientX - startXRef.current;
-      const newWidth = Math.min(Math.max(startWidthRef.current + delta, 260), 520);
+      const newWidth = Math.min(Math.max(startWidthRef.current + delta, 160), 520);
       onWidthChange(newWidth);
     };
 
@@ -453,6 +453,8 @@ export const NodePalette: React.FC<NodePaletteProps> = ({
       window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [isResizing, onWidthChange]);
+
+  const isCompactMode = width < 220;
 
   return (
     <div className="relative flex h-full z-20 select-none">
@@ -478,18 +480,53 @@ export const NodePalette: React.FC<NodePaletteProps> = ({
           className="bg-dark-900/95 backdrop-blur-xl border-r border-white/10 flex flex-col h-full shadow-2xl relative transition-all duration-75"
         >
           {/* Header */}
-          <div className="p-3.5 border-b border-white/10 space-y-2.5 bg-dark-950/40">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-white tracking-tight flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-primary-600/25 text-primary-400 border border-primary-500/40 flex items-center justify-center shadow-sm">
-                  <Plus className="w-3.5 h-3.5" />
+          <div className="p-2.5 sm:p-3 border-b border-white/10 space-y-2 bg-dark-950/40">
+            <div className="flex items-center justify-between gap-1">
+              <h3 className="text-xs font-bold text-white tracking-tight flex items-center gap-1.5 truncate">
+                <div className="w-5 h-5 rounded-lg bg-primary-600/25 text-primary-400 border border-primary-500/40 flex items-center justify-center shadow-sm flex-shrink-0">
+                  <Plus className="w-3 h-3" />
                 </div>
-                Paleta de Nós
+                <span className="truncate">{width < 210 ? 'Nós' : 'Paleta de Nós'}</span>
               </h3>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-mono text-slate-400 bg-white/5 px-2 py-0.5 rounded-full border border-white/10">
-                  {filtered.length} nós
-                </span>
+              
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {/* Botões de Dimensionamento Rápido */}
+                <div className="flex items-center bg-dark-850 p-0.5 rounded-lg border border-white/10 text-[9.5px]">
+                  <button
+                    type="button"
+                    onClick={() => onWidthChange(175)}
+                    className={cn(
+                      "px-1.5 py-0.5 rounded transition-colors font-bold",
+                      width <= 210 ? "bg-primary-600 text-white shadow-xs" : "text-slate-400 hover:text-white"
+                    )}
+                    title="Diminuir tamanho: Modo Mini (175px)"
+                  >
+                    Mini
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onWidthChange(280)}
+                    className={cn(
+                      "px-1.5 py-0.5 rounded transition-colors font-bold",
+                      width > 210 && width <= 330 ? "bg-primary-600 text-white shadow-xs" : "text-slate-400 hover:text-white"
+                    )}
+                    title="Tamanho Normal (280px)"
+                  >
+                    Normal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onWidthChange(380)}
+                    className={cn(
+                      "px-1.5 py-0.5 rounded transition-colors font-bold",
+                      width > 330 ? "bg-primary-600 text-white shadow-xs" : "text-slate-400 hover:text-white"
+                    )}
+                    title="Modo Amplo (380px)"
+                  >
+                    Amplo
+                  </button>
+                </div>
+
                 <button
                   onClick={onToggleOpen}
                   className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
@@ -555,7 +592,7 @@ export const NodePalette: React.FC<NodePaletteProps> = ({
                     </span>
                   </div>
 
-                  {/* Nodes in this category */}
+                    {/* Nodes in this category */}
                   <div className="space-y-1.5">
                     {catNodes.map((nodeDef) => (
                       <div
@@ -567,42 +604,48 @@ export const NodePalette: React.FC<NodePaletteProps> = ({
                         }}
                         onClick={() => onAddNode(nodeDef)}
                         className={cn(
-                          'p-2.5 rounded-xl bg-dark-850/80 hover:bg-dark-800/95 border border-white/5 hover:border-white/20 cursor-grab active:cursor-grabbing transition-all duration-150 flex items-start gap-2.5 group relative hover:shadow-lg hover:shadow-primary-500/5 hover:-translate-y-0.5'
+                          isCompactMode ? 'p-1.5 rounded-lg gap-2' : 'p-2.5 rounded-xl gap-2.5',
+                          'bg-dark-850/80 hover:bg-dark-800/95 border border-white/5 hover:border-white/20 cursor-grab active:cursor-grabbing transition-all duration-150 flex items-center group relative hover:shadow-lg hover:shadow-primary-500/5 hover:-translate-y-0.5'
                         )}
-                        title="Arraste para onde quiser na tela ou clique para adicionar no centro da visão"
+                        title={`${nodeDef.label}: ${nodeDef.description}`}
                       >
                         {/* Drag Handle Accent */}
-                        <div className="absolute top-2.5 right-2 opacity-0 group-hover:opacity-60 text-slate-400 transition-opacity">
-                          <GripVertical className="w-3.5 h-3.5" />
-                        </div>
+                        {!isCompactMode && (
+                          <div className="absolute top-2.5 right-2 opacity-0 group-hover:opacity-60 text-slate-400 transition-opacity">
+                            <GripVertical className="w-3.5 h-3.5" />
+                          </div>
+                        )}
 
                         <div
                           className={cn(
-                            'w-7 h-7 rounded-lg flex items-center justify-center text-white shadow-sm flex-shrink-0 group-hover:scale-110 transition-transform mt-0.5',
+                            isCompactMode ? 'w-6 h-6 rounded-md' : 'w-7 h-7 rounded-lg',
+                            'flex items-center justify-center text-white shadow-sm flex-shrink-0 group-hover:scale-110 transition-transform',
                             nodeDef.iconBg
                           )}
                         >
                           {nodeDef.icon}
                         </div>
 
-                        <div className="flex-1 min-w-0 pr-3">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-white group-hover:text-primary-300 transition-colors truncate">
+                        <div className="flex-1 min-w-0 pr-1">
+                          <div className="flex items-center gap-1">
+                            <span className={cn(isCompactMode ? "text-[11px]" : "text-xs", "font-bold text-white group-hover:text-primary-300 transition-colors truncate")}>
                               {nodeDef.label}
                             </span>
-                            {nodeDef.badge && (
+                            {!isCompactMode && nodeDef.badge && (
                               <span className="text-[9px] px-1.5 py-0.2 rounded-md font-mono font-bold bg-primary-500/20 text-primary-300 border border-primary-500/30">
                                 {nodeDef.badge}
                               </span>
                             )}
                           </div>
 
-                          <p className="text-[10px] text-slate-400 line-clamp-2 mt-0.5 leading-tight">
-                            {nodeDef.description}
-                          </p>
+                          {!isCompactMode && (
+                            <p className="text-[10px] text-slate-400 line-clamp-2 mt-0.5 leading-tight">
+                              {nodeDef.description}
+                            </p>
+                          )}
 
                           {/* Variable Preview Tags if any */}
-                          {nodeDef.outputVars && nodeDef.outputVars.length > 0 && (
+                          {!isCompactMode && nodeDef.outputVars && nodeDef.outputVars.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1.5">
                               {nodeDef.outputVars.map((v) => (
                                 <span
