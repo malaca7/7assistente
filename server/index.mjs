@@ -192,11 +192,6 @@ async function startWhatsApp() {
     connectionStatus = 'error';
   }
 }
-  } catch (err) {
-    console.error('❌ [Server] Erro ao iniciar Baileys:', err);
-    connectionStatus = 'error';
-  }
-}
 
 // Enviar resposta gerada pelo motor de fluxo (texto, botões ou mídia)
 async function sendBotReply(remoteJid, reply) {
