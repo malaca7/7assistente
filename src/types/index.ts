@@ -1,13 +1,187 @@
-// Types for 7 Assistente
+// Types for Pitoco de Gente — Roupas de Bebê, Infantil e Enxovais
+
+export type SystemRole = 'ceo' | 'manager' | 'attendant' | 'admin';
 
 export interface AdminProfile {
   id: string;
   phone: string;
   name: string;
+  email?: string;
   password?: string;
+  role: SystemRole;
+  store_id?: string | null; // null = Rede inteira (CEO)
+  store_name?: string;
   avatar_url?: string;
   created_at: string;
   updated_at: string;
+}
+
+export type BabySize = 'RN' | 'P' | 'M' | 'G' | 'GG' | '1 ano' | '2 anos' | '3 anos';
+export type ProductColor = 
+  | 'Rosa Seco' 
+  | 'Azul Bebê' 
+  | 'Verde Menta' 
+  | 'Branco Puro' 
+  | 'Bege Neutro' 
+  | 'Amarelo Manteiga' 
+  | 'Lavanda';
+
+export interface Store {
+  id: string;
+  name: string; // 1. Loja Matriz — Centro, 2. Loja Shopping Boulevard, 3. Atendimento Geral / E-commerce
+  slug: 'matriz' | 'boulevard' | 'ecommerce';
+  address: string;
+  phone: string;
+  whatsapp_number: string;
+  is_active: boolean;
+  business_hours?: string;
+  city?: string;
+  manager_name?: string;
+  monthly_revenue?: number;
+  active_chats?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Category {
+  id: string;
+  store_id?: string | null;
+  name: string;
+  slug: string;
+  description?: string;
+  icon?: string;
+  sort_order?: number;
+  is_active: boolean;
+  created_at?: string;
+}
+
+export interface Product {
+  id: string;
+  store_id?: string | null; // Global se nulo ou específico de loja
+  category_id: string;
+  category_name?: string;
+  name: string;
+  description: string;
+  price: number;
+  promotional_price?: number;
+  sizes: BabySize[];
+  colors: ProductColor[];
+  image_url?: string;
+  stock_quantity: number;
+  sku?: string;
+  is_featured?: boolean;
+  is_active: boolean;
+  material?: string; // ex: 'Algodão Suedine 100% Pima', 'Tricot Luxo Antialérgico'
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface LayetteItem {
+  id: string;
+  category: 'roupinhas' | 'higiene' | 'quarto' | 'acessorios' | 'maternidade';
+  name: string;
+  quantity: number;
+  recommendedSize?: string;
+  notes?: string;
+  checked?: boolean;
+}
+
+export interface MeasureGuideItem {
+  size: BabySize;
+  ageRange: string;
+  weightRange: string;
+  heightRange: string;
+  description: string;
+}
+
+export interface VIPConsultation {
+  id: string;
+  store_id: string;
+  store_name?: string;
+  client_name: string;
+  client_phone: string;
+  consultation_type: 'online_whatsapp' | 'presencial_loja';
+  consultation_date: string;
+  consultation_time: string;
+  due_date?: string; // DPP - Data provável do parto
+  baby_gender?: 'menino' | 'menina' | 'gemeos' | 'surpresa';
+  status: 'confirmed' | 'pending' | 'completed' | 'cancelled';
+  consultant_name?: string;
+  notes?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+// Alias Appointment for backward compatibility
+export type Appointment = VIPConsultation;
+
+export interface Client {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  store_id?: string;
+  store_name?: string;
+  address?: string;
+  city?: string;
+  cep?: string;
+  notes?: string;
+  baby_name?: string;
+  due_date?: string;
+  total_orders?: number;
+  total_spent?: number;
+  last_interaction?: string;
+  tags?: string[];
+  created_at: string;
+  updated_at?: string;
+}
+
+// Alias Contact for backward compatibility
+export interface Contact extends Client {
+  profile_picture_url?: string;
+  status: 'active' | 'blocked' | 'archived';
+  custom_fields?: Record<string, any>;
+  metadata?: Record<string, any>;
+}
+
+export type TicketStatus = 'open' | 'in_progress' | 'transferred' | 'resolved' | 'closed';
+export type TicketPriority = 'low' | 'normal' | 'high' | 'urgent';
+
+export interface SupportTicket {
+  id: string;
+  store_id: string;
+  store_name?: string;
+  client_id: string;
+  client_name: string;
+  client_phone: string;
+  conversation_id?: string;
+  protocol: string;
+  subject: string;
+  status: TicketStatus;
+  priority: TicketPriority;
+  attendant_name?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BotConfig {
+  id: string;
+  bot_name: string;
+  store_name: string;
+  welcome_message: string;
+  handoff_message: string;
+  fallback_message: string;
+  pix_key: string;
+  pix_name: string;
+  pix_city: string;
+  shipping_motoboy_price: number;
+  shipping_correios_price: number;
+  free_shipping_threshold: number;
+  vip_consultation_enabled: boolean;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export type BotGender = 'female' | 'male' | 'neutral';
@@ -30,7 +204,10 @@ export interface BotProfile {
   pix_key_type?: string;
   pix_key?: string;
   pix_owner?: string;
-  notify_new_bookings?: boolean;
+  shipping_motoboy?: number;
+  shipping_correios?: number;
+  free_shipping_min?: number;
+  notify_new_orders?: boolean;
   notify_phone?: string;
   play_audio_alerts?: boolean;
   handoff_message?: string;
@@ -106,6 +283,17 @@ export type NodeTypeEnum =
   | 'ai_agent'
   | 'media'
   | 'human_handoff'
+  | 'show_catalog'
+  | 'select_product'
+  | 'measure_guide'
+  | 'layette_checklist'
+  | 'shipping_calculator'
+  | 'pix_payment'
+  | 'vip_consultation'
+  | 'store_selector'
+  | 'check_contact'
+  | 'end_flow'
+  // Backward compatibility alias
   | 'show_services'
   | 'select_service'
   | 'select_date'
@@ -114,34 +302,16 @@ export type NodeTypeEnum =
   | 'services_catalog'
   | 'schedule_contact'
   | 'confirm_booking'
-  | 'update_contact'
-  | 'check_contact'
-  | 'end_flow';
-
-export interface Appointment {
-  id: string;
-  contact_phone: string;
-  contact_name: string;
-  service_name: string;
-  duration_minutes?: number;
-  price?: number;
-  appointment_date: string;
-  appointment_time: string;
-  end_time?: string;
-  slots_count?: number;
-  status: 'confirmed' | 'pending' | 'cancelled' | 'completed' | 'no_show' | 'in_progress';
-  notes?: string;
-  created_at: string;
-  updated_at?: string;
-}
+  | 'update_contact';
 
 export interface AuditLog {
   id: string;
-  type: 'appointment_created' | 'appointment_status' | 'bot_flow' | 'message_inbound' | 'message_outbound' | 'system';
+  type: 'order_created' | 'consultation_created' | 'ticket_status' | 'bot_flow' | 'message_inbound' | 'message_outbound' | 'system' | 'appointment_created' | 'appointment_status';
   title: string;
   description: string;
   contact_phone?: string;
   contact_name?: string;
+  store_id?: string;
   details?: Record<string, any>;
   created_at: string;
 }
@@ -150,10 +320,12 @@ export interface UserPermissions {
   // Portais de Acesso
   can_access_admin: boolean;
   can_access_atendimento: boolean;
-  can_access_barbeiro: boolean;
+  can_access_loja: boolean;
+  can_view_all_stores?: boolean; // CEO
 
   // Módulos do Sistema
-  can_manage_agenda?: boolean;
+  can_manage_products?: boolean;
+  can_manage_stores?: boolean;
   can_manage_clients?: boolean;
   can_manage_conversations?: boolean;
   can_manage_flows?: boolean;
@@ -162,62 +334,31 @@ export interface UserPermissions {
   can_view_logs?: boolean;
 
   // Ações Operacionais
+  can_schedule_consultation?: boolean;
+  can_send_whatsapp_messages?: boolean;
+  can_manage_tickets?: boolean;
+
+  // Backward compatibility
+  can_access_barbeiro?: boolean;
+  can_manage_agenda?: boolean;
   can_create_appointments?: boolean;
   can_cancel_appointments?: boolean;
-  can_send_whatsapp_messages?: boolean;
 }
 
 export interface SystemUser {
   id: string;
   name: string;
   phone: string;
-  password: string;
+  email?: string;
+  password?: string;
   pin?: string;
-  role: 'admin' | 'barber' | 'attendant' | 'manager' | 'custom';
+  role: SystemRole;
+  store_id?: string | null; // null = CEO (all stores)
+  store_name?: string;
   permissions: UserPermissions;
   status: 'active' | 'inactive';
   created_at: string;
   updated_at?: string;
-}
-
-export interface AgendaServiceItem {
-  id: string;
-  name: string;
-  duration_minutes: number;
-  price?: number;
-  description?: string;
-  category?: string;
-  active?: boolean;
-}
-
-export interface DayScheduleConfig {
-  enabled: boolean;
-  start_time: string; // '08:00'
-  end_time: string; // '19:00'
-  has_break: boolean;
-  break_start_time?: string; // '12:00'
-  break_end_time?: string; // '13:00'
-}
-
-export interface AgendaSettings {
-  business_days: string[]; // ['1', '2', '3', '4', '5', '6', '0'] (1=Seg, 2=Ter, ..., 6=Sáb, 0=Dom)
-  start_time: string; // '08:00' (fallback)
-  end_time: string; // '19:00' (fallback)
-  slot_duration_minutes: number; // 30, 45, 60
-  break_start_time?: string; // '12:00'
-  break_end_time?: string; // '13:00'
-  buffer_minutes?: number; // 5, 10
-  day_schedules?: Record<string, DayScheduleConfig>; // '0'..'6' custom daily hours
-
-  // Advanced Options
-  min_advance_booking_minutes?: number; // Antecedência mínima para agendar (ex: 30 min, 60 min)
-  max_advance_booking_days?: number; // Antecedência máxima (ex: 30 dias)
-  cancellation_notice_hours?: number; // Tolerância para cancelamento (ex: 2h antes)
-  auto_reminder_hours?: number; // Lembrete automático pré-atendimento (ex: 2h antes)
-  allow_waiting_list?: boolean; // Lista de espera / fila de encaixe
-  simultaneous_barbers?: number; // Cadeiras / barbeiros simultâneos
-  out_of_hours_message?: string;
-  services: AgendaServiceItem[];
 }
 
 export interface FlowNodeData {
@@ -251,21 +392,6 @@ export interface FlowEdge {
   };
 }
 
-export interface Contact {
-  id: string;
-  phone: string;
-  name: string;
-  email?: string;
-  profile_picture_url?: string;
-  status: 'active' | 'blocked' | 'archived';
-  tags: string[];
-  notes?: string;
-  custom_fields?: Record<string, any>;
-  metadata?: Record<string, any>;
-  created_at: string;
-  updated_at: string;
-}
-
 export type ConversationStatus = 'bot' | 'waiting_human' | 'human' | 'closed';
 
 export interface AttendantMetrics {
@@ -282,8 +408,10 @@ export interface Attendant {
   email: string;
   phone?: string;
   password: string;
-  role: 'admin' | 'attendant' | 'supervisor';
+  role: 'admin' | 'attendant' | 'supervisor' | 'consultant';
   department: string;
+  store_id?: string | null;
+  store_name?: string;
   avatar_url?: string;
   status: 'online' | 'busy' | 'offline';
   metrics?: AttendantMetrics;
@@ -307,6 +435,8 @@ export interface Conversation {
   contact_name?: string;
   contact_phone?: string;
   contact?: Contact;
+  store_id?: string | null;
+  store_name?: string;
   status: ConversationStatus;
   priority?: ConversationPriority;
   department?: string;
@@ -329,11 +459,12 @@ export interface Conversation {
 
 export type MessageDirection = 'inbound' | 'outbound';
 export type MessageStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
-export type MessageType = 'text' | 'image' | 'audio' | 'video' | 'document' | 'button' | 'interactive' | 'internal_note';
+export type MessageType = 'text' | 'image' | 'audio' | 'video' | 'document' | 'button' | 'interactive' | 'internal_note' | 'catalog' | 'pix';
 
 export interface Message {
   id: string;
   conversation_id: string;
+  store_id?: string | null;
   direction: MessageDirection;
   message_type: MessageType;
   content: string;
@@ -353,6 +484,10 @@ export interface DashboardKPIs {
   activeFlows: number;
   waitingHuman: number;
   messagesSentToday: number;
+  totalProducts?: number;
+  totalStores?: number;
+  monthRevenue?: number;
+  totalOrders?: number;
 }
 
 export interface SlotSuggestion {
@@ -363,4 +498,16 @@ export interface SlotSuggestion {
   displayFull: string;
   displayShort: string;
   isSameDate: boolean;
+}
+
+// AgendaSettings fallback for VIP Consultation scheduler
+export interface AgendaSettings {
+  business_days: string[];
+  start_time: string;
+  end_time: string;
+  slot_duration_minutes: number;
+  break_start_time?: string;
+  break_end_time?: string;
+  buffer_minutes?: number;
+  services?: any[];
 }

@@ -134,7 +134,7 @@ export const AttendantLoginPage: React.FC<AttendantLoginPageProps> = ({ onNaviga
               </label>
               <Input
                 type="text"
-                placeholder="Ex: sofia@barber.com ou 81988887777"
+                placeholder="Ex: sofia@pitoco.com.br ou 81988887777"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 required

@@ -523,7 +523,7 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
                   <button
                     type="button"
                     onClick={() => handleApplyTemplate([
-                      { varName: 'interesse', operation: 'set_value', value: 'corte_e_barba' }
+                      { varName: 'interesse', operation: 'set_value', value: 'saida_maternidade' }
                     ])}
                     className="px-2 py-1 rounded-lg bg-dark-850 hover:bg-pink-950/70 border border-slate-700/80 hover:border-pink-500/50 text-[10px] font-medium text-pink-300 transition-colors flex items-center gap-1"
                   >

@@ -146,24 +146,17 @@
   100% { transform: translateX(100%); }
 }
 
-@keyframes barberStripes {
-  0% { background-position: 0 0; }
-  100% { background-position: 56px 56px; }
+/* Pitoco de Gente Boutique Gradients & Ribbons */
+.pitoco-gradient {
+  background: linear-gradient(135deg, #38bdf8 0%, #f472b6 50%, #10b981 100%);
 }
 
-.barber-ribbon {
-  background: repeating-linear-gradient(
-    -45deg,
-    #e11d48,
-    #e11d48 10px,
-    #f8fafc 10px,
-    #f8fafc 20px,
-    #2563eb 20px,
-    #2563eb 30px,
-    #f8fafc 30px,
-    #f8fafc 40px
-  );
-  background-size: 56px 56px;
-  animation: barberStripes 3s linear infinite;
+.pitoco-gradient-soft {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(244, 114, 182, 0.15) 50%, rgba(16, 185, 129, 0.15) 100%);
+}
+
+.pitoco-badge {
+  background: linear-gradient(135deg, #38bdf8 0%, #f472b6 100%);
+  color: white;
 }
 

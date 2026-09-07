@@ -75,10 +75,10 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
     buffer_minutes: 5,
     out_of_hours_message: 'Olá! Nosso horário de expediente é de Segunda a Sábado das 08:00 às 19:00. Deixe sua mensagem ou escolha um horário que responderemos com prioridade!',
     services: [
-      { id: 'srv-1', name: 'Corte Tradicional', duration_minutes: 30, price: 35, category: 'Cabelo', is_active: true },
-      { id: 'srv-2', name: 'Barba Terapia & Modelagem', duration_minutes: 25, price: 25, category: 'Barba', is_active: true },
-      { id: 'srv-3', name: 'Combo Cabelo + Barba', duration_minutes: 55, price: 55, category: 'Combos', is_active: true },
-      { id: 'srv-4', name: 'Sobrancelha & Acabamento', duration_minutes: 15, price: 15, category: 'Estética', is_active: true },
+      { id: 'srv-1', name: 'Consultoria VIP de Enxoval', duration_minutes: 45, price: 0, category: 'Consultoria', is_active: true },
+      { id: 'srv-2', name: 'Montagem de Mala Maternidade', duration_minutes: 30, price: 0, category: 'Maternidade', is_active: true },
+      { id: 'srv-3', name: 'Guia de Medidas & Tamanhos Newborn', duration_minutes: 20, price: 0, category: 'Tamanhos', is_active: true },
+      { id: 'srv-4', name: 'Personalização de Tricot & Bordados', duration_minutes: 30, price: 0, category: 'Personalizados', is_active: true },
     ],
   });
 
@@ -152,8 +152,8 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
   const [serviceName, setServiceName] = useState('');
   const [serviceDuration, setServiceDuration] = useState(30);
-  const [servicePrice, setServicePrice] = useState<number | ''>(35);
-  const [serviceCategory, setServiceCategory] = useState('Cabelo');
+  const [servicePrice, setServicePrice] = useState<number | ''>(0);
+  const [serviceCategory, setServiceCategory] = useState('Consultoria');
   const [serviceDescription, setServiceDescription] = useState('');
   const [serviceIsActive, setServiceIsActive] = useState(true);
   const [serviceSearchTerm, setServiceSearchTerm] = useState('');
@@ -294,8 +294,8 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
     setEditingServiceId(null);
     setServiceName('');
     setServiceDuration(30);
-    setServicePrice(35);
-    setServiceCategory('Cabelo');
+    setServicePrice(0);
+    setServiceCategory('Consultoria');
     setServiceDescription('');
     setServiceIsActive(true);
     setIsServiceModalOpen(true);
@@ -305,8 +305,8 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
     setEditingServiceId(item.id);
     setServiceName(item.name);
     setServiceDuration(item.duration_minutes || 30);
-    setServicePrice(item.price ?? 35);
-    setServiceCategory(item.category || 'Cabelo');
+    setServicePrice(item.price ?? 0);
+    setServiceCategory(item.category || 'Consultoria');
     setServiceDescription(item.description || '');
     setServiceIsActive(item.is_active !== false);
     setIsServiceModalOpen(true);
@@ -1652,14 +1652,14 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
                       <option value={24}>Disparar 1 dia antes (24h)</option>
                     </select>
                     <span className="text-[10px] text-slate-400 block">
-                      Notifica o cliente antes do corte para confirmação.
+                      Notifica a cliente antes da consultoria para confirmação.
                     </span>
                   </div>
 
-                  {/* Cadeiras Simultâneas */}
+                  {/* Atendimentos Simultâneos */}
                   <div className="p-3.5 rounded-2xl bg-dark-950/60 border border-white/5 space-y-1.5">
                     <label className="text-xs font-semibold text-slate-200 block">
-                      Capacidade Simultânea (Cadeiras / Barbeiros)
+                      Capacidade Simultânea (Consultoras / Atendimentos)
                     </label>
                     <select
                       value={settings.simultaneous_barbers ?? 1}
@@ -2091,7 +2091,7 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
             <label className="text-xs font-semibold text-slate-300 block mb-1">Nome do Serviço *</label>
             <Input
               type="text"
-              placeholder="Ex: Corte Degradê Navalhado"
+              placeholder="Ex: Consultoria VIP de Enxoval"
               value={serviceName}
               onChange={(e) => setServiceName(e.target.value)}
               required
@@ -2104,7 +2104,7 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
               <Input
                 type="number"
                 step="0.5"
-                placeholder="35.00"
+                placeholder="0.00"
                 value={servicePrice}
                 onChange={(e) => setServicePrice(e.target.value === '' ? '' : Number(e.target.value))}
                 required
@@ -2127,7 +2127,7 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({ onNavigate }) => {
             <label className="text-xs font-semibold text-slate-300 block mb-1">Categoria</label>
             <Input
               type="text"
-              placeholder="Ex: Cabelo, Barba, Combos, Estética"
+              placeholder="Ex: Consultoria, Enxoval, Mala Maternidade, Coleções"
               value={serviceCategory}
               onChange={(e) => setServiceCategory(e.target.value)}
             />

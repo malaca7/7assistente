@@ -1,0 +1,19 @@
+{
+  "name": "pitoco-bot",
+  "version": "2.0.0",
+  "description": "WhatsApp Baileys Bot & Multi-Loja API para Pitoco de Gente",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.115.0",
+    "@whiskeysockets/baileys": "^7.0.0-rc14",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "pino": "^9.6.0",
+    "qrcode": "^1.5.4",
+    "ws": "^8.21.3"
+  }
+}

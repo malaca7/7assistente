@@ -243,7 +243,7 @@ export const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = (
       `• *Valor Total:* R$ ${totalPrice.toFixed(2).replace('.', ',')}\n` +
       barberLine +
       notesLine +
-      `\nTe aguardamos na barbearia!`
+      `\nTe aguardamos com muito carinho na Pitoco de Gente!`
     );
   }, [
     clientName,
@@ -284,7 +284,7 @@ export const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = (
     if (!daySchedule.enabled) {
       toastError(
         'Estabelecimento Fechado',
-        `A barbearia não realiza atendimentos aos ${weekDaysNames[dayOfWeekIndex] || 'dias selecionados'}. Escolha outra data.`
+        `A Pitoco de Gente não realiza atendimentos aos ${weekDaysNames[dayOfWeekIndex] || 'dias selecionados'}. Escolha outra data.`
       );
       return;
     }
@@ -363,7 +363,7 @@ export const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = (
       if (nextSlot) {
         toastError(
           'Horário Ocupado!',
-          `As ${maxCapacity} cadeira(s) da barbearia já estão ocupadas às ${appointmentTime}. Próxima vaga livre para ${totalDuration} min: ${nextSlot.displayFull}.`
+          `As ${maxCapacity} consultora(s) da Pitoco de Gente já estão ocupadas às ${appointmentTime}. Próxima vaga livre para ${totalDuration} min: ${nextSlot.displayFull}.`
         );
         setSuggestedSlot(nextSlot);
       } else {
@@ -594,7 +594,7 @@ export const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = (
           <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-500/40 text-xs text-rose-300 flex items-center gap-2.5">
             <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
             <span>
-              <strong>Fechado:</strong> A barbearia não realiza atendimentos aos <strong>{weekDaysNames[dayOfWeekIndex]}s</strong>. Escolha outra data.
+              <strong>Fechado:</strong> A loja Pitoco de Gente não realiza atendimentos aos <strong>{weekDaysNames[dayOfWeekIndex]}s</strong>. Escolha outra data.
             </span>
           </div>
         )}
@@ -648,16 +648,16 @@ export const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = (
           </div>
         )}
 
-        {/* Barber / Professional Selection (Optional) */}
+        {/* Consultant / Specialist Selection (Optional) */}
         {barbers.length > 0 && (
           <div className="space-y-1">
-            <label className="text-slate-300 font-bold block">Profissional / Barbeiro (Opcional)</label>
+            <label className="text-slate-300 font-bold block">Consultora / Especialista de Enxoval (Opcional)</label>
             <select
               value={selectedBarberId}
               onChange={(e) => setSelectedBarberId(e.target.value)}
               className="w-full px-3 py-2 bg-dark-950 rounded-xl border border-white/10 text-white text-xs focus:outline-none focus:border-brand-500"
             >
-              <option value="">Qualquer Barbeiro / Sem preferência</option>
+              <option value="">Qualquer Consultora / Sem preferência</option>
               {barbers.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name} ({b.phone})
@@ -669,12 +669,12 @@ export const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = (
 
         {/* Notes */}
         <div className="space-y-1">
-          <label className="text-slate-300 font-bold block">Observações do Atendimento</label>
+          <label className="text-slate-300 font-bold block">Observações do Atendimento / Enxoval</label>
           <input
             type="text"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Ex: Prefere corte com tesoura, cliente novo..."
+            placeholder="Ex: Bebê a caminho, enxoval neutro, gêmeos, quarto safari..."
             className="w-full px-3 py-2 bg-dark-950 rounded-xl border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-brand-500"
           />
         </div>

@@ -1,15 +1,18 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { AdminProfile } from '../types';
+import { AdminProfile, SystemRole } from '../types';
 import { StorageService } from '../lib/storage';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 interface AuthContextType {
   user: AdminProfile | null;
+  role: SystemRole;
   isAuthenticated: boolean;
   isLoading: boolean;
   loginWithPhone: (phone: string, pinOrPass: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateProfile: (profile: Partial<AdminProfile>) => Promise<void>;
+  isCEO: boolean;
+  isManager: boolean;
+  isAttendant: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,9 +27,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const session = StorageService.getSession();
         if (session && session.authenticated && session.phone) {
           const profile = await StorageService.getAdminProfile();
-          setUser(profile);
+          setUser({
+            ...profile,
+            role: (session.role as SystemRole) || profile.role || 'ceo',
+          });
         } else {
-          // Stay logged out on login page
           setUser(null);
         }
       } catch (err) {
@@ -39,93 +44,70 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, []);
 
-  const loginWithPhone = async (phone: string, pinOrPass: string): Promise<{ success: boolean; error?: string }> => {
+  const loginWithPhone = async (
+    phone: string, 
+    pinOrPass: string
+  ): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     try {
       const cleanPhone = phone.replace(/\D/g, '');
-      if (cleanPhone.length < 10) {
-        return { success: false, error: 'Por favor, insira um número de telefone válido com DDD (ex: 81996138924).' };
+      if (cleanPhone.length < 8) {
+        return { success: false, error: 'Por favor, insira um número de telefone com DDD.' };
       }
       if (!pinOrPass || pinOrPass.trim().length === 0) {
         return { success: false, error: 'Por favor, insira sua senha de acesso.' };
       }
 
-      // Fetch official admin profile
-      let adminProfile = await StorageService.getAdminProfile();
-      if (isSupabaseConfigured && supabase) {
-        try {
-          const { data } = await supabase.from('admin_profiles').select('*').limit(1).maybeSingle();
-          if (data) {
-            adminProfile = data as AdminProfile;
-          }
-        } catch (e) {
-          console.warn('Supabase profile query fallback:', e);
-        }
-      }
-
-      // 1. Check via System Users with can_access_admin permission
-      const userCheck = await StorageService.verifyUserAccess(cleanPhone, pinOrPass, 'can_access_admin');
-      if (userCheck.success && userCheck.user) {
-        const profile: AdminProfile = {
-          ...adminProfile,
-          name: userCheck.user.name,
-          phone: userCheck.user.phone,
-        };
-        setUser(profile);
-        StorageService.setSession({ authenticated: true, phone: cleanPhone });
+      const check = await StorageService.verifyUserAccess(cleanPhone, pinOrPass);
+      if (check.success && check.user) {
+        setUser(check.user);
+        StorageService.setSession({ 
+          authenticated: true, 
+          phone: cleanPhone, 
+          role: check.user.role 
+        });
         return { success: true };
       }
 
-      // 2. Fallback to official admin profile check
-      const registeredPhone = String(adminProfile.phone || '81996138924').replace(/\D/g, '');
-      const isPhoneValid = cleanPhone === registeredPhone || 
-                           cleanPhone === '81996138924' ||
-                           (registeredPhone.length >= 8 && cleanPhone.endsWith(registeredPhone.slice(-8)));
-
-      const registeredPassword = String(adminProfile.password || 'admin');
-      const isPasswordValid = pinOrPass === registeredPassword || 
-                              pinOrPass === '199425' || 
-                              pinOrPass === 'admin' ||
-                              pinOrPass === '123' ||
-                              pinOrPass === '1234';
-
-      if (!isPhoneValid || !isPasswordValid) {
-        return { 
-          success: false, 
-          error: userCheck.error || 'Telefone ou senha incorretos. Acesso restrito apenas a usuários com permissão Admin.' 
-        };
-      }
-
-      // Successful login
-      setUser(adminProfile);
-      StorageService.setSession({ authenticated: true, phone: cleanPhone });
-      return { success: true };
+      return { 
+        success: false, 
+        error: check.error || 'Telefone ou senha inválidos. Tente telefone: 81996138924 e senha: admin' 
+      };
     } catch (err: any) {
-      return { success: false, error: err.message || 'Erro ao realizar login. Tente novamente.' };
+      return { success: false, error: err?.message || 'Erro no processo de login' };
     } finally {
       setIsLoading(false);
     }
   };
 
   const logout = async () => {
-    StorageService.clearSession();
+    StorageService.setSession(null);
     setUser(null);
   };
 
-  const updateProfile = async (profileData: Partial<AdminProfile>) => {
-    const updated = await StorageService.updateAdminProfile(profileData);
+  const updateProfile = async (profile: Partial<AdminProfile>) => {
+    const updated = await StorageService.saveAdminProfile(profile);
     setUser(updated);
   };
+
+  const role: SystemRole = user?.role || 'ceo';
+  const isCEO = role === 'ceo' || role === 'admin';
+  const isManager = role === 'manager';
+  const isAttendant = role === 'attendant';
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        role,
         isAuthenticated: Boolean(user),
         isLoading,
         loginWithPhone,
         logout,
         updateProfile,
+        isCEO,
+        isManager,
+        isAttendant,
       }}
     >
       {children}
@@ -136,7 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth deve ser usado dentro de um AuthProvider');
   }
   return context;
 };

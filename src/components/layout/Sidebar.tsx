@@ -9,12 +9,15 @@ import {
   LogOut, 
   ChevronLeft, 
   ChevronRight,
-  Bot,
-  Zap,
-  PhoneCall,
-  Calendar as CalendarIcon,
-  Scissors,
-  UserCog
+  Store,
+  QrCode,
+  ShoppingBag,
+  ExternalLink,
+  ShieldCheck,
+  Building2,
+  Calendar,
+  Layers,
+  Heart
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWhatsApp } from '../../contexts/WhatsAppContext';
@@ -43,38 +46,49 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navigationItems = [
     {
       id: 'dashboard',
-      label: 'Dashboard',
+      label: 'Dashboard Central',
       path: '/admin',
       icon: LayoutDashboard,
       badge: null,
     },
     {
-      id: 'flows',
-      label: 'Fluxos',
-      path: '/fluxos',
-      icon: GitFork,
-      badge: 'PRO',
-      badgeColor: 'bg-brand-500/20 text-brand-300 border-brand-500/30',
+      id: 'stores',
+      label: 'Rede de Lojas',
+      path: '/lojas',
+      icon: Building2,
+      badge: '3 LOJAS',
+      badgeColor: 'bg-pitoco-blue/20 text-pitoco-blue border-pitoco-blue/30',
     },
     {
       id: 'conversations',
-      label: 'Atendimento',
-      path: '/conversas',
+      label: 'Inbox Atendimento',
+      path: '/atendimento',
       icon: MessageSquareText,
+      badge: 'LIVE',
+      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+    },
+    {
+      id: 'flows',
+      label: 'Fluxos do Robô',
+      path: '/fluxos',
+      icon: GitFork,
       badge: null,
     },
     {
-      id: 'clients',
-      label: 'Clientes',
-      path: '/clientes',
+      id: 'whatsapp',
+      label: 'Conexão WhatsApp',
+      path: '/whatsapp',
+      icon: QrCode,
+      badge: isConnected ? 'ON' : 'OFF',
+      badgeColor: isConnected 
+        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' 
+        : 'bg-rose-500/20 text-rose-400 border-rose-500/30',
+    },
+    {
+      id: 'users',
+      label: 'Usuários & Papéis',
+      path: '/usuarios',
       icon: Users,
-      badge: null,
-    },
-    {
-      id: 'agenda',
-      label: 'Agendamentos',
-      path: '/agenda',
-      icon: CalendarIcon,
       badge: null,
     },
     {
@@ -82,16 +96,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'Logs & Auditoria',
       path: '/logs',
       icon: Sparkles,
-      badge: 'NOVO',
-      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-    },
-    {
-      id: 'users',
-      label: 'Usuários',
-      path: '/usuarios',
-      icon: UserCog,
-      badge: 'NOVO',
-      badgeColor: 'bg-brand-500/20 text-brand-300 border-brand-500/30',
+      badge: null,
     },
     {
       id: 'settings',
@@ -131,23 +136,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={() => handleItemClick('/')}
             className="flex items-center gap-3 cursor-pointer select-none group overflow-hidden"
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-emerald-400 p-0.5 shadow-glow-brand flex-shrink-0 group-hover:scale-105 transition-transform">
-              <div className="w-full h-full bg-dark-950 rounded-[10px] flex items-center justify-center">
-                <span className="font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-emerald-300 text-xl tracking-tighter">
-                  7
-                </span>
-              </div>
+            <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 p-0.5 bg-dark-900/60 shadow-glow-primary flex-shrink-0 group-hover:scale-105 transition-transform flex items-center justify-center">
+              <img src="/logo.png" alt="Logo Pitoco" className="w-full h-full object-contain" />
             </div>
 
             {!collapsed && (
               <div className="flex flex-col min-w-0 transition-opacity duration-200">
-                <span className="font-display font-bold text-base tracking-tight text-white flex items-center gap-1.5">
-                  7 Assistente
-                  <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">
-                    SaaS
-                  </span>
+                <span className="font-display font-bold text-sm tracking-tight text-white flex items-center gap-1.5">
+                  Pitoco de Gente
                 </span>
-                <span className="text-[11px] text-slate-400 truncate">WhatsApp Cloud API</span>
+                <span className="text-[10px] text-pitoco-blue font-semibold truncate">
+                  Bebê & Enxovais
+                </span>
               </div>
             )}
           </div>
@@ -163,10 +163,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Navigation Items */}
-        <div className="flex-1 py-5 px-3 space-y-1.5 overflow-y-auto">
+        <div className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
           {!collapsed && (
             <div className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-              Menu Principal
+              Menu Administrativo
             </div>
           )}
 
@@ -179,27 +179,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 key={item.id}
                 onClick={() => handleItemClick(item.path)}
                 className={cn(
-                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative',
+                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all relative group',
                   isActive
-                    ? 'bg-primary-600/15 text-primary-400 border border-primary-500/30 shadow-inner'
-                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
+                    ? 'bg-pitoco-blue/15 text-pitoco-blue border border-pitoco-blue/30 shadow-sm font-bold'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
                 )}
                 title={collapsed ? item.label : undefined}
               >
                 <Icon
                   className={cn(
-                    'w-5 h-5 flex-shrink-0 transition-transform group-hover:scale-110',
-                    isActive ? 'text-primary-400' : 'text-slate-400 group-hover:text-slate-200'
+                    'w-4 h-4 shrink-0 transition-transform duration-200',
+                    isActive ? 'text-pitoco-blue scale-110' : 'text-slate-400 group-hover:text-slate-200 group-hover:scale-105'
                   )}
                 />
 
                 {!collapsed && (
-                  <div className="flex-1 flex items-center justify-between min-w-0 text-left">
+                  <div className="flex items-center justify-between flex-1 min-w-0">
                     <span className="truncate">{item.label}</span>
                     {item.badge && (
                       <span
                         className={cn(
-                          'text-[10px] font-bold px-1.5 py-0.5 rounded-md border tracking-wider uppercase',
+                          'text-[9px] font-bold px-1.5 py-0.5 rounded-md border tracking-wider uppercase',
                           item.badgeColor
                         )}
                       >
@@ -211,7 +211,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 {/* Active Indicator Strip */}
                 {isActive && (
-                  <div className="absolute left-0 top-2 bottom-2 w-1 bg-primary-500 rounded-r-full" />
+                  <div className="absolute left-0 top-2 bottom-2 w-1 bg-pitoco-blue rounded-r-full" />
                 )}
               </button>
             );
@@ -227,90 +227,71 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-semibold transition-all group"
             >
               <span className="flex items-center gap-2">
-                <Scissors className="w-3.5 h-3.5 text-brand-400" />
-                <span>Fila de Clientes (Público)</span>
+                <ShoppingBag className="w-3.5 h-3.5 text-pitoco-blue" />
+                <span>Vitrine da Loja (Público)</span>
               </span>
-              <span className="text-[10px] text-slate-500 group-hover:text-brand-300">/</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onNavigate('/barbeiro')}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 text-brand-300 hover:text-brand-200 text-xs font-bold transition-all border border-brand-500/20 group"
-            >
-              <span className="flex items-center gap-2">
-                <Zap className="w-3.5 h-3.5 text-brand-400" />
-                <span>Painel do Barbeiro</span>
-              </span>
-              <span className="text-[10px] text-brand-400">/barbeiro</span>
+              <span className="text-[10px] text-slate-500 group-hover:text-pitoco-blue">/</span>
             </button>
           </div>
         )}
 
-        {/* System Status Banner (Expanded only) */}
+        {/* System Status Banner */}
         {!collapsed && (
           <div 
-            onClick={() => handleItemClick('/configuracoes')}
-            className={`p-3 mx-3 mb-3 rounded-xl border transition-all cursor-pointer space-y-2 ${
+            onClick={() => handleItemClick('/whatsapp')}
+            className={`p-3 mx-3 mb-3 rounded-xl border transition-all cursor-pointer space-y-1.5 ${
               isConnected
-                ? 'bg-gradient-to-b from-brand-950/40 to-dark-850 border-brand-500/30 hover:border-brand-500/60'
-                : 'bg-gradient-to-b from-rose-950/40 to-dark-850 border-rose-500/30 hover:border-rose-500/60 animate-pulse'
+                ? 'bg-gradient-to-b from-emerald-950/30 to-dark-850 border-emerald-500/30 hover:border-emerald-500/60'
+                : 'bg-gradient-to-b from-rose-950/30 to-dark-850 border-rose-500/30 hover:border-rose-500/60 animate-pulse'
             }`}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span
                   className={`w-2 h-2 rounded-full ${
-                    isConnected ? 'bg-brand-400 animate-pulse' : 'bg-rose-500'
+                    isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'
                   }`}
                 />
                 <span className="text-xs font-semibold text-white">
-                  {isConnected ? 'WhatsApp Conectado' : 'WhatsApp Desconectado'}
+                  {isConnected ? 'WhatsApp Ativo' : 'WhatsApp Desconectado'}
                 </span>
               </div>
-              <span
-                className={`text-[10px] font-mono ${
-                  isConnected ? 'text-brand-400' : 'text-rose-400 font-bold'
-                }`}
-              >
-                {isConnected ? 'Sessão Ativa' : 'Escanear QR'}
+              <span className="text-[10px] text-pitoco-blue font-mono font-bold">
+                {isConnected ? 'Baileys OK' : 'Ler QR'}
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 leading-tight">
-              {isConnected
-                ? `Aparelho emparelhado (${session.phone ? formatPhone(session.phone) : 'Pronto'}). Automações ativas.`
-                : 'Clique para escanear o QR Code e habilitar envio de mensagens e fluxos.'}
+            <p className="text-[10px] text-slate-400 truncate">
+              {isConnected ? session.phone : 'Discloud Microservice'}
             </p>
           </div>
         )}
 
-        {/* User Profile & Logout */}
-        <div className="p-3 border-t border-white/5 bg-dark-950/50">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-dark-850 border border-brand-500/30 flex items-center justify-center text-brand-400 font-bold flex-shrink-0 text-sm shadow-sm">
-                7A
-              </div>
-              {!collapsed && (
-                <div className="flex flex-col min-w-0">
-                  <span className="text-xs font-semibold text-slate-200 truncate">
-                    {user?.name || 'Administrador'}
-                  </span>
-                  <span className="text-[10px] text-slate-500 truncate font-mono">
-                    {user?.phone ? formatPhone(user.phone) : 'Admin Principal'}
-                  </span>
-                </div>
-              )}
+        {/* User Footer */}
+        <div className="p-3 border-t border-white/5 flex items-center justify-between">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-pitoco-blue to-pitoco-pink flex items-center justify-center text-slate-950 font-bold text-xs">
+              {(user?.name || 'M')[0]}
             </div>
-
+            {!collapsed && (
+              <div className="truncate">
+                <span className="text-xs font-bold text-white block truncate">
+                  {user?.name || 'Malaca CEO'}
+                </span>
+                <span className="text-[10px] text-slate-400 block truncate">
+                  {user?.role === 'ceo' ? 'Diretor Geral' : 'Gestão'}
+                </span>
+              </div>
+            )}
+          </div>
+          {!collapsed && (
             <button
-              onClick={() => logout()}
-              className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition-colors"
-              title="Sair da Plataforma"
+              onClick={logout}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+              title="Sair da Conta"
             >
               <LogOut className="w-4 h-4" />
             </button>
-          </div>
+          )}
         </div>
       </aside>
     </>

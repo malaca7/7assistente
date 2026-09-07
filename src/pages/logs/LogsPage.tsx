@@ -89,7 +89,7 @@ export const LogsPage: React.FC = () => {
     const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(logs, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', `auditoria_talvane_logs_${new Date().toISOString().split('T')[0]}.json`);
+    downloadAnchor.setAttribute('download', `auditoria_pitoco_logs_${new Date().toISOString().split('T')[0]}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();

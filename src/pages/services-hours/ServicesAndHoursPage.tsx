@@ -66,8 +66,8 @@ export const ServicesAndHoursPage: React.FC<ServicesAndHoursPageProps> = ({ onNa
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
   const [serviceName, setServiceName] = useState('');
   const [serviceDuration, setServiceDuration] = useState(30);
-  const [servicePrice, setServicePrice] = useState<number | ''>(35);
-  const [serviceCategory, setServiceCategory] = useState('Cabelo');
+  const [servicePrice, setServicePrice] = useState<number | ''>(0);
+  const [serviceCategory, setServiceCategory] = useState('Consultoria');
   const [serviceDescription, setServiceDescription] = useState('');
   const [serviceActive, setServiceActive] = useState(true);
 
@@ -135,8 +135,8 @@ export const ServicesAndHoursPage: React.FC<ServicesAndHoursPageProps> = ({ onNa
     setEditingServiceId(null);
     setServiceName('');
     setServiceDuration(30);
-    setServicePrice(35);
-    setServiceCategory('Cabelo');
+    setServicePrice(0);
+    setServiceCategory('Consultoria');
     setServiceDescription('');
     setServiceActive(true);
     setIsServiceModalOpen(true);
@@ -148,7 +148,7 @@ export const ServicesAndHoursPage: React.FC<ServicesAndHoursPageProps> = ({ onNa
     setServiceName(srv.name);
     setServiceDuration(srv.duration_minutes || 30);
     setServicePrice(srv.price !== undefined ? srv.price : 0);
-    setServiceCategory(srv.category || 'Cabelo');
+    setServiceCategory(srv.category || 'Consultoria');
     setServiceDescription(srv.description || '');
     setServiceActive(srv.active !== false);
     setIsServiceModalOpen(true);
@@ -773,7 +773,7 @@ export const ServicesAndHoursPage: React.FC<ServicesAndHoursPageProps> = ({ onNa
             <label className="text-xs font-semibold text-slate-300 block mb-1">Nome do Serviço *</label>
             <Input
               type="text"
-              placeholder="Ex: Corte Tradicional, Barboterapia, Consulta..."
+              placeholder="Ex: Consultoria VIP de Enxoval, Mala Maternidade, Guia de Medidas..."
               value={serviceName}
               onChange={(e) => setServiceName(e.target.value)}
               required
@@ -787,7 +787,7 @@ export const ServicesAndHoursPage: React.FC<ServicesAndHoursPageProps> = ({ onNa
                 type="number"
                 step="0.50"
                 min="0"
-                placeholder="Ex: 35.00"
+                placeholder="Ex: 0.00"
                 value={servicePrice}
                 onChange={(e) => setServicePrice(e.target.value === '' ? '' : Number(e.target.value))}
               />
@@ -815,7 +815,7 @@ export const ServicesAndHoursPage: React.FC<ServicesAndHoursPageProps> = ({ onNa
             <label className="text-xs font-semibold text-slate-300 block mb-1">Categoria / Tag</label>
             <Input
               type="text"
-              placeholder="Ex: Cabelo, Barba, Estética, Consulta, Combo..."
+              placeholder="Ex: Consultoria, Enxoval, Maternidade, Coleções..."
               value={serviceCategory}
               onChange={(e) => setServiceCategory(e.target.value)}
             />

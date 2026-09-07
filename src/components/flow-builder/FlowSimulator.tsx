@@ -114,8 +114,8 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
       nome_cliente: isNew ? '' : clientName,
       cliente_nome: isNew ? '' : clientName,
       nome: isNew ? '' : clientName,
-      empresa: botProfile?.company_name || 'Talvane Barber',
-      bot_nome: botProfile?.name || 'Talvane Barber Bot',
+      empresa: botProfile?.company_name || 'Pitoco de Gente',
+      bot_nome: botProfile?.name || 'Pitoco Bot',
     };
 
     setVariables(initialVars);
@@ -166,11 +166,11 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
     const activeVars = { ...variables, ...(currentVars || {}) };
     const p = currentProfile || botProfile;
     const currentServices = agendaServices.length > 0 ? agendaServices : [
-      { id: 'srv-1', name: 'Corte Cabelo', duration_minutes: 45, price: 30 },
-      { id: 'srv-2', name: 'Barba', duration_minutes: 20, price: 20 },
-      { id: 'srv-3', name: 'Corte Cabelo + Barba (Promoção)', duration_minutes: 50, price: 45 },
-      { id: 'srv-4', name: 'Sobrancelha', duration_minutes: 12, price: 10 },
-      { id: 'srv-5', name: 'Corte Cabelo + Barba + Sobrancelha (Promoção)', duration_minutes: 10, price: 60 },
+      { id: 'srv-1', name: 'Body Suedine 100% Algodão', duration_minutes: 30, price: 49.9 },
+      { id: 'srv-2', name: 'Macacão Zíper Duplo Confort', duration_minutes: 30, price: 89.9 },
+      { id: 'srv-3', name: 'Saída Maternidade Tricot Luxo', duration_minutes: 30, price: 199.9 },
+      { id: 'srv-4', name: 'Kit de Berço 9 Peças 200 Fios', duration_minutes: 30, price: 389.0 },
+      { id: 'srv-5', name: 'Consultoria VIP de Enxoval', duration_minutes: 45, price: 0.0 },
     ];
 
     let isFirstStep = executeStartNode;
@@ -432,7 +432,7 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
       } 
       // 11. Time Slot Selection Node
       else if (type === 'select_time_slot' || type === 'schedule_contact') {
-        const srv = activeVars.servico_selecionado || 'Corte de Cabelo';
+        const srv = activeVars.servico_selecionado || 'Consultoria VIP de Enxoval';
         const dateStr = activeVars.data_agendamento || 'Hoje';
         const intro = substituteVariables(config.introMessage || 'Estes são os horários livres para agendamento. Toque no seu horário preferido:', activeVars, p || undefined);
         setMessages((prev) => [
@@ -456,7 +456,7 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
       // 12. Confirm Booking Node
       else if (type === 'confirm_booking') {
         const clientName = activeVars.nome_cliente || activeVars.whatsapp_pushname || 'Cliente';
-        const srvName = activeVars.servico_selecionado || 'Corte de Cabelo';
+        const srvName = activeVars.servico_selecionado || 'Consultoria VIP de Enxoval';
         const dateVal = activeVars.data_agendamento || new Date().toLocaleDateString('pt-BR');
         const timeVal = activeVars.horario_agendamento || '09:00';
         const defaultConfirm = `✅ *Agendamento Confirmado com Sucesso!*\n\n• *Cliente:* ${clientName}\n• *Serviço:* ${srvName}\n• *Data:* ${dateVal}\n• *Horário:* ${timeVal}\n\nSeu horário foi reservado em nossa Agenda com sucesso!`;

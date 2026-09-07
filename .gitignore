@@ -1,4 +1,11 @@
 node_modules
 .env
+.env*.local
+discloud/.env
 whatsapp_auth
 server/whatsapp_auth
+discloud/whatsapp_auth
+dist
+.next
+7assistente.zip
+pitoco.zip

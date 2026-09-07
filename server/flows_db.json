@@ -13,7 +13,7 @@
     },
     {
       "id": "flow-1788452126641",
-      "name": "Atendimento Talvane Barber Shop (Agendamento)",
+      "name": "Atendimento Pitoco de Gente (Agendamento)",
       "description": "Fluxo de atendimento automatizado",
       "status": "published",
       "version": 1,
@@ -495,7 +495,7 @@
           "description": "Envia uma mensagem com todos os serviços, descrições e valores cadastrados (Apenas Leitura).",
           "isConfigured": true,
           "config": {
-            "headerText": "💈 *Catálogo de Serviços & Preços*",
+            "headerText": ""🍼 *Catálogo Pitoco de Gente*\n\n*1️⃣* *Body Suedine 100% Algodão*\n   💰 R$ 49,90 • 📏 RN ao 3 anos\n\n*2️⃣* *Macacão Zíper Duplo Confort*\n   💰 R$ 89,90 • 📏 RN ao GG\n\n*3️⃣* *Saída Maternidade Tricot Luxo*\n   💰 R$ 199,90 • 📏 RN e P\n\n*4️⃣* *Kit de Berço 9 Peças 200 Fios*\n   💰 R$ 389,00 • Padrão Americano\n\n*5️⃣* *Consultoria VIP de Enxoval*\n   💰 Gratuita • ⏱️ 45 min\n\n_Digite o número do item desejado._",
             "footerText": "Consulte os serviços disponíveis acima."
           }
         },
@@ -859,21 +859,21 @@
     ]
   },
   "botProfile": {
-    "name": "Talvane Barber Bot",
-    "company_name": "Talvane Barber Shop",
-    "gender": "male",
-    "tone": "Amigável e Profissional",
+    "name": "Pitoco Bot",
+    "company_name": "Pitoco de Gente",
+    "gender": "neutral",
+    "tone": "Carinhoso, Acolhedor e Profissional",
     "support_phone": "81996138924",
     "business_hours": "08:00 às 19:00",
-    "welcome_message": "Olá! Seja bem-vindo à Talvane Barber. Como podemos te ajudar hoje?",
-    "avatar_url": "",
-    "company_segment": "Barbearia e Estética Masculina",
-    "support_email": "contato@talvanebarber.com.br",
-    "website_url": "https://talvane.malaca.com.br",
+    "welcome_message": "Olá! Seja bem-vindo(a) à Pitoco de Gente - Roupas de Bebê e Enxovais! Como podemos te ajudar hoje? 💕",
+    "avatar_url": "https://pitoco.malaca.com.br/logo.png",
+    "company_segment": "Roupas de Bebê, Infantil e Enxovais",
+    "support_email": "contato@pitoco.malaca.com.br",
+    "website_url": "https://pitoco.malaca.com.br",
     "id": "default",
-    "updated_at": "2026-09-03T16:56:59.719Z",
+    "updated_at": "2026-09-04T03:52:46.243Z",
     "handoff_message": "Vou transferir seu atendimento para um de nossos profissionais. Por favor, aguarde um instante!",
-    "company_address": "",
+    "company_address": "Rua Principal, 100 - Centro",
     "pix_key_type": "telefone",
     "pix_key": "81996138924",
     "pix_owner": "Rogerio Malaquias",
@@ -889,19 +889,28 @@
     "whatsapp_access_token_encrypted": "EAAO...7assistente_token_secret_vault",
     "webhook_verify_token": "7assistente_meta_webhook_token_2026",
     "bot_profile": {
-      "name": "Talvane Barber Bot",
-      "company_name": "Talvane Barber Shop",
+      "name": "Joaquim",
+      "company_name": "Pitoco de Gente",
       "gender": "male",
       "tone": "Amigável e Profissional",
-      "avatar_url": "",
-      "company_segment": "Barbearia e Estética Masculina",
-      "support_email": "contato@talvanebarber.com.br",
+      "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80",
+      "company_segment": "Roupas de Bebê, Infantil e Enxovais",
+      "support_email": "contato@pitoco.malaca.com.br",
       "support_phone": "81996138924",
       "business_hours": "08:00 às 19:00",
-      "website_url": "https://talvane.malaca.com.br",
-      "welcome_message": "Olá! Seja bem-vindo à Talvane Barber. Como podemos te ajudar hoje?",
+      "website_url": "https://pitoco.malaca.com.br",
+      "welcome_message": "Olá! Seja bem-vindo à Pitoco de Gente. Como podemos te ajudar hoje?",
       "id": "default",
-      "updated_at": "2026-09-03T16:56:59.719Z"
+      "updated_at": "2026-09-04T03:52:46.243Z",
+      "handoff_message": "Vou transferir seu atendimento para um de nossos profissionais. Por favor, aguarde um instante!",
+      "company_address": "Rua Principal, 100 - Centro",
+      "pix_key_type": "telefone",
+      "pix_key": "81996138924",
+      "pix_owner": "Rogerio Malaquias",
+      "notify_new_bookings": true,
+      "notify_phone": "81996138924",
+      "play_audio_alerts": true,
+      "custom_variables": []
     },
     "whatsapp_session": {
       "status": "disconnected",
@@ -909,8 +918,8 @@
       "name": ""
     },
     "created_at": "2026-09-03T16:43:07.297Z",
-    "updated_at": "2026-09-03T18:19:57.748Z",
-    "backend_url": "https://talvane.discloud.app",
+    "updated_at": "2026-09-04T03:52:46.645Z",
+    "backend_url": "https://pitoco.discloud.app",
     "custom_variables": []
   },
   "sessions": {
@@ -957,7 +966,7 @@
         "nome_liente": "Carlos",
         "opcao_selecionada": "2. Consultar Preços",
         "botao_id": "btn_2",
-        "catalogo_servicos_texto": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Sobrancelha*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Corte Cabelo + Barba + Sobrancelha (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._"
+        "catalogo_servicos_texto": ""🍼 *Catálogo Pitoco de Gente*\n\n*1️⃣* *Body Suedine 100% Algodão*\n   💰 R$ 49,90 • 📏 RN ao 3 anos\n\n*2️⃣* *Macacão Zíper Duplo Confort*\n   💰 R$ 89,90 • 📏 RN ao GG\n\n*3️⃣* *Saída Maternidade Tricot Luxo*\n   💰 R$ 199,90 • 📏 RN e P\n\n*4️⃣* *Kit de Berço 9 Peças 200 Fios*\n   💰 R$ 389,00 • Padrão Americano\n\n*5️⃣* *Consultoria VIP de Enxoval*\n   💰 Gratuita • ⏱️ 45 min\n\n_Digite o número do item desejado._"
       },
       "waitingForVar": null,
       "activeButtons": [
@@ -996,8 +1005,8 @@
         "nome_liente": "Carlos Silva",
         "opcao_selecionada": "2. Consultar Preços",
         "botao_id": "btn_2",
-        "catalogo_servicos_texto": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Sobrancelha*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Corte Cabelo + Barba + Sobrancelha (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._",
-        "catalogo_servicos": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Sobrancelha*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Corte Cabelo + Barba + Sobrancelha (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._"
+        "catalogo_servicos_texto": ""🍼 *Catálogo Pitoco de Gente*\n\n*1️⃣* *Body Suedine 100% Algodão*\n   💰 R$ 49,90 • 📏 RN ao 3 anos\n\n*2️⃣* *Macacão Zíper Duplo Confort*\n   💰 R$ 89,90 • 📏 RN ao GG\n\n*3️⃣* *Saída Maternidade Tricot Luxo*\n   💰 R$ 199,90 • 📏 RN e P\n\n*4️⃣* *Kit de Berço 9 Peças 200 Fios*\n   💰 R$ 389,00 • Padrão Americano\n\n*5️⃣* *Consultoria VIP de Enxoval*\n   💰 Gratuita • ⏱️ 45 min\n\n_Digite o número do item desejado._",
+        "catalogo_servicos": ""🍼 *Catálogo Pitoco de Gente*\n\n*1️⃣* *Body Suedine 100% Algodão*\n   💰 R$ 49,90 • 📏 RN ao 3 anos\n\n*2️⃣* *Macacão Zíper Duplo Confort*\n   💰 R$ 89,90 • 📏 RN ao GG\n\n*3️⃣* *Saída Maternidade Tricot Luxo*\n   💰 R$ 199,90 • 📏 RN e P\n\n*4️⃣* *Kit de Berço 9 Peças 200 Fios*\n   💰 R$ 389,00 • Padrão Americano\n\n*5️⃣* *Consultoria VIP de Enxoval*\n   💰 Gratuita • ⏱️ 45 min\n\n_Digite o número do item desejado._"
       },
       "waitingForVar": null,
       "activeButtons": [
@@ -1021,7 +1030,7 @@
       "id": "apt-1788468016809",
       "contact_name": "Julio",
       "contact_phone": "81999999999",
-      "service_name": "Corte Cabelo + Barba (Promoção)",
+      "service_name": "Saída Maternidade Tricot Luxo",
       "duration_minutes": 50,
       "price": 45,
       "appointment_date": "2026-09-03",
@@ -1035,7 +1044,7 @@
       "id": "apt-1788469977786",
       "contact_name": "Leo",
       "contact_phone": "81900000003",
-      "service_name": "Corte Cabelo + Barba (Promoção)",
+      "service_name": "Saída Maternidade Tricot Luxo",
       "duration_minutes": 50,
       "end_time": "20:20",
       "slots_count": 4,
@@ -1401,7 +1410,7 @@
         "conversation_id": "conv-558196138924",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Conheça nossos serviços e valores:\n\n*1.* 🏷️ *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min",
+        "content": "Conheça nossos serviços e valores:\n\n*1.* 🏷️ *Body Suedine 100% Algodão*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Macacão Zíper Duplo*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Saída Maternidade Tricot Luxo*\n   💰 R$ 45,00 • ⏱️ 50 min",
         "status": "delivered",
         "created_at": "2026-08-30T15:14:46.853Z"
       },
@@ -1428,7 +1437,7 @@
         "conversation_id": "conv-558196138924",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Conheça nossos serviços e valores:\n\n*1.* 🏷️ *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min",
+        "content": "Conheça nossos serviços e valores:\n\n*1.* 🏷️ *Body Suedine 100% Algodão*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Macacão Zíper Duplo*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Saída Maternidade Tricot Luxo*\n   💰 R$ 45,00 • ⏱️ 50 min",
         "status": "delivered",
         "created_at": "2026-08-30T15:25:38.364Z"
       },
@@ -1437,7 +1446,7 @@
         "conversation_id": "conv-558196138924",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Conheça nossos serviços e valores:\n\n*1.* 🏷️ *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min",
+        "content": "Conheça nossos serviços e valores:\n\n*1.* 🏷️ *Body Suedine 100% Algodão*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Macacão Zíper Duplo*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Saída Maternidade Tricot Luxo*\n   💰 R$ 45,00 • ⏱️ 50 min",
         "status": "delivered",
         "created_at": "2026-08-30T15:25:43.470Z"
       },
@@ -1446,7 +1455,7 @@
         "conversation_id": "conv-558196138924",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Conheça nossos serviços e valores:\n\n*1.* 🏷️ *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min",
+        "content": "Conheça nossos serviços e valores:\n\n*1.* 🏷️ *Body Suedine 100% Algodão*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Macacão Zíper Duplo*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Saída Maternidade Tricot Luxo*\n   💰 R$ 45,00 • ⏱️ 50 min",
         "status": "delivered",
         "created_at": "2026-08-30T15:25:54.102Z"
       },
@@ -1464,7 +1473,7 @@
         "conversation_id": "conv-558196138924",
         "direction": "outbound",
         "message_type": "text",
-        "content": "*Rogerio*, qual serviço você deseja?\n\n*1.* 🏷️ *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min",
+        "content": "*Rogerio*, qual serviço você deseja?\n\n*1.* 🏷️ *Body Suedine 100% Algodão*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Macacão Zíper Duplo*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Saída Maternidade Tricot Luxo*\n   💰 R$ 45,00 • ⏱️ 50 min",
         "status": "delivered",
         "created_at": "2026-08-30T15:34:58.856Z"
       },
@@ -1601,7 +1610,7 @@
         "conversation_id": "conv-5581999991234",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Olá, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber*! e vou lhe auxiliar para ter um melhor atendimento",
+        "content": "Olá, me chamo *Pitoco de Gente Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
         "status": "delivered",
         "created_at": "2026-09-03T17:17:27.494Z"
       },
@@ -1628,7 +1637,7 @@
         "conversation_id": "conv-5581999991234",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Olá Carlos Silva, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber*! e vou lhe auxiliar para ter um melhor atendimento",
+        "content": "Olá Carlos Silva, me chamo *Pitoco de Gente Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
         "status": "delivered",
         "created_at": "2026-09-03T17:17:28.900Z"
       },
@@ -1648,7 +1657,7 @@
         "conversation_id": "conv-5581999995555",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Olá, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber*! e vou lhe auxiliar para ter um melhor atendimento",
+        "content": "Olá, me chamo *Pitoco de Gente Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
         "status": "delivered",
         "created_at": "2026-09-03T17:17:47.612Z"
       },
@@ -1666,7 +1675,7 @@
         "conversation_id": "conv-5581999995555",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Olá, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber*! e vou lhe auxiliar para ter um melhor atendimento",
+        "content": "Olá, me chamo *Pitoco de Gente Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
         "status": "delivered",
         "created_at": "2026-09-03T17:17:49.123Z"
       },
@@ -1686,7 +1695,7 @@
         "conversation_id": "conv-5581988880001",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Olá, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber*! e vou lhe auxiliar para ter um melhor atendimento",
+        "content": "Olá, me chamo *Pitoco de Gente Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
         "status": "delivered",
         "created_at": "2026-09-03T17:20:52.144Z"
       },
@@ -1713,7 +1722,7 @@
         "conversation_id": "conv-5581988880001",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Olá Me chamo Matheus Silva, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber*! e vou lhe auxiliar para ter um melhor atendimento",
+        "content": "Olá Me chamo Matheus Silva, me chamo *Pitoco de Gente Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
         "status": "delivered",
         "created_at": "2026-09-03T17:20:53.872Z"
       },
@@ -1731,7 +1740,7 @@
         "conversation_id": "conv-5581988880001",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Olá Matheus Silva, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber*! e vou lhe auxiliar para ter um melhor atendimento",
+        "content": "Olá Matheus Silva, me chamo *Pitoco de Gente Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
         "status": "delivered",
         "created_at": "2026-09-03T17:21:42.320Z"
       },
@@ -1758,7 +1767,7 @@
         "conversation_id": "conv-5581988880001",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Olá Matheus Silva, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber*! e vou lhe auxiliar para ter um melhor atendimento",
+        "content": "Olá Matheus Silva, me chamo *Pitoco de Gente Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
         "status": "delivered",
         "created_at": "2026-09-03T17:21:43.361Z"
       },
@@ -1805,7 +1814,7 @@
         "conversation_id": "conv-5511999999999",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Sou  *Talvane Barber Bot* assistente virtual da  *Talvane Barber Shop*...",
+        "content": "Sou  *Pitoco de Gente Bot* assistente virtual da  *Pitoco de Gente*...",
         "status": "delivered",
         "created_at": "2026-09-04T02:25:23.401Z"
       },
@@ -1852,7 +1861,7 @@
         "conversation_id": "conv-5511888888888",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Sou  *Talvane Barber Bot* assistente virtual da  *Talvane Barber Shop*...",
+        "content": "Sou  *Pitoco de Gente Bot* assistente virtual da  *Pitoco de Gente*...",
         "status": "delivered",
         "created_at": "2026-09-04T02:25:46.557Z"
       },
@@ -1879,7 +1888,7 @@
         "conversation_id": "conv-5511888888888",
         "direction": "outbound",
         "message_type": "text",
-        "content": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Sobrancelha*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Corte Cabelo + Barba + Sobrancelha (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._",
+        "content": ""🍼 *Catálogo Pitoco de Gente*\n\n*1️⃣* *Body Suedine 100% Algodão*\n   💰 R$ 49,90 • 📏 RN ao 3 anos\n\n*2️⃣* *Macacão Zíper Duplo Confort*\n   💰 R$ 89,90 • 📏 RN ao GG\n\n*3️⃣* *Saída Maternidade Tricot Luxo*\n   💰 R$ 199,90 • 📏 RN e P\n\n*4️⃣* *Kit de Berço 9 Peças 200 Fios*\n   💰 R$ 389,00 • Padrão Americano\n\n*5️⃣* *Consultoria VIP de Enxoval*\n   💰 Gratuita • ⏱️ 45 min\n\n_Digite o número do item desejado._",
         "status": "delivered",
         "created_at": "2026-09-04T02:25:52.191Z"
       },
@@ -1888,7 +1897,7 @@
         "conversation_id": "conv-5511888888888",
         "direction": "outbound",
         "message_type": "text",
-        "content": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Sobrancelha*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Corte Cabelo + Barba + Sobrancelha (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._",
+        "content": ""🍼 *Catálogo Pitoco de Gente*\n\n*1️⃣* *Body Suedine 100% Algodão*\n   💰 R$ 49,90 • 📏 RN ao 3 anos\n\n*2️⃣* *Macacão Zíper Duplo Confort*\n   💰 R$ 89,90 • 📏 RN ao GG\n\n*3️⃣* *Saída Maternidade Tricot Luxo*\n   💰 R$ 199,90 • 📏 RN e P\n\n*4️⃣* *Kit de Berço 9 Peças 200 Fios*\n   💰 R$ 389,00 • Padrão Americano\n\n*5️⃣* *Consultoria VIP de Enxoval*\n   💰 Gratuita • ⏱️ 45 min\n\n_Digite o número do item desejado._",
         "status": "delivered",
         "created_at": "2026-09-04T02:25:52.202Z"
       },
@@ -1935,7 +1944,7 @@
         "conversation_id": "conv-5511777777777",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Sou  *Talvane Barber Bot* assistente virtual da  *Talvane Barber Shop*...",
+        "content": "Sou  *Pitoco de Gente Bot* assistente virtual da  *Pitoco de Gente*...",
         "status": "delivered",
         "created_at": "2026-09-04T02:33:37.189Z"
       },
@@ -1962,7 +1971,7 @@
         "conversation_id": "conv-5511777777777",
         "direction": "outbound",
         "message_type": "text",
-        "content": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Sobrancelha*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Corte Cabelo + Barba + Sobrancelha (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._",
+        "content": ""🍼 *Catálogo Pitoco de Gente*\n\n*1️⃣* *Body Suedine 100% Algodão*\n   💰 R$ 49,90 • 📏 RN ao 3 anos\n\n*2️⃣* *Macacão Zíper Duplo Confort*\n   💰 R$ 89,90 • 📏 RN ao GG\n\n*3️⃣* *Saída Maternidade Tricot Luxo*\n   💰 R$ 199,90 • 📏 RN e P\n\n*4️⃣* *Kit de Berço 9 Peças 200 Fios*\n   💰 R$ 389,00 • Padrão Americano\n\n*5️⃣* *Consultoria VIP de Enxoval*\n   💰 Gratuita • ⏱️ 45 min\n\n_Digite o número do item desejado._",
         "status": "delivered",
         "created_at": "2026-09-04T02:33:42.869Z"
       },
@@ -2015,19 +2024,19 @@
     "services": [
       {
         "id": "srv-1788102781953",
-        "name": "Corte Cabelo",
+        "name": "Body Suedine 100% Algodão",
         "duration_minutes": 45,
         "price": 30
       },
       {
         "id": "srv-1788102793887",
-        "name": "Barba",
+        "name": "Macacão Zíper Duplo",
         "duration_minutes": 20,
         "price": 20
       },
       {
         "id": "srv-1788102815219",
-        "name": "Corte Cabelo + Barba (Promoção)",
+        "name": "Saída Maternidade Tricot Luxo",
         "duration_minutes": 50,
         "price": 45
       },
@@ -2036,15 +2045,15 @@
         "name": "Sobrancelha",
         "duration_minutes": 12,
         "price": 10,
-        "category": "Cabelo",
+        "category": "Enxoval",
         "is_active": true
       },
       {
         "id": "srv-1788481506751",
-        "name": "Corte Cabelo + Barba + Sobrancelha (Promoção)",
+        "name": "Kit de Berço Completo 9 Peças",
         "duration_minutes": 10,
         "price": 60,
-        "category": "Cabelo",
+        "category": "Enxoval",
         "is_active": true
       }
     ],

@@ -69,9 +69,9 @@ const AVATAR_PRESETS = [
     url: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&auto=format&fit=crop&q=80',
   },
   {
-    gender: 'male',
-    name: 'Talvane (Masculino)',
-    url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+    gender: 'female',
+    name: 'Sofia (Consultora VIP)',
+    url: '/logo.png',
   },
   {
     gender: 'male',
@@ -110,7 +110,7 @@ export const SettingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('whatsapp_qr');
   const [isSaving, setIsSaving] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [customServerInput, setCustomServerInput] = useState(backendUrl || 'https://talvane.discloud.app');
+  const [customServerInput, setCustomServerInput] = useState(backendUrl || 'https://pitoco.discloud.app');
   const [isTestingServer, setIsTestingServer] = useState(false);
 
   // Attendants Management State
@@ -143,7 +143,7 @@ export const SettingsPage: React.FC = () => {
   const [companyAddress, setCompanyAddress] = useState('Rua Principal, 100 - Centro');
   const [pixKeyType, setPixKeyType] = useState('telefone');
   const [pixKey, setPixKey] = useState('81996138924');
-  const [pixOwner, setPixOwner] = useState('Talvane Barber');
+  const [pixOwner, setPixOwner] = useState('Pitoco de Gente Artigos Infantis LTDA');
 
   // Notifications State
   const [notifyNewBookings, setNotifyNewBookings] = useState(true);
@@ -151,8 +151,8 @@ export const SettingsPage: React.FC = () => {
   const [playAudioAlerts, setPlayAudioAlerts] = useState(true);
 
   // Database Management State
-  const [supabaseUrl, setSupabaseUrl] = useState('https://nskflvulclgwqqasdntq.supabase.co');
-  const [supabaseKey, setSupabaseKey] = useState('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5za2ZsdnVsY2xnd3FxYXNkbnRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwMTQ0NjQsImV4cCI6MjEwMzU5MDQ2NH0.mL82cgH4MadNi_sTeKKgYmRAuhmp7HqImuAs9hTrTZI');
+  const [supabaseUrl, setSupabaseUrl] = useState('https://cbeiguyvoepbcafmxduy.supabase.co');
+  const [supabaseKey, setSupabaseKey] = useState('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiZWlndXl2b2VwYmNhZm14ZHV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzU5NzcsImV4cCI6MjEwNDMxMTk3N30.1XpWL6ns9NlPh4sQ3M8-OJTnKCPH-jf89iFspmBrKxM');
   const [dbStats, setDbStats] = useState({
     contacts_count: 0,
     appointments_count: 0,
@@ -180,7 +180,7 @@ export const SettingsPage: React.FC = () => {
 
   // Load Database Stats
   const loadDbStats = useCallback(async () => {
-    const targetUrl = backendUrl || 'https://talvane.discloud.app';
+    const targetUrl = backendUrl || 'https://pitoco.discloud.app';
     try {
       const res = await fetch(`${targetUrl}/api/whatsapp/database/stats`, { signal: AbortSignal.timeout(4000) });
       if (res.ok) {
@@ -450,7 +450,7 @@ export const SettingsPage: React.FC = () => {
   };
 
   const handleDownloadBackup = () => {
-    const targetUrl = `${backendUrl || 'https://talvane.discloud.app'}/api/whatsapp/database/dump`;
+    const targetUrl = `${backendUrl || 'https://pitoco.discloud.app'}/api/whatsapp/database/dump`;
     window.open(targetUrl, '_blank');
     success('Download de Backup Iniciado', 'O arquivo JSON com todo o banco de dados está sendo baixado.');
   };
@@ -537,8 +537,8 @@ export const SettingsPage: React.FC = () => {
       await StorageService.updateSettings({ admin_password: newAdminPassword });
       await StorageService.updateAdminProfile({ password: newAdminPassword });
       await StorageService.saveSystemUser({
-        id: 'user-talvane',
-        name: 'Talvane (Administrador & Barbeiro)',
+        id: 'user-ceo',
+        name: 'Malaca CEO (Diretoria Pitoco)',
         phone: '81996138924',
         password: newAdminPassword,
         pin: '1234',
@@ -714,7 +714,7 @@ export const SettingsPage: React.FC = () => {
                 <Input
                   value={customServerInput}
                   onChange={(e) => setCustomServerInput(e.target.value)}
-                  placeholder="https://talvane.discloud.app"
+                  placeholder="https://pitoco.discloud.app"
                   className="font-mono text-xs flex-1"
                 />
                 <div className="flex items-center gap-2">
@@ -943,17 +943,17 @@ export const SettingsPage: React.FC = () => {
                 <Input
                   value={botName}
                   onChange={(e) => setBotName(e.target.value)}
-                  placeholder="Ex: Talvane Barber Bot"
+                  placeholder="Ex: Pitoco Bot"
                   required
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">Nome da Empresa / Barbearia *</label>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">Nome da Empresa / Loja *</label>
                 <Input
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
-                  placeholder="Ex: Talvane Barber"
+                  placeholder="Ex: Pitoco de Gente"
                   required
                 />
               </div>
@@ -1097,7 +1097,7 @@ export const SettingsPage: React.FC = () => {
                 type="email"
                 value={supportEmail}
                 onChange={(e) => setSupportEmail(e.target.value)}
-                placeholder="contato@talvanebarber.com.br"
+                placeholder="contato@pitocodegente.com.br"
               />
             </div>
           </div>
@@ -1108,7 +1108,7 @@ export const SettingsPage: React.FC = () => {
               <Input
                 value={websiteUrl}
                 onChange={(e) => setWebsiteUrl(e.target.value)}
-                placeholder="https://talvane.malaca.com.br"
+                placeholder="https://pitoco.malaca.com.br"
               />
             </div>
 
@@ -1158,7 +1158,7 @@ export const SettingsPage: React.FC = () => {
                 <Input
                   value={pixOwner}
                   onChange={(e) => setPixOwner(e.target.value)}
-                  placeholder="Talvane Barber Ltda"
+                  placeholder="Pitoco de Gente Artigos Infantis LTDA"
                 />
               </div>
             </div>
@@ -1472,7 +1472,7 @@ export const SettingsPage: React.FC = () => {
                 { code: '{{nome_cliente}}', desc: 'Nome informado pelo cliente ou contato' },
                 { code: '{{telefone_cliente}}', desc: 'Número WhatsApp de quem está falando' },
                 { code: '{{bot_nome}}', desc: 'Nome do seu assistente configurado' },
-                { code: '{{empresa}}', desc: 'Nome da sua empresa / barbearia' },
+                { code: '{{empresa}}', desc: 'Nome da sua loja / Pitoco de Gente' },
                 { code: '{{horario_atendimento}}', desc: 'Horário de funcionamento comercial' },
                 { code: '{{suporte_telefone}}', desc: 'Telefone comercial de suporte' },
                 { code: '{{suporte_email}}', desc: 'E-mail oficial de contato' },
@@ -1592,7 +1592,7 @@ export const SettingsPage: React.FC = () => {
                 type="email"
                 value={attEmail}
                 onChange={(e) => setAttEmail(e.target.value)}
-                placeholder="sofia@barber.com"
+                placeholder="sofia@pitoco.com.br"
                 required
               />
             </div>

@@ -11,7 +11,7 @@ execSync('git init', { cwd: distPath });
 execSync('git config user.name "Malaca Bot"', { cwd: distPath });
 execSync('git config user.email "bot@malaca.com.br"', { cwd: distPath });
 execSync('git add -A', { cwd: distPath });
-execSync('git commit -m "deploy: live production build for talvane.malaca.com.br"', { cwd: distPath });
+execSync('git commit -m "deploy: live production build for pitoco.malaca.com.br"', { cwd: distPath });
 execSync('git branch -M gh-pages', { cwd: distPath });
 execSync('git remote add origin https://github.com/malaca7/7assistente.git', { cwd: distPath });
 execSync('git push origin gh-pages --force', { cwd: distPath });

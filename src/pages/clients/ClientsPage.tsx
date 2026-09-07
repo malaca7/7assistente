@@ -364,7 +364,7 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
   // Open Quick Appointment Modal for Client
   const handleOpenQuickApt = (client: Contact) => {
     setQuickAptClient(client);
-    const defaultSrv = agendaSettings?.services?.[0]?.name || 'Corte Tradicional';
+    const defaultSrv = agendaSettings?.services?.[0]?.name || 'Consultoria VIP de Enxoval';
     setQuickAptService(defaultSrv);
     setQuickAptDate(new Date().toISOString().split('T')[0]);
     setQuickAptTime('09:00');
@@ -929,7 +929,7 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
                   Preferências & Anotações do Profissional
                 </h4>
                 <p className="text-xs text-slate-300 leading-relaxed bg-dark-950 p-3 rounded-xl border border-white/5 min-h-[48px]">
-                  {selectedClientForDrawer.notes || 'Nenhuma preferência anotada para este cliente. Edite para registrar cortes favoritos, alergias ou observações.'}
+                  {selectedClientForDrawer.notes || 'Nenhuma preferência anotada para este cliente. Edite para registrar tamanhos (RN a 3 anos), temas favoritos, cores ou observações.'}
                 </p>
                 <div className="flex items-center gap-2 text-[11px] text-slate-400">
                   <span>Tags do Cliente:</span>
@@ -1121,7 +1121,7 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
             <label className="text-xs font-semibold text-slate-300 block mb-1">Tags (Separadas por vírgula)</label>
             <Input
               type="text"
-              placeholder="Ex: VIP, Recorrente, Barba, Mensalista..."
+              placeholder="Ex: VIP, Gestante, Chá de Bebê, Enxoval Completo..."
               value={formTags}
               onChange={(e) => setFormTags(e.target.value)}
             />
@@ -1131,7 +1131,7 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
             <label className="text-xs font-semibold text-slate-300 block mb-1">Anotações & Preferências do Cliente</label>
             <Textarea
               rows={3}
-              placeholder="Ex: Prefere corte degradê na zero, alérgico a navalha no pescoço, gosta de café..."
+              placeholder="Ex: Bebê previsto para Novembro, prefere tricot azul bebê, quarto safari, tamanho RN..."
               value={formNotes}
               onChange={(e) => setFormNotes(e.target.value)}
             />
@@ -1165,9 +1165,9 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
               className="w-full bg-dark-800 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
             >
               {(agendaSettings?.services || [
-                { id: '1', name: 'Corte Tradicional', price: 35 },
-                { id: '2', name: 'Barba Completa', price: 25 },
-                { id: '3', name: 'Combo Cabelo + Barba', price: 55 },
+                { id: '1', name: 'Consultoria VIP de Enxoval', price: 0 },
+                { id: '2', name: 'Montagem de Mala Maternidade', price: 0 },
+                { id: '3', name: 'Guia de Medidas & Tamanhos', price: 0 },
               ]).map((s) => (
                 <option key={s.id} value={s.name}>
                   {s.name} (R$ {Number(s.price || 0).toFixed(2).replace('.', ',')})

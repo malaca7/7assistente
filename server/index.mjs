@@ -14,290 +14,101 @@ import {
   makeWASocket, 
   useMultiFileAuthState, 
   DisconnectReason, 
-  fetchLatestBaileysVersion,
-  generateWAMessageFromContent,
-  proto
+  fetchLatestBaileysVersion 
 } from '@whiskeysockets/baileys';
 import pino from 'pino';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import QRCode from 'qrcode';
-let createClient = null;
-try {
-  const mod = await import('@supabase/supabase-js');
-  createClient = mod.createClient;
-} catch (e) {}
-import { 
-  executePublishedFlow, 
-  loadDb, 
-  saveDb, 
-  recordRealMessage, 
-  getLiveConversations, 
-  getLiveMessages, 
-  getLiveContacts,
-  getAvailableSlots,
-  clearLiveMessages,
-  deleteLiveMessage,
-  getLiveLogs,
-  clearLiveLogs,
-  recordLiveLog,
-  isSlotBooked,
-  getNextAvailableSlot
-} from './flowRunner.mjs';
-
-// Catch unhandled errors so Discloud never crashes
-process.on('uncaughtException', (err) => {
-  console.error('[Discloud / Server Uncaught Exception]:', err?.message || err);
-});
-process.on('unhandledRejection', (reason) => {
-  console.error('[Discloud / Server Unhandled Rejection]:', reason?.message || reason);
-});
+import { createClient } from '@supabase/supabase-js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, '..');
 const AUTH_FOLDER = path.resolve(__dirname, 'whatsapp_auth');
 
-// Supabase Real-Time Bridge
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://nskflvulclgwqqasdntq.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5za2ZsdnVsY2xnd3FxYXNkbnRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwMTQ0NjQsImV4cCI6MjEwMzU5MDQ2NH0.mL82cgH4MadNi_sTeKKgYmRAuhmp7HqImuAs9hTrTZI';
-
-const supabaseServer = (SUPABASE_URL && SUPABASE_ANON_KEY) 
-  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession: false },
-      realtime: { transport: WebSocket }
-    }) 
-  : null;
-
-const app = express();
-app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-
-const PORT = process.env.PORT || 8080;
-
 if (!fs.existsSync(AUTH_FOLDER)) {
   fs.mkdirSync(AUTH_FOLDER, { recursive: true });
 }
 
+// Environment variables
+const PORT = process.env.PORT || 8080;
+const HOST = '0.0.0.0';
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://cbeiguyvoepbcafmxduy.supabase.co';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiZWlndXl2b2VwYmNhZm14ZHV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzU5NzcsImV4cCI6MjEwNDMxMTk3N30.1XpWL6ns9NlPh4sQ3M8-OJTnKCPH-jf89iFspmBrKxM';
+
+const supabaseServer = (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY)
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false },
+    })
+  : null;
+
+const app = express();
+app.use(cors({ origin: '*' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Lojas oficiais Pitoco de Gente
+const STORES = [
+  {
+    id: 'store-001',
+    name: 'Loja Matriz — Centro',
+    slug: 'matriz',
+    address: 'Rua do Sol, 120 - Centro, Recife - PE',
+    phone: '8132211000',
+    whatsapp_number: '81996138924',
+    is_active: true,
+    business_hours: '08:30 às 18:30',
+  },
+  {
+    id: 'store-002',
+    name: 'Loja Shopping Boulevard',
+    slug: 'boulevard',
+    address: 'Av. Principal, 500 - Piso L2, Loja 204',
+    phone: '8134422000',
+    whatsapp_number: '81996138924',
+    is_active: true,
+    business_hours: '10:00 às 22:00',
+  },
+  {
+    id: 'store-003',
+    name: 'Atendimento Geral / E-commerce',
+    slug: 'ecommerce',
+    address: 'Central Digital / E-commerce Brasil',
+    phone: '81996138924',
+    whatsapp_number: '81996138924',
+    is_active: true,
+    business_hours: '24h Online',
+  },
+];
+
+const clientSessions = new Map();
+
 let sock = null;
 let currentQR = null;
 let currentQRDataUrl = null;
-let isStarting = false;
-let reconnectTimer = null;
-let connectionState = {
-  status: 'disconnected',
-  phone: null,
-  name: null,
-  connectedAt: null,
-  batteryLevel: 95,
-};
-
-async function syncStateToSupabase() {
-  if (!supabaseServer) return;
-  try {
-    const sessionPayload = {
-      ...connectionState,
-      qr: currentQR,
-      qrDataUrl: currentQRDataUrl,
-      updated_at: new Date().toISOString(),
-    };
-    await supabaseServer.from('settings').upsert({
-      id: 'default',
-      whatsapp_session: sessionPayload,
-      updated_at: new Date().toISOString(),
-    });
-  } catch (err) {
-    // Non-fatal
-  }
-}
-
-async function hydrateFromSupabase() {
-  if (!supabaseServer) return;
-  try {
-    const db = loadDb();
-    
-    // 1. Hydrate Flows
-    const { data: flowsData, error: flowErr } = await supabaseServer.from('flows').select('*').order('updated_at', { ascending: false });
-    if (flowsData && flowsData.length > 0 && !flowErr) {
-      db.flows = flowsData;
-      console.log(`[WhatsApp Server] 📥 ${flowsData.length} fluxos sincronizados do Supabase.`);
-    }
-
-    // 2. Hydrate Flow Nodes & Edges
-    const [nodesRes, edgesRes] = await Promise.all([
-      supabaseServer.from('flow_nodes').select('*'),
-      supabaseServer.from('flow_edges').select('*')
-    ]);
-
-    if (nodesRes.data && nodesRes.data.length > 0) {
-      if (!db.nodes) db.nodes = {};
-      nodesRes.data.forEach((d) => {
-        if (!db.nodes[d.flow_id]) db.nodes[d.flow_id] = [];
-        const formattedNode = {
-          id: d.id,
-          flow_id: d.flow_id,
-          type: d.node_type || d.type,
-          position: { x: Number(d.position_x || 0), y: Number(d.position_y || 0) },
-          data: d.data || {},
-        };
-        const existingIdx = db.nodes[d.flow_id].findIndex((n) => n.id === d.id);
-        if (existingIdx >= 0) {
-          db.nodes[d.flow_id][existingIdx] = formattedNode;
-        } else {
-          db.nodes[d.flow_id].push(formattedNode);
-        }
-      });
-      console.log(`[WhatsApp Server] 📥 ${nodesRes.data.length} nós de fluxos carregados do Supabase.`);
-    }
-
-    if (edgesRes.data && edgesRes.data.length > 0) {
-      if (!db.edges) db.edges = {};
-      edgesRes.data.forEach((e) => {
-        if (!db.edges[e.flow_id]) db.edges[e.flow_id] = [];
-        const formattedEdge = {
-          id: e.id,
-          flow_id: e.flow_id,
-          source: e.source_node_id || e.source,
-          target: e.target_node_id || e.target,
-          sourceHandle: e.source_handle || e.sourceHandle,
-          targetHandle: e.target_handle || e.targetHandle,
-          data: e.condition || e.data,
-        };
-        const existingIdx = db.edges[e.flow_id].findIndex((ed) => ed.id === e.id);
-        if (existingIdx >= 0) {
-          db.edges[e.flow_id][existingIdx] = formattedEdge;
-        } else {
-          db.edges[e.flow_id].push(formattedEdge);
-        }
-      });
-      console.log(`[WhatsApp Server] 📥 ${edgesRes.data.length} conexões de fluxos carregadas do Supabase.`);
-    }
-
-    // 3. Hydrate Contacts
-    const { data: contactsData } = await supabaseServer.from('contacts').select('*');
-    if (contactsData && contactsData.length > 0) {
-      if (!db.contacts) db.contacts = {};
-      contactsData.forEach((c) => {
-        const clean = (c.phone || '').replace(/\D/g, '');
-        if (clean) db.contacts[clean] = c;
-      });
-    }
-
-    // 4. Hydrate Settings & Bot Profile
-    const { data: settingsData } = await supabaseServer.from('settings').select('*').limit(1);
-    if (settingsData && settingsData.length > 0) {
-      const s = settingsData[0];
-      if (s.bot_profile) db.botProfile = s.bot_profile;
-      if (s.agenda_settings) db.agendaSettings = s.agenda_settings;
-    }
-
-    saveDb(db);
-    console.log(`[WhatsApp Server] ✅ Sincronização e persistência completa com Supabase finalizadas.`);
-  } catch (err) {
-    console.warn('[WhatsApp Server] Falha ao hidratar dados do Supabase:', err.message);
-  }
-}
-
-// Send message (supports text, native buttons, and rich media)
-async function sendWhatsAppMessage(jid, reply) {
-  if (!sock) return;
-
-  // 1. Interactive Button Message (Delivered reliably on all WhatsApp clients)
-  if (typeof reply === 'object' && reply.type === 'buttons') {
-    const rawButtons = reply.buttons || [];
-    const bodyText = (reply.body || 'Por favor, escolha uma das opções abaixo:').trim();
-    const footerText = (reply.footer || '').trim();
-
-    const numberEmojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
-    const buttonLines = rawButtons.map((b, idx) => {
-      const emoji = numberEmojis[idx] || `*${idx + 1}*`;
-      const cleanTitle = (b.title || b.text || `Opção ${idx + 1}`).replace(/^\d+[\.\-\)]\s*/, '').trim();
-      return `${emoji} *${cleanTitle}*`;
-    }).join('\n\n');
-
-    const footerSection = footerText ? `\n\n_${footerText}_` : '';
-    const fullMenuText = `${bodyText}\n\n${buttonLines}${footerSection}\n\n_👉 Digite o número ou o nome da opção desejada_`;
-
-    try {
-      await sock.sendMessage(jid, { text: fullMenuText });
-      console.log(`[WhatsApp Outbound] 🔘 Menu de opções enviado com sucesso para ${jid}: ${rawButtons.map((b) => b.title).join(' | ')}`);
-    } catch (err) {
-      console.error(`[WhatsApp Outbound] Erro ao enviar menu de botões para ${jid}:`, err.message);
-    }
-  }
-
-  // 2. Media Message (Image, Video, Audio/Voice, Document)
-  else if (typeof reply === 'object' && reply.type === 'media') {
-    const { mediaType, mediaUrl, caption, fileName, isPtt } = reply;
-    try {
-      const isBase64 = mediaUrl && mediaUrl.startsWith('data:');
-      const mediaSource = isBase64 ? Buffer.from(mediaUrl.split(',')[1], 'base64') : { url: mediaUrl };
-
-      if (mediaType === 'image') {
-        await sock.sendMessage(jid, { image: mediaSource, caption: caption || undefined });
-      } else if (mediaType === 'video') {
-        await sock.sendMessage(jid, { video: mediaSource, caption: caption || undefined });
-      } else if (mediaType === 'audio') {
-        await sock.sendMessage(jid, { audio: mediaSource, ptt: isPtt !== false, mimetype: 'audio/mp4' });
-      } else if (mediaType === 'document') {
-        await sock.sendMessage(jid, { 
-          document: mediaSource, 
-          fileName: fileName || 'documento.pdf', 
-          mimetype: 'application/pdf', 
-          caption: caption || undefined 
-        });
-      }
-      console.log(`[WhatsApp Outbound] 📎 Mídia (${mediaType}) enviada para ${jid}`);
-    } catch (err) {
-      console.error(`[WhatsApp Outbound] Erro ao enviar mídia (${mediaType}):`, err.message);
-      if (caption) {
-        await sock.sendMessage(jid, { text: `${caption}\n\n🔗 ${mediaUrl}` });
-      }
-    }
-  }
-
-  // 3. Regular Text Message
-  else {
-    const textMsg = typeof reply === 'string' ? reply : String(reply);
-    await sock.sendMessage(jid, { text: textMsg });
-    console.log(`[WhatsApp Outbound] Resposta enviada para ${jid}: "${textMsg.substring(0, 50)}..."`);
-  }
-}
+let connectionStatus = 'disconnected';
+let connectedPhone = null;
+let connectedName = null;
+let connectedAt = null;
 
 async function startWhatsApp() {
-  if (isStarting) {
-    console.log('[WhatsApp Server] ⏳ Inicialização já em andamento, aguardando...');
-    return;
-  }
-  isStarting = true;
-
-  if (reconnectTimer) {
-    clearTimeout(reconnectTimer);
-    reconnectTimer = null;
-  }
-
   try {
+    connectionStatus = 'connecting';
+    console.log('🔄 [Server] Inicializando WhatsApp Baileys...');
     const { state, saveCreds } = await useMultiFileAuthState(AUTH_FOLDER);
-    const { version } = await fetchLatestBaileysVersion().catch(() => ({ version: [2, 3000, 1015901307] }));
-
-    if (sock) {
-      try {
-        sock.ev.removeAllListeners();
-        sock.end?.();
-      } catch (e) {}
-      sock = null;
-    }
+    const { version, isLatest } = await fetchLatestBaileysVersion().catch(() => ({ version: [2, 3000, 1015901307], isLatest: false }));
 
     sock = makeWASocket({
       version,
       auth: state,
       printQRInTerminal: true,
       logger: pino({ level: 'silent' }),
-      browser: ['Ubuntu', 'Chrome', '20.0.04'],
+      browser: ['Pitoco de Gente', 'Chrome', '120.0.0'],
       syncFullHistory: false,
       connectTimeoutMs: 60000,
-      keepAliveIntervalMs: 25000,
+      keepAliveIntervalMs: 30000,
     });
 
     sock.ev.on('creds.update', saveCreds);
@@ -307,1563 +118,336 @@ async function startWhatsApp() {
 
       if (qr) {
         currentQR = qr;
-        currentQRDataUrl = await QRCode.toDataURL(qr, { margin: 2, scale: 8 });
-        connectionState.status = 'qrcode';
-        console.log('[WhatsApp Server] 📱 Novo QR Code real gerado!');
-        syncStateToSupabase();
+        connectionStatus = 'qrcode';
+        try {
+          currentQRDataUrl = await QRCode.toDataURL(qr, { margin: 2, scale: 8 });
+        } catch (e) {}
+        console.log('📱 [Server] Novo QR Code gerado.');
       }
 
       if (connection === 'close') {
-        const statusCode = (lastDisconnect?.error)?.output?.statusCode;
-        const errorReason = lastDisconnect?.error?.message || lastDisconnect?.error?.output?.payload?.message || '';
-        const isReplaced = statusCode === DisconnectReason.connectionReplaced || statusCode === 440;
-        const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401;
-
-        console.log(`[WhatsApp Server] Conexão encerrada (Status: ${statusCode || 'unknown'}, Motivo: ${errorReason || 'Nenhum'})`);
-        
+        const statusCode = lastDisconnect?.error?.output?.statusCode;
+        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+        connectionStatus = 'disconnected';
         currentQR = null;
         currentQRDataUrl = null;
-
-        if (isLoggedOut) {
-          connectionState.status = 'disconnected';
-          console.log('[WhatsApp Server] ❌ Sessão deslogada do WhatsApp. Limpando credenciais...');
-          syncStateToSupabase();
-          try {
-            if (fs.existsSync(AUTH_FOLDER)) {
-              fs.rmSync(AUTH_FOLDER, { recursive: true, force: true });
-            }
-          } catch (e) {}
-          isStarting = false;
-          reconnectTimer = setTimeout(startWhatsApp, 3000);
-        } else if (isReplaced) {
-          connectionState.status = 'connecting';
-          syncStateToSupabase();
-          console.warn('[WhatsApp Server] ⚠️ AVISO: Sessão em conflito (outra instância ativa). Aguardando 15s antes de reconectar...');
-          isStarting = false;
-          reconnectTimer = setTimeout(startWhatsApp, 15000);
-        } else {
-          connectionState.status = 'connecting';
-          syncStateToSupabase();
-          isStarting = false;
-          reconnectTimer = setTimeout(startWhatsApp, 5000);
+        if (shouldReconnect) {
+          setTimeout(startWhatsApp, 5000);
         }
       } else if (connection === 'open') {
-        const jid = sock.user?.id || '';
-        const phone = jid.split(':')[0] || jid.split('@')[0];
-        const name = sock.user?.name || 'WhatsApp Business';
-
-        connectionState = {
-          status: 'connected',
-          phone,
-          name,
-          connectedAt: new Date().toISOString(),
-          batteryLevel: 95,
-        };
+        connectionStatus = 'connected';
         currentQR = null;
         currentQRDataUrl = null;
-        isStarting = false;
-        console.log(`[WhatsApp Server] ✅ SUCESSO! WhatsApp Conectado e Executando Fluxos Publicados: ${phone} (${name})`);
-        syncStateToSupabase();
+        connectedAt = new Date().toISOString();
+        const rawId = sock.user?.id || '';
+        connectedPhone = rawId.split(':')[0] || rawId.split('@')[0] || '';
+        connectedName = sock.user?.name || 'Pitoco de Gente';
+        console.log(`✅ [Server] WhatsApp Conectado: ${connectedPhone} (${connectedName})`);
       }
     });
 
-    // Handle real incoming WhatsApp messages (Text & Real Button Clicks)
-    sock.ev.on('messages.upsert', async (m) => {
-      if (m.type === 'notify') {
-        for (const msg of m.messages) {
-          if (!msg.key.fromMe && msg.key.remoteJid) {
-            const jid = msg.key.remoteJid;
-            if (jid.endsWith('@broadcast') || jid.endsWith('@g.us')) continue;
+    sock.ev.on('messages.upsert', async ({ messages, type }) => {
+      if (type !== 'notify') return;
+      for (const msg of messages) {
+        if (!msg.message || msg.key.fromMe) continue;
+        const remoteJid = msg.key.remoteJid || '';
+        if (remoteJid.includes('@g.us')) continue;
 
-            const senderName = msg.pushName || 'Cliente';
-            
-            // Extract text from regular text OR real button clicks
-            let messageContent =
-              msg.message?.conversation ||
-              msg.message?.extendedTextMessage?.text ||
-              msg.message?.buttonsResponseMessage?.selectedButtonId ||
-              msg.message?.buttonsResponseMessage?.selectedDisplayText ||
-              msg.message?.templateButtonReplyMessage?.selectedId ||
-              msg.message?.templateButtonReplyMessage?.selectedDisplayText ||
-              msg.message?.listResponseMessage?.singleSelectReply?.selectedRowId ||
-              msg.message?.listResponseMessage?.singleSelectReply?.title ||
-              '';
+        const clientPhone = remoteJid.replace('@s.whatsapp.net', '').replace(/\D/g, '');
+        const clientName = msg.pushName || 'Cliente Pitoco';
+        const text = msg.message.conversation || 
+                     msg.message.extendedTextMessage?.text || 
+                     msg.message.buttonsResponseMessage?.selectedButtonId ||
+                     '';
 
-            // Interactive response handling (Native Flow Quick Reply / List Reply)
-            const interactive = msg.message?.interactiveResponseMessage || 
-                                msg.message?.viewOnceMessage?.message?.interactiveResponseMessage;
-            if (interactive?.nativeFlowResponseMessage?.paramsJson) {
-              try {
-                const params = JSON.parse(interactive.nativeFlowResponseMessage.paramsJson);
-                if (params.id) messageContent = params.id;
-                else if (params.display_text) messageContent = params.display_text;
-              } catch {}
-            } else if (interactive?.body?.text) {
-              messageContent = interactive.body.text;
-            }
-
-            // Resolve real phone number
-            const realPhone = await resolveRealWhatsAppPhone(jid, msg, state);
-
-            // Fetch real WhatsApp profile picture URL
-            let profilePicUrl = null;
-            try {
-              profilePicUrl = await sock.profilePictureUrl(jid, 'image');
-            } catch {}
-
-            console.log(`[WhatsApp Inbound] Mensagem de ${jid} (Fone: ${realPhone || 'LID'}, Nome: ${senderName}): "${messageContent}"`);
-
-            if (messageContent) {
-              const replies = await executePublishedFlow(jid, messageContent, senderName, realPhone, profilePicUrl);
-
-              for (const reply of replies) {
-                await new Promise((resolve) => setTimeout(resolve, 800));
-                await sendWhatsAppMessage(jid, reply);
-              }
-            }
-          }
-        }
+        console.log(`📩 [WhatsApp Recebido] ${clientPhone}: "${text}"`);
+        await recordMessageInSupabase(clientPhone, clientName, 'inbound', text);
+        await handleBotFlow(clientPhone, clientName, text, remoteJid);
       }
     });
   } catch (err) {
-    console.error('[WhatsApp Server] Erro ao inicializar socket:', err);
-    connectionState.status = 'disconnected';
+    console.error('❌ [Server] Erro ao iniciar Baileys:', err);
+    connectionStatus = 'error';
   }
 }
 
-async function resolveRealWhatsAppPhone(jid, msg, authState) {
-  if (!jid) return null;
+async function handleBotFlow(phone, clientName, text, remoteJid) {
+  const clean = text.trim();
+  const lower = clean.toLowerCase();
+  let session = clientSessions.get(phone) || { step: 'IDLE' };
 
-  // 1. Direct standard WhatsApp phone number JID
-  if (jid.endsWith('@s.whatsapp.net')) {
-    const raw = jid.split('@')[0].split(':')[0];
-    return raw.replace(/\D/g, '');
+  if (clean === '0' || lower === 'menu' || lower === 'oi' || lower === 'olá' || session.step === 'IDLE') {
+    session = { step: 'MAIN_MENU' };
+    clientSessions.set(phone, session);
+
+    const welcome = 
+      `👶✨ *PITOCO DE GENTE — Roupas de Bebê & Enxovais*\n` +
+      `Olá, *${clientName}*! Bem-vindo(a) à nossa loja oficial! Como podemos te ajudar hoje?\n\n` +
+      `Digite o número da opção desejada:\n\n` +
+      `1️⃣ *Ver Catálogo de Produtos* (Bodies, Macacões com Zíper Duplo, Saídas, Kits de Berço)\n` +
+      `2️⃣ *Guia de Medidas* (Tamanhos RN a 3 anos com peso e altura)\n` +
+      `3️⃣ *Checklist da Mala de Maternidade*\n` +
+      `4️⃣ *Consultoria VIP de Enxoval* (Agendamento personalizado)\n` +
+      `5️⃣ *Cálculo de Frete & Entrega* (Motoboy / Correios / Retirada)\n` +
+      `6️⃣ *Pagamento via PIX* (Chave & QR Code Copia e Cola)\n` +
+      `7️⃣ *Falar com Atendente Humana* (Escolha sua loja física ou online)\n\n` +
+      `_Responda apenas com o número de 1 a 7._`;
+
+    await sendWhatsAppMessage(remoteJid, welcome);
+    return;
   }
 
-  // 2. Sender / Participant in message key
-  if (msg?.key?.participant && msg.key.participant.includes('@s.whatsapp.net')) {
-    return msg.key.participant.split('@')[0].split(':')[0].replace(/\D/g, '');
+  if (session.step === 'WAITING_HUMAN') return;
+
+  if (session.step === 'MAIN_MENU') {
+    if (clean === '1') {
+      session.step = 'CATALOG';
+      clientSessions.set(phone, session);
+      const cat = 
+        `🛍️ *DESTAQUES DO CATÁLOGO PITOCO DE GENTE*\n\n` +
+        `1. *Body Manga Longa Suedine 100% Pima* — R$ 39,90\n` +
+        `2. *Macacão Canelado com Zíper Duplo Soft* — R$ 69,90\n` +
+        `3. *Saída de Maternidade Tricot Luxo Realeza (4 Peças)* — R$ 169,90\n` +
+        `4. *Kit Berço Algodão 400 Fios Trança Nuvem* — R$ 259,90\n` +
+        `5. *Mala Maternidade Térmica Master Impermeável* — R$ 199,90\n\n` +
+        `_Digite o número do produto (1 a 5) para detalhes ou *0* para voltar ao Menu._`;
+      await sendWhatsAppMessage(remoteJid, cat);
+      return;
+    } else if (clean === '2') {
+      const med = 
+        `📏 *GUIA DE MEDIDAS OFICIAL PITOCO DE GENTE*\n\n` +
+        `▫️ *RN*: 0 a 1 mês | 2,5 a 4 kg | até 52 cm\n` +
+        `▫️ *P*: 1 a 3 meses | 4 a 6 kg | 52 a 62 cm\n` +
+        `▫️ *M*: 3 a 6 meses | 6 a 8 kg | 62 a 67 cm\n` +
+        `▫️ *G*: 6 a 9 meses | 8 a 9,5 kg | 67 a 72 cm\n` +
+        `▫️ *GG*: 9 a 12 meses | 9,5 a 11 kg | 72 a 77 cm\n` +
+        `▫️ *1 ano*: 12 a 18 meses | 11 a 12,5 kg | 77 a 82 cm\n` +
+        `▫️ *2 anos*: 18 a 24 meses | 12,5 a 14 kg | 82 a 88 cm\n` +
+        `▫️ *3 anos*: 2 a 3 anos | 14 a 16 kg | 88 a 98 cm\n\n` +
+        `_Digite *0* para voltar ao Menu._`;
+      await sendWhatsAppMessage(remoteJid, med);
+      return;
+    } else if (clean === '3') {
+      const mala = 
+        `🧳 *CHECKLIST ESSENCIAL DA MALA DE MATERNIDADE*\n\n` +
+        `Para o hospital (organize na 32ª semana):\n` +
+        `✅ 6 Bodies em suedine 100%\n` +
+        `✅ 6 Macacões com zíper duplo frontal\n` +
+        `✅ 2 Saídas de Maternidade em tricot luxo\n` +
+        `✅ 6 Paninhos de boca atoalhados bordados\n` +
+        `✅ 3 Pares de meias e luvinhas\n` +
+        `✅ 2 Touquinhas macias\n` +
+        `✅ 1 Manta quentinha antialérgica\n\n` +
+        `_Digite *0* para voltar ao Menu._`;
+      await sendWhatsAppMessage(remoteJid, mala);
+      return;
+    } else if (clean === '4') {
+      session.step = 'CONSULTORIA';
+      clientSessions.set(phone, session);
+      const cons = 
+        `👑 *CONSULTORIA VIP DE ENXOVAL*\n\n` +
+        `Nossa especialista prepara o enxoval completo do seu bebê!\n` +
+        `Como deseja ser atendida?\n\n` +
+        `1️⃣ Online (Vídeo / WhatsApp)\n` +
+        `2️⃣ Presencial na Loja Física\n\n` +
+        `_Digite 1 ou 2, ou *0* para voltar._`;
+      await sendWhatsAppMessage(remoteJid, cons);
+      return;
+    } else if (clean === '5') {
+      const frete = 
+        `🚚 *OPÇÕES DE ENTREGA & FRETE*\n\n` +
+        `🛵 *Motoboy Express (Recife e Região)*: R$ 15,00 (Grátis acima de R$ 250)\n` +
+        `📦 *Correios SEDEX / PAC (Todo o Brasil)*: R$ 24,90 (Grátis acima de R$ 299)\n` +
+        `🏬 *Retirada Grátis em Loja*: Matriz Centro ou Shopping Boulevard\n\n` +
+        `_Digite *0* para voltar ao Menu._`;
+      await sendWhatsAppMessage(remoteJid, frete);
+      return;
+    } else if (clean === '6') {
+      const pix = 
+        `💳 *PAGAMENTO VIA PIX OFICIAL*\n\n` +
+        `Chave PIX (E-mail): *financeiro@pitocodegente.com.br*\n` +
+        `Favorecido: *Pitoco de Gente Artigos Infantis LTDA*\n` +
+        `Banco: *Banco Inter / Efí*\n\n` +
+        `📋 *Código Copia e Cola:*\n` +
+        `\`\`\`00020126580014BR.GOV.BCB.PIX0136financeiro@pitocodegente.com.br5204000053039865802BR5925Pitoco de Gente Artigos6006Recife62070503***6304\`\`\`\n\n` +
+        `_Após a transferência, envie o comprovante por aqui!_`;
+      await sendWhatsAppMessage(remoteJid, pix);
+      return;
+    } else if (clean === '7') {
+      session.step = 'HANDOFF_STORE';
+      clientSessions.set(phone, session);
+      const handoff = 
+        `👩‍💼 *ATENDIMENTO HUMANO — ESCOLHA SUA LOJA*\n\n` +
+        `1️⃣ *Loja Matriz — Centro* (Rua do Sol, 120)\n` +
+        `2️⃣ *Loja Shopping Boulevard* (Piso L2, Loja 204)\n` +
+        `3️⃣ *Atendimento Geral / E-commerce* (Digital)\n\n` +
+        `_Digite 1, 2 ou 3:_`;
+      await sendWhatsAppMessage(remoteJid, handoff);
+      return;
+    }
   }
-  if (msg?.participant && msg.participant.includes('@s.whatsapp.net')) {
-    return msg.participant.split('@')[0].split(':')[0].replace(/\D/g, '');
+
+  if (session.step === 'HANDOFF_STORE') {
+    let chosenStore = null;
+    if (clean === '1') chosenStore = STORES[0];
+    else if (clean === '2') chosenStore = STORES[1];
+    else if (clean === '3') chosenStore = STORES[2];
+
+    if (chosenStore) {
+      session.step = 'WAITING_HUMAN';
+      session.storeId = chosenStore.id;
+      session.storeName = chosenStore.name;
+      clientSessions.set(phone, session);
+
+      const protocol = `PTC-${Date.now().toString().slice(-6)}`;
+      const confirm = 
+        `✅ *TRANSFERÊNCIA REALIZADA!*\n\n` +
+        `🏬 Loja Vinculada: *${chosenStore.name}*\n` +
+        `📋 Protocolo: *${protocol}*\n\n` +
+        `Uma consultora desta unidade já está com o seu atendimento em aberto e vai te responder aqui mesmo em alguns instantes! 💕`;
+
+      await sendWhatsAppMessage(remoteJid, confirm);
+      if (supabaseServer) {
+        const cleanPhone = String(phone).replace(/\D/g, '');
+        await supabaseServer.from('support_tickets').insert([{
+          id: `ticket-${Date.now()}`,
+          store_id: chosenStore.id,
+          client_id: `client-${cleanPhone}`,
+          conversation_id: `conv-${cleanPhone}`,
+          protocol,
+          subject: `Atendimento WhatsApp solicitado para ${chosenStore.name}`,
+          status: 'open',
+          created_at: new Date().toISOString(),
+        }]).catch(() => {});
+        await supabaseServer.from('conversations').update({
+          status: 'waiting_human',
+          store_id: chosenStore.id,
+          updated_at: new Date().toISOString(),
+        }).eq('id', `conv-${cleanPhone}`).catch(() => {});
+      }
+      return;
+    }
   }
 
-  const cleanLid = jid.split('@')[0].split(':')[0];
-
-  // 3. Check Baileys Auth folder reverse LID mapping file on disk (100% accurate)
-  try {
-    const reverseFile = path.resolve(AUTH_FOLDER, `lid-mapping-${cleanLid}_reverse.json`);
-    if (fs.existsSync(reverseFile)) {
-      const content = JSON.parse(fs.readFileSync(reverseFile, 'utf8'));
-      if (content && typeof content === 'string') {
-        const phone = content.replace(/\D/g, '');
-        if (phone.length >= 8) return phone;
-      }
-    }
-  } catch {}
-
-  // 4. Check Baileys Auth State Keys
-  try {
-    if (authState?.keys?.get) {
-      const mapped = await authState.keys.get('lid-mapping', [`${cleanLid}_reverse`]);
-      if (mapped && mapped[`${cleanLid}_reverse`]) {
-        const phone = String(mapped[`${cleanLid}_reverse`]).replace(/\D/g, '');
-        if (phone.length >= 8) return phone;
-      }
-    }
-  } catch {}
-
-  // 5. Check signalRepository
-  try {
-    if (sock?.signalRepository?.lidToJid) {
-      const mapped = await sock.signalRepository.lidToJid(jid);
-      if (mapped && mapped.includes('@s.whatsapp.net')) {
-        const phone = mapped.split('@')[0].split(':')[0].replace(/\D/g, '');
-        if (phone.length >= 8) return phone;
-      }
-    }
-  } catch {}
-
-  return null;
+  await sendWhatsAppMessage(remoteJid, `Opção não reconhecida. Digite *0* para o Menu Principal da Pitoco de Gente.`);
 }
 
-// REST API Endpoints
+async function sendWhatsAppMessage(jid, text) {
+  if (!sock || connectionStatus !== 'connected') {
+    return false;
+  }
+  try {
+    await sock.sendMessage(jid, { text });
+    await recordMessageInSupabase(jid.replace('@s.whatsapp.net', ''), 'Pitoco Bot', 'outbound', text);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
 
-// Health Check & Root Status
+async function recordMessageInSupabase(phone, name, direction, content) {
+  if (!supabaseServer) return;
+  try {
+    const cleanPhone = String(phone).replace(/\D/g, '');
+    const convId = `conv-${cleanPhone}`;
+
+    await supabaseServer.from('clients').upsert({
+      id: `client-${cleanPhone}`,
+      name: name || 'Cliente WhatsApp',
+      phone: cleanPhone,
+      last_interaction: new Date().toISOString(),
+    }, { onConflict: 'phone' }).catch(() => {});
+
+    await supabaseServer.from('conversations').upsert({
+      id: convId,
+      phone: cleanPhone,
+      client_name: name || 'Cliente WhatsApp',
+      last_message: content,
+      last_message_at: new Date().toISOString(),
+    }, { onConflict: 'id' }).catch(() => {});
+
+    await supabaseServer.from('chat_messages').insert([{
+      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+      conversation_id: convId,
+      direction,
+      content,
+      author_name: direction === 'inbound' ? name : 'Pitoco Bot',
+      created_at: new Date().toISOString(),
+    }]).catch(() => {});
+  } catch (e) {}
+}
+
+// Static files from dist if exists
+const DIST_PATH = path.join(ROOT_DIR, 'dist');
+if (fs.existsSync(DIST_PATH)) {
+  app.use(express.static(DIST_PATH));
+}
+
+// REST Endpoints
 app.get('/health', (req, res) => {
-  res.json({ status: 'online', bot: 'Talvane Barber WhatsApp', service: 'WhatsApp Baileys' });
-});
-
-// Standard Aliases
-app.get('/api/status', (req, res) => {
-  res.json({
-    status: connectionState.status === 'connected' ? 'online' : connectionState.status,
-    bot: 'Talvane Barber WhatsApp',
-    service: 'WhatsApp Baileys',
-    connection: connectionState,
-    qr: currentQR,
-    qrDataUrl: currentQRDataUrl,
-  });
-});
-
-app.get('/api/qr', (req, res) => {
-  res.json({
-    status: connectionState.status,
-    qr: currentQR,
-    qrDataUrl: currentQRDataUrl,
-  });
-});
-
-// 1. Status & Live QR Code
-app.get('/api/whatsapp/status', (req, res) => {
-  res.json({
-    ...connectionState,
-    qr: currentQR,
-    qrDataUrl: currentQRDataUrl,
-  });
+  res.json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
 });
 
 app.get('/api/whatsapp/qr', (req, res) => {
   res.json({
-    status: connectionState.status,
+    status: connectionStatus,
+    phone: connectedPhone,
+    name: connectedName,
+    connectedAt,
     qr: currentQR,
     qrDataUrl: currentQRDataUrl,
   });
 });
 
-// 2. Start / Refresh QR
-app.post('/api/whatsapp/start', async (req, res) => {
-  if (connectionState.status !== 'connected') {
-    startWhatsApp();
-  }
-  res.json({ success: true, message: 'Serviço do WhatsApp iniciado' });
-});
-
-app.post('/api/whatsapp/refresh-qr', async (req, res) => {
-  try {
-    currentQR = null;
-    currentQRDataUrl = null;
-    if (sock) {
-      try {
-        sock.ev.removeAllListeners();
-        sock.end();
-      } catch (e) {}
-      sock = null;
-    }
-    isStarting = false;
-    await startWhatsApp();
-    let attempts = 0;
-    while (!currentQR && attempts < 25) {
-      await new Promise((r) => setTimeout(r, 200));
-      attempts++;
-    }
-    res.json({
-      success: true,
-      status: connectionState.status,
-      qr: currentQR,
-      qrDataUrl: currentQRDataUrl,
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// 2.1 Request 8-Digit Pairing Code by Phone Number
-app.post('/api/whatsapp/pairing-code', async (req, res) => {
-  try {
-    const { phone } = req.body;
-    if (!phone) {
-      return res.status(400).json({ error: 'Número de telefone é obrigatório' });
-    }
-    const cleanPhone = phone.replace(/\D/g, '');
-    if (cleanPhone.length < 10) {
-      return res.status(400).json({ error: 'Número de telefone inválido (ex: 5581996138924)' });
-    }
-
-    if (!sock || connectionState.status === 'disconnected') {
-      await startWhatsApp();
-    }
-
-    let attempts = 0;
-    while (!sock && attempts < 25) {
-      await new Promise((r) => setTimeout(r, 200));
-      attempts++;
-    }
-
-    if (!sock) {
-      return res.status(500).json({ error: 'Falha ao inicializar o WhatsApp' });
-    }
-
-    const rawCode = await sock.requestPairingCode(cleanPhone);
-    const formattedCode = rawCode?.match(/.{1,4}/g)?.join('-') || rawCode;
-    console.log(`[WhatsApp Server] 🔑 Código de pareamento gerado para ${cleanPhone}: ${formattedCode}`);
-    res.json({ success: true, code: formattedCode, rawCode, phone: cleanPhone });
-  } catch (err) {
-    console.error('[WhatsApp Server] Erro ao gerar código de pareamento:', err.message);
-    res.status(500).json({ error: err.message || 'Erro ao gerar código de pareamento' });
-  }
-});
-
-// 3. Disconnect / Logout
-app.post('/api/whatsapp/disconnect', async (req, res) => {
-  try {
-    if (sock) {
-      await sock.logout().catch(() => {});
-      sock.end();
-      sock = null;
-    }
-    connectionState = {
-      status: 'disconnected',
-      phone: null,
-      name: null,
-      connectedAt: null,
-    };
-    currentQR = null;
-    currentQRDataUrl = null;
-
-    if (fs.existsSync(AUTH_FOLDER)) {
-      fs.rmSync(AUTH_FOLDER, { recursive: true, force: true });
-    }
-
-    res.json({ success: true, message: 'WhatsApp desconectado' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-const recentSends = new Map();
-
-// 4. Send Message or Media from Web Frontend (Com Proteção Antiduplicação)
-app.post('/api/whatsapp/send', async (req, res) => {
-  try {
-    const { phone, text, message, mediaUrl, mediaType, caption, isPtt } = req.body;
-    const msgText = (text || message || caption || '').trim();
-
-    if (!sock || connectionState.status !== 'connected') {
-      return res.status(400).json({ error: 'WhatsApp não está conectado' });
-    }
-    const cleanPhone = String(phone || '').replace(/\D/g, '');
-    if (!cleanPhone) {
-      return res.status(400).json({ error: 'Telefone do destinatário não informado' });
-    }
-
-    // Anti-Duplicate Shield: Bloqueia envio repetido da mesma mensagem para o mesmo telefone em menos de 2.5 segundos
-    const dedupKey = `${cleanPhone}:${msgText || mediaUrl}`;
-    const now = Date.now();
-    const lastSendTime = recentSends.get(dedupKey);
-    if (lastSendTime && now - lastSendTime < 2500) {
-      console.log(`[WhatsApp Server] 🛡️ Mensagem repetida interceptada e evitada para ${cleanPhone}: "${msgText.substring(0, 30)}..."`);
-      return res.json({ success: true, duplicate: true, message: 'Mensagem repetida ignorada' });
-    }
-    recentSends.set(dedupKey, now);
-
-    // Limpar entradas expiradas
-    if (recentSends.size > 200) {
-      for (const [k, time] of recentSends.entries()) {
-        if (now - time > 10000) recentSends.delete(k);
-      }
-    }
-
-    const jid = cleanPhone.includes('@') ? cleanPhone : `${cleanPhone}@s.whatsapp.net`;
-
-    let result;
-    if (mediaUrl) {
-      if (mediaType === 'audio' || isPtt) {
-        result = await sock.sendMessage(jid, { audio: { url: mediaUrl }, ptt: isPtt !== false });
-      } else if (mediaType === 'video') {
-        result = await sock.sendMessage(jid, { video: { url: mediaUrl }, caption: msgText });
-      } else if (mediaType === 'document') {
-        result = await sock.sendMessage(jid, { document: { url: mediaUrl }, mimetype: 'application/pdf', fileName: 'documento.pdf' });
-      } else {
-        result = await sock.sendMessage(jid, { image: { url: mediaUrl }, caption: msgText });
-      }
-    } else {
-      result = await sock.sendMessage(jid, { text: msgText });
-    }
-
-    // Record outbound human message to DB
-    recordRealMessage(cleanPhone, 'Atendente', 'outbound', msgText || mediaUrl || 'Mídia enviada');
-
-    res.json({ success: true, result });
-  } catch (err) {
-    console.error('[WhatsApp Server] Erro ao enviar mensagem:', err.message);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// 5. Get Real Live Conversations
-app.get('/api/whatsapp/conversations', (req, res) => {
-  const convs = getLiveConversations();
-  res.json(convs);
-});
-
-// 5.1 Update Conversation Status (Human takeover / Bot / Closed)
-app.post('/api/whatsapp/conversations/:id/status', (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
-  const db = loadDb();
-  if (!db.conversations) db.conversations = {};
-
-  const cleanPhone = id.replace('conv-', '').replace(/\D/g, '');
-  const convKey = db.conversations[id] ? id : (db.conversations[`conv-${cleanPhone}`] ? `conv-${cleanPhone}` : id);
-
-  if (db.conversations[convKey]) {
-    db.conversations[convKey].status = status || 'human';
-    db.conversations[convKey].updated_at = new Date().toISOString();
-  } else {
-    db.conversations[convKey] = {
-      id: convKey,
-      contact_id: `contact-${cleanPhone}`,
-      contact_name: 'Cliente',
-      contact_phone: cleanPhone,
-      status: status || 'human',
-      started_at: new Date().toISOString(),
-      last_message_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-  }
-
-  // If human takeover, pause active bot session
-  if (status === 'human') {
-    if (db.sessions && db.sessions[cleanPhone]) {
-      db.sessions[cleanPhone].pausedForHuman = true;
-    }
-  } else if (status === 'bot') {
-    if (db.sessions && db.sessions[cleanPhone]) {
-      db.sessions[cleanPhone].pausedForHuman = false;
-    }
-  }
-
-  saveDb(db);
-  syncConversationToSupabase(db.conversations[convKey]);
-  res.json({ success: true, conversation: db.conversations[convKey] });
-});
-
-// 6. Get Real Live Messages for Conversation (supporting both URL routes)
-app.get('/api/whatsapp/messages/:convId', (req, res) => {
-  const { convId } = req.params;
-  const msgs = getLiveMessages(convId);
-  res.json(msgs);
-});
-
-app.get('/api/whatsapp/conversations/:convId/messages', (req, res) => {
-  const { convId } = req.params;
-  const msgs = getLiveMessages(convId);
-  res.json(msgs);
-});
-
-// 6.1 Clear All Messages for Conversation (Limpar Histórico da Conversa)
-app.delete('/api/whatsapp/conversations/:convId/messages', async (req, res) => {
-  try {
-    const { convId } = req.params;
-    clearLiveMessages(convId);
-
-    const cleanPhone = (convId || '').replace('conv-', '').replace(/\D/g, '');
-    if (supabaseServer) {
-      try {
-        await supabaseServer
-          .from('messages')
-          .delete()
-          .or(`conversation_id.eq.${convId},conversation_id.eq.conv-${cleanPhone},conversation_id.eq.${cleanPhone}`);
-      } catch (sbErr) {
-        console.warn('[WhatsApp Server] Falha ao limpar mensagens no Supabase:', sbErr.message);
-      }
-    }
-
-    console.log(`[WhatsApp Server] 🧹 Histórico de mensagens limpo para ${convId}`);
-    res.json({ success: true, message: 'Histórico da conversa limpo com sucesso' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// 6.2 Delete a Single Message (Excluir Mensagem Específica)
-app.delete('/api/whatsapp/messages/:msgId', async (req, res) => {
-  try {
-    const { msgId } = req.params;
-    const convId = req.query.convId || '';
-    const deleted = deleteLiveMessage(convId, msgId);
-
-    if (supabaseServer) {
-      try {
-        await supabaseServer.from('messages').delete().eq('id', msgId);
-      } catch (sbErr) {
-        console.warn('[WhatsApp Server] Falha ao excluir mensagem no Supabase:', sbErr.message);
-      }
-    }
-
-    console.log(`[WhatsApp Server] 🗑️ Mensagem ${msgId} excluída do histórico`);
-    res.json({ success: true, deleted, message: 'Mensagem excluída com sucesso' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// 7. Get Real Registered Contacts
-app.get('/api/whatsapp/contacts', async (req, res) => {
-  const db = loadDb();
-  if (supabaseServer) {
-    try {
-      const { data, error } = await supabaseServer.from('contacts').select('*').order('created_at', { ascending: false });
-      if (data && !error) {
-        const freshContacts = {};
-        for (const c of data) {
-          const p = (c.phone || c.id || '').replace(/\D/g, '');
-          if (p) freshContacts[p] = c;
-        }
-        db.contacts = freshContacts;
-        saveDb(db);
-        return res.json(data);
-      }
-    } catch (e) {}
-  }
-  const contacts = getLiveContacts();
-  res.json(contacts);
-});
-
-// 8. Save / Update / Delete / Sync Contact
-app.post('/api/whatsapp/contacts', async (req, res) => {
-  const contact = req.body;
-  const db = loadDb();
-  if (!db.contacts) db.contacts = {};
-  const cleanPhone = (contact.phone || contact.id || '').replace(/\D/g, '');
-  if (cleanPhone) {
-    const savedContact = {
-      ...contact,
-      id: contact.id || `contact-${cleanPhone}`,
-      phone: cleanPhone,
-      is_registered: contact.is_registered !== false,
-      status: contact.status || 'active',
-      tags: contact.tags && contact.tags.length > 0 ? contact.tags : ['Cliente'],
-      updated_at: new Date().toISOString(),
-      created_at: contact.created_at || new Date().toISOString(),
-    };
-    db.contacts[cleanPhone] = savedContact;
-    saveDb(db);
-
-    if (supabaseServer) {
-      try {
-        await supabaseServer.from('contacts').upsert(savedContact, { onConflict: 'phone' });
-      } catch (e) {
-        console.warn('[WhatsApp Server] Falha ao upsert no Supabase:', e.message);
-      }
-    }
-    return res.json({ success: true, contact: savedContact });
-  }
-  res.status(400).json({ error: 'Telefone inválido' });
-});
-
-app.post('/api/whatsapp/contacts/sync', (req, res) => {
-  const { contacts } = req.body;
-  const db = loadDb();
-  if (!db.contacts) db.contacts = {};
-
-  if (Array.isArray(contacts)) {
-    contacts.forEach(c => {
-      const p = (c.phone || c.id || '').replace(/\D/g, '');
-      if (p) {
-        db.contacts[p] = {
-          ...c,
-          id: c.id || `contact-${p}`,
-          phone: p,
-          is_registered: c.is_registered !== false,
-          status: c.status || 'active',
-          tags: c.tags && c.tags.length > 0 ? c.tags : ['Cliente'],
-          updated_at: new Date().toISOString(),
-        };
-      }
-    });
-    saveDb(db);
-  }
-
-  res.json({ success: true, contacts: getLiveContacts() });
-});
-
-app.post('/api/whatsapp/contacts/reset-all', (req, res) => {
-  const db = loadDb();
-  db.contacts = {};
-  db.sessions = {};
-  // Keep real appointments or clear placeholder/test appointments
-  db.appointments = (db.appointments || []).filter(a => a.contact_name && !a.contact_name.includes('{{') && a.contact_name !== 'Teste');
-  saveDb(db);
-  console.log('[WhatsApp Server] 🧹 Todos os contatos e sessões de teste foram resetados');
-  res.json({ success: true, message: 'Base de contatos e sessões resetada com sucesso' });
-});
-
-app.put('/api/whatsapp/contacts/:id', async (req, res) => {
-  const { id } = req.params;
-  const contact = req.body;
-  const db = loadDb();
-  if (!db.contacts) db.contacts = {};
-  const cleanPhone = (contact.phone || id || '').replace(/\D/g, '');
-  if (cleanPhone) {
-    const updated = {
-      ...(db.contacts[cleanPhone] || {}),
-      ...contact,
-      id: id || contact.id || `contact-${cleanPhone}`,
-      phone: cleanPhone,
-      is_registered: contact.is_registered !== false,
-      updated_at: new Date().toISOString(),
-    };
-    db.contacts[cleanPhone] = updated;
-    saveDb(db);
-
-    if (supabaseServer) {
-      try {
-        await supabaseServer.from('contacts').upsert(updated, { onConflict: 'phone' });
-      } catch (e) {}
-    }
-    return res.json({ success: true, contact: updated });
-  }
-  res.status(400).json({ error: 'Telefone inválido' });
-});
-
-app.delete('/api/whatsapp/contacts/:id', async (req, res) => {
-  const { id } = req.params;
-  const phoneQuery = req.query.phone || '';
-  const db = loadDb();
-
-  const digits = [
-    String(id).replace(/\D/g, ''),
-    String(phoneQuery).replace(/\D/g, ''),
-  ].filter(d => d.length >= 8);
-
-  // Generate all variations for matching (with/without 55, with/without 9th digit)
-  const allVariations = new Set();
-  digits.forEach(d => {
-    allVariations.add(d);
-    let withoutDdi = d;
-    if (d.startsWith('55') && d.length >= 12) {
-      withoutDdi = d.substring(2);
-      allVariations.add(withoutDdi);
-    } else if (d.length === 10 || d.length === 11) {
-      allVariations.add(`55${d}`);
-    }
-    if (withoutDdi.length === 11 && withoutDdi[2] === '9') {
-      const without9 = withoutDdi.substring(0, 2) + withoutDdi.substring(3);
-      allVariations.add(without9);
-      allVariations.add(`55${without9}`);
-    } else if (withoutDdi.length === 10) {
-      const with9 = withoutDdi.substring(0, 2) + '9' + withoutDdi.substring(2);
-      allVariations.add(with9);
-      allVariations.add(`55${with9}`);
-    }
-  });
-
-  const matchTarget = (testPhone) => {
-    if (!testPhone) return false;
-    const clean = String(testPhone).replace(/\D/g, '');
-    if (!clean) return false;
-    for (const v of allVariations) {
-      if (clean === v || clean.endsWith(v) || v.endsWith(clean)) return true;
-    }
-    return false;
-  };
-
-  // 1. Delete from Supabase Database
-  if (supabaseServer) {
-    try {
-      if (id) {
-        await supabaseServer.from('contacts').delete().eq('id', id);
-      }
-      for (const v of allVariations) {
-        await supabaseServer.from('contacts').delete().eq('phone', v);
-        await supabaseServer.from('contacts').delete().eq('id', `contact-${v}`);
-      }
-    } catch (sbErr) {
-      console.warn('[WhatsApp Server] Falha ao deletar contato no Supabase:', sbErr.message);
-    }
-  }
-
-  // 2. Delete from Memory / Local DB (db.contacts)
-  if (db.contacts) {
-    Object.keys(db.contacts).forEach((k) => {
-      const c = db.contacts[k];
-      const match =
-        k === id ||
-        matchTarget(k) ||
-        (c && (c.id === id || matchTarget(c.phone) || matchTarget(c.id)));
-
-      if (match) {
-        delete db.contacts[k];
-        console.log(`[WhatsApp Server] 🗑️ Contato removido de db.contacts: key=${k}, name=${c?.name}`);
-      }
-    });
-  }
-
-  // 3. Remove or disassociate from db.appointments so it never resurrects
-  if (db.appointments && Array.isArray(db.appointments)) {
-    const prevApts = db.appointments.length;
-    db.appointments = db.appointments.filter(a => !matchTarget(a.contact_phone) && !matchTarget(a.phone));
-    if (db.appointments.length < prevApts) {
-      console.log(`[WhatsApp Server] 🗑️ ${prevApts - db.appointments.length} agendamentos removidos para o contato excluído`);
-    }
-  }
-
-  // 4. Reset Session in db.sessions so Bot treats them as 100% NEW CONTACT
-  if (db.sessions) {
-    Object.keys(db.sessions).forEach(k => {
-      if (k === id || matchTarget(k)) {
-        delete db.sessions[k];
-        console.log(`[WhatsApp Server] 🔄 Sessão do bot resetada para contato excluído: ${k}`);
-      }
-    });
-  }
-
-  saveDb(db);
-
-  res.json({ success: true, message: 'Contato, agendamentos e sessões removidos com sucesso' });
-});
-
-app.delete('/api/whatsapp/conversations/:id', (req, res) => {
-  const { id } = req.params;
-  const db = loadDb();
-  if (db.conversations) {
-    delete db.conversations[id];
-  }
-  if (db.messages) {
-    delete db.messages[id];
-  }
-  saveDb(db);
-  res.json({ success: true });
-});
-
-// 9. Agenda & Scheduling Endpoints
-app.get('/api/whatsapp/agenda/settings', (req, res) => {
-  const db = loadDb();
-  res.json(db.agendaSettings);
-});
-
-app.post('/api/whatsapp/agenda/settings', (req, res) => {
-  const settings = req.body;
-  const db = loadDb();
-  db.agendaSettings = { ...db.agendaSettings, ...settings };
-  saveDb(db);
-  res.json({ success: true, settings: db.agendaSettings });
-});
-
-app.get('/api/whatsapp/agenda/appointments', (req, res) => {
-  const db = loadDb();
-  res.json(db.appointments || []);
-});
-
-app.post('/api/whatsapp/agenda/appointments', (req, res) => {
-  const appointment = req.body;
-  const db = loadDb();
-  if (!db.appointments) db.appointments = [];
-
-  const dateStr = appointment.appointment_date;
-  const timeStr = appointment.appointment_time;
-  const dur = Number(appointment.duration_minutes) || 30;
-
-  // Prevent double booking if slot is already occupied
-  if (dateStr && timeStr && isSlotBooked(dateStr, timeStr, dur, db)) {
-    const nextSlot = getNextAvailableSlot(dateStr, timeStr, db, dur);
-    const displayStr = nextSlot?.displayFull || nextSlot?.time || nextSlot || 'consulte outra data';
-    return res.status(400).json({
-      success: false,
-      error: 'Horário já reservado',
-      nextAvailableSlot: nextSlot,
-      message: `O horário ${timeStr} já está reservado no dia ${dateStr}. Próximo horário livre disponível (${dur} min): ${displayStr}.`,
-    });
-  }
-
-  const [sh, sm] = (timeStr || '09:00').split(':').map(Number);
-  const endMin = (sh || 0) * 60 + (sm || 0) + dur;
-  const endH = Math.floor(endMin / 60);
-  const endM = endMin % 60;
-  const endTimeVal = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
-  const baseSlotDur = db.agendaSettings?.slot_duration_minutes || 30;
-  const slotsCount = Math.max(1, Math.ceil(dur / baseSlotDur));
-
-  const newApt = {
-    ...appointment,
-    id: appointment.id || `apt-${Date.now()}`,
-    duration_minutes: dur,
-    end_time: appointment.end_time || endTimeVal,
-    slots_count: slotsCount,
-    status: appointment.status || 'confirmed',
-    created_at: new Date().toISOString(),
-  };
-  db.appointments.push(newApt);
-  saveDb(db);
-  res.json({ success: true, appointment: newApt });
-});
-
-app.patch('/api/whatsapp/agenda/appointments/:id', (req, res) => {
-  const { id } = req.params;
-  const updates = req.body;
-  const db = loadDb();
-  if (db.appointments) {
-    const idx = db.appointments.findIndex((a) => a.id === id);
-    if (idx >= 0) {
-      db.appointments[idx] = { ...db.appointments[idx], ...updates, updated_at: new Date().toISOString() };
-      saveDb(db);
-
-      if (updates.status) {
-        const statusLabels = {
-          completed: 'Realizado / Concluído',
-          in_progress: 'Em Atendimento / Na Cadeira',
-          no_show: 'Não Compareceu / Ausente',
-          cancelled: 'Cancelado',
-          confirmed: 'Confirmado',
-        };
-        recordLiveLog(
-          'appointment_status',
-          `Status: ${statusLabels[updates.status] || updates.status}`,
-          `Agendamento de ${db.appointments[idx].contact_name || db.appointments[idx].contact_phone} marcado como ${statusLabels[updates.status] || updates.status}`,
-          db.appointments[idx].contact_phone,
-          db.appointments[idx].contact_name,
-          { appointmentId: id, newStatus: updates.status, ...updates }
-        );
-      }
-
-      return res.json({ success: true, appointment: db.appointments[idx] });
-    }
-  }
-  res.status(404).json({ error: 'Agendamento não encontrado' });
-});
-
-// Logs & Audit Endpoints
-app.get('/api/whatsapp/logs', (req, res) => {
-  res.json(getLiveLogs());
-});
-
-app.delete('/api/whatsapp/logs', (req, res) => {
-  clearLiveLogs();
-  res.json({ success: true, message: 'Logs de auditoria limpos com sucesso' });
-});
-
-// 13. System Users & Portal Access Management Endpoints
-const DEFAULT_SYSTEM_USERS = [
-  {
-    id: 'user-talvane',
-    name: 'Talvane (Administrador & Barbeiro)',
-    phone: '81996138924',
-    password: '123',
-    pin: '1234',
-    role: 'admin',
-    permissions: {
-      can_access_admin: true,
-      can_access_atendimento: true,
-      can_access_barbeiro: true,
-    },
-    status: 'active',
-    created_at: new Date().toISOString(),
-  },
-];
-
-app.get('/api/whatsapp/users', (req, res) => {
-  const db = loadDb();
-  if (!db.systemUsers || !Array.isArray(db.systemUsers) || db.systemUsers.length === 0) {
-    db.systemUsers = [...DEFAULT_SYSTEM_USERS];
-    saveDb(db);
-  }
-  res.json(db.systemUsers);
-});
-
-app.post('/api/whatsapp/users', (req, res) => {
-  const user = req.body;
-  const db = loadDb();
-  if (!db.systemUsers || !Array.isArray(db.systemUsers)) {
-    db.systemUsers = [...DEFAULT_SYSTEM_USERS];
-  }
-
-  const cleanPhone = (user.phone || '').replace(/\D/g, '');
-  const idx = db.systemUsers.findIndex((u) => u.id === user.id || (cleanPhone && u.phone && u.phone.replace(/\D/g, '') === cleanPhone));
-
-  if (idx >= 0) {
-    db.systemUsers[idx] = {
-      ...db.systemUsers[idx],
-      ...user,
-      phone: cleanPhone || user.phone,
-      updated_at: new Date().toISOString(),
-    };
-  } else {
-    const newUser = {
-      ...user,
-      id: user.id || `user-${Date.now()}`,
-      phone: cleanPhone || user.phone,
-      status: user.status || 'active',
-      created_at: new Date().toISOString(),
-    };
-    db.systemUsers.unshift(newUser);
-  }
-  saveDb(db);
-  res.json({ success: true, users: db.systemUsers });
-});
-
-app.delete('/api/whatsapp/users/:id', (req, res) => {
-  const { id } = req.params;
-  const db = loadDb();
-  if (!db.systemUsers || !Array.isArray(db.systemUsers)) {
-    db.systemUsers = [...DEFAULT_SYSTEM_USERS];
-  }
-
-  const cleanId = String(id || '').replace(/\D/g, '');
-  db.systemUsers = db.systemUsers.filter((u) => {
-    if (u.id === id) return false;
-    const uPhone = (u.phone || '').replace(/\D/g, '');
-    if (cleanId && uPhone === cleanId) return false;
-    return true;
-  });
-
-  // Ensure master admin is never removed
-  const hasAdmin = db.systemUsers.some((u) => (u.phone || '').replace(/\D/g, '') === '81996138924');
-  if (!hasAdmin) {
-    db.systemUsers.push(DEFAULT_SYSTEM_USERS[0]);
-  }
-
-  saveDb(db);
-  res.json({ success: true, users: db.systemUsers });
-});
-
-app.post('/api/whatsapp/users/verify', (req, res) => {
-  const { phone, password, permission } = req.body;
-  const db = loadDb();
-  const users = db.systemUsers || DEFAULT_SYSTEM_USERS;
-  const cleanPhone = (phone || '').replace(/\D/g, '');
-  const cleanPass = (password || '').trim();
-
-  const found = users.find((u) => {
-    const uPhone = (u.phone || '').replace(/\D/g, '');
-    const phoneMatches = uPhone === cleanPhone || (cleanPhone.length >= 8 && uPhone.endsWith(cleanPhone.slice(-8)));
-    const passMatches = u.password === cleanPass || u.pin === cleanPass || (cleanPhone === '81996138924' && (cleanPass === '123' || cleanPass === '1234'));
-    return phoneMatches && passMatches;
-  });
-
-  if (!found) {
-    return res.status(401).json({ success: false, error: 'Telefone ou senha incorretos.' });
-  }
-
-  if (found.status === 'inactive') {
-    return res.status(403).json({ success: false, error: 'Este usuário está inativo no sistema.' });
-  }
-
-  if (permission && !found.permissions?.[permission]) {
-    const labels = {
-      can_access_admin: 'Painel Admin',
-      can_access_atendimento: 'Painel de Atendimento',
-      can_access_barbeiro: 'Painel do Barbeiro',
-    };
-    return res.status(403).json({ success: false, error: `Este usuário não tem permissão para acessar o ${labels[permission] || 'painel'}.` });
-  }
-
-  res.json({ success: true, user: found });
-});
-
-// Roles & Permissions API
-app.get('/api/whatsapp/roles', (req, res) => {
-  const db = loadDb();
-  res.json(db.rolePermissions || {});
-});
-
-app.post('/api/whatsapp/roles', (req, res) => {
-  const { roleId, permissions } = req.body || {};
-  const db = loadDb();
-  if (!db.rolePermissions) db.rolePermissions = {};
-  if (roleId && permissions) {
-    db.rolePermissions[roleId] = permissions;
-    saveDb(db);
-  }
-  res.json({ success: true, roles: db.rolePermissions });
-});
-
-app.delete('/api/whatsapp/agenda/appointments/:id', (req, res) => {
-  const { id } = req.params;
-  const db = loadDb();
-  if (db.appointments) {
-    db.appointments = db.appointments.filter((a) => a.id !== id);
-    saveDb(db);
-  }
-  res.json({ success: true });
-});
-
-app.get('/api/whatsapp/agenda/available-slots', (req, res) => {
-  const dateStr = req.query.date || new Date().toISOString().split('T')[0];
-  const duration = Number(req.query.duration) || null;
-  const db = loadDb();
-  const slots = getAvailableSlots(dateStr, db, duration);
-  res.json({ date: dateStr, available_slots: slots });
-});
-
-// 10. Flow Management REST Endpoints (Supabase Single-Source-of-Truth)
-app.get('/api/whatsapp/flows', async (req, res) => {
-  const db = loadDb();
-  if (supabaseServer) {
-    try {
-      const { data: flowsData } = await supabaseServer.from('flows').select('*').order('updated_at', { ascending: false });
-      if (flowsData && flowsData.length > 0) {
-        db.flows = flowsData;
-        saveDb(db);
-        return res.json(flowsData);
-      }
-    } catch (e) {
-      console.warn('[WhatsApp Server] Falha ao listar fluxos do Supabase:', e.message);
-    }
-  }
-  res.json(db.flows || []);
-});
-
-app.post('/api/whatsapp/flows', async (req, res) => {
-  try {
-    const flow = req.body;
-    const db = loadDb();
-    if (!db.flows) db.flows = [];
-    const updatedFlow = { ...flow, updated_at: new Date().toISOString() };
-    const idx = db.flows.findIndex((f) => f.id === flow.id);
-    if (idx >= 0) {
-      db.flows[idx] = updatedFlow;
-    } else {
-      db.flows.unshift(updatedFlow);
-    }
-    saveDb(db);
-
-    // Persist to Supabase
-    if (supabaseServer) {
-      try {
-        await supabaseServer.from('flows').upsert(updatedFlow);
-      } catch (sbErr) {
-        console.warn('[WhatsApp Server] Falha ao salvar fluxo no Supabase:', sbErr.message);
-      }
-    }
-
-    res.json({ success: true, flow: updatedFlow });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.delete('/api/whatsapp/flows/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const db = loadDb();
-    if (db.flows) {
-      db.flows = db.flows.filter((f) => f.id !== id);
-    }
-    if (db.nodes && db.nodes[id]) delete db.nodes[id];
-    if (db.edges && db.edges[id]) delete db.edges[id];
-    saveDb(db);
-
-    if (supabaseServer) {
-      try {
-        await supabaseServer.from('flow_nodes').delete().eq('flow_id', id);
-        await supabaseServer.from('flow_edges').delete().eq('flow_id', id);
-        await supabaseServer.from('flows').delete().eq('id', id);
-        console.log(`[WhatsApp Server] 🗑️ Fluxo ${id} removido do Supabase com sucesso.`);
-      } catch (sbErr) {
-        console.warn('[WhatsApp Server] Falha ao excluir fluxo do Supabase:', sbErr.message);
-      }
-    }
-
-    res.json({ success: true, message: 'Fluxo excluído com sucesso' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/api/whatsapp/flows/:id/graph', async (req, res) => {
-  const { id } = req.params;
-  const db = loadDb();
-
-  if (supabaseServer) {
-    try {
-      const [nodesRes, edgesRes] = await Promise.all([
-        supabaseServer.from('flow_nodes').select('*').eq('flow_id', id),
-        supabaseServer.from('flow_edges').select('*').eq('flow_id', id),
-      ]);
-
-      if (nodesRes.data && nodesRes.data.length > 0) {
-        const nodes = nodesRes.data.map((d) => ({
-          id: d.id,
-          flow_id: d.flow_id,
-          type: d.node_type || d.type,
-          position: { x: Number(d.position_x || 0), y: Number(d.position_y || 0) },
-          data: d.data || {},
-        }));
-        const edges = (edgesRes.data || []).map((e) => ({
-          id: e.id,
-          flow_id: e.flow_id,
-          source: e.source_node_id || e.source,
-          target: e.target_node_id || e.target,
-          sourceHandle: e.source_handle || e.sourceHandle,
-          targetHandle: e.target_handle || e.targetHandle,
-          data: e.condition || e.data,
-        }));
-
-        if (!db.nodes) db.nodes = {};
-        if (!db.edges) db.edges = {};
-        db.nodes[id] = nodes;
-        db.edges[id] = edges;
-        saveDb(db);
-        return res.json({ nodes, edges });
-      }
-    } catch (e) {
-      console.warn('[WhatsApp Server] Falha ao carregar grafo do Supabase:', e.message);
-    }
-  }
-
-  const nodes = db.nodes?.[id] || [];
-  const edges = db.edges?.[id] || [];
-  res.json({ nodes, edges });
-});
-
-app.post('/api/whatsapp/flows/:id/graph', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { nodes, edges } = req.body;
-    const db = loadDb();
-    if (!db.nodes) db.nodes = {};
-    if (!db.edges) db.edges = {};
-    if (nodes) db.nodes[id] = nodes;
-    if (edges) db.edges[id] = edges;
-
-    // Reset active sessions so subsequent WhatsApp messages immediately run the updated graph
-    db.sessions = {};
-    saveDb(db);
-
-    if (supabaseServer) {
-      try {
-        await supabaseServer.from('flow_nodes').delete().eq('flow_id', id);
-        if (nodes && nodes.length > 0) {
-          const insertNodes = nodes.map((n) => ({
-            id: n.id,
-            flow_id: id,
-            node_type: n.data?.nodeType || n.type,
-            position_x: n.position.x,
-            position_y: n.position.y,
-            data: n.data,
-          }));
-          await supabaseServer.from('flow_nodes').insert(insertNodes);
-        }
-
-        await supabaseServer.from('flow_edges').delete().eq('flow_id', id);
-        if (edges && edges.length > 0) {
-          const insertEdges = edges.map((e) => ({
-            id: e.id,
-            flow_id: id,
-            source_node_id: e.source,
-            target_node_id: e.target,
-            source_handle: e.sourceHandle || null,
-            target_handle: e.targetHandle || null,
-            condition: e.data || null,
-          }));
-          await supabaseServer.from('flow_edges').insert(insertEdges);
-        }
-
-        await supabaseServer.from('flows').update({
-          node_count: (nodes || []).length,
-          updated_at: new Date().toISOString(),
-        }).eq('id', id);
-        console.log(`[WhatsApp Server] 💾 Grafo do fluxo ${id} salvo no Supabase com ${nodes?.length || 0} nós e ${edges?.length || 0} conexões.`);
-      } catch (sbErr) {
-        console.warn('[WhatsApp Server] Falha ao persistir grafo no Supabase:', sbErr.message);
-      }
-    }
-
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/whatsapp/flows/:id/publish', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const db = loadDb();
-    if (!db.flows) db.flows = [];
-    
-    let target = db.flows.find((f) => f.id === id);
-    if (!target) {
-      target = { id, name: 'Fluxo Ativo', status: 'published', updated_at: new Date().toISOString() };
-      db.flows.unshift(target);
-    }
-
-    db.flows.forEach((f) => {
-      if (f.id === id) {
-        f.status = 'published';
-      } else {
-        f.status = 'paused';
-      }
-    });
-
-    if (!db.nodes) db.nodes = {};
-    if (!db.edges) db.edges = {};
-    if (!db.nodes[id] || db.nodes[id].length === 0) {
-      const sourceKey = Object.keys(db.nodes).find((k) => k !== id && (db.nodes[k] || []).length > 0);
-      if (sourceKey) {
-        db.nodes[id] = JSON.parse(JSON.stringify(db.nodes[sourceKey]));
-        db.edges[id] = JSON.parse(JSON.stringify(db.edges[sourceKey] || []));
-        console.log(`[WhatsApp Server] 🔄 Grafo herdado de ${sourceKey} para o fluxo ${id} (${db.nodes[id].length} nós).`);
-      }
-    }
-
-    db.sessions = {};
-    saveDb(db);
-
-    if (supabaseServer) {
-      try {
-        await supabaseServer.from('flows').update({ status: 'paused', updated_at: new Date().toISOString() }).neq('id', id);
-        await supabaseServer.from('flows').update({ status: 'published', updated_at: new Date().toISOString() }).eq('id', id);
-        console.log(`[WhatsApp Server] 🚀 Fluxo ${id} gravado como PUBLICADO no Supabase!`);
-      } catch (sbErr) {
-        console.warn('[WhatsApp Server] Falha ao publicar fluxo no Supabase:', sbErr.message);
-      }
-    }
-
-    console.log(`[WhatsApp Server] 🚀 Fluxo ${id} definido como PUBLICADO (ATIVO) no WhatsApp!`);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// 10. Settings & Bot Profile Management (Sincronização em Tempo Real)
-app.get('/api/whatsapp/settings', (req, res) => {
-  const db = loadDb();
+app.get('/api/whatsapp/status', (req, res) => {
   res.json({
-    settings: db.settings || {},
-    botProfile: db.botProfile || {},
-    agendaSettings: db.agendaSettings || {},
-    attendants: db.attendants || [],
-    customVariables: db.customVariables || db.botProfile?.custom_variables || [],
+    status: connectionStatus,
+    phone: connectedPhone,
+    name: connectedName,
+    connectedAt,
+    qr: currentQR,
+    qrDataUrl: currentQRDataUrl,
   });
 });
 
-app.post('/api/whatsapp/settings', async (req, res) => {
-  try {
-    const { settings, botProfile, agendaSettings, customVariables, systemUsers } = req.body;
-    const db = loadDb();
+app.post('/api/whatsapp/qr', async (req, res) => {
+  if (connectionStatus !== 'connected') startWhatsApp();
+  res.json({ success: true, status: connectionStatus, qr: currentQR, qrDataUrl: currentQRDataUrl });
+});
 
-    if (settings) db.settings = { ...db.settings, ...settings };
-    if (botProfile) db.botProfile = { ...db.botProfile, ...botProfile };
-    if (agendaSettings) db.agendaSettings = { ...db.agendaSettings, ...agendaSettings };
-    if (customVariables && Array.isArray(customVariables)) {
-      db.customVariables = customVariables;
-      if (db.botProfile) {
-        db.botProfile.custom_variables = customVariables;
-      }
-    }
-    if (systemUsers && Array.isArray(systemUsers)) {
-      db.systemUsers = systemUsers;
-    }
-
-    saveDb(db);
-    console.log('[WhatsApp Server] ⚙️ Configurações, Perfil e Variáveis salvos com sucesso no banco de dados!');
-    res.json({
-      success: true,
-      settings: db.settings,
-      botProfile: db.botProfile,
-      agendaSettings: db.agendaSettings,
-      customVariables: db.customVariables || [],
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+app.post('/api/send-message', async (req, res) => {
+  const { phone, text, message } = req.body;
+  const bodyText = text || message;
+  if (!phone || !bodyText) return res.status(400).json({ success: false, error: 'phone e text são obrigatórios' });
+  const cleanPhone = String(phone).replace(/\D/g, '');
+  const success = await sendWhatsAppMessage(`${cleanPhone}@s.whatsapp.net`, bodyText);
+  if (success) {
+    res.json({ success: true, messageId: `msg-${Date.now()}`, status: 'sent' });
+  } else {
+    res.status(500).json({ success: false, error: 'Falha no envio via Baileys', status: connectionStatus });
   }
 });
 
-// Custom Variables REST API
-app.get('/api/whatsapp/custom-variables', (req, res) => {
-  const db = loadDb();
-  const vars = db.customVariables || db.botProfile?.custom_variables || [];
-  res.json(vars);
+app.get('/api/stores', (req, res) => {
+  res.json(STORES);
 });
 
-app.post('/api/whatsapp/custom-variables', (req, res) => {
-  try {
-    const variable = req.body;
-    if (!variable || !variable.name) {
-      return res.status(400).json({ error: 'Nome da variável é obrigatório' });
-    }
-    const db = loadDb();
-    if (!db.customVariables) db.customVariables = [];
-
-    const rawName = String(variable.name).replace(/^\{\{|\}\}$/g, '').trim().toLowerCase();
-    const formattedName = `{{${rawName}}}`;
-    const cleanVar = {
-      ...variable,
-      id: variable.id || `var-${Date.now()}`,
-      name: formattedName,
-      rawName: rawName,
-      value: variable.value !== undefined ? String(variable.value) : '',
-      description: variable.description || '',
-      updated_at: new Date().toISOString(),
-      created_at: variable.created_at || new Date().toISOString(),
-    };
-
-    const index = db.customVariables.findIndex((v) => v.id === cleanVar.id || v.name.toLowerCase() === formattedName);
-    if (index >= 0) {
-      db.customVariables[index] = cleanVar;
-    } else {
-      db.customVariables.unshift(cleanVar);
-    }
-
-    if (!db.botProfile) db.botProfile = {};
-    db.botProfile.custom_variables = db.customVariables;
-
-    saveDb(db);
-    res.json({ success: true, variable: cleanVar, variables: db.customVariables });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+// Single Page App fallback for non-API routes
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) return next();
+  const indexPath = path.join(DIST_PATH, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
   }
-});
-
-app.delete('/api/whatsapp/custom-variables/:id', (req, res) => {
-  try {
-    const { id } = req.params;
-    const db = loadDb();
-    if (db.customVariables) {
-      db.customVariables = db.customVariables.filter((v) => v.id !== id && v.name !== id && v.rawName !== id);
-      if (db.botProfile) {
-        db.botProfile.custom_variables = db.customVariables;
-      }
-      saveDb(db);
-    }
-    res.json({ success: true, variables: db.customVariables || [] });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Database Backup Dump & Real-time Stats API
-app.get('/api/whatsapp/database/dump', (req, res) => {
-  try {
-    const db = loadDb();
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    res.setHeader('Content-Disposition', `attachment; filename=backup-7assistente-${timestamp}.json`);
-    res.setHeader('Content-Type', 'application/json');
-    res.send(JSON.stringify(db, null, 2));
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/api/whatsapp/database/stats', (req, res) => {
-  try {
-    const db = loadDb();
-    const stats = {
-      contacts_count: Object.keys(db.contacts || {}).length,
-      appointments_count: (db.appointments || []).length,
-      flows_count: (db.flows || []).length,
-      attendants_count: (db.attendants || []).length,
-      custom_variables_count: (db.customVariables || db.botProfile?.custom_variables || []).length,
-      system_users_count: (db.systemUsers || []).length,
-      conversations_count: Object.keys(db.conversations || {}).length,
-      last_backup_at: new Date().toISOString(),
-    };
-    res.json({ success: true, stats });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/api/whatsapp/profile', (req, res) => {
-  const db = loadDb();
-  res.json(db.botProfile || {});
-});
-
-app.post('/api/whatsapp/profile', (req, res) => {
-  try {
-    const profile = req.body;
-    const db = loadDb();
-    db.botProfile = { ...(db.botProfile || {}), ...profile };
-    saveDb(db);
-    console.log('[WhatsApp Server] 🤖 Perfil do Robô atualizado no banco de dados:', db.botProfile.name || 'Assistente');
-    res.json({ success: true, botProfile: db.botProfile });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// 11. Sync Flows
-app.post('/api/whatsapp/sync-flows', async (req, res) => {
-  try {
-    const { flows, nodes, edges, botProfile, agendaSettings } = req.body;
-    const db = loadDb();
-
-    if (flows) db.flows = flows;
-    if (nodes) db.nodes = { ...db.nodes, ...nodes };
-    if (edges) db.edges = { ...db.edges, ...edges };
-    if (botProfile) db.botProfile = { ...db.botProfile, ...botProfile };
-    if (agendaSettings) db.agendaSettings = { ...db.agendaSettings, ...agendaSettings };
-
-    db.sessions = {};
-    saveDb(db);
-
-    if (supabaseServer) {
-      try {
-        if (flows && flows.length > 0) {
-          for (const f of flows) {
-            await supabaseServer.from('flows').upsert({ ...f, updated_at: new Date().toISOString() });
-          }
-        }
-        if (botProfile) {
-          await supabaseServer.from('settings').upsert({
-            id: 'default',
-            bot_profile: botProfile,
-            agenda_settings: agendaSettings || db.agendaSettings,
-            business_name: botProfile.company_name || 'Talvane Barber',
-            updated_at: new Date().toISOString(),
-          });
-        }
-      } catch (sbErr) {
-        console.warn('[WhatsApp Server] Falha ao sincronizar fluxos no Supabase:', sbErr.message);
-      }
-    }
-
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// 12. Attendants Management (Central de Atendimento & Métricas)
-app.get('/api/whatsapp/attendants', (req, res) => {
-  const db = loadDb();
-  res.json(db.attendants || []);
-});
-
-app.post('/api/whatsapp/attendants', (req, res) => {
-  try {
-    const attendant = req.body;
-    if (!attendant || !attendant.id) {
-      return res.status(400).json({ error: 'Dados de atendente inválidos' });
-    }
-    const db = loadDb();
-    if (!db.attendants) db.attendants = [];
-    const index = db.attendants.findIndex((a) => a.id === attendant.id);
-    if (index >= 0) {
-      db.attendants[index] = { ...db.attendants[index], ...attendant, updated_at: new Date().toISOString() };
-    } else {
-      db.attendants.unshift({ ...attendant, created_at: new Date().toISOString() });
-    }
-    saveDb(db);
-    res.json({ success: true, attendant });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.delete('/api/whatsapp/attendants/:id', (req, res) => {
-  try {
-    const { id } = req.params;
-    const db = loadDb();
-    if (db.attendants) {
-      db.attendants = db.attendants.filter((a) => a.id !== id);
-      saveDb(db);
-    }
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// 13. Serve Frontend Production Build (Discloud / Cloud Hosting)
-function healFlatExtractedFiles(baseDir) {
-  try {
-    if (!fs.existsSync(baseDir)) return;
-    const entries = fs.readdirSync(baseDir);
-    const backslashFiles = entries.filter((name) => name.startsWith('dist\\') || name.startsWith('dist/'));
-    if (backslashFiles.length > 0) {
-      const targetDist = path.resolve(baseDir, 'dist');
-      if (!fs.existsSync(targetDist)) fs.mkdirSync(targetDist, { recursive: true });
-      for (const rawName of backslashFiles) {
-        const relativeName = rawName.replace(/^dist[\\\/]/, '').replace(/\\/g, '/');
-        const targetFilePath = path.resolve(targetDist, relativeName);
-        const targetFileDir = path.dirname(targetFilePath);
-        if (!fs.existsSync(targetFileDir)) fs.mkdirSync(targetFileDir, { recursive: true });
-        const sourcePath = path.resolve(baseDir, rawName);
-        if (fs.existsSync(sourcePath) && !fs.existsSync(targetFilePath)) {
-          fs.copyFileSync(sourcePath, targetFilePath);
-        }
-      }
-      console.log(`[WhatsApp Server] 🛠️ Auto-recuperação da pasta dist realizada com ${backslashFiles.length} arquivos.`);
-    }
-  } catch (err) {
-    console.warn('[WhatsApp Server] Aviso ao verificar auto-recuperação da pasta dist:', err?.message || err);
-  }
-}
-
-healFlatExtractedFiles(ROOT_DIR);
-healFlatExtractedFiles(process.cwd());
-
-const possibleDistPaths = [
-  path.resolve(ROOT_DIR, 'dist'),
-  path.resolve(process.cwd(), 'dist'),
-  path.resolve(__dirname, 'dist'),
-  path.resolve(__dirname, '../dist')
-];
-
-const validDistPath = possibleDistPaths.find((p) => {
-  try {
-    return fs.existsSync(p) && fs.existsSync(path.join(p, 'index.html'));
-  } catch {
-    return false;
-  }
-});
-
-if (validDistPath) {
-  const indexHtmlFile = path.resolve(validDistPath, 'index.html');
-  console.log(`[WhatsApp Server] 🌐 Servindo painel admin estático a partir de: ${validDistPath}`);
-  
-  app.use(express.static(validDistPath, {
-    index: false,
-    maxAge: '1h'
-  }));
-
-  // Serve SPA index.html for all non-API GET routes
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) return next();
-    if (fs.existsSync(indexHtmlFile)) {
-      res.sendFile(indexHtmlFile, (err) => {
-        if (err) {
-          console.error('[WhatsApp Server] Erro ao enviar index.html:', err?.message || err);
-          if (!res.headersSent) res.status(500).send('Erro ao carregar o painel administrativo.');
-        }
-      });
-    } else {
-      next();
-    }
-  });
-} else {
-  console.warn('[WhatsApp Server] ⚠️ Pasta dist com index.html não encontrada! Ativando página de contingência.');
-  
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) return next();
-    res.send(`<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8">
-  <title>7 Assistente — Painel WhatsApp</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body { background: #0b0f19; color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
-    .card { background: #111827; border: 1px solid #374151; border-radius: 16px; padding: 32px; max-width: 500px; width: 100%; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
-    h1 { font-size: 22px; color: #60a5fa; margin-bottom: 10px; }
-    p { color: #9ca3af; font-size: 14px; line-height: 1.6; margin-bottom: 24px; }
-    .btn { display: inline-block; background: #2563eb; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: background 0.2s; }
-    .btn:hover { background: #1d4ed8; }
-    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; background: rgba(16, 185, 129, 0.1); border: 1px solid #059669; border-radius: 9999px; color: #10b981; font-size: 12px; font-weight: 600; margin-bottom: 20px; }
-    .dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div class="badge"><span class="dot"></span> Backend WhatsApp Ativo</div>
-    <h1>🤖 7 Assistente WhatsApp</h1>
-    <p>O servidor backend do bot está conectado e processando mensagens com sucesso na nuvem.</p>
-    <a href="https://talvane.malaca.com.br" class="btn">Acessar Painel Administrativo</a>
-  </div>
-</body>
-</html>`);
-  });
-}
-
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`[WhatsApp Server] Servidor de Conexão e Motor de Fluxos rodando na porta ${PORT} (0.0.0.0)`);
-  hydrateFromSupabase();
-  startWhatsApp().catch((err) => {
-    console.error('[WhatsApp Server] Erro capturado ao iniciar WhatsApp:', err?.message || err);
+  res.json({
+    app: 'Pitoco de Gente WhatsApp Bot API',
+    status: 'online',
+    version: '2.0.0',
+    whatsapp: connectionStatus,
   });
 });
 
+app.listen(PORT, HOST, () => {
+  console.log(`🚀 [Pitoco Server] Rodando em http://${HOST}:${PORT}`);
+  startWhatsApp();
+});

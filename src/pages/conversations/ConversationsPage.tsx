@@ -101,7 +101,7 @@ export const ConversationsPage: React.FC<{ onNavigate?: (path: string) => void }
 
   // Quick Appointment Modal
   const [isQuickAptModalOpen, setIsQuickAptModalOpen] = useState(false);
-  const [quickService, setQuickService] = useState('Corte Tradicional');
+  const [quickService, setQuickService] = useState('Consultoria VIP de Enxoval');
   const [quickDate, setQuickDate] = useState(() => getLocalDateStr());
   const [quickTime, setQuickTime] = useState('09:00');
 
@@ -389,7 +389,7 @@ export const ConversationsPage: React.FC<{ onNavigate?: (path: string) => void }
       await StorageService.saveAppointment(newApt);
       setIsQuickAptModalOpen(false);
 
-      const confirmText = `📅 *Agendamento Confirmado!*\n\nOlá ${clientName}, seu agendamento foi registrado com sucesso:\n• *Serviço:* ${quickService}\n• *Data:* ${quickDate}\n• *Horário:* ${quickTime}\n\nTe aguardamos na Talvane Barber!`;
+      const confirmText = `📅 *Agendamento Confirmado!*\n\nOlá ${clientName}, sua consultoria VIP de enxoval foi confirmada:\n• *Modalidade:* ${quickService}\n• *Data:* ${quickDate}\n• *Horário:* ${quickTime}\n\nTe aguardamos com muito carinho na Pitoco de Gente! 👶💕`;
       await handleSendMessage(confirmText);
       success('Agendamento Realizado', 'Compromisso gravado na Agenda e enviado no WhatsApp do cliente.');
     } catch (err: any) {

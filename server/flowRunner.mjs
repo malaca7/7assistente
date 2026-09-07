@@ -102,8 +102,8 @@ export async function syncAppointmentToSupabase(apt) {
       contact_id: apt.contact_id || `contact-${cleanPhone}`,
       contact_name: apt.contact_name || 'Cliente',
       phone: cleanPhone,
-      service_name: apt.service_name || 'Atendimento Especialista',
-      professional_name: apt.professional_name || 'Talvane',
+      service_name: apt.service_name || 'Consultoria VIP de Enxoval',
+      professional_name: apt.professional_name || 'Sofia',
       date: apt.appointment_date || apt.date || new Date().toISOString().split('T')[0],
       time: apt.appointment_time || apt.time || '08:00',
       duration_minutes: apt.duration_minutes || 30,
@@ -184,12 +184,12 @@ const BACKUP_DB_PATH = path.resolve(AUTH_DIR, 'flows_db_backup.json');
 
 export const DEFAULT_SYSTEM_USERS = [
   {
-    id: 'user-talvane',
-    name: 'Talvane (Administrador & Barbeiro)',
+    id: 'user-admin',
+    name: 'Rogerio (CEO / Administrador Geral)',
     phone: '81996138924',
-    password: '123',
+    password: 'admin',
     pin: '1234',
-    role: 'admin',
+    role: 'ceo',
     permissions: {
       can_access_admin: true,
       can_access_atendimento: true,
@@ -348,7 +348,7 @@ export function getAvailableSlots(dateStr, db, requiredDuration = null) {
           srvName.toLowerCase().includes(s.name?.toLowerCase()) ||
           s.name?.toLowerCase().includes(srvName.toLowerCase())
       );
-      const srvDuration = Number(a.duration_minutes) || srv?.duration_minutes || (srvName.toLowerCase().includes('barba') ? 55 : baseSlotDuration);
+      const srvDuration = Number(a.duration_minutes) || srv?.duration_minutes || baseSlotDuration;
       const startM = sHour * 60 + sMin;
       const endM = startM + srvDuration;
       return { startM, endM };
@@ -529,15 +529,15 @@ export function replaceVars(text, vars = {}, botProfile = {}, customVariables = 
   if (!text) return '';
   let res = text;
 
-  res = res.replace(/\{\{bot_nome\}\}/gi, botProfile.name || 'Talvane Barber Bot');
-  res = res.replace(/\{\{empresa\}\}/gi, botProfile.company_name || 'Talvane Barber');
+  res = res.replace(/\{\{bot_nome\}\}/gi, botProfile.name || 'Pitoco Bot');
+  res = res.replace(/\{\{empresa\}\}/gi, botProfile.company_name || 'Pitoco de Gente');
   res = res.replace(/\{\{bot_genero\}\}/gi, botProfile.gender === 'female' ? 'Feminino' : 'Masculino');
-  res = res.replace(/\{\{bot_tom\}\}/gi, botProfile.tone || 'Amigável e Profissional');
+  res = res.replace(/\{\{bot_tom\}\}/gi, botProfile.tone || 'Carinhoso, Acolhedor e Profissional');
   res = res.replace(/\{\{suporte_telefone\}\}/gi, botProfile.support_phone || '81996138924');
-  res = res.replace(/\{\{suporte_email\}\}/gi, botProfile.support_email || 'contato@talvanebarber.com.br');
+  res = res.replace(/\{\{suporte_email\}\}/gi, botProfile.support_email || 'contato@pitoco.malaca.com.br');
   res = res.replace(/\{\{horario_atendimento\}\}/gi, botProfile.business_hours || '08:00 às 19:00');
-  res = res.replace(/\{\{site_empresa\}\}/gi, botProfile.website_url || 'https://talvane.malaca.com.br');
-  res = res.replace(/\{\{mensagem_boas_vindas\}\}/gi, botProfile.welcome_message || 'Olá! Seja bem-vindo à Talvane Barber.');
+  res = res.replace(/\{\{site_empresa\}\}/gi, botProfile.website_url || 'https://pitoco.malaca.com.br');
+  res = res.replace(/\{\{mensagem_boas_vindas\}\}/gi, botProfile.welcome_message || 'Olá! Seja bem-vindo(a) à Pitoco de Gente - Roupas de Bebê e Enxovais.');
 
   // Custom variables dynamically substituted from database / botProfile
   const allCustom = [
@@ -1729,16 +1729,16 @@ function parseCustomDateString(input) {
     // 5. Show Services Node (Apenas Exibição / Leitura do Catálogo)
     else if (nodeType === 'show_services' || (nodeType === 'services_catalog' && config.displayFormat !== 'buttons')) {
       const rawServices = (db.agendaSettings?.services && db.agendaSettings.services.length > 0) ? db.agendaSettings.services : [
-        { id: 'srv-1', name: 'Corte Cabelo', duration_minutes: 45, price: 30 },
-        { id: 'srv-2', name: 'Barba', duration_minutes: 20, price: 20 },
-        { id: 'srv-3', name: 'Corte Cabelo + Barba (Promoção)', duration_minutes: 50, price: 45 },
-        { id: 'srv-4', name: 'Sobrancelha', duration_minutes: 12, price: 10 },
-        { id: 'srv-5', name: 'Corte Cabelo + Barba + Sobrancelha (Promoção)', duration_minutes: 10, price: 60 },
+        { id: 'srv-1', name: 'Body Suedine 100% Algodão', duration_minutes: 30, price: 49.9 },
+        { id: 'srv-2', name: 'Macacão Zíper Duplo Confort', duration_minutes: 30, price: 89.9 },
+        { id: 'srv-3', name: 'Saída Maternidade Tricot Luxo', duration_minutes: 30, price: 199.9 },
+        { id: 'srv-4', name: 'Kit de Berço 9 Peças 200 Fios', duration_minutes: 30, price: 389.0 },
+        { id: 'srv-5', name: 'Consultoria VIP de Enxoval', duration_minutes: 45, price: 0.0 },
       ];
       const activeServices = rawServices.filter((s) => s.active !== false && s.is_active !== false);
       const services = activeServices.length > 0 ? activeServices : rawServices;
 
-      const header = replaceVars(config.headerText || '💈 *Catálogo de Serviços & Preços*', session.variables, botProfile);
+      const header = replaceVars(config.headerText || '🍼 *Catálogo Pitoco de Gente - Bebê & Enxovais*', session.variables, botProfile);
       const footer = config.footerText ? `\n\n_${replaceVars(config.footerText, session.variables, botProfile)}_` : '';
 
       const serviceLines = services
@@ -1770,16 +1770,16 @@ function parseCustomDateString(input) {
     // 5.2 Select Service Node (Escolha de Serviço via Botões Interativos)
     else if (nodeType === 'select_service' || (nodeType === 'services_catalog' && config.displayFormat === 'buttons')) {
       const rawServices = (db.agendaSettings?.services && db.agendaSettings.services.length > 0) ? db.agendaSettings.services : [
-        { id: 'srv-1', name: 'Corte Cabelo', duration_minutes: 45, price: 30 },
-        { id: 'srv-2', name: 'Barba', duration_minutes: 20, price: 20 },
-        { id: 'srv-3', name: 'Corte Cabelo + Barba (Promoção)', duration_minutes: 50, price: 45 },
-        { id: 'srv-4', name: 'Sobrancelha', duration_minutes: 12, price: 10 },
-        { id: 'srv-5', name: 'Corte Cabelo + Barba + Sobrancelha (Promoção)', duration_minutes: 10, price: 60 },
+        { id: 'srv-1', name: 'Body Suedine 100% Algodão', duration_minutes: 30, price: 49.9 },
+        { id: 'srv-2', name: 'Macacão Zíper Duplo Confort', duration_minutes: 30, price: 89.9 },
+        { id: 'srv-3', name: 'Saída Maternidade Tricot Luxo', duration_minutes: 30, price: 199.9 },
+        { id: 'srv-4', name: 'Kit de Berço 9 Peças 200 Fios', duration_minutes: 30, price: 389.0 },
+        { id: 'srv-5', name: 'Consultoria VIP de Enxoval', duration_minutes: 45, price: 0.0 },
       ];
       const activeServices = rawServices.filter((s) => s.active !== false && s.is_active !== false);
       const services = activeServices.length > 0 ? activeServices : rawServices;
 
-      const intro = replaceVars(config.introMessage || 'Qual serviço você deseja agendar hoje?', session.variables, botProfile);
+      const intro = replaceVars(config.introMessage || 'Qual peça ou atendimento você deseja escolher hoje?', session.variables, botProfile);
       const footer = config.footerText ? replaceVars(config.footerText, session.variables, botProfile) : 'Toque no serviço desejado:';
 
       const serviceButtons = services.map((s, idx) => ({
@@ -1860,7 +1860,7 @@ function parseCustomDateString(input) {
         s.name?.toLowerCase().includes(srvName.toLowerCase())
       );
       const baseSlotDur = db.agendaSettings?.slot_duration_minutes || 30;
-      const srvDuration = Number(srvObj?.duration_minutes) || Number(session.variables['duracao_minutos']) || (srvName.toLowerCase().includes('barba') ? 55 : baseSlotDur);
+      const srvDuration = Number(srvObj?.duration_minutes) || Number(session.variables['duracao_minutos']) || baseSlotDur;
 
       const slots = getAvailableSlots(dateVal, db, srvDuration);
 
@@ -1921,7 +1921,7 @@ function parseCustomDateString(input) {
 
       const srvObj = (db.agendaSettings?.services || []).find((s) => s.name?.toLowerCase().trim() === srvName.toLowerCase().trim());
       const baseSlotDur = db.agendaSettings?.slot_duration_minutes || 30;
-      const srvDur = srvObj?.duration_minutes || session.variables['duracao_minutos'] || (srvName.toLowerCase().includes('barba') ? 55 : baseSlotDur);
+      const srvDur = srvObj?.duration_minutes || session.variables['duracao_minutos'] || baseSlotDur;
       const slotsCount = Math.max(1, Math.ceil(srvDur / baseSlotDur));
 
       // Calculate endTime
@@ -2175,10 +2175,10 @@ function parseCustomDateString(input) {
 
     // 7. AI Agent Node
     else if (nodeType === 'ai_agent') {
-      const pName = botProfile.name || 'Talvane Barber Bot';
-      const company = botProfile.company_name || 'Talvane Barber';
+      const pName = botProfile.name || 'Pitoco Bot';
+      const company = botProfile.company_name || 'Pitoco de Gente';
       const customReply = config.systemPrompt ? replaceVars(config.systemPrompt, session.variables, botProfile) : null;
-      const responseText = customReply || `✨ *${pName} (${company}):*\nRecebi sua mensagem: "${cleanInput}". Como posso te auxiliar a escolher o melhor horário para seu atendimento?`;
+      const responseText = customReply || `✨ *${pName} (${company}):*\nRecebi sua mensagem: "${cleanInput}". Como posso te auxiliar a escolher os melhores itens para o enxoval do seu bebê? 💕`;
       replies.push(responseText);
     }
 

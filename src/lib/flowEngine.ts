@@ -385,11 +385,11 @@ export const FlowEngine = {
       // 6.5 Show Services Node (Apenas Leitura / Catálogo de Serviços)
       else if (nodeType === 'show_services' || (nodeType === 'services_catalog' && config.displayFormat !== 'buttons')) {
         let services = [
-          { id: 'srv-1', name: 'Corte Cabelo', duration_minutes: 45, price: 30 },
-          { id: 'srv-2', name: 'Barba', duration_minutes: 20, price: 20 },
-          { id: 'srv-3', name: 'Corte Cabelo + Barba (Promoção)', duration_minutes: 50, price: 45 },
-          { id: 'srv-4', name: 'Sobrancelha', duration_minutes: 12, price: 10 },
-          { id: 'srv-5', name: 'Corte Cabelo + Barba + Sobrancelha (Promoção)', duration_minutes: 10, price: 60 },
+          { id: 'srv-1', name: 'Body Suedine 100% Algodão', duration_minutes: 30, price: 49.9 },
+          { id: 'srv-2', name: 'Macacão Zíper Duplo Confort', duration_minutes: 30, price: 89.9 },
+          { id: 'srv-3', name: 'Saída Maternidade Tricot Luxo', duration_minutes: 30, price: 199.9 },
+          { id: 'srv-4', name: 'Kit de Berço 9 Peças 200 Fios', duration_minutes: 30, price: 389.0 },
+          { id: 'srv-5', name: 'Consultoria VIP de Enxoval', duration_minutes: 45, price: 0.0 },
         ];
         try {
           const agenda = await StorageService.getAgendaSettings();
@@ -399,7 +399,7 @@ export const FlowEngine = {
           }
         } catch {}
 
-        const header = substituteVariables(config.headerText || '💈 *Catálogo de Serviços & Preços*', variables, botProfile);
+        const header = substituteVariables(config.headerText || '🍼 *Catálogo Pitoco de Gente - Bebê & Enxovais*', variables, botProfile);
         const footer = config.footerText ? `\n\n_${substituteVariables(config.footerText, variables, botProfile)}_` : '';
 
         const serviceLines = services
@@ -419,8 +419,8 @@ export const FlowEngine = {
       // 6.6 Select Service Node (Escolha de Serviço via Botões)
       else if (nodeType === 'select_service' || (nodeType === 'services_catalog' && config.displayFormat === 'buttons')) {
         let services = [
-          { id: 'srv-1', name: 'Corte Cabelo', duration_minutes: 45, price: 30 },
-          { id: 'srv-2', name: 'Barba', duration_minutes: 20, price: 20 },
+          { id: 'srv-1', name: 'Body Suedine 100% Algodão', duration_minutes: 30, price: 49.9 },
+          { id: 'srv-2', name: 'Macacão Zíper Duplo Confort', duration_minutes: 30, price: 89.9 },
         ];
         try {
           const agenda = await StorageService.getAgendaSettings();
@@ -430,7 +430,7 @@ export const FlowEngine = {
           }
         } catch {}
 
-        const intro = substituteVariables(config.introMessage || 'Qual serviço você deseja agendar hoje?', variables, botProfile);
+        const intro = substituteVariables(config.introMessage || 'Qual peça ou atendimento você deseja escolher hoje?', variables, botProfile);
         replies.push({
           type: 'buttons',
           content: `✂️ *Escolha o Serviço:*\n${intro}`,

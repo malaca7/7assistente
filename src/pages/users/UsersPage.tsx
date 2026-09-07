@@ -385,7 +385,7 @@ export const UsersPage: React.FC = () => {
       return;
     }
     if (isSamePhone(user.phone, '81996138924')) {
-      toastError('Ação Bloqueada', 'O administrador principal (Talvane) não pode ser excluído.');
+      toastError('Ação Bloqueada', 'O administrador principal (CEO) não pode ser excluído.');
       return;
     }
     setUserToDelete(user);
@@ -535,15 +535,15 @@ export const UsersPage: React.FC = () => {
             </Card>
 
             <Card className="p-4 rounded-2xl bg-dark-900/70 border-white/10 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-brand-400">
-                <Scissors className="w-5 h-5" />
+              <div className="w-10 h-10 rounded-xl bg-pink-500/20 border border-pink-500/30 flex items-center justify-center text-pink-400">
+                <Sparkles className="w-5 h-5" />
               </div>
               <div>
-                <span className="text-[11px] text-slate-400 block">Barbeiros</span>
-                <span className="text-xl font-black text-brand-400">
+                <span className="text-[11px] text-slate-400 block">Consultoras VIP</span>
+                <span className="text-xl font-black text-pink-400">
                   {users.filter((u) => (u.role === 'barber' || u.permissions?.can_access_barbeiro) && u.status === 'active').length}
                 </span>
-                <span className="text-[10px] text-slate-400 block">Cadeira & Agenda</span>
+                <span className="text-[10px] text-slate-400 block">Enxoval & Consultoria</span>
               </div>
             </Card>
 
@@ -661,8 +661,8 @@ export const UsersPage: React.FC = () => {
                                   </span>
                                 )}
                                 {u.permissions?.can_access_barbeiro && (
-                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30">
-                                    Barbeiro
+                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-pink-500/20 text-pink-300 border border-pink-500/30">
+                                    Consultora
                                   </span>
                                 )}
                                 {u.permissions?.can_access_atendimento && (
@@ -921,8 +921,8 @@ export const UsersPage: React.FC = () => {
                     : 'bg-dark-950 border-white/10 text-slate-300 hover:text-white'
                 }`}
               >
-                <Scissors className="w-3.5 h-3.5" />
-                <span className="text-[11px]">Barbeiro</span>
+                <Sparkles className="w-3.5 h-3.5" />
+                <span className="text-[11px]">Consultora</span>
               </button>
 
               <button

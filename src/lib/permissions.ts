@@ -16,7 +16,7 @@ export interface PermissionCategory {
 }
 
 export interface RoleConfig {
-  id: 'admin' | 'barber' | 'attendant' | 'manager' | 'custom';
+  id: string;
   name: string;
   badgeLabel: string;
   description: string;
@@ -26,31 +26,30 @@ export interface RoleConfig {
   permissions: UserPermissions;
 }
 
-// 1. Catálogo unificado de todas as permissões do sistema (sincronizado entre Usuários e Cargos)
 export const SYSTEM_PERMISSION_CATEGORIES: PermissionCategory[] = [
   {
     id: 'portals',
     title: 'Portais de Acesso',
-    description: 'Controla quais painéis e interfaces o usuário/cargo pode acessar',
+    description: 'Controla quais painéis e interfaces o usuário pode acessar',
     iconName: 'ShieldCheck',
     options: [
       {
         key: 'can_access_admin',
-        label: 'Painel Administrativo (/admin)',
-        description: 'Acesso às telas de gestão geral, fluxos, catálogo e relatórios da barbearia',
+        label: 'Painel Central (/admin)',
+        description: 'Acesso à gestão geral da rede Pitoco de Gente e catálogo',
         portal: 'Admin',
       },
       {
         key: 'can_access_atendimento',
-        label: 'Painel de Atendimento (/atendente)',
+        label: 'Inbox Atendimento (/atendente)',
         description: 'Acesso ao chat em tempo real do WhatsApp para atendimento humano',
         portal: 'Atendente',
       },
       {
-        key: 'can_access_barbeiro',
-        label: 'Portal do Barbeiro (/barbeiro)',
-        description: 'Acesso à cadeira de corte, visualização de fila e gestão de horários',
-        portal: 'Barbeiro',
+        key: 'can_access_loja',
+        label: 'Gestão da Loja Física (/lojas)',
+        description: 'Acesso ao gerenciamento da filial e pedidos locais',
+        portal: 'Loja',
       },
     ],
   },
@@ -61,39 +60,44 @@ export const SYSTEM_PERMISSION_CATEGORIES: PermissionCategory[] = [
     iconName: 'Sliders',
     options: [
       {
-        key: 'can_manage_agenda',
-        label: 'Agendamentos & Expediente',
-        description: 'Visualizar agenda, criar e reagendar horários e gerenciar catálogo de serviços',
+        key: 'can_manage_products',
+        label: 'Catálogo de Produtos',
+        description: 'Cadastrar, editar e excluir bodies, macacões, saídas e enxovais',
+      },
+      {
+        key: 'can_manage_stores',
+        label: 'Gestão da Rede de Lojas',
+        description: 'Gerenciar filiais (Centro, Boulevard e E-commerce)',
       },
       {
         key: 'can_manage_clients',
-        label: 'Gestão de Clientes',
-        description: 'Consultar fichas de clientes, histórico de cortes, contatos e preferências',
+        label: 'CRM de Clientes & Mamães',
+        description: 'Consultar fichas de clientes, histórico de enxoval e compras',
       },
       {
         key: 'can_manage_conversations',
         label: 'Conversas & Chat WhatsApp',
-        description: 'Assumir conversas, responder clientes, transferir e pausar automação',
+        description: 'Assumir conversas, responder clientes e gerenciar transbordo',
       },
       {
         key: 'can_manage_flows',
         label: 'Fluxos do Robô',
-        description: 'Criar, editar e publicar fluxos de nós e automações do assistente',
+        description: 'Criar e editar árvores de nós de atendimento e vendas',
       },
       {
         key: 'can_manage_users',
         label: 'Usuários & Permissões',
-        description: 'Gerenciar equipe, criar novos usuários e definir permissões de cargos',
+        description: 'Gerenciar consultoras, gerentes e permissões da equipe',
       },
       {
         key: 'can_manage_settings',
         label: 'Configurações do Sistema',
-        description: 'Conexão QR Code WhatsApp, dados da empresa, chaves PIX e inteligência artificial',
+        description: 'Conexão QR Code WhatsApp, dados da empresa e chaves PIX',
       },
       {
         key: 'can_view_logs',
         label: 'Logs & Auditoria',
-        description: 'Consultar logs de auditoria, eventos de agendamento e execuções do robô',
+        description: 'Consultar logs de auditoria e execuções do robô',
       },
     ],
   },
@@ -104,30 +108,59 @@ export const SYSTEM_PERMISSION_CATEGORIES: PermissionCategory[] = [
     iconName: 'Sparkles',
     options: [
       {
-        key: 'can_create_appointments',
-        label: 'Criar Novos Agendamentos',
-        description: 'Inserir agendamentos manuais diretamente na grade de horários',
-      },
-      {
-        key: 'can_cancel_appointments',
-        label: 'Cancelar / Excluir Agendamentos',
-        description: 'Permite cancelar compromissos marcados ou remover horários da agenda',
+        key: 'can_schedule_consultation',
+        label: 'Agendar Consultoria VIP',
+        description: 'Inserir agendamentos de consultoria de enxoval',
       },
       {
         key: 'can_send_whatsapp_messages',
         label: 'Disparar Mensagens WhatsApp',
         description: 'Enviar mensagens ativas para clientes pelo número conectado',
       },
+      {
+        key: 'can_manage_tickets',
+        label: 'Gerenciar Tickets',
+        description: 'Criar e resolver tickets de suporte ao cliente',
+      },
     ],
   },
 ];
 
-// 2. Perfis padrão de Cargos
 export const DEFAULT_ROLE_CONFIGS: Record<string, RoleConfig> = {
+  ceo: {
+    id: 'ceo',
+    name: 'CEO / Diretoria da Rede',
+    badgeLabel: 'CEO GLOBAL',
+    description: 'Acesso completo a todas as lojas da rede, faturamento consolidado e relatórios.',
+    color: 'emerald',
+    bgLight: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+    borderColor: 'border-emerald-500/40',
+    permissions: {
+      can_access_admin: true,
+      can_access_atendimento: true,
+      can_access_loja: true,
+      can_view_all_stores: true,
+      can_manage_products: true,
+      can_manage_stores: true,
+      can_manage_clients: true,
+      can_manage_conversations: true,
+      can_manage_flows: true,
+      can_manage_users: true,
+      can_manage_settings: true,
+      can_view_logs: true,
+      can_schedule_consultation: true,
+      can_send_whatsapp_messages: true,
+      can_manage_tickets: true,
+      can_access_barbeiro: false,
+      can_manage_agenda: true,
+      can_create_appointments: true,
+      can_cancel_appointments: true,
+    },
+  },
   admin: {
     id: 'admin',
-    name: 'Administrador',
-    badgeLabel: 'Admin Total',
+    name: 'Administrador do Sistema',
+    badgeLabel: 'ADMIN',
     description: 'Acesso irrestrito a todos os painéis, módulos, configurações e financeiro.',
     color: 'emerald',
     bgLight: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
@@ -135,123 +168,147 @@ export const DEFAULT_ROLE_CONFIGS: Record<string, RoleConfig> = {
     permissions: {
       can_access_admin: true,
       can_access_atendimento: true,
-      can_access_barbeiro: true,
-      can_manage_agenda: true,
+      can_access_loja: true,
+      can_view_all_stores: true,
+      can_manage_products: true,
+      can_manage_stores: true,
       can_manage_clients: true,
       can_manage_conversations: true,
       can_manage_flows: true,
       can_manage_users: true,
       can_manage_settings: true,
       can_view_logs: true,
+      can_schedule_consultation: true,
+      can_send_whatsapp_messages: true,
+      can_manage_tickets: true,
+      can_access_barbeiro: false,
+      can_manage_agenda: true,
       can_create_appointments: true,
       can_cancel_appointments: true,
-      can_send_whatsapp_messages: true,
     },
   },
   manager: {
     id: 'manager',
-    name: 'Gerente / Supervisor',
-    badgeLabel: 'Gerência',
-    description: 'Acesso administrativo e operacional, com exceção de configurações críticas de sistema.',
+    name: 'Gerente de Filial',
+    badgeLabel: 'GERÊNCIA',
+    description: 'Acesso focado na gestão da sua unidade física (Centro ou Shopping Boulevard) e consultoras.',
     color: 'purple',
     bgLight: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
     borderColor: 'border-purple-500/40',
     permissions: {
       can_access_admin: true,
       can_access_atendimento: true,
-      can_access_barbeiro: true,
-      can_manage_agenda: true,
+      can_access_loja: true,
+      can_view_all_stores: false,
+      can_manage_products: true,
+      can_manage_stores: false,
       can_manage_clients: true,
       can_manage_conversations: true,
       can_manage_flows: false,
       can_manage_users: false,
       can_manage_settings: false,
       can_view_logs: true,
+      can_schedule_consultation: true,
+      can_send_whatsapp_messages: true,
+      can_manage_tickets: true,
+      can_access_barbeiro: false,
+      can_manage_agenda: true,
       can_create_appointments: true,
       can_cancel_appointments: true,
-      can_send_whatsapp_messages: true,
-    },
-  },
-  barber: {
-    id: 'barber',
-    name: 'Barbeiro / Profissional',
-    badgeLabel: 'Barbeiro',
-    description: 'Acesso focado na cadeira de corte, visualização de horários e lista de clientes.',
-    color: 'amber',
-    bgLight: 'bg-brand-500/10 text-brand-400 border-brand-500/30',
-    borderColor: 'border-brand-500/40',
-    permissions: {
-      can_access_admin: false,
-      can_access_atendimento: false,
-      can_access_barbeiro: true,
-      can_manage_agenda: true,
-      can_manage_clients: true,
-      can_manage_conversations: false,
-      can_manage_flows: false,
-      can_manage_users: false,
-      can_manage_settings: false,
-      can_view_logs: false,
-      can_create_appointments: true,
-      can_cancel_appointments: false,
-      can_send_whatsapp_messages: false,
     },
   },
   attendant: {
     id: 'attendant',
-    name: 'Atendente / Recepção',
-    badgeLabel: 'Atendimento',
-    description: 'Acesso ao chat em tempo real do WhatsApp e marcação de horários na agenda.',
+    name: 'Consultora VIP / Atendimento',
+    badgeLabel: 'CONSULTORA',
+    description: 'Acesso ao chat em tempo real do WhatsApp e consultorias VIP de enxoval.',
     color: 'blue',
     bgLight: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
     borderColor: 'border-blue-500/40',
     permissions: {
       can_access_admin: false,
       can_access_atendimento: true,
-      can_access_barbeiro: false,
-      can_manage_agenda: true,
+      can_access_loja: false,
+      can_view_all_stores: false,
+      can_manage_products: false,
+      can_manage_stores: false,
       can_manage_clients: true,
       can_manage_conversations: true,
       can_manage_flows: false,
       can_manage_users: false,
       can_manage_settings: false,
       can_view_logs: false,
-      can_create_appointments: true,
-      can_cancel_appointments: true,
+      can_schedule_consultation: true,
       can_send_whatsapp_messages: true,
+      can_manage_tickets: true,
+      can_access_barbeiro: false,
+      can_manage_agenda: true,
+      can_create_appointments: true,
+      can_cancel_appointments: false,
+    },
+  },
+  barber: {
+    id: 'barber',
+    name: 'Consultora Especialista',
+    badgeLabel: 'ESPECIALISTA',
+    description: 'Atendimento e consultoria personalizada de enxovais.',
+    color: 'amber',
+    bgLight: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+    borderColor: 'border-amber-500/40',
+    permissions: {
+      can_access_admin: false,
+      can_access_atendimento: true,
+      can_access_loja: false,
+      can_view_all_stores: false,
+      can_manage_products: false,
+      can_manage_stores: false,
+      can_manage_clients: true,
+      can_manage_conversations: true,
+      can_manage_flows: false,
+      can_manage_users: false,
+      can_manage_settings: false,
+      can_view_logs: false,
+      can_schedule_consultation: true,
+      can_send_whatsapp_messages: true,
+      can_manage_tickets: true,
+      can_access_barbeiro: false,
+      can_manage_agenda: true,
+      can_create_appointments: true,
+      can_cancel_appointments: false,
     },
   },
   custom: {
     id: 'custom',
     name: 'Personalizado',
-    badgeLabel: 'Custom',
-    description: 'Permissões sob medida definidas individualmente para este usuário.',
+    badgeLabel: 'CUSTOM',
+    description: 'Permissões sob medida definidas individualmente.',
     color: 'slate',
     bgLight: 'bg-slate-500/10 text-slate-300 border-slate-500/30',
     borderColor: 'border-slate-500/40',
     permissions: {
       can_access_admin: false,
       can_access_atendimento: false,
-      can_access_barbeiro: false,
-      can_manage_agenda: false,
+      can_access_loja: false,
+      can_manage_products: false,
+      can_manage_stores: false,
       can_manage_clients: false,
       can_manage_conversations: false,
       can_manage_flows: false,
       can_manage_users: false,
       can_manage_settings: false,
       can_view_logs: false,
-      can_create_appointments: false,
-      can_cancel_appointments: false,
+      can_schedule_consultation: false,
       can_send_whatsapp_messages: false,
+      can_manage_tickets: false,
     },
   },
 };
 
-// 3. Verifica se as permissões de um usuário correspondem exatamente a um cargo existente
 export function getMatchingRole(
   perms: UserPermissions,
   roleConfigs: Record<string, RoleConfig> = DEFAULT_ROLE_CONFIGS
-): 'admin' | 'barber' | 'attendant' | 'manager' | 'custom' {
-  const roles: Array<'admin' | 'barber' | 'attendant' | 'manager'> = ['admin', 'manager', 'barber', 'attendant'];
+): string {
+  const roles = ['ceo', 'admin', 'manager', 'attendant', 'barber'];
 
   for (const roleId of roles) {
     const roleConfig = roleConfigs[roleId];
@@ -276,11 +333,18 @@ export function getMatchingRole(
   return 'custom';
 }
 
-// 4. Copia permissões de um cargo
 export function cloneRolePermissions(
   roleId: string,
   roleConfigs: Record<string, RoleConfig> = DEFAULT_ROLE_CONFIGS
 ): UserPermissions {
-  const cfg = roleConfigs[roleId] || DEFAULT_ROLE_CONFIGS[roleId] || DEFAULT_ROLE_CONFIGS.barber;
+  const cfg = roleConfigs[roleId] || DEFAULT_ROLE_CONFIGS[roleId] || DEFAULT_ROLE_CONFIGS.attendant;
   return { ...cfg.permissions };
+}
+
+export function hasPermission(
+  userPermissions: UserPermissions | undefined,
+  permissionKey: keyof UserPermissions
+): boolean {
+  if (!userPermissions) return false;
+  return Boolean(userPermissions[permissionKey]);
 }

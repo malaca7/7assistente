@@ -11,15 +11,17 @@ execSync('npx vite build', { stdio: 'inherit' });
 const distPath = path.resolve('dist');
 fs.copyFileSync(path.join(distPath, 'index.html'), path.join(distPath, '404.html'));
 fs.writeFileSync(path.join(distPath, '.nojekyll'), '');
-fs.writeFileSync(path.join(distPath, 'CNAME'), 'talvane.malaca.com.br\n');
+fs.writeFileSync(path.join(distPath, 'CNAME'), 'pitoco.malaca.com.br\n');
 
 console.log('=== [2/5] Publicando na Branch gh-pages ===');
 if (fs.existsSync(path.join(distPath, '.git'))) {
   fs.rmSync(path.join(distPath, '.git'), { recursive: true, force: true });
 }
 execSync('git init', { cwd: distPath });
+execSync('git config user.name "Malaca Bot"', { cwd: distPath });
+execSync('git config user.email "bot@malaca.com.br"', { cwd: distPath });
 execSync('git add -A', { cwd: distPath });
-execSync('git commit -m "deploy: updated live frontend build for talvane.malaca.com.br"', { cwd: distPath });
+execSync('git commit -m "deploy: updated live frontend build for pitoco.malaca.com.br"', { cwd: distPath });
 execSync('git branch -M gh-pages', { cwd: distPath });
 execSync('git remote add origin https://github.com/malaca7/7assistente.git', { cwd: distPath });
 execSync('git push origin gh-pages --force', { cwd: distPath });

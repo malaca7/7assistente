@@ -88,7 +88,7 @@ export const AttendantPortalPage: React.FC<AttendantPortalPageProps> = ({ onNavi
 
   // Quick Appointment Modal
   const [isQuickAptModalOpen, setIsQuickAptModalOpen] = useState(false);
-  const [quickService, setQuickService] = useState('Corte Tradicional');
+  const [quickService, setQuickService] = useState('Consultoria VIP de Enxoval');
   const [quickDate, setQuickDate] = useState(new Date().toISOString().split('T')[0]);
   const [quickTime, setQuickTime] = useState('09:00');
   const [isClearHistoryModalOpen, setIsClearHistoryModalOpen] = useState(false);
@@ -361,7 +361,7 @@ export const AttendantPortalPage: React.FC<AttendantPortalPageProps> = ({ onNavi
       setIsQuickAptModalOpen(false);
 
       // Send confirmation to chat
-      const confirmText = `📅 *Agendamento Confirmado!*\n\nOlá ${clientName}, agendamos seu atendimento para:\n• *Serviço:* ${quickService}\n• *Data:* ${quickDate}\n• *Horário:* ${quickTime}\n\nTe esperamos aqui na Talvane Barber!`;
+      const confirmText = `📅 *Agendamento Confirmado!*\n\nOlá ${clientName}, agendamos seu atendimento para:\n• *Serviço:* ${quickService}\n• *Data:* ${quickDate}\n• *Horário:* ${quickTime}\n\nTe esperamos com muito carinho aqui na Pitoco de Gente! 💕`;
       await handleSendMessage(confirmText);
       success('Agendamento Realizado', 'Compromisso gravado na Agenda e enviado no WhatsApp do cliente.');
     } catch (err: any) {
@@ -954,7 +954,7 @@ export const AttendantPortalPage: React.FC<AttendantPortalPageProps> = ({ onNavi
           <div className="space-y-1.5">
             <label className="text-[11px] font-bold text-slate-400 uppercase">Nota de Transbordo (Opcional)</label>
             <Textarea
-              placeholder="Ex: Cliente quer saber sobre o serviço de Barba Terapia..."
+              placeholder="Ex: Mamãe tem dúvidas sobre saídas de maternidade e kit berço..."
               value={transferNote}
               onChange={(e) => setTransferNote(e.target.value)}
               rows={2}
