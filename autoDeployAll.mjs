@@ -37,6 +37,21 @@ async function main() {
       fs.copyFileSync(root404, path.join(distDir, '404.html'));
     }
 
+    const officialLogoPath = path.resolve(__dirname, 'public', 'logo.png');
+    if (fs.existsSync(officialLogoPath)) {
+      const logoTargets = [
+        path.join(distDir, 'logo.png'),
+        path.join(distDir, 'logo.jpg'),
+        path.resolve(__dirname, 'logo.png'),
+        path.resolve(__dirname, 'logo.jpg'),
+        path.resolve(__dirname, 'public', 'logo.jpg'),
+      ];
+      for (const target of logoTargets) {
+        fs.copyFileSync(officialLogoPath, target);
+      }
+      console.log('✅ Logo oficial transparente replicada para todas as rotas estáticas.');
+    }
+
     const distHtml = fs.readFileSync(path.join(distDir, 'index.html'), 'utf8');
 
     // Criar diretórios físicos para cada rota SPA para eliminar erro 404 no GitHub Pages
@@ -70,7 +85,7 @@ async function main() {
       if (!fs.existsSync(routeRootDir)) fs.mkdirSync(routeRootDir, { recursive: true });
       fs.writeFileSync(path.join(routeRootDir, 'index.html'), distHtml, 'utf8');
     }
-    console.log('✅ Diretórios físicos de rotas (/admin, /login, etc.) gerados para prevenir erro 404.');
+    console.log('✅ Diretórios físicos de rotas (/admin, /login, /fluxos, etc.) gerados para prevenir erro 404.');
 
     // Copiar assets para a raiz para evitar tela branca caso GitHub Pages sirva da raiz do main
     const rootAssets = path.resolve(__dirname, 'assets');
@@ -93,11 +108,14 @@ async function main() {
   // 3. Verificar e commitar alterações no Git
   console.log('\n📝 [2/5] Registrando alterações no Git...');
   try {
+    // Forçar inclusão dos arquivos essenciais na raiz (logo, CNAME, 404, docs, routes)
     execSync('git add -A', { cwd: __dirname, stdio: 'inherit' });
+    execSync('git add -f logo.png logo.jpg CNAME .nojekyll 404.html docs/ admin/ fluxos/ login/ assets/', { cwd: __dirname, stdio: 'inherit' });
+    
     const status = execSync('git status --porcelain', { cwd: __dirname, encoding: 'utf8' }).trim();
     if (status.length > 0) {
       console.log('📌 Mudanças detectadas. Criando commit de deploy...');
-      execSync('git commit -m "feat: gestao completa de fluxos bot e novo login por usuario (apenas letras) e senha (apenas numeros)"', { cwd: __dirname, stdio: 'inherit' });
+      execSync('git commit -m "fix(logo): corrigir logo oficial transparente em todas as rotas e integrar studio visual de fluxos n8n/botghost"', { cwd: __dirname, stdio: 'inherit' });
       console.log('✅ Commit criado com sucesso!');
     } else {
       console.log('ℹ️ Nenhuma alteração pendente para commit.');
@@ -129,19 +147,38 @@ async function main() {
   }
 
   // 5. Atualizar branch gh-pages no GitHub botpitoco com os arquivos estáticos de produção
-  console.log('\n🌐 [4/5] Atualizando branch gh-pages no GitHub...');
+  console.log('\n🌐 [4/5] Atualizando branch gh-pages no GitHub com a versão compilada...');
   try {
-    const treeHash = execSync('git write-tree --prefix=dist/', { cwd: __dirname, encoding: 'utf8' }).trim();
-    if (treeHash) {
-      const commitHash = execSync(`git commit-tree ${treeHash} -m "deploy: update GitHub Pages production release with /admin route"`, { cwd: __dirname, encoding: 'utf8' }).trim();
-      execSync(`git push botpitoco ${commitHash}:refs/heads/gh-pages --force`, { cwd: __dirname, stdio: 'inherit' });
-      console.log('✅ Branch gh-pages enviada com sucesso para botpitoco!');
-      
-      try {
-        execSync(`git push origin ${commitHash}:refs/heads/gh-pages --force`, { cwd: __dirname, stdio: 'inherit' });
-        console.log('✅ Branch gh-pages enviada com sucesso para origin!');
-      } catch (e) {}
-    }
+    const tempDeployDir = path.resolve(__dirname, '.gh-pages-temp');
+    if (fs.existsSync(tempDeployDir)) fs.rmSync(tempDeployDir, { recursive: true, force: true });
+    fs.mkdirSync(tempDeployDir, { recursive: true });
+
+    // Copiar todo o conteúdo do dist para o diretório temporário
+    fs.cpSync(distDir, tempDeployDir, { recursive: true });
+
+    // Inicializar repositório Git isolado para a branch gh-pages
+    execSync('git init', { cwd: tempDeployDir, stdio: 'pipe' });
+    execSync('git checkout -b gh-pages', { cwd: tempDeployDir, stdio: 'pipe' });
+    execSync('git add -A', { cwd: tempDeployDir, stdio: 'pipe' });
+    execSync('git commit -m "deploy: update GitHub Pages production release with official logo and n8n flow studio"', { cwd: tempDeployDir, stdio: 'pipe' });
+
+    // Push para botpitoco gh-pages
+    execSync('git remote add botpitoco https://github.com/malaca7/botpitoco.git', { cwd: tempDeployDir, stdio: 'pipe' });
+    execSync('git push botpitoco gh-pages --force', { cwd: tempDeployDir, stdio: 'inherit' });
+    console.log('✅ Branch gh-pages atualizada com sucesso no repositório botpitoco!');
+
+    // Push para origin se existir
+    try {
+      const originUrl = execSync('git config --get remote.origin.url', { cwd: __dirname, encoding: 'utf8' }).trim();
+      if (originUrl) {
+        execSync(`git remote add origin ${originUrl}`, { cwd: tempDeployDir, stdio: 'pipe' });
+        execSync('git push origin gh-pages --force', { cwd: tempDeployDir, stdio: 'inherit' });
+        console.log('✅ Branch gh-pages atualizada com sucesso no origin!');
+      }
+    } catch (e) {}
+
+    // Limpar diretório temporário
+    fs.rmSync(tempDeployDir, { recursive: true, force: true });
   } catch (ghPagesErr) {
     console.warn('⚠️ Nota sobre envio de gh-pages:', ghPagesErr.message);
   }

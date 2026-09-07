@@ -93,7 +93,7 @@ export const App: React.FC = () => {
     title = 'Rede de Lojas';
     subtitle = 'Gestão centralizada das unidades Centro, Shopping Boulevard e E-commerce';
     pageContent = <RedeLojasView onNavigate={navigate} />;
-  } else if (currentPath === '/fluxos') {
+  } else if (currentPath.startsWith('/fluxos')) {
     title = 'Fluxos de Atendimento';
     subtitle = 'Árvores de automação e vendas da Pitoco de Gente no WhatsApp';
     pageContent = <FlowBuilderView onNavigate={navigate} />;

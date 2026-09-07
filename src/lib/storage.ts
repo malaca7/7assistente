@@ -44,6 +44,9 @@ import {
 
 import * as SupabaseService from './supabaseClient';
 import { DEFAULT_ROLE_CONFIGS } from './permissions';
+import { getWhatsAppBackendUrl } from './whatsappService';
+
+export const getBackendUrl = getWhatsAppBackendUrl;
 
 const API_BASE = 
   (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_BOT_URL) ||
@@ -665,6 +668,10 @@ export const StorageService = {
     return flows.find(f => f.id === id) || null;
   },
 
+  async getFlowById(id: string): Promise<Flow | null> {
+    return this.getFlow(id);
+  },
+
   async saveFlow(flow: Partial<Flow>): Promise<Flow> {
     const flows = getItem<Flow[]>(STORAGE_KEYS.FLOWS, sampleFlows);
     const existingIndex = flows.findIndex(f => f.id === flow.id);
@@ -751,6 +758,13 @@ export const StorageService = {
 
   async saveFlowEdges(flowId: string, edges: FlowEdge[]): Promise<void> {
     setItem(`${STORAGE_KEYS.FLOW_EDGES_PREFIX}${flowId}`, edges);
+  },
+
+  async saveFlowGraph(flowId: string, nodes: FlowNode[], edges: FlowEdge[]): Promise<void> {
+    await Promise.all([
+      this.saveFlowNodes(flowId, nodes),
+      this.saveFlowEdges(flowId, edges),
+    ]);
   },
 
   // ==============================================================================

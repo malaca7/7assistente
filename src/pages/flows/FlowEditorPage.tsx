@@ -42,9 +42,10 @@ import {
 export interface FlowEditorPageProps {
   flowId: string;
   onNavigate: (path: string) => void;
+  onBack?: () => void;
 }
 
-export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, onNavigate }) => {
+export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, onNavigate, onBack }) => {
   const { success, error: toastError, info, warning } = useToast();
   const { isConnected } = useWhatsApp();
   const { screenToFlowPosition, fitView } = useReactFlow();
@@ -830,9 +831,13 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
     } catch (err) {
       console.error('Error auto-organizing on exit:', err);
     } finally {
-      onNavigate('/fluxos');
+      if (onBack) {
+        onBack();
+      } else {
+        onNavigate('/fluxos');
+      }
     }
-  }, [flowId, computeOrganizedNodes, setNodes, onNavigate]);
+  }, [flowId, computeOrganizedNodes, setNodes, onNavigate, onBack]);
 
   // Safety net: Auto-organize and persist on unmount
   useEffect(() => {

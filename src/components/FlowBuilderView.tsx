@@ -34,6 +34,7 @@ import { Badge } from './ui/Badge';
 import { Modal } from './ui/Modal';
 import { useToast } from '../contexts/ToastContext';
 import { FlowSimulator } from './flow-builder/FlowSimulator';
+import { FlowEditorPage } from '../pages/flows/FlowEditorPage';
 import { StorageService } from '../lib/storage';
 import { Flow, FlowStep, NodeTypeEnum, Store } from '../types';
 
@@ -51,6 +52,10 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
   const [searchTerm, setSearchTerm] = useState('');
   const [isSimulating, setIsSimulating] = useState(false);
   const [selectedFlowForSteps, setSelectedFlowForSteps] = useState<Flow | null>(null);
+
+  // Modo de visualização: 'list' (gerenciador tradicional) ou 'studio' (Studio Visual N8N / BotGhost)
+  const [viewMode, setViewMode] = useState<'list' | 'studio'>('list');
+  const [studioFlowId, setStudioFlowId] = useState<string>('');
 
   // Modal de Criação / Edição de Fluxo
   const [isFlowModalOpen, setIsFlowModalOpen] = useState(false);
@@ -238,6 +243,13 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
     setFlowSteps(prev => prev.filter((_, i) => i !== index));
   };
 
+  // Abrir Visual Studio N8N / BotGhost
+  const handleOpenStudio = (flowId?: string) => {
+    const targetId = flowId || selectedFlowForSteps?.id || flows[0]?.id || 'flow-principal-pitoco';
+    setStudioFlowId(targetId);
+    setViewMode('studio');
+  };
+
   // Filtragem de Fluxos
   const filteredFlows = useMemo(() => {
     return flows.filter(f => {
@@ -252,6 +264,29 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
 
   // Contadores
   const activeFlowsCount = useMemo(() => flows.filter(f => f.is_active).length, [flows]);
+
+  // Se o usuário estiver no modo Studio Visual N8N / BotGhost
+  if (viewMode === 'studio') {
+    return (
+      <div className="w-full -mx-4 -my-6 min-h-[calc(100vh-100px)]">
+        <FlowEditorPage
+          flowId={studioFlowId || flows[0]?.id || 'flow-principal-pitoco'}
+          onNavigate={(path) => {
+            if (path === '/fluxos') {
+              setViewMode('list');
+              loadData();
+            } else if (onNavigate) {
+              onNavigate(path);
+            }
+          }}
+          onBack={() => {
+            setViewMode('list');
+            loadData();
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -276,7 +311,7 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             size="sm"
             variant="outline"
@@ -299,6 +334,15 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
           >
             <Smartphone className="w-4 h-4" />
             {isSimulating ? 'Fechar Simulador' : 'Simular WhatsApp'}
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={() => handleOpenStudio()}
+            className="bg-gradient-to-r from-purple-600 via-indigo-600 to-pitoco-blue hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-2 shadow-glow-primary border border-purple-400/30"
+          >
+            <Sparkles className="w-4 h-4 text-white animate-pulse" />
+            Studio N8N / BotGhost
           </Button>
 
           <Button
@@ -467,7 +511,17 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
                     </Button>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Button
+                      size="sm"
+                      onClick={() => handleOpenStudio(flow.id)}
+                      className="bg-gradient-to-r from-purple-600/20 via-indigo-600/20 to-pitoco-blue/20 hover:from-purple-600/35 hover:to-pitoco-blue/35 text-white font-bold text-xs px-3 py-1.5 rounded-xl border border-purple-500/40 flex items-center gap-1.5 shadow-sm transition-all"
+                      title="Abrir e editar fluxo no Studio Visual estilo N8N e BotGhost"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-pitoco-blue animate-pulse" />
+                      Visual Studio N8N
+                    </Button>
+
                     <Button
                       size="sm"
                       onClick={() => handleOpenEditFlow(flow)}
@@ -724,22 +778,40 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-white/5">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsFlowModalOpen(false)}
-              className="text-xs border-white/10 text-slate-300"
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSavingFlow}
-              className="bg-pitoco-blue text-slate-950 font-bold text-xs px-5 rounded-xl hover:bg-pitoco-blue/90"
-            >
-              {isSavingFlow ? 'Salvando...' : editingFlow ? 'Salvar Alterações' : 'Criar Fluxo'}
-            </Button>
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-white/5">
+            <div>
+              {editingFlow && (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setIsFlowModalOpen(false);
+                    handleOpenStudio(editingFlow.id);
+                  }}
+                  className="bg-gradient-to-r from-purple-600 to-pitoco-blue hover:from-purple-500 hover:to-pitoco-blue text-white font-bold text-xs px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm"
+                >
+                  <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                  Abrir no Studio N8N
+                </Button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsFlowModalOpen(false)}
+                className="text-xs border-white/10 text-slate-300"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSavingFlow}
+                className="bg-pitoco-blue text-slate-950 font-bold text-xs px-5 rounded-xl hover:bg-pitoco-blue/90"
+              >
+                {isSavingFlow ? 'Salvando...' : editingFlow ? 'Salvar Alterações' : 'Criar Fluxo'}
+              </Button>
+            </div>
           </div>
         </form>
       </Modal>
