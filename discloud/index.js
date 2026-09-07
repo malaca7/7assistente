@@ -1,2 +1,3 @@
 // Discloud Site Entry Point
-import './server.js';
+import './server/websocketPolyfill.mjs';
+import './server/index.mjs';

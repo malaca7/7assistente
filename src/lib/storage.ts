@@ -880,6 +880,16 @@ export const StorageService = {
   },
 
   async getFlowNodes(flowId: string): Promise<FlowNode[]> {
+    try {
+      const res = await fetch(`${API_BASE}/api/flows/${flowId}/graph`, { signal: AbortSignal.timeout(3000) });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.nodes) && data.nodes.length > 0) {
+          setItem(`${STORAGE_KEYS.FLOW_NODES_PREFIX}${flowId}`, data.nodes);
+          return data.nodes;
+        }
+      }
+    } catch {}
     return getItem<FlowNode[]>(`${STORAGE_KEYS.FLOW_NODES_PREFIX}${flowId}`, initialFlowNodes);
   },
 
@@ -888,6 +898,16 @@ export const StorageService = {
   },
 
   async getFlowEdges(flowId: string): Promise<FlowEdge[]> {
+    try {
+      const res = await fetch(`${API_BASE}/api/flows/${flowId}/graph`, { signal: AbortSignal.timeout(3000) });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.edges) && data.edges.length > 0) {
+          setItem(`${STORAGE_KEYS.FLOW_EDGES_PREFIX}${flowId}`, data.edges);
+          return data.edges;
+        }
+      }
+    } catch {}
     return getItem<FlowEdge[]>(`${STORAGE_KEYS.FLOW_EDGES_PREFIX}${flowId}`, initialFlowEdges);
   },
 
@@ -896,10 +916,22 @@ export const StorageService = {
   },
 
   async saveFlowGraph(flowId: string, nodes: FlowNode[], edges: FlowEdge[]): Promise<void> {
+    // 1. Salvar no cache local do navegador
     await Promise.all([
       this.saveFlowNodes(flowId, nodes),
       this.saveFlowEdges(flowId, edges),
     ]);
+
+    // 2. Sincronizar em tempo real com o backend do bot WhatsApp (persistente no servidor)
+    try {
+      await fetch(`${API_BASE}/api/flows/${flowId}/graph`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nodes, edges }),
+      });
+    } catch (e) {
+      console.warn('[StorageService] Falha ao sincronizar grafo com backend:', e);
+    }
   },
 
   // ==============================================================================

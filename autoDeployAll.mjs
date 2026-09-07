@@ -115,7 +115,7 @@ async function main() {
     const status = execSync('git status --porcelain', { cwd: __dirname, encoding: 'utf8' }).trim();
     if (status.length > 0) {
       console.log('📌 Mudanças detectadas. Criando commit de deploy...');
-      execSync('git commit -m "fix(logo): corrigir logo oficial transparente em todas as rotas e integrar studio visual de fluxos n8n/botghost"', { cwd: __dirname, stdio: 'inherit' });
+      execSync('git commit -m "fix(flow): sincronizar e executar no bot whatsapp o fluxo ativo publicado no painel em tempo real"', { cwd: __dirname, stdio: 'inherit' });
       console.log('✅ Commit criado com sucesso!');
     } else {
       console.log('ℹ️ Nenhuma alteração pendente para commit.');
@@ -162,7 +162,7 @@ async function main() {
     execSync('git config user.email "bot@pitoco.malaca.com.br"', { cwd: tempDeployDir, stdio: 'pipe' });
     execSync('git config user.name "Pitoco Bot"', { cwd: tempDeployDir, stdio: 'pipe' });
     execSync('git add -A', { cwd: tempDeployDir, stdio: 'pipe' });
-    execSync('git commit -m "deploy: update GitHub Pages production release with official logo and n8n flow studio"', { cwd: tempDeployDir, stdio: 'pipe' });
+    execSync('git commit -m "deploy: sincronizar fluxos ativos do painel com bot whatsapp no discloud"', { cwd: tempDeployDir, stdio: 'pipe' });
 
     // Push para botpitoco gh-pages
     execSync('git remote add botpitoco https://github.com/malaca7/botpitoco.git', { cwd: tempDeployDir, stdio: 'pipe' });
