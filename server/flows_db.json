@@ -1029,24 +1029,29 @@
     "tone": "Amigável e Profissional",
     "support_phone": "81996138924",
     "business_hours": "08:00 às 19:00",
-    "welcome_message": "Olá! Seja bem-vindo à Talvane Barber. Como podemos te ajudar hoje?",
+    "welcome_message": "👶✨ *PITOCO DE GENTE — Roupas de Bebê & Enxovais*\nOlá, *{clientName}*! Bem-vindo(a) à nossa loja oficial! Como podemos te ajudar hoje?",
     "avatar_url": "",
     "company_segment": "Barbearia e Estética Masculina",
-    "support_email": "contato@talvanebarber.com.br",
+    "support_email": "contato@pitocodegente.com.br",
     "website_url": "https://talvane.malaca.com.br",
     "id": "default",
     "updated_at": "2026-09-03T16:56:59.719Z",
     "handoff_message": "Vou transferir seu atendimento para um de nossos profissionais. Por favor, aguarde um instante!",
     "company_address": "",
     "pix_key_type": "telefone",
-    "pix_key": "81996138924",
-    "pix_owner": "Rogerio Malaquias",
+    "pix_key": "financeiro@pitocodegente.com.br",
+    "pix_owner": "Pitoco de Gente Artigos Infantis LTDA",
     "notify_new_bookings": true,
     "notify_phone": "81996138924",
     "play_audio_alerts": true,
     "custom_variables": [],
     "bot_nome": "Pitoco Bot",
-    "empresa": "Pitoco de Gente"
+    "empresa": "Pitoco de Gente",
+    "pix_name": "Pitoco de Gente Artigos Infantis LTDA",
+    "shipping_motoboy_price": 15,
+    "shipping_correios_price": 24.9,
+    "free_shipping_threshold": 250,
+    "is_active": true
   },
   "settings": {
     "id": "settings-001",
@@ -1055,8 +1060,8 @@
     "whatsapp_access_token_encrypted": "EAAO...7assistente_token_secret_vault",
     "webhook_verify_token": "7assistente_meta_webhook_token_2026",
     "bot_profile": {
-      "name": "Talvane Barber Bot",
-      "company_name": "Talvane Barber Shop",
+      "name": "Pitoco Bot",
+      "company_name": "Pitoco de Gente",
       "gender": "male",
       "tone": "Amigável e Profissional",
       "avatar_url": "",
@@ -1065,7 +1070,7 @@
       "support_phone": "81996138924",
       "business_hours": "08:00 às 19:00",
       "website_url": "https://talvane.malaca.com.br",
-      "welcome_message": "Olá! Seja bem-vindo à Talvane Barber. Como podemos te ajudar hoje?",
+      "welcome_message": "Olá! Seja bem-vindo à Pitoco de Gente. Como podemos te ajudar hoje?",
       "id": "default",
       "updated_at": "2026-09-03T16:56:59.719Z"
     },
@@ -1123,7 +1128,7 @@
         "nome_liente": "Carlos",
         "opcao_selecionada": "2. Consultar Preços",
         "botao_id": "btn_2",
-        "catalogo_servicos_texto": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Sobrancelha*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Corte Cabelo + Barba + Sobrancelha (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._"
+        "catalogo_servicos_texto": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Consultoria VIP de Enxoval*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Kit Saída de Maternidade Tricot*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Consultoria VIP + Kit Saída Maternidade (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Kit Bodies Suedine Pima*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Consultoria VIP + Kit Saída Maternidade + Kit Bodies Suedine Pima (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._"
       },
       "waitingForVar": null,
       "activeButtons": [
@@ -1162,8 +1167,8 @@
         "nome_liente": "Carlos Silva",
         "opcao_selecionada": "2. Consultar Preços",
         "botao_id": "btn_2",
-        "catalogo_servicos_texto": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Sobrancelha*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Corte Cabelo + Barba + Sobrancelha (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._",
-        "catalogo_servicos": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Sobrancelha*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Corte Cabelo + Barba + Sobrancelha (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._"
+        "catalogo_servicos_texto": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Consultoria VIP de Enxoval*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Kit Saída de Maternidade Tricot*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Consultoria VIP + Kit Saída Maternidade (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Kit Bodies Suedine Pima*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Consultoria VIP + Kit Saída Maternidade + Kit Bodies Suedine Pima (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._",
+        "catalogo_servicos": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Consultoria VIP de Enxoval*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Kit Saída de Maternidade Tricot*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Consultoria VIP + Kit Saída Maternidade (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Kit Bodies Suedine Pima*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Consultoria VIP + Kit Saída Maternidade + Kit Bodies Suedine Pima (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._"
       },
       "waitingForVar": null,
       "activeButtons": [
@@ -1209,6 +1214,64 @@
           "title": "3. Falar com Atendente"
         }
       ]
+    },
+    "558199999999": {
+      "flowId": "flow-pitoco-001",
+      "currentNodeId": "node-catalog-pitoco",
+      "variables": {
+        "whatsapp_pushname": "Rogerio",
+        "telefone_cliente": "558199999999",
+        "telefone_whatsapp": "558199999999",
+        "ultima_mensagem": "1",
+        "nome_cliente": "",
+        "opcao_selecionada": "1. Ver Catálogo Bebê",
+        "botao_id": "btn_catalogo",
+        "catalogo_servicos_texto": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
+        "catalogo_servicos": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_"
+      },
+      "activeButtons": [
+        {
+          "id": "btn_catalogo",
+          "title": "1. Ver Catálogo Bebê"
+        },
+        {
+          "id": "btn_enxoval",
+          "title": "2. Consultoria de Enxoval"
+        },
+        {
+          "id": "btn_atendente",
+          "title": "3. Falar com Atendente"
+        }
+      ]
+    },
+    "5581988887777": {
+      "flowId": "flow-pitoco-001",
+      "currentNodeId": null,
+      "variables": {
+        "whatsapp_pushname": "Mariana",
+        "telefone_cliente": "5581988887777",
+        "telefone_whatsapp": "5581988887777",
+        "ultima_mensagem": "3",
+        "nome_cliente": "",
+        "opcao_selecionada": "3. Falar com Atendente",
+        "botao_id": "btn_atendente",
+        "catalogo_servicos_texto": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
+        "catalogo_servicos": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_"
+      },
+      "activeButtons": [
+        {
+          "id": "btn_catalogo",
+          "title": "1. Ver Catálogo Bebê"
+        },
+        {
+          "id": "btn_enxoval",
+          "title": "2. Consultoria de Enxoval"
+        },
+        {
+          "id": "btn_atendente",
+          "title": "3. Falar com Atendente"
+        }
+      ]
     }
   },
   "appointments": [
@@ -1216,7 +1279,7 @@
       "id": "apt-1788468016809",
       "contact_name": "Julio",
       "contact_phone": "81999999999",
-      "service_name": "Corte Cabelo + Barba (Promoção)",
+      "service_name": "Consultoria VIP + Kit Saída Maternidade (Promoção)",
       "duration_minutes": 50,
       "price": 45,
       "appointment_date": "2026-09-03",
@@ -1230,7 +1293,7 @@
       "id": "apt-1788469977786",
       "contact_name": "Leo",
       "contact_phone": "81900000003",
-      "service_name": "Corte Cabelo + Barba (Promoção)",
+      "service_name": "Consultoria VIP + Kit Saída Maternidade (Promoção)",
       "duration_minutes": 50,
       "end_time": "20:20",
       "slots_count": 4,
@@ -1255,6 +1318,34 @@
       "metadata": {},
       "created_at": "2026-09-07T18:10:17.407Z",
       "updated_at": "2026-09-07T18:10:42.033Z"
+    },
+    "558199999999": {
+      "id": "contact-558199999999",
+      "phone": "558199999999",
+      "name": "Rogerio",
+      "whatsapp_pushname": "Rogerio",
+      "status": "lead",
+      "tags": [
+        "Lead"
+      ],
+      "is_registered": false,
+      "metadata": {},
+      "created_at": "2026-09-07T20:27:52.881Z",
+      "updated_at": "2026-09-07T20:27:54.154Z"
+    },
+    "5581988887777": {
+      "id": "contact-5581988887777",
+      "phone": "5581988887777",
+      "name": "Mariana",
+      "whatsapp_pushname": "Mariana",
+      "status": "lead",
+      "tags": [
+        "Lead"
+      ],
+      "is_registered": false,
+      "metadata": {},
+      "created_at": "2026-09-07T20:34:21.222Z",
+      "updated_at": "2026-09-07T20:34:21.482Z"
     }
   },
   "conversations": {
@@ -1309,6 +1400,32 @@
       "last_message": "👩‍💼 *Atendimento Humanizado*\n\nConectando você agora com uma de nossas consultoras especialistas em bebês da Pitoco de Gente. Aguarde só um instante!",
       "last_message_at": "2026-09-07T18:10:42.033Z",
       "updated_at": "2026-09-07T18:10:42.033Z"
+    },
+    "conv-558199999999": {
+      "id": "conv-558199999999",
+      "contact_id": "contact-558199999999",
+      "contact_name": "Rogerio",
+      "contact_phone": "558199999999",
+      "status": "bot",
+      "started_at": "2026-09-07T20:27:52.881Z",
+      "unread_count": 0,
+      "created_at": "2026-09-07T20:27:52.881Z",
+      "last_message": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
+      "last_message_at": "2026-09-07T20:27:54.154Z",
+      "updated_at": "2026-09-07T20:27:54.154Z"
+    },
+    "conv-5581988887777": {
+      "id": "conv-5581988887777",
+      "contact_id": "contact-5581988887777",
+      "contact_name": "Mariana",
+      "contact_phone": "5581988887777",
+      "status": "waiting_human",
+      "started_at": "2026-09-07T20:34:21.222Z",
+      "unread_count": 0,
+      "created_at": "2026-09-07T20:34:21.222Z",
+      "last_message": "👩‍💼 *Atendimento Humanizado*\n\nConectando você agora com uma de nossas consultoras especialistas em bebês da Pitoco de Gente. Aguarde só um instante!",
+      "last_message_at": "2026-09-07T20:34:21.482Z",
+      "updated_at": "2026-09-07T20:34:21.482Z"
     }
   },
   "messages": {
@@ -1624,7 +1741,7 @@
         "conversation_id": "conv-558196138924",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Conheça nossos serviços e valores:\n\n*1.* 🏷️ *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min",
+        "content": "Conheça nossos serviços e valores:\n\n*1.* 🏷️ *Consultoria VIP de Enxoval*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Kit Saída de Maternidade Tricot*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Consultoria VIP + Kit Saída Maternidade (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min",
         "status": "delivered",
         "created_at": "2026-08-30T15:14:46.853Z"
       },
@@ -1651,7 +1768,7 @@
         "conversation_id": "conv-558196138924",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Conheça nossos serviços e valores:\n\n*1.* 🏷️ *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min",
+        "content": "Conheça nossos serviços e valores:\n\n*1.* 🏷️ *Consultoria VIP de Enxoval*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Kit Saída de Maternidade Tricot*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Consultoria VIP + Kit Saída Maternidade (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min",
         "status": "delivered",
         "created_at": "2026-08-30T15:25:38.364Z"
       },
@@ -1660,7 +1777,7 @@
         "conversation_id": "conv-558196138924",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Conheça nossos serviços e valores:\n\n*1.* 🏷️ *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min",
+        "content": "Conheça nossos serviços e valores:\n\n*1.* 🏷️ *Consultoria VIP de Enxoval*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Kit Saída de Maternidade Tricot*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Consultoria VIP + Kit Saída Maternidade (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min",
         "status": "delivered",
         "created_at": "2026-08-30T15:25:43.470Z"
       },
@@ -1669,7 +1786,7 @@
         "conversation_id": "conv-558196138924",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Conheça nossos serviços e valores:\n\n*1.* 🏷️ *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min",
+        "content": "Conheça nossos serviços e valores:\n\n*1.* 🏷️ *Consultoria VIP de Enxoval*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Kit Saída de Maternidade Tricot*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Consultoria VIP + Kit Saída Maternidade (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min",
         "status": "delivered",
         "created_at": "2026-08-30T15:25:54.102Z"
       },
@@ -1687,7 +1804,7 @@
         "conversation_id": "conv-558196138924",
         "direction": "outbound",
         "message_type": "text",
-        "content": "*Rogerio*, qual serviço você deseja?\n\n*1.* 🏷️ *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min",
+        "content": "*Rogerio*, qual serviço você deseja?\n\n*1.* 🏷️ *Consultoria VIP de Enxoval*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2.* 🏷️ *Kit Saída de Maternidade Tricot*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3.* 🏷️ *Consultoria VIP + Kit Saída Maternidade (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min",
         "status": "delivered",
         "created_at": "2026-08-30T15:34:58.856Z"
       },
@@ -1824,7 +1941,7 @@
         "conversation_id": "conv-5581999991234",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Olá, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber*! e vou lhe auxiliar para ter um melhor atendimento",
+        "content": "Olá, me chamo *Pitoco Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
         "status": "delivered",
         "created_at": "2026-09-03T17:17:27.494Z"
       },
@@ -1851,7 +1968,7 @@
         "conversation_id": "conv-5581999991234",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Olá Carlos Silva, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber*! e vou lhe auxiliar para ter um melhor atendimento",
+        "content": "Olá Carlos Silva, me chamo *Pitoco Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
         "status": "delivered",
         "created_at": "2026-09-03T17:17:28.900Z"
       },
@@ -1871,7 +1988,7 @@
         "conversation_id": "conv-5581999995555",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Olá, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber*! e vou lhe auxiliar para ter um melhor atendimento",
+        "content": "Olá, me chamo *Pitoco Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
         "status": "delivered",
         "created_at": "2026-09-03T17:17:47.612Z"
       },
@@ -1889,7 +2006,7 @@
         "conversation_id": "conv-5581999995555",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Olá, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber*! e vou lhe auxiliar para ter um melhor atendimento",
+        "content": "Olá, me chamo *Pitoco Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
         "status": "delivered",
         "created_at": "2026-09-03T17:17:49.123Z"
       },
@@ -1909,7 +2026,7 @@
         "conversation_id": "conv-5581988880001",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Olá, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber*! e vou lhe auxiliar para ter um melhor atendimento",
+        "content": "Olá, me chamo *Pitoco Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
         "status": "delivered",
         "created_at": "2026-09-03T17:20:52.144Z"
       },
@@ -1936,7 +2053,7 @@
         "conversation_id": "conv-5581988880001",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Olá Me chamo Matheus Silva, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber*! e vou lhe auxiliar para ter um melhor atendimento",
+        "content": "Olá Me chamo Matheus Silva, me chamo *Pitoco Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
         "status": "delivered",
         "created_at": "2026-09-03T17:20:53.872Z"
       },
@@ -1954,7 +2071,7 @@
         "conversation_id": "conv-5581988880001",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Olá Matheus Silva, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber*! e vou lhe auxiliar para ter um melhor atendimento",
+        "content": "Olá Matheus Silva, me chamo *Pitoco Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
         "status": "delivered",
         "created_at": "2026-09-03T17:21:42.320Z"
       },
@@ -1981,7 +2098,7 @@
         "conversation_id": "conv-5581988880001",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Olá Matheus Silva, me chamo *Talvane Barber Bot*. e sou assistente de atendimento da *Talvane Barber*! e vou lhe auxiliar para ter um melhor atendimento",
+        "content": "Olá Matheus Silva, me chamo *Pitoco Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
         "status": "delivered",
         "created_at": "2026-09-03T17:21:43.361Z"
       },
@@ -2028,7 +2145,7 @@
         "conversation_id": "conv-5511999999999",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Sou  *Talvane Barber Bot* assistente virtual da  *Talvane Barber Shop*...",
+        "content": "Sou  *Pitoco Bot* assistente virtual da  *Pitoco de Gente*...",
         "status": "delivered",
         "created_at": "2026-09-04T02:25:23.401Z"
       },
@@ -2075,7 +2192,7 @@
         "conversation_id": "conv-5511888888888",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Sou  *Talvane Barber Bot* assistente virtual da  *Talvane Barber Shop*...",
+        "content": "Sou  *Pitoco Bot* assistente virtual da  *Pitoco de Gente*...",
         "status": "delivered",
         "created_at": "2026-09-04T02:25:46.557Z"
       },
@@ -2102,7 +2219,7 @@
         "conversation_id": "conv-5511888888888",
         "direction": "outbound",
         "message_type": "text",
-        "content": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Sobrancelha*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Corte Cabelo + Barba + Sobrancelha (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._",
+        "content": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Consultoria VIP de Enxoval*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Kit Saída de Maternidade Tricot*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Consultoria VIP + Kit Saída Maternidade (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Kit Bodies Suedine Pima*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Consultoria VIP + Kit Saída Maternidade + Kit Bodies Suedine Pima (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._",
         "status": "delivered",
         "created_at": "2026-09-04T02:25:52.191Z"
       },
@@ -2111,7 +2228,7 @@
         "conversation_id": "conv-5511888888888",
         "direction": "outbound",
         "message_type": "text",
-        "content": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Sobrancelha*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Corte Cabelo + Barba + Sobrancelha (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._",
+        "content": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Consultoria VIP de Enxoval*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Kit Saída de Maternidade Tricot*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Consultoria VIP + Kit Saída Maternidade (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Kit Bodies Suedine Pima*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Consultoria VIP + Kit Saída Maternidade + Kit Bodies Suedine Pima (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._",
         "status": "delivered",
         "created_at": "2026-09-04T02:25:52.202Z"
       },
@@ -2158,7 +2275,7 @@
         "conversation_id": "conv-5511777777777",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Sou  *Talvane Barber Bot* assistente virtual da  *Talvane Barber Shop*...",
+        "content": "Sou  *Pitoco Bot* assistente virtual da  *Pitoco de Gente*...",
         "status": "delivered",
         "created_at": "2026-09-04T02:33:37.189Z"
       },
@@ -2185,7 +2302,7 @@
         "conversation_id": "conv-5511777777777",
         "direction": "outbound",
         "message_type": "text",
-        "content": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Sobrancelha*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Corte Cabelo + Barba + Sobrancelha (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._",
+        "content": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Consultoria VIP de Enxoval*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Kit Saída de Maternidade Tricot*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Consultoria VIP + Kit Saída Maternidade (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Kit Bodies Suedine Pima*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Consultoria VIP + Kit Saída Maternidade + Kit Bodies Suedine Pima (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._",
         "status": "delivered",
         "created_at": "2026-09-04T02:33:42.869Z"
       },
@@ -2223,7 +2340,7 @@
         "conversation_id": "conv-5581999999999",
         "direction": "outbound",
         "message_type": "text",
-        "content": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Corte Cabelo*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Barba*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Corte Cabelo + Barba (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Sobrancelha*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Corte Cabelo + Barba + Sobrancelha (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
+        "content": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Kit Saída de Maternidade Tricot*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Consultoria VIP + Kit Saída Maternidade (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Kit Bodies Suedine Pima*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Consultoria VIP + Kit Saída Maternidade + Kit Bodies Suedine Pima (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
         "status": "delivered",
         "created_at": "2026-09-07T18:10:23.078Z"
       },
@@ -2262,6 +2379,91 @@
         "content": "👩‍💼 *Atendimento Humanizado*\n\nConectando você agora com uma de nossas consultoras especialistas em bebês da Pitoco de Gente. Aguarde só um instante!",
         "status": "delivered",
         "created_at": "2026-09-07T18:10:42.033Z"
+      }
+    ],
+    "conv-558199999999": [
+      {
+        "id": "msg-1788812872882-uqflh",
+        "conversation_id": "conv-558199999999",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "👶✨ Olá! Seja muito bem-vindo(a) à *Pitoco de Gente* — Moda Bebê, Infantil & Enxovais!\n\nMe chamo *Pitoco Bot*, assistente virtual da nossa loja. É um prazer atender você!",
+        "status": "delivered",
+        "created_at": "2026-09-07T20:27:52.881Z"
+      },
+      {
+        "id": "msg-1788812872896-ntq5v",
+        "conversation_id": "conv-558199999999",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Como podemos te ajudar hoje? Selecione uma das opções abaixo:",
+        "status": "delivered",
+        "created_at": "2026-09-07T20:27:52.896Z"
+      },
+      {
+        "id": "msg-1788812874154-od0d5",
+        "conversation_id": "conv-558199999999",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
+        "status": "delivered",
+        "created_at": "2026-09-07T20:27:54.154Z"
+      }
+    ],
+    "conv-5581988887777": [
+      {
+        "id": "msg-1788813261222-5eeyj",
+        "conversation_id": "conv-5581988887777",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "👶✨ Olá! Seja muito bem-vindo(a) à *Pitoco de Gente* — Moda Bebê, Infantil & Enxovais!\n\nMe chamo *Pitoco Bot*, assistente virtual da nossa loja. É um prazer atender você!",
+        "status": "delivered",
+        "created_at": "2026-09-07T20:34:21.222Z"
+      },
+      {
+        "id": "msg-1788813261252-gq4bq",
+        "conversation_id": "conv-5581988887777",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Como podemos te ajudar hoje? Selecione uma das opções abaixo:",
+        "status": "delivered",
+        "created_at": "2026-09-07T20:34:21.252Z"
+      },
+      {
+        "id": "msg-1788813261327-rq90o",
+        "conversation_id": "conv-5581988887777",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
+        "status": "delivered",
+        "created_at": "2026-09-07T20:34:21.327Z"
+      },
+      {
+        "id": "msg-1788813261401-zfhqr",
+        "conversation_id": "conv-5581988887777",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "👶✨ Olá! Seja muito bem-vindo(a) à *Pitoco de Gente* — Moda Bebê, Infantil & Enxovais!\n\nMe chamo *Pitoco Bot*, assistente virtual da nossa loja. É um prazer atender você!",
+        "status": "delivered",
+        "created_at": "2026-09-07T20:34:21.401Z"
+      },
+      {
+        "id": "msg-1788813261426-nv2pz",
+        "conversation_id": "conv-5581988887777",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Como podemos te ajudar hoje? Selecione uma das opções abaixo:",
+        "status": "delivered",
+        "created_at": "2026-09-07T20:34:21.426Z"
+      },
+      {
+        "id": "msg-1788813261482-rfxns",
+        "conversation_id": "conv-5581988887777",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "👩‍💼 *Atendimento Humanizado*\n\nConectando você agora com uma de nossas consultoras especialistas em bebês da Pitoco de Gente. Aguarde só um instante!",
+        "status": "delivered",
+        "created_at": "2026-09-07T20:34:21.482Z"
       }
     ]
   },
@@ -2374,5 +2576,20 @@
     }
   ],
   "rolePermissions": {},
-  "customVariables": []
+  "customVariables": [],
+  "logs": [
+    {
+      "id": "log-1788813261494-rz9e0",
+      "type": "message_outbound",
+      "title": "Resposta para Mariana",
+      "description": "👩‍💼 *Atendimento Humanizado*\n\nConectando você agora com uma de nossas consultoras especi...",
+      "contact_phone": "5581988887777",
+      "contact_name": "Mariana",
+      "details": {
+        "direction": "outbound",
+        "messageId": "msg-1788813261482-rfxns"
+      },
+      "created_at": "2026-09-07T20:34:21.494Z"
+    }
+  ]
 }

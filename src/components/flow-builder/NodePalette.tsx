@@ -121,11 +121,11 @@ export const NODE_DEFINITIONS: NodeDefinition[] = [
     accentColor: 'border-primary-500/40',
     badge: 'Interativo',
     defaultConfig: {
-      bodyText: 'Escolha uma das opções abaixo para continuarmos:',
-      footerText: '7 Assistente • Resposta Automática',
+      bodyText: 'Como podemos te ajudar hoje? Escolha uma das opções:',
+      footerText: 'Pitoco de Gente • Atendimento Oficial',
       buttons: [
-        { id: 'btn_1', title: '1. Agendar Horário' },
-        { id: 'btn_2', title: '2. Consultar Preços' },
+        { id: 'btn_1', title: '1. Ver Catálogo Bebê' },
+        { id: 'btn_2', title: '2. Consultoria Enxoval' },
         { id: 'btn_3', title: '3. Falar com Atendente' },
       ],
     },
@@ -168,8 +168,8 @@ export const NODE_DEFINITIONS: NodeDefinition[] = [
     badge: 'Catálogo',
     outputVars: ['catalogo_servicos_texto'],
     defaultConfig: {
-      headerText: '💈 *Catálogo de Serviços & Preços*',
-      footerText: 'Consulte os serviços disponíveis acima.',
+      headerText: '🍼 *Catálogo Pitoco de Gente — Moda Bebê & Enxovais*',
+      footerText: 'Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!',
     },
   },
   {

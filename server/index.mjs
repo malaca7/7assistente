@@ -160,7 +160,7 @@ async function startWhatsApp() {
         const remoteJid = msg.key.remoteJid || '';
         if (remoteJid.includes('@g.us')) continue;
 
-        const clientPhone = remoteJid.replace('@s.whatsapp.net', '').replace(/\D/g, '');
+        const clientPhone = remoteJid.replace('@s.whatsapp.net', '').replace(/@lid$/, '').replace(/\D/g, '');
         const clientName = msg.pushName || 'Cliente Pitoco';
         const text = msg.message.conversation || 
                      msg.message.extendedTextMessage?.text || 
@@ -168,22 +168,43 @@ async function startWhatsApp() {
                      msg.message.listResponseMessage?.singleSelectReply?.selectedRowId ||
                      '';
 
-        console.log(`📩 [WhatsApp Recebido] ${clientPhone} (${clientName}): "${text}"`);
+        console.log(`📩 [WhatsApp Recebido] ${clientPhone} (${clientName}) [${remoteJid}]: "${text}"`);
         await recordMessageLocallyAndSupabase(clientPhone, clientName, 'inbound', text);
 
-        // Executar o fluxo oficial completo do Pitoco de Gente (Painel Admin)
+        // Executar o fluxo publicado no Studio / Painel Admin
         try {
-          const db = loadDb();
-          const replyText = await processAdminBotMessage(text, clientPhone, clientName, db);
-          saveDb(db);
+          console.log(`⚙️ [Flow Execution] Executando fluxo ativo no bot para ${clientPhone} (${clientName})...`);
+          const replies = await executePublishedFlow(remoteJid, text, clientName, clientPhone);
 
-          if (replyText) {
-            await sendWhatsAppMessage(remoteJid, replyText);
-            await recordMessageLocallyAndSupabase(clientPhone, 'Pitoco Bot', 'outbound', replyText);
+          if (Array.isArray(replies) && replies.length > 0) {
+            for (let i = 0; i < replies.length; i++) {
+              const reply = replies[i];
+              await sendBotReply(remoteJid, reply, msg);
+              if (i < replies.length - 1) {
+                await new Promise((r) => setTimeout(r, 600));
+              }
+            }
+          } else {
+            console.log(`ℹ️ [Flow Execution] Nenhum nó do fluxo respondeu, utilizando fallback padrão do painel`);
+            const db = loadDb();
+            const fallbackReply = await processAdminBotMessage(text, clientPhone, clientName, db);
+            saveDb(db);
+            if (fallbackReply) {
+              await sendBotReply(remoteJid, fallbackReply, msg);
+            }
           }
         } catch (botErr) {
           console.error(`❌ [Bot Engine Error] Erro ao processar mensagem para ${clientPhone}:`, botErr);
-          await sendWhatsAppMessage(remoteJid, `Olá, *${clientName}*! Recebemos sua mensagem. Em instantes responderemos!`);
+          try {
+            const db = loadDb();
+            const fallbackReply = await processAdminBotMessage(text, clientPhone, clientName, db);
+            saveDb(db);
+            if (fallbackReply) {
+              await sendBotReply(remoteJid, fallbackReply, msg);
+            }
+          } catch (e2) {
+            await sendBotReply(remoteJid, `Olá, *${clientName}*! Recebemos sua mensagem na *Pitoco de Gente*. Como podemos te ajudar? Digite *menu* para ver opções!`, msg);
+          }
         }
       }
     });
@@ -194,39 +215,74 @@ async function startWhatsApp() {
 }
 
 // Enviar resposta gerada pelo motor de fluxo (texto, botões ou mídia)
-async function sendBotReply(remoteJid, reply) {
+async function sendBotReply(remoteJid, reply, quotedMsg = null) {
   if (!sock || connectionStatus !== 'connected') {
     console.warn(`[SendReply] ⚠️ Baileys não conectado, não foi possível responder para ${remoteJid}`);
     return false;
   }
 
-  const cleanPhone = remoteJid.replace('@s.whatsapp.net', '').replace(/\D/g, '');
+  const cleanPhone = remoteJid.replace('@s.whatsapp.net', '').replace(/@lid$/, '').replace(/\D/g, '');
+  const sendOpts = quotedMsg ? { quoted: quotedMsg } : {};
+
+  const trySendMessage = async (payload) => {
+    try {
+      await sock.sendMessage(remoteJid, payload, sendOpts);
+      return true;
+    } catch (err1) {
+      console.warn(`[SendReply] Envio com quoted falhou (${err1?.message}), tentando sem quoted...`);
+      try {
+        await sock.sendMessage(remoteJid, payload);
+        return true;
+      } catch (err2) {
+        console.error(`❌ [SendReply] Falha ao enviar para ${remoteJid}:`, err2?.message || err2);
+        if (remoteJid.includes('@lid') && cleanPhone.length >= 10 && cleanPhone.length <= 13) {
+          try {
+            const fallbackJid = `${cleanPhone}@s.whatsapp.net`;
+            await sock.sendMessage(fallbackJid, payload);
+            console.log(`✅ [SendReply] Sucesso via fallback JID: ${fallbackJid}`);
+            return true;
+          } catch (err3) {
+            console.error(`❌ [SendReply] Fallback JID falhou:`, err3?.message || err3);
+          }
+        }
+        return false;
+      }
+    }
+  };
 
   try {
     // 1. Resposta em Texto Puro
     if (typeof reply === 'string') {
-      await sock.sendMessage(remoteJid, { text: reply });
-      await recordMessageInSupabase(cleanPhone, 'Pitoco Bot', 'outbound', reply);
-      return true;
+      const ok = await trySendMessage({ text: reply });
+      if (ok) {
+        console.log(`✅ [WhatsApp Enviado] Texto para ${remoteJid}: "${reply.slice(0, 50).replace(/\n/g, ' ')}..."`);
+        await recordMessageLocallyAndSupabase(cleanPhone, 'Pitoco Bot', 'outbound', reply);
+      }
+      return ok;
     }
 
     // 2. Resposta com Botões / Opções Interativas (com fallback amigável numerado)
     if (reply && reply.type === 'buttons') {
       const body = reply.body || 'Escolha uma das opções abaixo:';
-      const footer = reply.footer || 'Pitoco de Gente • Resposta Automática';
+      const footer = reply.footer || 'Pitoco de Gente • Atendimento Oficial';
       const buttons = reply.buttons || [];
 
       let formatted = `${body}\n\n`;
       buttons.forEach((btn, idx) => {
-        formatted += `*${idx + 1}.* ${btn.title || btn.id}\n`;
+        const numEmoji = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'][idx] || `*${idx + 1}.*`;
+        const title = btn.title || btn.id;
+        formatted += `${numEmoji} ${title}\n`;
       });
       if (footer) {
-        formatted += `\n_${footer}_\n_Digite o número da opção (1 a ${buttons.length})._`;
+        formatted += `\n_${footer}_\n_👉 Digite o número ou o nome da opção desejada._`;
       }
 
-      await sock.sendMessage(remoteJid, { text: formatted });
-      await recordMessageInSupabase(cleanPhone, 'Pitoco Bot', 'outbound', formatted);
-      return true;
+      const ok = await trySendMessage({ text: formatted });
+      if (ok) {
+        console.log(`✅ [WhatsApp Enviado] Menu (${buttons.length} opções) para ${remoteJid}`);
+        await recordMessageLocallyAndSupabase(cleanPhone, 'Pitoco Bot', 'outbound', formatted);
+      }
+      return ok;
     }
 
     // 3. Resposta com Mídia (Imagem, Vídeo, Documento, Áudio)
@@ -234,38 +290,35 @@ async function sendBotReply(remoteJid, reply) {
       const mediaType = reply.mediaType || 'image';
       const mediaUrl = reply.mediaUrl;
       const caption = reply.caption || '';
+      let payload;
 
       if (mediaType === 'image') {
-        await sock.sendMessage(remoteJid, { image: { url: mediaUrl }, caption });
+        payload = { image: { url: mediaUrl }, caption };
       } else if (mediaType === 'video') {
-        await sock.sendMessage(remoteJid, { video: { url: mediaUrl }, caption });
+        payload = { video: { url: mediaUrl }, caption };
       } else if (mediaType === 'audio') {
-        await sock.sendMessage(remoteJid, { audio: { url: mediaUrl }, mimetype: 'audio/mp4', ptt: reply.isPtt !== false });
+        payload = { audio: { url: mediaUrl }, mimetype: 'audio/mp4', ptt: reply.isPtt !== false };
       } else {
-        await sock.sendMessage(remoteJid, { document: { url: mediaUrl }, mimetype: 'application/pdf', fileName: reply.fileName || 'documento.pdf', caption });
+        payload = { document: { url: mediaUrl }, mimetype: 'application/pdf', fileName: reply.fileName || 'documento.pdf', caption };
       }
-      await recordMessageInSupabase(cleanPhone, 'Pitoco Bot', 'outbound', caption || `[Arquivo ${mediaType}]`);
-      return true;
+
+      const ok = await trySendMessage(payload);
+      if (ok) {
+        console.log(`✅ [WhatsApp Enviado] Mídia (${mediaType}) para ${remoteJid}`);
+        await recordMessageLocallyAndSupabase(cleanPhone, 'Pitoco Bot', 'outbound', caption || `[Arquivo ${mediaType}]`);
+      }
+      return ok;
     }
 
     return false;
   } catch (err) {
-    console.error(`❌ [SendReply] Erro ao enviar resposta para ${remoteJid}:`, err);
+    console.error(`❌ [SendReply] Erro geral ao enviar resposta para ${remoteJid}:`, err);
     return false;
   }
 }
 
-async function sendWhatsAppMessage(jid, text) {
-  if (!sock || connectionStatus !== 'connected') {
-    return false;
-  }
-  try {
-    await sock.sendMessage(jid, { text });
-    await recordMessageInSupabase(jid.replace('@s.whatsapp.net', ''), 'Pitoco Bot', 'outbound', text);
-    return true;
-  } catch (e) {
-    return false;
-  }
+async function sendWhatsAppMessage(jid, text, quotedMsg = null) {
+  return sendBotReply(jid, text, quotedMsg);
 }
 
 async function recordMessageLocallyAndSupabase(phone, name, direction, content) {
@@ -574,6 +627,21 @@ app.get('/api/flows/active/current', async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Testar execução do fluxo ativo em tempo real
+app.post('/api/flows/test-execution', async (req, res) => {
+  try {
+    const { phone, message, name } = req.body;
+    const testPhone = String(phone || '558199999999').replace(/\D/g, '');
+    const testName = name || 'Cliente Teste';
+    const testText = message || 'oi';
+
+    const replies = await executePublishedFlow(`${testPhone}@s.whatsapp.net`, testText, testName, testPhone);
+    res.json({ success: true, input: testText, phone: testPhone, replies });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

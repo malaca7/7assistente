@@ -1091,20 +1091,25 @@ export async function findRegisteredContact(cleanPhone, senderName, db) {
   return { isRegistered: false, contact: null, hasRealName: false };
 }
 
+let supabaseHasFlowsTable = null;
+
 // Function to fetch latest flow, nodes, and edges dynamically with Supabase priority
 export async function getActiveFlowAndGraph(db) {
   let flows = db.flows || [];
   
-  if (supabaseClient) {
+  if (supabaseClient && supabaseHasFlowsTable !== false) {
     try {
       const { data, error } = await supabaseClient.from('flows').select('*').order('updated_at', { ascending: false });
-      if (data && Array.isArray(data) && data.length > 0 && !error) {
+      if (error && (error.code === 'PGRST205' || String(error.message || '').includes('Could not find the table'))) {
+        supabaseHasFlowsTable = false;
+      } else if (data && Array.isArray(data) && data.length > 0 && !error) {
+        supabaseHasFlowsTable = true;
         db.flows = data;
         flows = data;
         saveDb(db);
       }
     } catch (e) {
-      console.warn('[FlowRunner] Supabase flows fetch fallback:', e?.message || e);
+      supabaseHasFlowsTable = false;
     }
   }
 
@@ -1123,8 +1128,8 @@ export async function getActiveFlowAndGraph(db) {
     let nodes = db.nodes?.[flowId] || [];
     let edges = db.edges?.[flowId] || [];
 
-    // Try Supabase for nodes/edges
-    if (supabaseClient) {
+    // Try Supabase for nodes/edges only if tables exist
+    if (supabaseClient && supabaseHasFlowsTable === true) {
       try {
         const [nodesRes, edgesRes] = await Promise.all([
           supabaseClient.from('flow_nodes').select('*').eq('flow_id', flowId),
@@ -1160,9 +1165,7 @@ export async function getActiveFlowAndGraph(db) {
         if (nodes.length > 0) {
           saveDb(db);
         }
-      } catch (e) {
-        console.warn('[FlowRunner] Falha ao carregar nós do Supabase:', e?.message || e);
-      }
+      } catch (e) {}
     }
 
     // If this flow has nodes, use it!
@@ -1797,7 +1800,7 @@ function parseCustomDateString(input) {
       if (services.length <= 3) {
         replies.push({
           type: 'buttons',
-          body: `✂️ *Escolha o Serviço:*\n\n${intro}`,
+          body: `🍼 *Escolha o Produto / Atendimento:*\n\n${intro}`,
           footer,
           buttons: serviceButtons.map((b) => ({
             id: b.id,
@@ -1811,7 +1814,7 @@ function parseCustomDateString(input) {
 
         replies.push({
           type: 'buttons',
-          body: `✂️ *Escolha o Serviço:*\n\n${intro}\n\n${listLines}`,
+          body: `🍼 *Escolha o Produto / Atendimento:*\n\n${intro}\n\n${listLines}`,
           footer: '👉 Toque no botão ou digite o número correspondente:',
           buttons: serviceButtons.slice(0, 3).map((b) => ({
             id: b.id,

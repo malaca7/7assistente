@@ -342,7 +342,7 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
       }
       // 7. Show Services Node
       else if (type === 'show_services' || (type === 'services_catalog' && config.displayFormat !== 'buttons')) {
-        const header = substituteVariables(config.headerText || '💈 *Catálogo de Serviços & Preços*', activeVars, p || undefined);
+        const header = substituteVariables(config.headerText || '🍼 *Catálogo Pitoco de Gente — Bebê & Enxovais*', activeVars, p || undefined);
         const footer = config.footerText ? `\n\n_${substituteVariables(config.footerText, activeVars, p || undefined)}_` : '';
 
         const serviceLines = currentServices

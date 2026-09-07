@@ -1167,9 +1167,9 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
 
             <Input
               label="Título do Catálogo"
-              value={config.headerText || '💈 *Catálogo de Serviços & Preços*'}
+              value={config.headerText || '🍼 *Catálogo Pitoco de Gente — Bebê & Enxovais*'}
               onChange={(e) => handleConfigChange('headerText', e.target.value)}
-              placeholder="Ex: 💈 *Nossos Serviços e Valores:*"
+              placeholder="Ex: 🍼 *Nossas Peças e Destaques:*"
             />
 
             <Input
