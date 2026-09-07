@@ -16,10 +16,11 @@ import { createClient } from '@supabase/supabase-js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const AUTH_DIR = path.resolve(__dirname, 'whatsapp_auth');
+const DATA_DIR = path.resolve(__dirname, 'data');
+const DB_FILE = path.resolve(DATA_DIR, 'pitoco_db.json');
 
-if (!fs.existsSync(AUTH_DIR)) {
-  fs.mkdirSync(AUTH_DIR, { recursive: true });
-}
+if (!fs.existsSync(AUTH_DIR)) fs.mkdirSync(AUTH_DIR, { recursive: true });
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
 // Environment variables
 const PORT = process.env.PORT || 8080;
@@ -34,6 +35,318 @@ const supabase = (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY)
     })
   : null;
 
+// ==============================================================================
+// 1. BANCO DE DADOS PERSISTENTE & SINCRONIZAÇÃO EM TEMPO REAL
+// ==============================================================================
+const defaultDb = {
+  botConfig: {
+    welcome_message: '👶✨ *PITOCO DE GENTE — Roupas de Bebê & Enxovais*\nOlá, *{clientName}*! Bem-vindo(a) à nossa loja oficial! Como podemos te ajudar hoje?',
+    pix_key: 'financeiro@pitocodegente.com.br',
+    pix_name: 'Pitoco de Gente Artigos Infantis LTDA',
+    pix_city: 'Recife',
+    shipping_motoboy_price: 15.00,
+    shipping_correios_price: 24.90,
+    free_shipping_threshold: 250.00,
+    is_active: true,
+  },
+  stores: [
+    {
+      id: 'store-001',
+      name: 'Loja Matriz — Centro',
+      slug: 'matriz',
+      address: 'Rua do Sol, 120 - Centro, Recife - PE',
+      phone: '8132211000',
+      whatsapp_number: '81996138924',
+      is_active: true,
+      business_hours: '08:30 às 18:30',
+      city: 'Recife - PE',
+      monthly_revenue: 125400.00,
+      active_chats: 42,
+    },
+    {
+      id: 'store-002',
+      name: 'Loja Shopping Boulevard',
+      slug: 'boulevard',
+      address: 'Av. Principal, 500 - Piso L2, Loja 204',
+      phone: '8134422000',
+      whatsapp_number: '81996138924',
+      is_active: true,
+      business_hours: '10:00 às 22:00',
+      city: 'Recife - PE',
+      monthly_revenue: 98200.00,
+      active_chats: 31,
+    },
+    {
+      id: 'store-003',
+      name: 'Atendimento Geral / E-commerce',
+      slug: 'ecommerce',
+      address: 'Central Digital / E-commerce Brasil',
+      phone: '81996138924',
+      whatsapp_number: '81996138924',
+      is_active: true,
+      business_hours: '24h Online',
+      city: 'Brasil',
+      monthly_revenue: 184500.00,
+      active_chats: 88,
+    },
+  ],
+  products: [
+    {
+      id: 'prod-001',
+      name: 'Body Manga Longa Suedine 100% Pima',
+      price: 39.90,
+      promotional_price: 34.90,
+      description: 'Toque aveludado, antialérgico, com gola transpassada americana para vestir fácil.',
+      material: 'Algodão Suedine 100% Pima',
+      sizes: ['RN', 'P', 'M', 'G'],
+      colors: ['Branco', 'Azul Bebê', 'Rosa Seco'],
+      stock_quantity: 65,
+      is_featured: true,
+      is_active: true,
+      image_url: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=600',
+    },
+    {
+      id: 'prod-002',
+      name: 'Macacão Canelado com Zíper Duplo Soft',
+      price: 69.90,
+      promotional_price: 59.90,
+      description: 'Zíper de abertura nos dois sentidos facilita troca de fralda sem despir o bebê.',
+      material: 'Ribana Canelada Premium com Elastano',
+      sizes: ['RN', 'P', 'M', 'G', 'GG'],
+      colors: ['Verde Menta', 'Caramelo', 'Off-White'],
+      stock_quantity: 48,
+      is_featured: true,
+      is_active: true,
+      image_url: 'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&q=80&w=600',
+    },
+    {
+      id: 'prod-003',
+      name: 'Saída de Maternidade Tricot Luxo Realeza (4 Peças)',
+      price: 169.90,
+      description: 'Acompanha macacão em tricot trançado, manta coordenada, body bordado e par de luvas.',
+      material: 'Tricot Antialérgico Fio Soft',
+      sizes: ['RN', 'P'],
+      colors: ['Vermelho Proteção', 'Azul Sereno', 'Branco Paz'],
+      stock_quantity: 25,
+      is_featured: true,
+      is_active: true,
+      image_url: 'https://images.unsplash.com/photo-1519689680058-324335c77eba?auto=format&fit=crop&q=80&w=600',
+    },
+    {
+      id: 'prod-004',
+      name: 'Kit Berço Algodão 400 Fios Trança Nuvem',
+      price: 259.90,
+      description: 'Protetores laterais em trança escandinava, lençol com elástico e fronha envelope.',
+      material: 'Percal 400 Fios Acetinado',
+      sizes: ['Padrão Americano'],
+      colors: ['Cinza & Branco', 'Rosa Bebê & Branco'],
+      stock_quantity: 18,
+      is_featured: true,
+      is_active: true,
+      image_url: 'https://images.unsplash.com/photo-1584839617966-22442db34b9d?auto=format&fit=crop&q=80&w=600',
+    },
+    {
+      id: 'prod-005',
+      name: 'Mala Maternidade Térmica Master Impermeável',
+      price: 199.90,
+      description: 'Espaço amplo com divisórias inteligentes, bolso frontal térmico para mamadeiras e alça tiracolo.',
+      material: 'Couro Ecológico Impermeável',
+      sizes: ['Grande 45x35x18cm'],
+      colors: ['Azul Marinho', 'Rosa Blush', 'Nude'],
+      stock_quantity: 30,
+      is_featured: true,
+      is_active: true,
+      image_url: 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=600',
+    },
+  ],
+  tickets: [],
+};
+
+class DbManager {
+  constructor() {
+    this.data = this.load();
+    this.syncFromSupabase();
+  }
+
+  load() {
+    try {
+      if (fs.existsSync(DB_FILE)) {
+        const raw = fs.readFileSync(DB_FILE, 'utf8');
+        const parsed = JSON.parse(raw);
+        return {
+          botConfig: { ...defaultDb.botConfig, ...(parsed.botConfig || {}) },
+          stores: Array.isArray(parsed.stores) && parsed.stores.length > 0 ? parsed.stores : defaultDb.stores,
+          products: Array.isArray(parsed.products) && parsed.products.length > 0 ? parsed.products : defaultDb.products,
+          tickets: Array.isArray(parsed.tickets) ? parsed.tickets : defaultDb.tickets,
+        };
+      }
+    } catch (e) {
+      console.warn('Erro ao carregar DB local, usando padrão:', e.message);
+    }
+    this.save(defaultDb);
+    return JSON.parse(JSON.stringify(defaultDb));
+  }
+
+  save(newData = null) {
+    try {
+      if (newData) this.data = newData;
+      fs.writeFileSync(DB_FILE, JSON.stringify(this.data, null, 2), 'utf8');
+    } catch (e) {
+      console.error('Erro ao salvar DB local:', e);
+    }
+  }
+
+  async syncFromSupabase() {
+    if (!supabase) return;
+    try {
+      const { data: dbStores } = await supabase.from('stores').select('*');
+      if (dbStores && dbStores.length > 0) {
+        this.data.stores = dbStores;
+      }
+      const { data: dbProds } = await supabase.from('products').select('*');
+      if (dbProds && dbProds.length > 0) {
+        this.data.products = dbProds;
+      }
+      const { data: dbConfig } = await supabase.from('bot_config').select('*').maybeSingle();
+      if (dbConfig) {
+        this.data.botConfig = { ...this.data.botConfig, ...dbConfig };
+      }
+      this.save();
+      console.log('🔄 [DB] Sincronização com Supabase concluída!');
+    } catch (e) {
+      // Non-blocking fallback
+    }
+  }
+
+  getStores() { return this.data.stores || []; }
+  saveStore(store) {
+    const stores = this.getStores();
+    const idx = stores.findIndex(s => s.id === store.id || s.slug === store.slug);
+    const updated = {
+      id: store.id || `store-${Date.now()}`,
+      slug: store.slug || `loja-${Date.now()}`,
+      name: store.name || 'Nova Loja',
+      address: store.address || '',
+      phone: store.phone || '',
+      whatsapp_number: store.whatsapp_number || store.phone || '',
+      is_active: store.is_active !== false,
+      business_hours: store.business_hours || '09:00 às 19:00',
+      city: store.city || 'Recife - PE',
+      monthly_revenue: store.monthly_revenue || 0,
+      active_chats: store.active_chats || 0,
+      ...store,
+    };
+    if (idx >= 0) stores[idx] = updated;
+    else stores.push(updated);
+    this.save();
+
+    if (supabase) {
+      supabase.from('stores').upsert([updated]).catch(() => {});
+    }
+    return updated;
+  }
+  deleteStore(id) {
+    this.data.stores = this.getStores().filter(s => s.id !== id && s.slug !== id);
+    this.save();
+    if (supabase) {
+      supabase.from('stores').delete().eq('id', id).catch(() => {});
+    }
+    return true;
+  }
+
+  getProducts() { return this.data.products || []; }
+  saveProduct(prod) {
+    const products = this.getProducts();
+    const idx = products.findIndex(p => p.id === prod.id);
+    const updated = {
+      id: prod.id || `prod-${Date.now()}`,
+      name: prod.name || 'Novo Produto',
+      price: parseFloat(prod.price) || 49.90,
+      promotional_price: prod.promotional_price ? parseFloat(prod.promotional_price) : null,
+      description: prod.description || '',
+      material: prod.material || 'Algodão Suedine 100%',
+      sizes: prod.sizes || ['RN', 'P', 'M', 'G', 'GG'],
+      colors: prod.colors || ['Branco Puro', 'Azul Bebê'],
+      stock_quantity: parseInt(prod.stock_quantity ?? 50),
+      is_featured: Boolean(prod.is_featured),
+      is_active: prod.is_active !== false,
+      image_url: prod.image_url || '',
+      category_name: prod.category_name || 'Roupas & Enxovais',
+      ...prod,
+    };
+    if (idx >= 0) products[idx] = updated;
+    else products.unshift(updated);
+    this.save();
+
+    if (supabase) {
+      supabase.from('products').upsert([{
+        id: updated.id,
+        name: updated.name,
+        description: updated.description,
+        price: updated.price,
+        promotional_price: updated.promotional_price,
+        sizes: updated.sizes,
+        colors: updated.colors,
+        stock_quantity: updated.stock_quantity,
+        is_featured: updated.is_featured,
+        is_active: updated.is_active,
+        material: updated.material,
+        image_url: updated.image_url,
+      }]).catch(() => {});
+    }
+    return updated;
+  }
+  deleteProduct(id) {
+    this.data.products = this.getProducts().filter(p => p.id !== id);
+    this.save();
+    if (supabase) {
+      supabase.from('products').delete().eq('id', id).catch(() => {});
+    }
+    return true;
+  }
+
+  getBotConfig() { return this.data.botConfig || defaultDb.botConfig; }
+  saveBotConfig(newConfig) {
+    this.data.botConfig = { ...this.getBotConfig(), ...newConfig };
+    this.save();
+    if (supabase) {
+      supabase.from('bot_config').upsert([{
+        id: 'default',
+        ...this.data.botConfig,
+        updated_at: new Date().toISOString(),
+      }]).catch(() => {});
+    }
+    return this.data.botConfig;
+  }
+
+  getTickets() { return this.data.tickets || []; }
+  saveTicket(ticket) {
+    const tickets = this.getTickets();
+    const idx = tickets.findIndex(t => t.id === ticket.id || t.protocol === ticket.protocol);
+    const updated = {
+      id: ticket.id || `ticket-${Date.now()}`,
+      protocol: ticket.protocol || `PTC-${Date.now().toString().slice(-6)}`,
+      created_at: ticket.created_at || new Date().toISOString(),
+      status: ticket.status || 'open',
+      priority: ticket.priority || 'high',
+      ...ticket,
+    };
+    if (idx >= 0) tickets[idx] = updated;
+    else tickets.unshift(updated);
+    this.save();
+
+    if (supabase) {
+      supabase.from('support_tickets').upsert([updated]).catch(() => {});
+    }
+    return updated;
+  }
+}
+
+const db = new DbManager();
+
+// ==============================================================================
+// 2. EXPRESS SETUP & ENDPOINTS
+// ==============================================================================
 const app = express();
 app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '50mb' }));
@@ -44,40 +357,6 @@ const distPath = path.resolve(__dirname, 'dist');
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
 }
-
-// Lojas oficiais Pitoco de Gente
-const STORES = [
-  {
-    id: 'store-001',
-    name: 'Loja Matriz — Centro',
-    slug: 'matriz',
-    address: 'Rua do Sol, 120 - Centro, Recife - PE',
-    phone: '8132211000',
-    whatsapp_number: '81996138924',
-    is_active: true,
-    business_hours: '08:30 às 18:30',
-  },
-  {
-    id: 'store-002',
-    name: 'Loja Shopping Boulevard',
-    slug: 'boulevard',
-    address: 'Av. Principal, 500 - Piso L2, Loja 204',
-    phone: '8134422000',
-    whatsapp_number: '81996138924',
-    is_active: true,
-    business_hours: '10:00 às 22:00',
-  },
-  {
-    id: 'store-003',
-    name: 'Atendimento Geral / E-commerce',
-    slug: 'ecommerce',
-    address: 'Central Digital / E-commerce Brasil',
-    phone: '81996138924',
-    whatsapp_number: '81996138924',
-    is_active: true,
-    business_hours: '24h Online',
-  },
-];
 
 // In-memory bot sessions per phone
 const clientSessions = new Map();
@@ -92,7 +371,7 @@ let connectedName = null;
 let connectedAt = null;
 
 // ==============================================================================
-// BAILEYS WHATSAPP CONNECTION ENGINE
+// 3. BAILEYS WHATSAPP ENGINE
 // ==============================================================================
 async function startWhatsApp() {
   try {
@@ -124,16 +403,14 @@ async function startWhatsApp() {
         connectionStatus = 'qrcode';
         try {
           currentQRDataUrl = await QRCode.toDataURL(qr, { margin: 2, scale: 8 });
-        } catch (e) {
-          console.error('Erro ao gerar dataURL do QR:', e);
-        }
+        } catch (e) {}
         console.log('📱 [Baileys] Novo QR Code gerado pronto para leitura!');
       }
 
       if (connection === 'close') {
         const statusCode = lastDisconnect?.error?.output?.statusCode;
         const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-        console.log(`⚠️ [Baileys] Conexão encerrada (código: ${statusCode}). Reconectar? ${shouldReconnect}`);
+        console.log(`⚠️ [Baileys] Conexão encerrada (${statusCode}). Reconectar? ${shouldReconnect}`);
         
         connectionStatus = 'disconnected';
         currentQR = null;
@@ -155,7 +432,6 @@ async function startWhatsApp() {
       }
     });
 
-    // Handle Incoming Messages
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
       if (type !== 'notify') return;
 
@@ -168,7 +444,6 @@ async function startWhatsApp() {
         const clientPhone = remoteJid.replace('@s.whatsapp.net', '').replace(/\D/g, '');
         const clientName = msg.pushName || 'Cliente Pitoco';
         
-        // Extract text
         const text = msg.message.conversation || 
                      msg.message.extendedTextMessage?.text || 
                      msg.message.buttonsResponseMessage?.selectedButtonId ||
@@ -177,7 +452,6 @@ async function startWhatsApp() {
 
         console.log(`📩 [WhatsApp Recebido] De: ${clientPhone} (${clientName}) -> "${text}"`);
 
-        // Record message in Supabase
         await recordMessageInSupabase({
           phone: clientPhone,
           name: clientName,
@@ -185,22 +459,24 @@ async function startWhatsApp() {
           content: text,
         });
 
-        // Run Bot Logic
         await handleBotFlow(clientPhone, clientName, text, remoteJid);
       }
     });
 
   } catch (err) {
-    console.error('❌ [Baileys] Erro crítico ao iniciar socket:', err);
+    console.error('❌ [Baileys] Erro ao iniciar socket:', err);
     connectionStatus = 'error';
     setTimeout(startWhatsApp, 10000);
   }
 }
 
-// Bot logic & state machine
+// Bot logic & state machine utilizando o DB em tempo real
 async function handleBotFlow(phone, clientName, incomingText, remoteJid) {
   const clean = incomingText.trim();
   const lower = clean.toLowerCase();
+  const config = db.getBotConfig();
+  const activeProducts = db.getProducts().filter(p => p.is_active !== false);
+  const activeStores = db.getStores().filter(s => s.is_active !== false);
 
   let session = clientSessions.get(phone) || { step: 'IDLE' };
 
@@ -208,17 +484,17 @@ async function handleBotFlow(phone, clientName, incomingText, remoteJid) {
     session = { step: 'MAIN_MENU' };
     clientSessions.set(phone, session);
 
+    const welcomeHeader = config.welcome_message.replace('{clientName}', clientName);
     const welcome = 
-      `👶✨ *PITOCO DE GENTE — Roupas de Bebê & Enxovais*\n` +
-      `Olá, *${clientName}*! Bem-vindo(a) à nossa loja oficial! Como podemos te ajudar hoje?\n\n` +
+      `${welcomeHeader}\n\n` +
       `Digite o número da opção desejada:\n\n` +
-      `1️⃣ *Ver Catálogo de Produtos* (Bodies, Macacões com Zíper Duplo, Saídas, Kits de Berço)\n` +
+      `1️⃣ *Ver Catálogo de Produtos* (${activeProducts.length} itens disponíveis)\n` +
       `2️⃣ *Guia de Medidas* (Tamanhos RN a 3 anos com peso e altura)\n` +
       `3️⃣ *Checklist da Mala de Maternidade*\n` +
       `4️⃣ *Consultoria VIP de Enxoval* (Agendamento personalizado)\n` +
       `5️⃣ *Cálculo de Frete & Entrega* (Motoboy / Correios / Retirada)\n` +
       `6️⃣ *Pagamento via PIX* (Chave & QR Code Copia e Cola)\n` +
-      `7️⃣ *Falar com Atendente Humana* (Escolha sua loja de preferência)\n\n` +
+      `7️⃣ *Falar com Atendente Humana* (${activeStores.length} lojas disponíveis)\n\n` +
       `_Responda apenas com o número de 1 a 7._`;
 
     await sendWhatsAppMessage(remoteJid, welcome);
@@ -234,15 +510,15 @@ async function handleBotFlow(phone, clientName, incomingText, remoteJid) {
     if (clean === '1') {
       session.step = 'CATALOG';
       clientSessions.set(phone, session);
-      const cat = 
-        `🛍️ *DESTAQUES DO CATÁLOGO PITOCO DE GENTE*\n\n` +
-        `1. *Body Manga Longa Suedine 100% Pima* — R$ 39,90\n` +
-        `2. *Macacão Canelado com Zíper Duplo Soft* — R$ 69,90\n` +
-        `3. *Saída de Maternidade Tricot Luxo Realeza (4 Peças)* — R$ 169,90\n` +
-        `4. *Kit Berço Algodão 400 Fios Trança Nuvem* — R$ 259,90\n` +
-        `5. *Mala Maternidade Térmica Master Impermeável* — R$ 199,90\n\n` +
-        `_Digite o número do produto (1 a 5) para detalhes ou *0* para voltar ao Menu._`;
-      await sendWhatsAppMessage(remoteJid, cat);
+
+      let catText = `🛍️ *CATÁLOGO OFICIAL PITOCO DE GENTE*\n_Produtos atualizados em tempo real do nosso acervo:_\n\n`;
+      activeProducts.slice(0, 8).forEach((p, idx) => {
+        const preco = (p.promotional_price || p.price).toFixed(2).replace('.', ',');
+        catText += `${idx + 1}. *${p.name}* — R$ ${preco}\n`;
+      });
+      catText += `\n_Digite o número de um produto para ver fotos e detalhes, ou digite *0* para voltar ao Menu._`;
+
+      await sendWhatsAppMessage(remoteJid, catText);
       return;
     } else if (clean === '2') {
       const med = 
@@ -285,44 +561,97 @@ async function handleBotFlow(phone, clientName, incomingText, remoteJid) {
       await sendWhatsAppMessage(remoteJid, cons);
       return;
     } else if (clean === '5') {
+      const motoboy = (config.shipping_motoboy_price || 15).toFixed(2).replace('.', ',');
+      const correios = (config.shipping_correios_price || 24.90).toFixed(2).replace('.', ',');
+      const freeLimit = (config.free_shipping_threshold || 250).toFixed(2).replace('.', ',');
       const frete = 
-        `🚚 *OPÇÕES DE ENTREGA & FRETE*\n\n` +
-        `🛵 *Motoboy Express (Recife e Região)*: R$ 15,00 (Grátis acima de R$ 250)\n` +
-        `📦 *Correios SEDEX / PAC (Todo o Brasil)*: R$ 24,90 (Grátis acima de R$ 299)\n` +
-        `🏬 *Retirada Grátis em Loja*: Matriz Centro ou Shopping Boulevard\n\n` +
+        `🚚 *OPÇÕES DE ENTREGA & FRETE PITOCO DE GENTE*\n\n` +
+        `🛵 *Motoboy Express*: R$ ${motoboy} (Grátis acima de R$ ${freeLimit})\n` +
+        `📦 *Correios SEDEX / PAC*: R$ ${correios}\n` +
+        `🏬 *Retirada Grátis em Loja*: Em qualquer uma das nossas filiais físicas!\n\n` +
         `_Digite *0* para voltar ao Menu._`;
       await sendWhatsAppMessage(remoteJid, frete);
       return;
     } else if (clean === '6') {
+      const pixKey = config.pix_key || 'financeiro@pitocodegente.com.br';
+      const pixName = config.pix_name || 'Pitoco de Gente Artigos Infantis LTDA';
       const pix = 
         `💳 *PAGAMENTO VIA PIX OFICIAL*\n\n` +
-        `Chave PIX (E-mail): *financeiro@pitocodegente.com.br*\n` +
-        `Favorecido: *Pitoco de Gente Artigos Infantis LTDA*\n` +
-        `Banco: *Banco Inter / Efí*\n\n` +
+        `Chave PIX: *${pixKey}*\n` +
+        `Favorecido: *${pixName}*\n` +
+        `Cidade: *${config.pix_city || 'Recife'}*\n\n` +
         `📋 *Código Copia e Cola:*\n` +
-        `\`\`\`00020126580014BR.GOV.BCB.PIX0136financeiro@pitocodegente.com.br5204000053039865802BR5925Pitoco de Gente Artigos6006Recife62070503***6304\`\`\`\n\n` +
+        `\`\`\`00020126580014BR.GOV.BCB.PIX0136${pixKey}5204000053039865802BR5925Pitoco de Gente Artigos6006Recife62070503***6304\`\`\`\n\n` +
         `_Após a transferência, envie o comprovante por aqui!_`;
       await sendWhatsAppMessage(remoteJid, pix);
       return;
     } else if (clean === '7') {
       session.step = 'HANDOFF_STORE';
       clientSessions.set(phone, session);
-      const handoff = 
-        `👩‍💼 *ATENDIMENTO HUMANO — ESCOLHA SUA LOJA*\n\n` +
-        `1️⃣ *Loja Matriz — Centro* (Rua do Sol, 120)\n` +
-        `2️⃣ *Loja Shopping Boulevard* (Piso L2, Loja 204)\n` +
-        `3️⃣ *Atendimento Geral / E-commerce* (Digital)\n\n` +
-        `_Digite 1, 2 ou 3:_`;
+
+      let handoff = `👩‍💼 *ATENDIMENTO HUMANO — ESCOLHA SUA LOJA*\n\n`;
+      activeStores.forEach((st, idx) => {
+        handoff += `${idx + 1}️⃣ *${st.name}* (${st.address || st.business_hours})\n`;
+      });
+      handoff += `\n_Digite o número correspondente à filial desejada:_`;
+
       await sendWhatsAppMessage(remoteJid, handoff);
       return;
     }
   }
 
+  // Sub-menu Catálogo: Detalhes de um produto
+  if (session.step === 'CATALOG') {
+    const prodIdx = parseInt(clean) - 1;
+    if (!isNaN(prodIdx) && activeProducts[prodIdx]) {
+      const p = activeProducts[prodIdx];
+      const preco = (p.promotional_price || p.price).toFixed(2).replace('.', ',');
+      const desc = 
+        `✨ *${p.name.toUpperCase()}*\n\n` +
+        `💰 *Preço:* R$ ${preco}\n` +
+        `🧵 *Tecido:* ${p.material || 'Algodão Nobre'}\n` +
+        `📏 *Tamanhos:* ${(p.sizes || []).join(', ')}\n` +
+        `🎨 *Cores:* ${(p.colors || []).join(', ')}\n` +
+        `📦 *Estoque:* ${p.stock_quantity || 'Disponível'}\n\n` +
+        `📝 ${p.description}\n\n` +
+        `_Digite *1* para voltar ao Catálogo ou *0* para o Menu Principal._`;
+      await sendWhatsAppMessage(remoteJid, desc);
+      return;
+    }
+  }
+
+  // Sub-menu Consultoria VIP
+  if (session.step === 'CONSULTORIA') {
+    if (clean === '1' || clean === '2') {
+      const tipo = clean === '1' ? 'Online (Vídeo / WhatsApp)' : 'Presencial em Loja';
+      session.step = 'WAITING_HUMAN';
+      clientSessions.set(phone, session);
+
+      const protocol = `VIP-${Date.now().toString().slice(-6)}`;
+      const confirm = 
+        `👑 *CONSULTORIA VIP SOLICITADA!*\n\n` +
+        `Modalidade: *${tipo}*\n` +
+        `Protocolo: *${protocol}*\n\n` +
+        `Nossa consultora especialista em enxoval vai entrar em contato para agendar o melhor dia e horário para você! 💕`;
+      await sendWhatsAppMessage(remoteJid, confirm);
+
+      db.saveTicket({
+        store_id: activeStores[0]?.id || 'store-001',
+        phone,
+        client_name: clientName,
+        protocol,
+        subject: `Consultoria VIP solicitada: ${tipo}`,
+        status: 'open',
+        priority: 'urgent',
+      });
+      return;
+    }
+  }
+
+  // Sub-menu Handoff Loja
   if (session.step === 'HANDOFF_STORE') {
-    let chosenStore = null;
-    if (clean === '1') chosenStore = STORES[0];
-    else if (clean === '2') chosenStore = STORES[1];
-    else if (clean === '3') chosenStore = STORES[2];
+    const storeIdx = parseInt(clean) - 1;
+    const chosenStore = (!isNaN(storeIdx) && activeStores[storeIdx]) ? activeStores[storeIdx] : null;
 
     if (chosenStore) {
       session.step = 'WAITING_HUMAN';
@@ -335,19 +664,19 @@ async function handleBotFlow(phone, clientName, incomingText, remoteJid) {
         `✅ *TRANSFERÊNCIA REALIZADA!*\n\n` +
         `🏬 Loja Vinculada: *${chosenStore.name}*\n` +
         `📋 Protocolo: *${protocol}*\n\n` +
-        `Uma consultora desta unidade já está com o seu atendimento em aberto e vai te responder aqui mesmo em alguns instantes! 💕`;
+        `Uma consultora desta unidade já está com o seu atendimento em aberto e vai te responder aqui mesmo em instantes! 💕`;
 
       await sendWhatsAppMessage(remoteJid, confirm);
 
-      // Create support ticket & update conversation in Supabase
-      await createTicketInSupabase({
+      db.saveTicket({
         store_id: chosenStore.id,
         phone,
         client_name: clientName,
         protocol,
         subject: `Atendimento WhatsApp solicitado para ${chosenStore.name}`,
+        status: 'open',
+        priority: 'high',
       });
-
       return;
     }
   }
@@ -355,103 +684,62 @@ async function handleBotFlow(phone, clientName, incomingText, remoteJid) {
   // Fallback
   await sendWhatsAppMessage(
     remoteJid, 
-    `Opção não reconhecida. Digite *0* para ver o Menu Principal da Pitoco de Gente.`
+    `Opção não identificada. Digite *0* a qualquer momento para ver o Menu de opções.`
   );
 }
 
-// Helpers for WhatsApp Sending & Supabase Sync
+// Disparo de mensagem no socket
 async function sendWhatsAppMessage(jid, text) {
-  if (!sock || connectionStatus !== 'connected') {
-    console.warn(`[Baileys] Socket não conectado para enviar a ${jid}`);
-    return false;
-  }
   try {
+    if (!sock || connectionStatus !== 'connected') {
+      console.warn('⚠️ WhatsApp não está conectado no momento. Mensagem guardada.');
+      return false;
+    }
     await sock.sendMessage(jid, { text });
-    await recordMessageInSupabase({
-      phone: jid.replace('@s.whatsapp.net', ''),
-      direction: 'outbound',
-      content: text,
-      author_name: 'Pitoco Bot',
-    });
+    console.log(`📤 [WhatsApp Enviado] Para: ${jid} -> "${text.slice(0, 40)}..."`);
     return true;
   } catch (err) {
-    console.error(`[Baileys] Erro ao enviar mensagem para ${jid}:`, err);
+    console.error('❌ Falha ao enviar mensagem WhatsApp:', err);
     return false;
   }
 }
 
-async function recordMessageInSupabase({ phone, name, direction, content, author_name }) {
+// Salva histórico no Supabase
+async function recordMessageInSupabase({ phone, name, direction, content }) {
   if (!supabase) return;
   try {
     const cleanPhone = String(phone).replace(/\D/g, '');
     const convId = `conv-${cleanPhone}`;
 
-    // Upsert client
-    await supabase.from('clients').upsert({
-      id: `client-${cleanPhone}`,
-      name: name || 'Cliente WhatsApp',
-      phone: cleanPhone,
-      last_interaction: new Date().toISOString(),
-    }, { onConflict: 'phone' }).catch(() => {});
-
-    // Upsert conversation
-    await supabase.from('conversations').upsert({
+    await supabase.from('conversations').upsert([{
       id: convId,
       phone: cleanPhone,
-      client_name: name || 'Cliente WhatsApp',
+      client_name: name,
       last_message: content,
       last_message_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-    }, { onConflict: 'id' }).catch(() => {});
+    }], { onConflict: 'id' }).catch(() => {});
 
-    // Insert chat message
     await supabase.from('chat_messages').insert([{
       id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
       conversation_id: convId,
       direction,
       content,
-      author_name: author_name || (direction === 'inbound' ? name : 'Pitoco Bot'),
+      author_name: direction === 'inbound' ? name : 'Pitoco Bot',
       created_at: new Date().toISOString(),
     }]).catch(() => {});
-  } catch (e) {
-    // Non-blocking
-  }
-}
-
-async function createTicketInSupabase({ store_id, phone, client_name, protocol, subject }) {
-  if (!supabase) return;
-  try {
-    const cleanPhone = String(phone).replace(/\D/g, '');
-    await supabase.from('support_tickets').insert([{
-      id: `ticket-${Date.now()}`,
-      store_id,
-      client_id: `client-${cleanPhone}`,
-      conversation_id: `conv-${cleanPhone}`,
-      protocol,
-      subject,
-      status: 'open',
-      priority: 'high',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }]).catch(() => {});
-
-    await supabase.from('conversations').update({
-      status: 'waiting_human',
-      store_id,
-      updated_at: new Date().toISOString(),
-    }).eq('id', `conv-${cleanPhone}`).catch(() => {});
   } catch (e) {}
 }
 
 // ==============================================================================
-// REST API ENDPOINTS
+// 4. REST API ENDPOINTS — GERENCIAMENTO COMPLETO CEO / ADMIN & BOT
 // ==============================================================================
 
-// 1. GET /
+// 1. GET / & GET /health
 app.get('/', (req, res) => {
   res.json({
     app: 'Pitoco de Gente WhatsApp Bot API',
-    version: '2.0.0',
+    version: '2.1.0',
     status: 'online',
     whatsapp: {
       status: connectionStatus,
@@ -459,22 +747,141 @@ app.get('/', (req, res) => {
       name: connectedName,
       connectedAt,
     },
-    stores: STORES.map(s => ({ id: s.id, name: s.name, slug: s.slug })),
+    storesCount: db.getStores().length,
+    productsCount: db.getProducts().length,
     docs: 'https://pitoco.malaca.com.br',
   });
 });
 
-// 2. GET /health
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     whatsapp_status: connectionStatus,
+    storesCount: db.getStores().length,
+    productsCount: db.getProducts().length,
   });
 });
 
-// 3. GET /api/whatsapp/qr
+// 2. GET /api/data (Snapshot completo para o painel Admin)
+app.get('/api/data', (req, res) => {
+  res.json({
+    success: true,
+    stores: db.getStores(),
+    products: db.getProducts(),
+    botConfig: db.getBotConfig(),
+    tickets: db.getTickets(),
+    whatsapp: {
+      status: connectionStatus,
+      phone: connectedPhone,
+      name: connectedName,
+    },
+  });
+});
+
+// 3. PRODUTOS CRUD
+app.get('/api/products', (req, res) => {
+  res.json(db.getProducts());
+});
+
+app.post('/api/products', (req, res) => {
+  try {
+    const product = db.saveProduct(req.body);
+    res.json({ success: true, product });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/products/:id', (req, res) => {
+  try {
+    const product = db.saveProduct({ ...req.body, id: req.params.id });
+    res.json({ success: true, product });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/products/:id', (req, res) => {
+  try {
+    db.deleteProduct(req.params.id);
+    res.json({ success: true, message: 'Produto excluído com sucesso' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 4. LOJAS CRUD
+app.get('/api/stores', (req, res) => {
+  res.json(db.getStores());
+});
+
+app.post('/api/stores', (req, res) => {
+  try {
+    const store = db.saveStore(req.body);
+    res.json({ success: true, store });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/stores/:id', (req, res) => {
+  try {
+    const store = db.saveStore({ ...req.body, id: req.params.id });
+    res.json({ success: true, store });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/stores/:id', (req, res) => {
+  try {
+    db.deleteStore(req.params.id);
+    res.json({ success: true, message: 'Loja excluída com sucesso' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 5. BOT CONFIGURATION
+app.get('/api/bot-config', (req, res) => {
+  res.json({ success: true, config: db.getBotConfig() });
+});
+
+app.put('/api/bot-config', (req, res) => {
+  try {
+    const config = db.saveBotConfig(req.body);
+    res.json({ success: true, config });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 6. TICKETS & ATENDIMENTO
+app.get('/api/tickets', (req, res) => {
+  res.json(db.getTickets());
+});
+
+app.post('/api/tickets', (req, res) => {
+  try {
+    const ticket = db.saveTicket(req.body);
+    res.json({ success: true, ticket });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/tickets/:id', (req, res) => {
+  try {
+    const ticket = db.saveTicket({ ...req.body, id: req.params.id });
+    res.json({ success: true, ticket });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 7. WHATSAPP BAILEYS CONTROLS
 app.get('/api/whatsapp/qr', (req, res) => {
   res.json({
     status: connectionStatus,
@@ -486,37 +893,22 @@ app.get('/api/whatsapp/qr', (req, res) => {
   });
 });
 
-// Backward compatibility alias: GET /api/whatsapp/status
-app.get('/api/whatsapp/status', (req, res) => {
-  res.json({
-    status: connectionStatus,
-    phone: connectedPhone,
-    name: connectedName,
-    connectedAt,
-    qr: currentQR,
-    qrDataUrl: currentQRDataUrl,
-  });
-});
-
-// 4. POST /api/whatsapp/qr (Trigger reconnection / QR regeneration)
-app.post('/api/whatsapp/qr', async (req, res) => {
+app.post('/api/whatsapp/disconnect', async (req, res) => {
   try {
-    if (connectionStatus !== 'connected') {
-      startWhatsApp();
+    if (sock) {
+      await sock.logout().catch(() => {});
+      sock = null;
     }
-    res.json({
-      success: true,
-      message: 'Processo de geração de QR Code iniciado',
-      status: connectionStatus,
-      qr: currentQR,
-      qrDataUrl: currentQRDataUrl,
-    });
+    connectionStatus = 'disconnected';
+    currentQR = null;
+    currentQRDataUrl = null;
+    connectedPhone = null;
+    res.json({ success: true, message: 'WhatsApp desconectado com sucesso' });
   } catch (err) {
     res.status(500).json({ success: false, error: err?.message || err });
   }
 });
 
-// 5. POST /api/send-message
 app.post('/api/send-message', async (req, res) => {
   const { phone, text, message } = req.body;
   const bodyText = text || message;
@@ -545,29 +937,7 @@ app.post('/api/send-message', async (req, res) => {
   }
 });
 
-// 6. GET /api/stores
-app.get('/api/stores', (req, res) => {
-  res.json(STORES);
-});
-
-// 7. POST /api/whatsapp/disconnect
-app.post('/api/whatsapp/disconnect', async (req, res) => {
-  try {
-    if (sock) {
-      await sock.logout().catch(() => {});
-      sock = null;
-    }
-    connectionStatus = 'disconnected';
-    currentQR = null;
-    currentQRDataUrl = null;
-    connectedPhone = null;
-    res.json({ success: true, message: 'WhatsApp desconectado com sucesso' });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err?.message || err });
-  }
-});
-
-// Start listening on 0.0.0.0:8080
+// Inicia o servidor HTTP
 app.listen(PORT, HOST, () => {
   console.log(`🚀 [Pitoco Backend] Servidor rodando em http://${HOST}:${PORT}`);
   startWhatsApp();

@@ -28,8 +28,8 @@ export type ProductColor =
 
 export interface Store {
   id: string;
-  name: string; // 1. Loja Matriz — Centro, 2. Loja Shopping Boulevard, 3. Atendimento Geral / E-commerce
-  slug: 'matriz' | 'boulevard' | 'ecommerce';
+  name: string;
+  slug: string;
   address: string;
   phone: string;
   whatsapp_number: string;
@@ -41,6 +41,20 @@ export interface Store {
   active_chats?: number;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface BotConfig {
+  id?: string;
+  welcome_message: string;
+  pix_key: string;
+  pix_name: string;
+  pix_city: string;
+  shipping_motoboy_price: number;
+  shipping_correios_price: number;
+  free_shipping_threshold: number;
+  is_active: boolean;
+  handoff_message?: string;
+  fallback_message?: string;
 }
 
 export interface Category {

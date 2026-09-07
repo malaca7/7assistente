@@ -15,7 +15,11 @@ import {
   DollarSign, 
   Sparkles,
   Store as StoreIcon,
-  Layers
+  Layers,
+  Plus,
+  Edit3,
+  Trash2,
+  X
 } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
@@ -35,7 +39,22 @@ export const RedeLojasView: React.FC<RedeLojasViewProps> = ({ onSelectStore, onN
     return StorageService.getActiveStoreFilter();
   });
   const [isLoading, setIsLoading] = useState(true);
-  const { success, info } = useToast();
+  const { success, info, warning } = useToast();
+
+  // Modal State for Store Form
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingStore, setEditingStore] = useState<Store | null>(null);
+
+  // Form Fields
+  const [formName, setFormName] = useState('');
+  const [formSlug, setFormSlug] = useState('');
+  const [formAddress, setFormAddress] = useState('');
+  const [formPhone, setFormPhone] = useState('');
+  const [formWhatsapp, setFormWhatsapp] = useState('');
+  const [formHours, setFormHours] = useState('');
+  const [formCity, setFormCity] = useState('');
+  const [formManager, setFormManager] = useState('');
+  const [formActive, setFormActive] = useState(true);
 
   useEffect(() => {
     async function loadStores() {
@@ -73,6 +92,83 @@ export const RedeLojasView: React.FC<RedeLojasViewProps> = ({ onSelectStore, onN
     info('Visão Geral da Rede Restaurada', 'Exibindo dados consolidados de todas as filiais');
   };
 
+  const handleOpenCreateModal = () => {
+    setEditingStore(null);
+    setFormName('');
+    setFormSlug('');
+    setFormAddress('');
+    setFormPhone('8132211000');
+    setFormWhatsapp('81996138924');
+    setFormHours('08:30 às 18:30');
+    setFormCity('Recife - PE');
+    setFormManager('');
+    setFormActive(true);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (store: Store, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingStore(store);
+    setFormName(store.name);
+    setFormSlug(store.slug);
+    setFormAddress(store.address);
+    setFormPhone(store.phone);
+    setFormWhatsapp(store.whatsapp_number);
+    setFormHours(store.business_hours || '08:30 às 18:30');
+    setFormCity(store.city || 'Recife - PE');
+    setFormManager(store.manager_name || '');
+    setFormActive(store.is_active);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteStore = async (storeId: string, storeName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm(`Tem certeza que deseja excluir a filial "${storeName}" da rede?`)) return;
+
+    await StorageService.deleteStore(storeId);
+    setStores(prev => prev.filter(s => s.id !== storeId));
+    if (selectedStoreId === storeId) {
+      handleClearFilter();
+    }
+    success(`Filial "${storeName}" removida com sucesso!`);
+  };
+
+  const handleSaveStore = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formName.trim()) return;
+
+    const payload: Partial<Store> = {
+      id: editingStore ? editingStore.id : `store-${Date.now()}`,
+      name: formName.trim(),
+      slug: formSlug.trim() || formName.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+      address: formAddress.trim(),
+      phone: formPhone.trim(),
+      whatsapp_number: formWhatsapp.trim() || formPhone.trim(),
+      business_hours: formHours.trim(),
+      city: formCity.trim(),
+      manager_name: formManager.trim() || undefined,
+      is_active: formActive,
+    };
+
+    const saved = await StorageService.saveStore(payload);
+
+    setStores(prev => {
+      const idx = prev.findIndex(s => s.id === saved.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = saved;
+        return next;
+      }
+      return [...prev, saved];
+    });
+
+    setIsModalOpen(false);
+    success(
+      editingStore ? 'Filial atualizada com sucesso!' : 'Nova filial adicionada à rede!',
+      'As alterações foram sincronizadas com o banco e o bot em tempo real'
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Banner: Visão Consolidada da Rede */}
@@ -89,25 +185,27 @@ export const RedeLojasView: React.FC<RedeLojasViewProps> = ({ onSelectStore, onN
               </span>
               <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                3 Unidades Ativas
+                {stores.filter(s => s.is_active).length} Unidades Ativas
               </span>
             </div>
             <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
               Gestão Centralizada da Rede
             </h2>
             <p className="text-slate-400 text-sm mt-1 max-w-xl">
-              Monitore o faturamento, status operacional e conversas ativas das lojas físicas e da central de e-commerce da Pitoco de Gente.
+              Monitore e gerencie filiais físicas e canal e-commerce. Todas as alterações refletem no bot WhatsApp e no banco de dados em tempo real.
             </p>
           </div>
 
-          {selectedStoreId && (
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <span className="text-xs text-slate-400">Filtrando por:</span>
-                <p className="text-sm font-semibold text-pitoco-blue">
-                  {stores.find(s => s.id === selectedStoreId)?.name}
-                </p>
-              </div>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={handleOpenCreateModal}
+              className="bg-pitoco-blue text-slate-950 font-bold text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-pitoco-blue/20 flex items-center gap-1.5"
+            >
+              <Plus className="w-4 h-4" />
+              Nova Filial
+            </Button>
+
+            {selectedStoreId && (
               <Button
                 variant="outline"
                 size="sm"
@@ -116,8 +214,8 @@ export const RedeLojasView: React.FC<RedeLojasViewProps> = ({ onSelectStore, onN
               >
                 Ver Todas as Lojas
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Métricas Consolidadas da Rede */}
@@ -154,10 +252,10 @@ export const RedeLojasView: React.FC<RedeLojasViewProps> = ({ onSelectStore, onN
           <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5">
             <span className="text-xs text-slate-400 flex items-center gap-1.5 mb-1">
               <Layers className="w-3.5 h-3.5 text-amber-400" />
-              Filiais Operando
+              Filiais Cadastradas
             </span>
-            <p className="text-xl md:text-2xl font-bold text-white">3 de 3 lojas</p>
-            <span className="text-[11px] text-emerald-400 font-medium">100% online</span>
+            <p className="text-xl md:text-2xl font-bold text-white">{stores.length} lojas</p>
+            <span className="text-[11px] text-emerald-400 font-medium">Sincronizadas com o Bot</span>
           </div>
         </div>
       </div>
@@ -167,10 +265,10 @@ export const RedeLojasView: React.FC<RedeLojasViewProps> = ({ onSelectStore, onN
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-white flex items-center gap-2">
             <StoreIcon className="w-5 h-5 text-pitoco-blue" />
-            Filiais & Canais de Venda
+            Filiais & Canais de Venda ({stores.length})
           </h3>
           <span className="text-xs text-slate-400">
-            Clique em "Entrar na Loja" para alternar o foco gerencial
+            Gerencie filiais, altere dados ou selecione para filtrar o dashboard
           </span>
         </div>
 
@@ -178,32 +276,50 @@ export const RedeLojasView: React.FC<RedeLojasViewProps> = ({ onSelectStore, onN
           {stores.map((store) => {
             const isSelected = selectedStoreId === store.id;
             return (
-              <Card 
-                key={store.id} 
-                className={`relative transition-all duration-200 overflow-hidden flex flex-col justify-between ${
-                  isSelected 
-                    ? 'border-pitoco-blue shadow-glow-primary bg-dark-900/90 ring-1 ring-pitoco-blue' 
-                    : 'hover:border-white/20 bg-dark-850'
+              <Card
+                key={store.id}
+                className={`overflow-hidden transition-all duration-300 border flex flex-col justify-between ${
+                  isSelected
+                    ? 'border-pitoco-blue bg-dark-900/90 shadow-xl shadow-pitoco-blue/10 ring-1 ring-pitoco-blue/50'
+                    : 'border-white/10 bg-dark-900/50 hover:border-white/20'
                 }`}
               >
-                {/* Header do Card */}
-                <div className="p-6">
+                <div className="p-5">
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div>
-                      <span className="text-[11px] font-semibold text-pitoco-blue tracking-wider uppercase">
-                        {store.slug === 'ecommerce' ? 'Canal Digital' : 'Loja Física'}
+                      <span className="text-[10px] font-mono uppercase text-slate-400 tracking-wider block">
+                        ID: {store.slug}
                       </span>
-                      <h4 className="text-lg font-bold text-white mt-0.5">
-                        {store.name}
-                      </h4>
+                      <h4 className="text-base font-bold text-white mt-0.5">{store.name}</h4>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                      Aberta
-                    </span>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={(e) => handleOpenEditModal(store, e)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                        title="Editar filial"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={(e) => handleDeleteStore(store.id, store.name, e)}
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                        title="Excluir filial"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium border flex items-center gap-1 ${
+                        store.is_active 
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                          : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${store.is_active ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+                        {store.is_active ? 'Ativa' : 'Pausada'}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="space-y-2.5 text-xs text-slate-300 my-4">
+                  <div className="space-y-2 text-xs text-slate-300 my-4">
                     <div className="flex items-center gap-2">
                       <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       <span className="truncate">{store.address}</span>
@@ -219,12 +335,12 @@ export const RedeLojasView: React.FC<RedeLojasViewProps> = ({ onSelectStore, onN
                     {store.manager_name && (
                       <div className="flex items-center gap-2">
                         <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span>Gerente: *{store.manager_name}*</span>
+                        <span>Gerente: <strong>{store.manager_name}</strong></span>
                       </div>
                     )}
                   </div>
 
-                  {/* Mini estatísticas da filial */}
+                  {/* Estatísticas da filial */}
                   <div className="grid grid-cols-2 gap-2 pt-3 border-t border-white/5">
                     <div className="bg-dark-900/60 p-2.5 rounded-lg border border-white/5">
                       <span className="text-[10px] text-slate-400">Faturamento Mês</span>
@@ -241,7 +357,7 @@ export const RedeLojasView: React.FC<RedeLojasViewProps> = ({ onSelectStore, onN
                   </div>
                 </div>
 
-                {/* Ações do Card */}
+                {/* Ação: Selecionar Loja */}
                 <div className="p-4 bg-dark-950/40 border-t border-white/5 flex items-center justify-between gap-3">
                   <Button
                     onClick={() => handleEnterStore(store)}
@@ -254,7 +370,7 @@ export const RedeLojasView: React.FC<RedeLojasViewProps> = ({ onSelectStore, onN
                     {isSelected ? (
                       <>
                         <CheckCircle2 className="w-4 h-4" />
-                        Loja Selecionada
+                        Filial Selecionada
                       </>
                     ) : (
                       <>
@@ -269,6 +385,152 @@ export const RedeLojasView: React.FC<RedeLojasViewProps> = ({ onSelectStore, onN
           })}
         </div>
       </div>
+
+      {/* Modal Criar / Editar Filial */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-dark-900 border border-white/10 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <StoreIcon className="w-5 h-5 text-pitoco-blue" />
+                {editingStore ? 'Editar Filial / Canal' : 'Cadastrar Nova Filial'}
+              </h3>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveStore} className="space-y-3 text-xs">
+              <div>
+                <label className="text-slate-300 font-semibold block mb-1">Nome da Filial:</label>
+                <input
+                  type="text"
+                  value={formName}
+                  onChange={e => setFormName(e.target.value)}
+                  placeholder="Ex: Loja Shopping Tacaruna"
+                  className="w-full bg-dark-800 border border-white/10 rounded-xl p-2.5 text-white text-xs"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-300 font-semibold block mb-1">Identificador (Slug):</label>
+                  <input
+                    type="text"
+                    value={formSlug}
+                    onChange={e => setFormSlug(e.target.value)}
+                    placeholder="Ex: tacaruna"
+                    className="w-full bg-dark-800 border border-white/10 rounded-xl p-2.5 text-white text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-300 font-semibold block mb-1">Cidade / Região:</label>
+                  <input
+                    type="text"
+                    value={formCity}
+                    onChange={e => setFormCity(e.target.value)}
+                    placeholder="Ex: Olinda - PE"
+                    className="w-full bg-dark-800 border border-white/10 rounded-xl p-2.5 text-white text-xs"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-slate-300 font-semibold block mb-1">Endereço Completo:</label>
+                <input
+                  type="text"
+                  value={formAddress}
+                  onChange={e => setFormAddress(e.target.value)}
+                  placeholder="Ex: Av. Governador Agamenon Magalhães, 153 - Piso L1"
+                  className="w-full bg-dark-800 border border-white/10 rounded-xl p-2.5 text-white text-xs"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-300 font-semibold block mb-1">Telefone Fixo:</label>
+                  <input
+                    type="text"
+                    value={formPhone}
+                    onChange={e => setFormPhone(e.target.value)}
+                    placeholder="8132211000"
+                    className="w-full bg-dark-800 border border-white/10 rounded-xl p-2.5 text-white text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-300 font-semibold block mb-1">WhatsApp da Filial:</label>
+                  <input
+                    type="text"
+                    value={formWhatsapp}
+                    onChange={e => setFormWhatsapp(e.target.value)}
+                    placeholder="81996138924"
+                    className="w-full bg-dark-800 border border-white/10 rounded-xl p-2.5 text-white text-xs"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-300 font-semibold block mb-1">Horário de Atendimento:</label>
+                  <input
+                    type="text"
+                    value={formHours}
+                    onChange={e => setFormHours(e.target.value)}
+                    placeholder="10:00 às 22:00"
+                    className="w-full bg-dark-800 border border-white/10 rounded-xl p-2.5 text-white text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-300 font-semibold block mb-1">Gerente da Filial:</label>
+                  <input
+                    type="text"
+                    value={formManager}
+                    onChange={e => setFormManager(e.target.value)}
+                    placeholder="Nome da Gerente"
+                    className="w-full bg-dark-800 border border-white/10 rounded-xl p-2.5 text-white text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="storeActiveCheck"
+                  checked={formActive}
+                  onChange={e => setFormActive(e.target.checked)}
+                  className="rounded bg-dark-800 border-white/10 text-pitoco-blue focus:ring-0"
+                />
+                <label htmlFor="storeActiveCheck" className="text-slate-300 cursor-pointer">
+                  Filial ativa e disponível no bot WhatsApp
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t border-white/10">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsModalOpen(false)}
+                  className="text-xs text-slate-300"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-pitoco-blue text-slate-950 font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg"
+                >
+                  {editingStore ? 'Salvar Modificações' : 'Cadastrar Filial'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -9,9 +9,33 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/index.css" id="bundle-css-preload" onerror="this.remove()">
   </head>
   <body class="bg-dark-950 text-slate-100 antialiased selection:bg-pitoco-blue selection:text-slate-950 font-sans">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Fallback para GitHub Pages e servidores estáticos sem bundler ativo
+      window.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+          var root = document.getElementById('root');
+          if (root && root.children.length === 0) {
+            console.warn('[Pitoco] Tela em branco evitada: carregando bundle compilado /assets/index.js...');
+            var script = document.createElement('script');
+            script.type = 'module';
+            script.src = '/assets/index.js';
+            document.body.appendChild(script);
+
+            if (!document.getElementById('bundle-css')) {
+              var link = document.createElement('link');
+              link.id = 'bundle-css';
+              link.rel = 'stylesheet';
+              link.href = '/assets/index.css';
+              document.head.appendChild(link);
+            }
+          }
+        }, 400);
+      });
+    </script>
   </body>
 </html>

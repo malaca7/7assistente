@@ -36,7 +36,7 @@ jobs:
 
       - name: Setup CNAME and SPA Routing
         run: |
-          echo "talvane.malaca.com.br" > dist/CNAME
+          echo "pitoco.malaca.com.br" > dist/CNAME
           cp dist/index.html dist/404.html
           touch dist/.nojekyll
 
@@ -75,13 +75,9 @@ jobs:
         run: |
           npm install --legacy-peer-deps
           npm run build
-          echo "talvane.malaca.com.br" > dist/CNAME
+          echo "pitoco.malaca.com.br" > dist/CNAME
           cp dist/index.html dist/404.html
           touch dist/.nojekyll
-
-      - name: Package Discloud Application (ZIP)
-        run: |
-          zip -r 7assistente.zip index.mjs index.js package.json discloud.config .discloudignore server dist
 
       - name: Deploy via Discloud API & Restart Bot
         env:

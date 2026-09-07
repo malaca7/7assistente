@@ -36,4 +36,14 @@ with zipfile.ZipFile(ZIP_OUT, 'w', zipfile.ZIP_DEFLATED) as zf:
                 zf.write(full_p, rel_p)
         print('Added dist folder to zip')
 
+    # Include data folder if present
+    data_dir = os.path.join(DISCLOUD_DIR, 'data')
+    if os.path.exists(data_dir):
+        for root, dirs, files in os.walk(data_dir):
+            for f in files:
+                full_p = os.path.join(root, f)
+                rel_p = os.path.relpath(full_p, DISCLOUD_DIR)
+                zf.write(full_p, rel_p)
+        print('Added data folder to zip')
+
 print(f'Created {ZIP_OUT}, total size: {os.path.getsize(ZIP_OUT)} bytes')

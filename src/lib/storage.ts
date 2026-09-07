@@ -42,6 +42,22 @@ import {
 import * as SupabaseService from './supabaseClient';
 import { DEFAULT_ROLE_CONFIGS } from './permissions';
 
+const API_BASE = 
+  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_BOT_URL) ||
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_BACKEND_URL) ||
+  'https://pitoco.discloud.app';
+
+export const defaultBotConfig: BotConfig = {
+  welcome_message: '👶✨ *PITOCO DE GENTE — Roupas de Bebê & Enxovais*\nOlá, *{clientName}*! Bem-vindo(a) à nossa loja oficial! Como podemos te ajudar hoje?',
+  pix_key: 'financeiro@pitocodegente.com.br',
+  pix_name: 'Pitoco de Gente Artigos Infantis LTDA',
+  pix_city: 'Recife',
+  shipping_motoboy_price: 15.00,
+  shipping_correios_price: 24.90,
+  free_shipping_threshold: 250.00,
+  is_active: true,
+};
+
 const STORAGE_KEYS = {
   STORES: 'pitoco_stores',
   ACTIVE_STORE: 'pitoco_active_store_filter',
@@ -85,9 +101,20 @@ function setItem<T>(key: string, value: T): void {
 
 export const StorageService = {
   // ==============================================================================
-  // 1. MULTI-LOJAS CENTRALIZADO
+  // 1. MULTI-LOJAS CENTRALIZADO & CRUD
   // ==============================================================================
   async getStores(): Promise<Store[]> {
+    try {
+      const res = await fetch(`${API_BASE}/api/stores`).catch(() => null);
+      if (res && res.ok) {
+        const apiStores = await res.json();
+        if (Array.isArray(apiStores) && apiStores.length > 0) {
+          setItem(STORAGE_KEYS.STORES, apiStores);
+          return apiStores;
+        }
+      }
+    } catch (e) {}
+
     if (SupabaseService.isSupabaseReady) {
       const dbStores = await SupabaseService.getStores();
       if (dbStores.length > 0) {
@@ -103,6 +130,57 @@ export const StorageService = {
     return stores.find(s => s.id === id || s.slug === id) || null;
   },
 
+  async saveStore(store: Partial<Store>): Promise<Store> {
+    const updatedStore: Store = {
+      id: store.id || `store-${Date.now()}`,
+      slug: store.slug || `loja-${Date.now()}`,
+      name: store.name || 'Nova Loja',
+      address: store.address || '',
+      phone: store.phone || '',
+      whatsapp_number: store.whatsapp_number || store.phone || '',
+      is_active: store.is_active !== false,
+      business_hours: store.business_hours || '09:00 às 19:00',
+      city: store.city || 'Recife - PE',
+      monthly_revenue: store.monthly_revenue || 0,
+      active_chats: store.active_chats || 0,
+      ...store,
+    };
+
+    // 1. Salvar no Backend Discloud (atualiza o bot em tempo real)
+    try {
+      await fetch(`${API_BASE}/api/stores`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedStore),
+      }).catch(() => {});
+    } catch (e) {}
+
+    // 2. Salvar no Supabase se pronto
+    if (SupabaseService.isSupabaseReady) {
+      await SupabaseService.updateStore(updatedStore.id, updatedStore);
+    }
+
+    // 3. Atualizar armazenamento local
+    const local = getItem<Store[]>(STORAGE_KEYS.STORES, initialStores);
+    const idx = local.findIndex(s => s.id === updatedStore.id);
+    if (idx >= 0) local[idx] = updatedStore;
+    else local.push(updatedStore);
+    setItem(STORAGE_KEYS.STORES, local);
+
+    return updatedStore;
+  },
+
+  async deleteStore(id: string): Promise<boolean> {
+    try {
+      await fetch(`${API_BASE}/api/stores/${id}`, { method: 'DELETE' }).catch(() => {});
+    } catch (e) {}
+
+    const local = getItem<Store[]>(STORAGE_KEYS.STORES, initialStores);
+    const filtered = local.filter(s => s.id !== id && s.slug !== id);
+    setItem(STORAGE_KEYS.STORES, filtered);
+    return true;
+  },
+
   getActiveStoreFilter(): string | null {
     return getItem<string | null>(STORAGE_KEYS.ACTIVE_STORE, null);
   },
@@ -112,7 +190,7 @@ export const StorageService = {
   },
 
   // ==============================================================================
-  // 2. CATEGORIAS & PRODUTOS DO CATÁLOGO DE BEBÊ
+  // 2. CATEGORIAS & PRODUTOS DO CATÁLOGO DE BEBÊ & CRUD
   // ==============================================================================
   async getCategories(storeId?: string): Promise<Category[]> {
     if (SupabaseService.isSupabaseReady) {
@@ -126,6 +204,21 @@ export const StorageService = {
   },
 
   async getProducts(storeId?: string, categoryId?: string): Promise<Product[]> {
+    // 1. Tentar buscar dados frescos da API do Bot
+    try {
+      const res = await fetch(`${API_BASE}/api/products`).catch(() => null);
+      if (res && res.ok) {
+        const apiProds = await res.json();
+        if (Array.isArray(apiProds) && apiProds.length > 0) {
+          setItem(STORAGE_KEYS.PRODUCTS, apiProds);
+          let filtered = apiProds;
+          if (storeId) filtered = filtered.filter((p: any) => !p.store_id || p.store_id === storeId);
+          if (categoryId) filtered = filtered.filter((p: any) => p.category_id === categoryId);
+          return filtered;
+        }
+      }
+    } catch (e) {}
+
     if (SupabaseService.isSupabaseReady) {
       const dbProds = await SupabaseService.getProducts(storeId, categoryId);
       if (dbProds.length > 0) {
@@ -144,19 +237,6 @@ export const StorageService = {
   },
 
   async saveProduct(prod: Partial<Product>): Promise<Product> {
-    if (SupabaseService.isSupabaseReady) {
-      const saved = await SupabaseService.saveProduct(prod);
-      if (saved) {
-        const local = await this.getProducts();
-        const index = local.findIndex(p => p.id === saved.id);
-        if (index >= 0) local[index] = saved;
-        else local.unshift(saved);
-        setItem(STORAGE_KEYS.PRODUCTS, local);
-        return saved;
-      }
-    }
-    const local = getItem<Product[]>(STORAGE_KEYS.PRODUCTS, initialProducts);
-    const existingIndex = local.findIndex(p => p.id === prod.id);
     const productRecord: Product = {
       id: prod.id || `prod-${Date.now()}`,
       category_id: prod.category_id || 'cat-001',
@@ -170,22 +250,84 @@ export const StorageService = {
       is_featured: prod.is_featured ?? false,
       is_active: prod.is_active ?? true,
       material: prod.material || 'Algodão Suedine 100%',
+      image_url: prod.image_url || '',
+      category_name: prod.category_name || 'Roupas & Enxovais',
       ...prod,
     };
+
+    // 1. Sincronizar com Backend Discloud (o Bot usa imediatamente)
+    try {
+      await fetch(`${API_BASE}/api/products`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(productRecord),
+      }).catch(() => {});
+    } catch (e) {}
+
+    // 2. Salvar no Supabase
+    if (SupabaseService.isSupabaseReady) {
+      await SupabaseService.saveProduct(productRecord);
+    }
+
+    // 3. Atualizar LocalStorage
+    const local = getItem<Product[]>(STORAGE_KEYS.PRODUCTS, initialProducts);
+    const existingIndex = local.findIndex(p => p.id === productRecord.id);
     if (existingIndex >= 0) local[existingIndex] = productRecord;
     else local.unshift(productRecord);
     setItem(STORAGE_KEYS.PRODUCTS, local);
+
     return productRecord;
   },
 
   async deleteProduct(id: string): Promise<boolean> {
+    // 1. Remover do Backend Discloud
+    try {
+      await fetch(`${API_BASE}/api/products/${id}`, { method: 'DELETE' }).catch(() => {});
+    } catch (e) {}
+
+    // 2. Remover do Supabase
     if (SupabaseService.isSupabaseReady) {
       await SupabaseService.deleteProduct(id);
     }
+
+    // 3. Remover do LocalStorage
     const local = getItem<Product[]>(STORAGE_KEYS.PRODUCTS, initialProducts);
     const filtered = local.filter(p => p.id !== id);
     setItem(STORAGE_KEYS.PRODUCTS, filtered);
     return true;
+  },
+
+  // ==============================================================================
+  // 2.1 CONFIGURAÇÕES GLOBAIS DO BOT & WHATSAPP
+  // ==============================================================================
+  async getBotConfig(): Promise<BotConfig> {
+    try {
+      const res = await fetch(`${API_BASE}/api/bot-config`).catch(() => null);
+      if (res && res.ok) {
+        const json = await res.json();
+        if (json.config) {
+          setItem(STORAGE_KEYS.SETTINGS + '_bot', json.config);
+          return json.config;
+        }
+      }
+    } catch (e) {}
+    return getItem<BotConfig>(STORAGE_KEYS.SETTINGS + '_bot', defaultBotConfig);
+  },
+
+  async saveBotConfig(config: Partial<BotConfig>): Promise<BotConfig> {
+    const current = await this.getBotConfig();
+    const updated: BotConfig = { ...current, ...config };
+
+    try {
+      await fetch(`${API_BASE}/api/bot-config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      }).catch(() => {});
+    } catch (e) {}
+
+    setItem(STORAGE_KEYS.SETTINGS + '_bot', updated);
+    return updated;
   },
 
   // ==============================================================================
