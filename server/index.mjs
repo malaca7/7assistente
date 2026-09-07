@@ -28,6 +28,7 @@ import {
   saveDb, 
   getActiveFlowAndGraph 
 } from './flowRunner.mjs';
+import { processAdminBotMessage } from './botEngine.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -168,24 +169,29 @@ async function startWhatsApp() {
                      '';
 
         console.log(`📩 [WhatsApp Recebido] ${clientPhone} (${clientName}): "${text}"`);
-        await recordMessageInSupabase(clientPhone, clientName, 'inbound', text);
+        await recordMessageLocallyAndSupabase(clientPhone, clientName, 'inbound', text);
 
-        // Executar dinamicamente o fluxo ativo publicado no painel!
+        // Executar o fluxo oficial completo do Pitoco de Gente (Painel Admin)
         try {
-          const replies = await executePublishedFlow(remoteJid, text, clientName, clientPhone);
-          if (Array.isArray(replies) && replies.length > 0) {
-            for (const reply of replies) {
-              await sendBotReply(remoteJid, reply);
-            }
-          } else if (typeof replies === 'string') {
-            await sendBotReply(remoteJid, replies);
+          const db = loadDb();
+          const replyText = await processAdminBotMessage(text, clientPhone, clientName, db);
+          saveDb(db);
+
+          if (replyText) {
+            await sendWhatsAppMessage(remoteJid, replyText);
+            await recordMessageLocallyAndSupabase(clientPhone, 'Pitoco Bot', 'outbound', replyText);
           }
-        } catch (flowErr) {
-          console.error(`❌ [FlowRunner Error] Erro ao processar fluxo para ${clientPhone}:`, flowErr);
-          await sendWhatsAppMessage(remoteJid, `Olá, *${clientName}*! Recebemos sua mensagem, mas nosso fluxo de atendimento está sendo sincronizado. Em instantes responderemos!`);
+        } catch (botErr) {
+          console.error(`❌ [Bot Engine Error] Erro ao processar mensagem para ${clientPhone}:`, botErr);
+          await sendWhatsAppMessage(remoteJid, `Olá, *${clientName}*! Recebemos sua mensagem. Em instantes responderemos!`);
         }
       }
     });
+  } catch (err) {
+    console.error('❌ [Server] Erro ao iniciar Baileys:', err);
+    connectionStatus = 'error';
+  }
+}
   } catch (err) {
     console.error('❌ [Server] Erro ao iniciar Baileys:', err);
     connectionStatus = 'error';
@@ -265,6 +271,46 @@ async function sendWhatsAppMessage(jid, text) {
   } catch (e) {
     return false;
   }
+}
+
+async function recordMessageLocallyAndSupabase(phone, name, direction, content) {
+  const cleanPhone = String(phone).replace(/\D/g, '');
+  const convId = `conv-${cleanPhone}`;
+
+  try {
+    const db = loadDb();
+    if (!db.conversations) db.conversations = {};
+    if (!db.messages) db.messages = {};
+
+    db.conversations[convId] = {
+      id: convId,
+      contact_name: name || 'Cliente WhatsApp',
+      contact_phone: cleanPhone,
+      phone: cleanPhone,
+      last_message: content,
+      last_message_at: new Date().toISOString(),
+      status: db.conversations[convId]?.status || 'active',
+      store_name: db.conversations[convId]?.store_name || 'Pitoco de Gente',
+    };
+
+    if (!db.messages[convId]) db.messages[convId] = [];
+    db.messages[convId].push({
+      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      conversation_id: convId,
+      direction,
+      content,
+      sender: direction === 'inbound' ? 'user' : 'bot',
+      author_name: direction === 'inbound' ? (name || 'Cliente') : 'Pitoco Bot',
+      created_at: new Date().toISOString(),
+    });
+
+    saveDb(db);
+  } catch (err) {
+    console.warn('[Storage] Erro ao salvar mensagem no db local:', err.message);
+  }
+
+  // Gravar no Supabase se configurado
+  recordMessageInSupabase(cleanPhone, name, direction, content);
 }
 
 async function recordMessageInSupabase(phone, name, direction, content) {
@@ -425,6 +471,84 @@ app.post('/api/send-message', async (req, res) => {
 
 app.get('/api/stores', (req, res) => {
   res.json(STORES);
+});
+
+// Conversas do Atendimento Humano Inbox
+app.get('/api/conversations', (req, res) => {
+  try {
+    const db = loadDb();
+    const convs = Object.values(db.conversations || {});
+    res.json(convs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/conversations/:id/messages', (req, res) => {
+  try {
+    const db = loadDb();
+    const msgs = db.messages?.[req.params.id] || [];
+    res.json(msgs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Tickets de Atendimento das Lojas
+app.get('/api/tickets', (req, res) => {
+  try {
+    const db = loadDb();
+    res.json(db.tickets || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/tickets', (req, res) => {
+  try {
+    const db = loadDb();
+    if (!db.tickets) db.tickets = [];
+    const newTkt = {
+      id: req.body.id || `tkt-${Date.now()}`,
+      protocol: req.body.protocol || `PTC-${Date.now().toString().slice(-6)}`,
+      status: 'open',
+      priority: 'high',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      ...req.body,
+    };
+    db.tickets.unshift(newTkt);
+    saveDb(db);
+    res.json({ success: true, ticket: newTkt });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/tickets/:id', (req, res) => {
+  try {
+    const db = loadDb();
+    if (!db.tickets) db.tickets = [];
+    const idx = db.tickets.findIndex(t => t.id === req.params.id);
+    if (idx >= 0) {
+      db.tickets[idx] = { ...db.tickets[idx], ...req.body, updated_at: new Date().toISOString() };
+      saveDb(db);
+      return res.json({ success: true, ticket: db.tickets[idx] });
+    }
+    res.status(404).json({ error: 'Ticket não encontrado' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Consultorias VIP / Agendamentos
+app.get('/api/consultations', (req, res) => {
+  try {
+    const db = loadDb();
+    res.json(db.appointments || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ==============================================================================

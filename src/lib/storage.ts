@@ -343,6 +343,19 @@ export const StorageService = {
   // 3. CONVERSAS & INBOX DE ATENDIMENTO HUMANO
   // ==============================================================================
   async getConversations(storeId?: string): Promise<Conversation[]> {
+    try {
+      const res = await fetch(`${API_BASE}/api/conversations`, { signal: AbortSignal.timeout(2500) });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setItem(STORAGE_KEYS.CONVERSATIONS, data);
+          let filtered = data;
+          if (storeId) filtered = filtered.filter(c => !c.store_id || c.store_id === storeId);
+          return filtered;
+        }
+      }
+    } catch {}
+
     if (SupabaseService.isSupabaseReady) {
       const dbConvs = await SupabaseService.getConversations(storeId);
       if (dbConvs.length > 0) {
@@ -511,6 +524,19 @@ export const StorageService = {
   // 6. TICKETS DE ATENDIMENTO HUMANO
   // ==============================================================================
   async getSupportTickets(storeId?: string): Promise<SupportTicket[]> {
+    try {
+      const res = await fetch(`${API_BASE}/api/tickets`, { signal: AbortSignal.timeout(2500) });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setItem(STORAGE_KEYS.TICKETS, data);
+          let filtered = data;
+          if (storeId) filtered = filtered.filter(t => t.store_id === storeId);
+          return filtered;
+        }
+      }
+    } catch {}
+
     if (SupabaseService.isSupabaseReady) {
       const dbTickets = await SupabaseService.getSupportTickets(storeId);
       if (dbTickets.length > 0) {
