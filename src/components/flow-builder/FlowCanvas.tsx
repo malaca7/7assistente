@@ -37,6 +37,17 @@ import {
   SelectServiceNode,
   SelectDateNode,
   SelectTimeSlotNode,
+  StoreSelectorNode,
+  ShowCatalogNode,
+  SelectProductNode,
+  ShippingCalculatorNode,
+  PixPaymentNode,
+  CartOrderNode,
+  MeasureGuideNode,
+  LayetteChecklistNode,
+  VipConsultationNode,
+  OrderTrackingNode,
+  PromotionalCouponNode,
 } from './nodes/AdvancedNodes';
 
 export interface FlowCanvasProps {
@@ -95,6 +106,18 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
       end_flow: EndFlowNode,
       finish_flow: EndFlowNode,
       end: EndFlowNode,
+      // Novos nós de Loja Virtual & Atendimento Online
+      store_selector: StoreSelectorNode,
+      show_catalog: ShowCatalogNode,
+      select_product: SelectProductNode,
+      shipping_calculator: ShippingCalculatorNode,
+      pix_payment: PixPaymentNode,
+      cart_order: CartOrderNode,
+      measure_guide: MeasureGuideNode,
+      layette_checklist: LayetteChecklistNode,
+      vip_consultation: VipConsultationNode,
+      order_tracking: OrderTrackingNode,
+      promotional_coupon: PromotionalCouponNode,
     }),
     []
   );

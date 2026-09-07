@@ -1565,6 +1565,68 @@ function parseCustomDateString(input) {
           console.log(`[FlowRunner] 🏷️ Serviço selecionado pelo cliente: "${srvName}" (${srvPrice}, ${srvDur} min)`);
         }
 
+        // If from store_selector
+        if (prevType === 'store_selector') {
+          const storeMap = {
+            store_matriz: 'Matriz Centro (Recife)',
+            store_boulevard: 'Shopping Boulevard',
+            store_ecommerce: 'Loja Virtual & E-commerce',
+          };
+          const storeName = storeMap[matchedBtn.id] || matchedBtn.title;
+          session.variables['loja_escolhida'] = storeName;
+          session.variables['loja_id'] = matchedBtn.id;
+          session.variables['opcao_selecionada'] = storeName;
+          console.log(`[FlowRunner] 🏬 Loja selecionada pelo cliente: "${storeName}" (${matchedBtn.id})`);
+        }
+
+        // If from shipping_calculator
+        if (prevType === 'shipping_calculator') {
+          const shipMap = {
+            shipping_motoboy: { label: 'Motoboy Express (Recife)', price: 'R$ 15,00', days: 'Hoje' },
+            shipping_correios: { label: 'Correios SEDEX / PAC', price: 'R$ 24,90', days: '2 a 5 dias úteis' },
+            shipping_pickup: { label: 'Retirada Grátis em Loja', price: 'Grátis', days: 'Pronto em 2h' },
+          };
+          const sInfo = shipMap[matchedBtn.id] || { label: matchedBtn.title, price: 'R$ 15,00', days: '1 dia' };
+          session.variables['tipo_frete'] = sInfo.label;
+          session.variables['valor_frete'] = sInfo.price;
+          session.variables['prazo_entrega'] = sInfo.days;
+          session.variables['tipo_frete_id'] = matchedBtn.id;
+          console.log(`[FlowRunner] 🚚 Frete selecionado: "${sInfo.label}" (${sInfo.price})`);
+        }
+
+        // If from pix_payment
+        if (prevType === 'pix_payment') {
+          session.variables['status_pagamento'] = matchedBtn.id === 'pix_paid' ? 'comprovante_enviado' : 'ajuda_solicitada';
+          console.log(`[FlowRunner] 💳 PIX status: ${session.variables['status_pagamento']}`);
+        }
+
+        // If from vip_consultation
+        if (prevType === 'vip_consultation') {
+          session.variables['tipo_consultoria'] = matchedBtn.id === 'consult_online' ? 'Online (Vídeo / WhatsApp)' : 'Presencial na Loja Física';
+          session.variables['consultoria_id'] = matchedBtn.id;
+          console.log(`[FlowRunner] ✨ Consultoria selecionada: ${session.variables['tipo_consultoria']}`);
+        }
+
+        // If from promotional_coupon
+        if (prevType === 'promotional_coupon') {
+          session.variables['cupom_aplicado'] = matchedBtn.id === 'coupon_valid' ? 'BEMVINDO10' : '';
+          session.variables['desconto_valor'] = matchedBtn.id === 'coupon_valid' ? '10%' : '0%';
+          console.log(`[FlowRunner] 🎟️ Cupom aplicado: ${session.variables['cupom_aplicado']}`);
+        }
+
+        // If from select_product
+        if (prevType === 'select_product') {
+          const pName = matchedBtn.title.split('(')[0].trim();
+          session.variables['produto_selecionado'] = pName;
+          session.variables['opcao_selecionada'] = pName;
+          if (matchedBtn.title.includes('49')) session.variables['valor_produto'] = 'R$ 49,90';
+          else if (matchedBtn.title.includes('89')) session.variables['valor_produto'] = 'R$ 89,90';
+          else if (matchedBtn.title.includes('199')) session.variables['valor_produto'] = 'R$ 199,90';
+          else session.variables['valor_produto'] = 'R$ 79,90';
+          session.variables['valor_total'] = session.variables['valor_produto'];
+          console.log(`[FlowRunner] 🛍️ Produto selecionado: ${pName}`);
+        }
+
         const targetEdge =
           edges.find(
             (e) =>
@@ -2144,6 +2206,323 @@ function parseCustomDateString(input) {
           continue;
         }
       }
+      break;
+    }
+
+    // 5.3 Store Selector Node (Multi-Filiais: Matriz, Boulevard, Loja Virtual)
+    else if (nodeType === 'store_selector') {
+      const intro = config.introMessage
+        ? replaceVars(config.introMessage, session.variables, botProfile)
+        : 'Olá! Seja bem-vinda à *Pitoco de Gente*. 🍼 Com qual de nossas lojas você deseja falar hoje?';
+
+      const storeButtons = [
+        { id: 'store_matriz', title: '1️⃣ Matriz Centro' },
+        { id: 'store_boulevard', title: '2️⃣ Boulevard' },
+        { id: 'store_ecommerce', title: '3️⃣ Loja Virtual' },
+      ];
+
+      session.activeButtons = storeButtons;
+      session.currentNodeId = currentNode.id;
+
+      replies.push({
+        type: 'buttons',
+        body: `🏬 *Escolha de Filial / Loja:*\n\n${intro}\n\n• *1.* Matriz Centro (Recife)\n• *2.* Shopping Boulevard\n• *3.* Loja Virtual & E-commerce (Brasil)`,
+        footer: 'Toque no botão ou digite 1, 2 ou 3:',
+        buttons: storeButtons,
+      });
+      break;
+    }
+
+    // 5.4 Show Catalog Node (Vitrine de Moda Bebê & Enxovais)
+    else if (nodeType === 'show_catalog') {
+      const header = config.headerText
+        ? replaceVars(config.headerText, session.variables, botProfile)
+        : '🍼 *Vitrine Pitoco de Gente — Moda Bebê & Enxovais*\n\nConheça nossas peças mais amadas pelas mamães:';
+      const footer = config.footerText
+        ? `\n\n_${replaceVars(config.footerText, session.variables, botProfile)}_`
+        : '\n\n_✨ Trabalhamos do RN ao 3 anos. Peças 100% algodão suedine e tricot antialérgico._';
+
+      const catalogBody = `${header}\n\n` +
+        `*1️⃣ Body Suedine 100% Algodão*\n   💰 R$ 49,90 • 👶 RN a GG (Cores Lisas & Estampadas)\n\n` +
+        `*2️⃣ Macacão Confort Zíper Duplo*\n   💰 R$ 89,90 • 👶 RN ao 3 Anos (Proteção no Queixo)\n\n` +
+        `*3️⃣ Saída Maternidade Tricot Luxo (5 Peças)*\n   💰 R$ 199,90 • 👶 RN e P (Macacão + Manta + Body + Faixinha)\n\n` +
+        `*4️⃣ Kit de Berço 9 Peças 200 Fios*\n   💰 R$ 389,00 • 🛏️ Padrão Americano (100% Algodão Hipoalergênico)` +
+        `${footer}`;
+
+      session.variables['catalogo_produtos'] = catalogBody;
+      replies.push(catalogBody);
+
+      const outgoing = edges.find((e) => e.source === currentNode.id);
+      if (outgoing) {
+        currentNode = nodes.find((n) => n.id === outgoing.target);
+        if (currentNode) {
+          session.currentNodeId = currentNode.id;
+          continue;
+        }
+      }
+      break;
+    }
+
+    // 5.5 Select Product Node
+    else if (nodeType === 'select_product') {
+      const intro = config.introMessage
+        ? replaceVars(config.introMessage, session.variables, botProfile)
+        : 'Qual peça da Pitoco de Gente você gostaria de escolher agora?';
+
+      const prodButtons = [
+        { id: 'prod_body', title: 'Body Suedine (R$49)' },
+        { id: 'prod_macacao', title: 'Macacão Zíper(R$89)' },
+        { id: 'prod_saida', title: 'Saída Luxo (R$199)' },
+      ];
+
+      session.activeButtons = prodButtons;
+      session.currentNodeId = currentNode.id;
+
+      replies.push({
+        type: 'buttons',
+        body: `🛍️ *Escolha seu Produto Pitoco de Gente:*\n\n${intro}\n\n1️⃣ Body Suedine Algodão (R$ 49,90)\n2️⃣ Macacão Confort Zíper (R$ 89,90)\n3️⃣ Saída Maternidade Luxo (R$ 199,90)`,
+        footer: 'Toque na opção ou envie o número:',
+        buttons: prodButtons,
+      });
+      break;
+    }
+
+    // 5.6 Shipping Calculator Node (3 Saídas: Motoboy, Correios, Retirada)
+    else if (nodeType === 'shipping_calculator') {
+      const intro = config.introMessage
+        ? replaceVars(config.introMessage, session.variables, botProfile)
+        : 'Como você prefere receber seu pedido da Pitoco de Gente?';
+
+      const motoboyPrice = Number(config.motoboyPrice || 15).toFixed(2).replace('.', ',');
+      const correiosPrice = Number(config.correiosPrice || 24.90).toFixed(2).replace('.', ',');
+
+      const shipButtons = [
+        { id: 'shipping_motoboy', title: `1️⃣ Motoboy R$${motoboyPrice}` },
+        { id: 'shipping_correios', title: `2️⃣ Correios R$${correiosPrice}` },
+        { id: 'shipping_pickup', title: '3️⃣ Retirada Grátis' },
+      ];
+
+      session.activeButtons = shipButtons;
+      session.currentNodeId = currentNode.id;
+
+      replies.push({
+        type: 'buttons',
+        body: `🚚 *Calculadora de Frete & Entrega:*\n\n${intro}\n\n• *1. Motoboy Express:* R$ ${motoboyPrice} (Recife e RMR - Chega hoje)\n• *2. Correios PAC/SEDEX:* R$ ${correiosPrice} (Todo o Brasil)\n• *3. Retirada em Loja:* Grátis (Matriz Centro ou Shopping Boulevard)`,
+        footer: 'Toque em uma opção ou digite 1, 2 ou 3:',
+        buttons: shipButtons,
+      });
+      break;
+    }
+
+    // 5.7 Pix Payment Node (Cobrança PIX Automática: 2 Saídas)
+    else if (nodeType === 'pix_payment') {
+      const total = session.variables['valor_total'] || session.variables['valor_produto'] || 'R$ 89,90';
+      const pixKey = config.pixKey || 'financeiro@pitocodegente.com.br';
+      const beneficiary = config.pixBeneficiary || 'Pitoco de Gente Bebê e Criança LTDA';
+      const copiaCola = `00020126580014br.gov.bcb.pix0136${pixKey}5204000053039865405${total.replace(/\D/g, '')}5802BR5925${beneficiary.substring(0, 25)}6009RECIFE62070503***6304`;
+
+      session.variables['pix_copia_cola'] = copiaCola;
+
+      const pixButtons = [
+        { id: 'pix_paid', title: '✅ Já Fiz o PIX' },
+        { id: 'pix_help', title: '❓ Ajuda / Outra Forma' },
+      ];
+
+      session.activeButtons = pixButtons;
+      session.currentNodeId = currentNode.id;
+
+      replies.push({
+        type: 'buttons',
+        body: `⚡ *Cobrança PIX Pitoco de Gente*\n\n• *Titular:* ${beneficiary}\n• *Chave PIX (E-mail):* \`${pixKey}\`\n• *Valor Total:* *${total}*\n\n📋 *Código Copia e Cola (toque para copiar):*\n\`\`\`\n${copiaCola}\n\`\`\`\n\n_Após efetuar o pagamento, toque no botão abaixo ou envie a foto do comprovante:_`,
+        footer: 'Toque para confirmar o pagamento:',
+        buttons: pixButtons,
+      });
+      break;
+    }
+
+    // 5.8 Cart Order Node (Criar Pedido de Venda Online)
+    else if (nodeType === 'cart_order') {
+      const orderNum = `PED-${Math.floor(100000 + Math.random() * 900000)}`;
+      const clientName = session.variables.nome_cliente || senderName || 'Cliente';
+      const product = session.variables.produto_selecionado || 'Saída Maternidade Tricot Luxo';
+      const total = session.variables.valor_total || session.variables.valor_produto || 'R$ 199,90';
+      const shipping = session.variables.tipo_frete || 'Motoboy Express (Recife)';
+
+      session.variables['numero_pedido'] = orderNum;
+      session.variables['total_pedido'] = total;
+      session.variables['status_pedido'] = 'Aguardando Pagamento';
+
+      const newOrder = {
+        id: orderNum,
+        phone: cleanPhone,
+        client_name: clientName,
+        product,
+        shipping,
+        total,
+        status: 'pending_payment',
+        created_at: new Date().toISOString(),
+      };
+
+      if (!db.orders) db.orders = [];
+      db.orders.push(newOrder);
+
+      recordLiveLog(
+        'order_created',
+        `Pedido Criado: ${orderNum}`,
+        `${clientName} realizou pedido de ${product} (${total})`,
+        cleanPhone,
+        clientName,
+        newOrder
+      );
+
+      const defaultSummary = `🎉 *Pedido Realizado com Sucesso!*\n\n• *Protocolo:* *${orderNum}*\n• *Cliente:* ${clientName}\n• *Peça:* ${product}\n• *Entrega:* ${shipping}\n• *Valor Total:* *${total}*\n\nNossa equipe já está separando com todo carinho para envio! 💕`;
+      const summaryText = config.summaryMessage ? replaceVars(config.summaryMessage, session.variables, botProfile) : defaultSummary;
+      replies.push(summaryText);
+
+      const outgoing = edges.find((e) => e.source === currentNode.id);
+      if (outgoing) {
+        currentNode = nodes.find((n) => n.id === outgoing.target);
+        if (currentNode) {
+          session.currentNodeId = currentNode.id;
+          continue;
+        }
+      }
+      break;
+    }
+
+    // 5.9 Measure Guide Node (Tabela de Medidas RN a 3 Anos)
+    else if (nodeType === 'measure_guide') {
+      const intro = config.introText
+        ? replaceVars(config.introText, session.variables, botProfile)
+        : '📏 *Tabela de Medidas Pitoco de Gente (RN a 3 Anos)*\n\nConfira as referências para escolher o tamanho certinho:';
+      const footer = config.footerTips
+        ? `\n\n_${replaceVars(config.footerTips, session.variables, botProfile)}_`
+        : '\n\n💡 _Dica da Pitoco: Bebês crescem muito rápido nos primeiros 3 meses! Se tiver em dúvida entre 2 tamanhos, prefira sempre o maior._';
+
+      const tableText = `${intro}\n\n` +
+        `• *RN:* Até 52 cm | Até 3,5 kg (Mala Maternidade)\n` +
+        `• *P (0 a 3m):* 52 a 62 cm | 3,5 a 5,5 kg\n` +
+        `• *M (3 a 6m):* 62 a 67 cm | 5,5 a 7,5 kg\n` +
+        `• *G (6 a 9m):* 67 a 72 cm | 7,5 a 9,5 kg\n` +
+        `• *GG / 1 Ano:* 72 a 77 cm | 9,5 a 11,5 kg\n` +
+        `• *2 Anos:* 77 a 88 cm | 11,5 a 13,5 kg\n` +
+        `• *3 Anos:* 88 a 98 cm | 13,5 a 15,5 kg` +
+        `${footer}`;
+
+      replies.push(tableText);
+
+      const outgoing = edges.find((e) => e.source === currentNode.id);
+      if (outgoing) {
+        currentNode = nodes.find((n) => n.id === outgoing.target);
+        if (currentNode) {
+          session.currentNodeId = currentNode.id;
+          continue;
+        }
+      }
+      break;
+    }
+
+    // 5.10 Layette Checklist Node (Mala de Maternidade)
+    else if (nodeType === 'layette_checklist') {
+      const intro = config.introText
+        ? replaceVars(config.introText, session.variables, botProfile)
+        : '🧳 *Checklist da Mala de Maternidade — Pitoco de Gente*\n\nTudo o que você precisa levar para as primeiras 48 horas no hospital:';
+      const footer = config.footerTips
+        ? `\n\n_${replaceVars(config.footerTips, session.variables, botProfile)}_`
+        : '\n\n💖 _Temos todas as peças disponíveis em pronta entrega na loja física e online!_';
+
+      const checklistText = `${intro}\n\n` +
+        `1. 🍼 *6 Bodies Suedine 100% Algodão* (mangas longas e curtas)\n` +
+        `2. 👶 *6 Culotes / Mijõezinhos* com pé reversível\n` +
+        `3. 🧸 *4 Macacões Confort* com zíper duplo frontal\n` +
+        `4. ✨ *2 Saídas Maternidade completas* com mantas em tricot\n` +
+        `5. 🧤 *3 Pares de luvinhas e meinhas* de algodão\n` +
+        `6. 🧣 *6 Fraldinhas de boca* em algodão duplo macio\n` +
+        `7. 🛁 *2 Toalhas de banho soft* com capuz e fralda\n` +
+        `8. 🧼 *1 Kit higiene do bebê* (escovinha, sabonete glicerina)\n` +
+        `9. 🛏️ *3 Cueiros flanelados* para enrolar o recém-nascido\n` +
+        `10. 🎀 *1 Ninho redutor de berço* para descanso aconchegante` +
+        `${footer}`;
+
+      replies.push(checklistText);
+
+      const outgoing = edges.find((e) => e.source === currentNode.id);
+      if (outgoing) {
+        currentNode = nodes.find((n) => n.id === outgoing.target);
+        if (currentNode) {
+          session.currentNodeId = currentNode.id;
+          continue;
+        }
+      }
+      break;
+    }
+
+    // 5.11 VIP Consultation Node (Online vs Loja Física: 2 Saídas)
+    else if (nodeType === 'vip_consultation') {
+      const intro = config.introMessage
+        ? replaceVars(config.introMessage, session.variables, botProfile)
+        : '✨ Que alegria poder fazer parte desse momento mágico! Nossa consultoria de enxoval é 100% personalizada e gratuita.\n\nComo você prefere ser atendida?';
+
+      const consultButtons = [
+        { id: 'consult_online', title: '📱 Online (Vídeo)' },
+        { id: 'consult_store', title: '🏬 Presencial Loja' },
+      ];
+
+      session.activeButtons = consultButtons;
+      session.currentNodeId = currentNode.id;
+
+      replies.push({
+        type: 'buttons',
+        body: `✨ *Consultoria VIP de Enxoval:*\n\n${intro}`,
+        footer: 'Toque para escolher o formato:',
+        buttons: consultButtons,
+      });
+      break;
+    }
+
+    // 5.12 Order Tracking Node (Rastreamento de Pedido Online)
+    else if (nodeType === 'order_tracking') {
+      const userOrders = (db.orders || []).filter((o) => String(o.phone).replace(/\D/g, '') === cleanPhone);
+      if (userOrders.length > 0) {
+        const latestOrder = userOrders[userOrders.length - 1];
+        replies.push(
+          `📦 *Rastreamento de Pedido Pitoco de Gente*\n\n• *Protocolo:* *${latestOrder.id}*\n• *Item:* ${latestOrder.product}\n• *Entrega:* ${latestOrder.shipping}\n• *Status:* 🚚 *Em Trânsito / Saiu para Entrega*\n• *Previsão:* Hoje até as 18h\n\nQualquer dúvida, basta nos responder aqui! 💕`
+        );
+      } else {
+        const notFound = config.notFoundMessage
+          ? replaceVars(config.notFoundMessage, session.variables, botProfile)
+          : 'Não encontramos nenhum pedido pendente vinculado ao seu número do WhatsApp. Digite *0* para falar com uma consultora ou nos envie o número do protocolo.';
+        replies.push(`📦 *Rastreamento de Pedido*\n\n${notFound}`);
+      }
+
+      const outgoing = edges.find((e) => e.source === currentNode.id);
+      if (outgoing) {
+        currentNode = nodes.find((n) => n.id === outgoing.target);
+        if (currentNode) {
+          session.currentNodeId = currentNode.id;
+          continue;
+        }
+      }
+      break;
+    }
+
+    // 5.13 Promotional Coupon Node (2 Saídas: Válido vs Inválido)
+    else if (nodeType === 'promotional_coupon') {
+      const coupon = config.couponCode || 'BEMVINDO10';
+      const couponButtons = [
+        { id: 'coupon_valid', title: `✅ Aplicar ${coupon}` },
+        { id: 'coupon_invalid', title: '❌ Sem Cupom' },
+      ];
+
+      session.activeButtons = couponButtons;
+      session.currentNodeId = currentNode.id;
+
+      replies.push({
+        type: 'buttons',
+        body: `🎟️ *Cupom de Desconto Especial:*\n\nGanhe *10% OFF* na sua compra na Pitoco de Gente com o cupom *${coupon}*!\n\nDeseja aplicar agora ao seu pedido?`,
+        footer: 'Toque em uma das opções:',
+        buttons: couponButtons,
+      });
       break;
     }
 

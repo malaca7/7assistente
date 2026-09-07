@@ -191,7 +191,7 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
 
         let targetEdge = outgoing[0];
 
-        // Handle check_contact branching identically to the real WhatsApp bot
+        // Handle branching for multi-output nodes
         if (startNodeType === 'check_contact') {
           const isNew = Boolean(activeVars.is_novo_contato || !activeVars.is_existing_contact);
           const targetHandle = isNew ? 'is_new' : 'is_existing';
@@ -203,6 +203,21 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
             ) ||
             outgoing[0];
           targetEdge = branchEdge;
+        } else if (startNodeType === 'store_selector') {
+          const sId = activeVars.loja_id || activeVars.botao_id || 'store_matriz';
+          targetEdge = outgoing.find(e => e.sourceHandle === sId) || outgoing[0];
+        } else if (startNodeType === 'shipping_calculator') {
+          const sId = activeVars.tipo_frete_id || activeVars.botao_id || 'shipping_motoboy';
+          targetEdge = outgoing.find(e => e.sourceHandle === sId) || outgoing[0];
+        } else if (startNodeType === 'pix_payment') {
+          const pId = activeVars.botao_id || (activeVars.status_pagamento === 'comprovante_enviado' ? 'pix_paid' : 'pix_help');
+          targetEdge = outgoing.find(e => e.sourceHandle === pId) || outgoing[0];
+        } else if (startNodeType === 'vip_consultation') {
+          const cId = activeVars.consultoria_id || activeVars.botao_id || 'consult_online';
+          targetEdge = outgoing.find(e => e.sourceHandle === cId) || outgoing[0];
+        } else if (startNodeType === 'promotional_coupon') {
+          const cId = activeVars.botao_id || (activeVars.cupom_aplicado ? 'coupon_valid' : 'coupon_invalid');
+          targetEdge = outgoing.find(e => e.sourceHandle === cId) || outgoing[0];
         }
 
         nextNode = nodes.find((n) => n.id === targetEdge.target);
@@ -500,6 +515,258 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
         ]);
         break;
       } 
+      // 14.1 Store Selector Node (Multi-Filiais)
+      else if (type === 'store_selector') {
+        const intro = substituteVariables(config.introMessage || 'Olá! Seja bem-vinda à *Pitoco de Gente*. 🍼 Com qual de nossas lojas você deseja falar hoje?', activeVars, p || undefined);
+        const buttons = [
+          { id: 'store_matriz', title: '1️⃣ Matriz Centro' },
+          { id: 'store_boulevard', title: '2️⃣ Shopping Boulevard' },
+          { id: 'store_ecommerce', title: '3️⃣ Loja Virtual Brasil' },
+        ];
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg-${Date.now()}-${Math.random()}`,
+            sender: 'bot',
+            content: `🏬 *Escolha de Filial / Loja:*\n\n${intro}`,
+            buttons,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            nodeId: nextNode.id,
+          },
+        ]);
+        break;
+      }
+      // 14.2 Show Catalog Node
+      else if (type === 'show_catalog') {
+        const header = substituteVariables(config.headerText || '🍼 *Vitrine Pitoco de Gente — Moda Bebê & Enxovais*\n\nConheça nossas peças mais amadas pelas mamães:', activeVars, p || undefined);
+        const footer = substituteVariables(config.footerText || '✨ Trabalhamos do RN ao 3 anos. Peças 100% algodão suedine e tricot antialérgico.', activeVars, p || undefined);
+
+        const catalogContent = `${header}\n\n` +
+          `*1️⃣ Body Suedine 100% Algodão*\n   💰 R$ 49,90 • 👶 RN a GG (Cores Lisas & Estampadas)\n\n` +
+          `*2️⃣ Macacão Confort Zíper Duplo*\n   💰 R$ 89,90 • 👶 RN ao 3 Anos (Proteção no Queixo)\n\n` +
+          `*3️⃣ Saída Maternidade Tricot Luxo (5 Peças)*\n   💰 R$ 199,90 • 👶 RN e P (Macacão + Manta + Body + Faixinha)\n\n` +
+          `*4️⃣ Kit de Berço 9 Peças 200 Fios*\n   💰 R$ 389,00 • 🛏️ Padrão Americano (100% Algodão Hipoalergênico)\n\n` +
+          `_${footer}_`;
+
+        activeVars.catalogo_produtos = catalogContent;
+        setVariables((prev) => ({ ...prev, catalogo_produtos: catalogContent }));
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg-${Date.now()}-${Math.random()}`,
+            sender: 'bot',
+            content: catalogContent,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            nodeId: nextNode.id,
+          },
+        ]);
+      }
+      // 14.3 Select Product Node
+      else if (type === 'select_product') {
+        const intro = substituteVariables(config.introMessage || 'Qual peça da Pitoco de Gente você gostaria de escolher agora?', activeVars, p || undefined);
+        const buttons = [
+          { id: 'prod_body', title: 'Body Suedine (R$ 49)' },
+          { id: 'prod_macacao', title: 'Macacão Zíper (R$ 89)' },
+          { id: 'prod_saida', title: 'Saída Luxo (R$ 199)' },
+        ];
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg-${Date.now()}-${Math.random()}`,
+            sender: 'bot',
+            content: `🛍️ *Escolha seu Produto:*\n\n${intro}`,
+            buttons,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            nodeId: nextNode.id,
+          },
+        ]);
+        break;
+      }
+      // 14.4 Shipping Calculator Node
+      else if (type === 'shipping_calculator') {
+        const intro = substituteVariables(config.introMessage || 'Como você prefere receber seu pedido da Pitoco de Gente?', activeVars, p || undefined);
+        const buttons = [
+          { id: 'shipping_motoboy', title: '1️⃣ Motoboy Recife (R$ 15)' },
+          { id: 'shipping_correios', title: '2️⃣ Correios Brasil (R$ 25)' },
+          { id: 'shipping_pickup', title: '3️⃣ Retirar na Loja (Grátis)' },
+        ];
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg-${Date.now()}-${Math.random()}`,
+            sender: 'bot',
+            content: `🚚 *Calculadora de Frete & Entrega:*\n\n${intro}\n\n• *Motoboy Express:* Recife e RMR (Entrega hoje)\n• *Correios PAC/SEDEX:* Envio para todo o Brasil\n• *Retirada:* Grátis na Matriz Centro ou Shopping Boulevard`,
+            buttons,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            nodeId: nextNode.id,
+          },
+        ]);
+        break;
+      }
+      // 14.5 Pix Payment Node
+      else if (type === 'pix_payment') {
+        const total = activeVars.valor_total || activeVars.valor_produto || 'R$ 89,90';
+        const clientName = activeVars.nome_cliente || activeVars.whatsapp_pushname || 'Cliente';
+        const pixKey = config.pixKey || 'financeiro@pitocodegente.com.br';
+        const beneficiary = config.pixBeneficiary || 'Pitoco de Gente Bebê e Criança LTDA';
+        const copiaCola = `00020126580014br.gov.bcb.pix0136${pixKey}5204000053039865405${total.replace(/\D/g, '')}5802BR5925${beneficiary.substring(0, 25)}6009RECIFE62070503***6304`;
+
+        activeVars.pix_copia_cola = copiaCola;
+        setVariables((prev) => ({ ...prev, pix_copia_cola: copiaCola }));
+
+        const buttons = [
+          { id: 'pix_paid', title: '✅ Já Efetuei o PIX' },
+          { id: 'pix_help', title: '❓ Preciso de Ajuda' },
+        ];
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg-${Date.now()}-${Math.random()}`,
+            sender: 'bot',
+            content: `⚡ *Cobrança PIX Pitoco de Gente*\n\n• *Titular:* ${beneficiary}\n• *Chave PIX (E-mail):* \`${pixKey}\`\n• *Valor Total:* *${total}*\n\n📋 *Código Copia e Cola (toque para copiar):*\n\`\`\`\n${copiaCola}\n\`\`\`\n\n_Após pagar, toque no botão abaixo para confirmar:_`,
+            buttons,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            nodeId: nextNode.id,
+          },
+        ]);
+        break;
+      }
+      // 14.6 Cart Order Node
+      else if (type === 'cart_order') {
+        const orderNum = `PED-${Math.floor(100000 + Math.random() * 900000)}`;
+        const clientName = activeVars.nome_cliente || activeVars.whatsapp_pushname || 'Cliente';
+        const product = activeVars.produto_selecionado || 'Saída Maternidade Tricot Luxo';
+        const total = activeVars.valor_total || activeVars.valor_produto || 'R$ 199,90';
+        const shipping = activeVars.tipo_frete || 'Motoboy Express (Recife)';
+
+        activeVars.numero_pedido = orderNum;
+        activeVars.total_pedido = total;
+        activeVars.status_pedido = 'Aguardando Pagamento';
+        setVariables((prev) => ({ ...prev, numero_pedido: orderNum, total_pedido: total, status_pedido: 'Aguardando Pagamento' }));
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg-${Date.now()}-${Math.random()}`,
+            sender: 'bot',
+            content: `🎉 *Pedido Gerado com Sucesso!*\n\n• *Protocolo:* *${orderNum}*\n• *Cliente:* ${clientName}\n• *Peça:* ${product}\n• *Entrega:* ${shipping}\n• *Valor Total:* *${total}*\n\nSeu pedido foi registrado em nosso sistema!`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            nodeId: nextNode.id,
+          },
+        ]);
+      }
+      // 14.7 Measure Guide Node
+      else if (type === 'measure_guide') {
+        const guideText = `📏 *Tabela de Medidas Pitoco de Gente (RN a 3 Anos)*\n\n` +
+          `• *RN:* Até 52 cm | Até 3,5 kg (Hospital)\n` +
+          `• *P (0 a 3m):* 52 a 62 cm | 3,5 a 5,5 kg\n` +
+          `• *M (3 a 6m):* 62 a 67 cm | 5,5 a 7,5 kg\n` +
+          `• *G (6 a 9m):* 67 a 72 cm | 7,5 a 9,5 kg\n` +
+          `• *GG / 1 Ano:* 72 a 77 cm | 9,5 a 11,5 kg\n` +
+          `• *2 Anos:* 77 a 88 cm | 11,5 a 13,5 kg\n` +
+          `• *3 Anos:* 88 a 98 cm | 13,5 a 15,5 kg\n\n` +
+          `💡 _Dica da Pitoco: Bebês crescem rápido! Se estiver na dúvida entre dois tamanhos, escolha o maior para garantir o conforto._`;
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg-${Date.now()}-${Math.random()}`,
+            sender: 'bot',
+            content: guideText,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            nodeId: nextNode.id,
+          },
+        ]);
+      }
+      // 14.8 Layette Checklist Node
+      else if (type === 'layette_checklist') {
+        const checklistText = `🧳 *Checklist Mala de Maternidade — 10 Itens Essenciais*\n\n` +
+          `1. 🍼 *6 Bodies Suedine 100% Algodão* (mangas longas e curtas)\n` +
+          `2. 👶 *6 Culotes / Mijõezinhos* com pé reversível\n` +
+          `3. 🧸 *4 Macacões Confort* com zíper duplo frontal\n` +
+          `4. ✨ *2 Saídas Maternidade completas* com mantas em tricot\n` +
+          `5. 🧤 *3 Pares de luvinhas e meinhas* de algodão\n` +
+          `6. 🧣 *6 Fraldinhas de boca* em algodão duplo macio\n` +
+          `7. 🛁 *2 Toalhas de banho soft* com capuz e fralda\n` +
+          `8. 🧼 *1 Kit higiene do bebê* (escovinha, sabonete glicerina)\n` +
+          `9. 🛏️ *3 Cueiros flanelados* para enrolar o recém-nascido\n` +
+          `10. 🎀 *1 Ninho redutor de berço* para descanso aconchegante\n\n` +
+          `💖 _Temos todas as peças disponíveis em pronta entrega!_`;
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg-${Date.now()}-${Math.random()}`,
+            sender: 'bot',
+            content: checklistText,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            nodeId: nextNode.id,
+          },
+        ]);
+      }
+      // 14.9 VIP Consultation Node
+      else if (type === 'vip_consultation') {
+        const intro = substituteVariables(config.introMessage || '✨ Como você prefere realizar sua Consultoria VIP de Enxoval da Pitoco de Gente?', activeVars, p || undefined);
+        const buttons = [
+          { id: 'consult_online', title: '📱 Online (WhatsApp/Vídeo)' },
+          { id: 'consult_store', title: '🏬 Presencial na Loja' },
+        ];
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg-${Date.now()}-${Math.random()}`,
+            sender: 'bot',
+            content: `✨ *Consultoria VIP de Enxoval:*\n\n${intro}`,
+            buttons,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            nodeId: nextNode.id,
+          },
+        ]);
+        break;
+      }
+      // 14.10 Order Tracking Node
+      else if (type === 'order_tracking') {
+        const orderNum = activeVars.numero_pedido || 'PED-839201';
+        const clientPhone = activeVars.telefone_cliente || '81999998888';
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg-${Date.now()}-${Math.random()}`,
+            sender: 'bot',
+            content: `📦 *Rastreamento de Pedido Pitoco de Gente*\n\n• *Protocolo:* *${orderNum}*\n• *Telefone:* ${clientPhone}\n• *Status:* 🚚 *Em Trânsito / Saiu para Entrega*\n• *Previsão:* Hoje até as 18h\n\nVocê receberá uma mensagem quando o entregador estiver chegando! 💕`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            nodeId: nextNode.id,
+          },
+        ]);
+      }
+      // 14.11 Promotional Coupon Node
+      else if (type === 'promotional_coupon') {
+        const coupon = config.couponCode || 'BEMVINDO10';
+        const buttons = [
+          { id: 'coupon_valid', title: `✅ Aplicar ${coupon}` },
+          { id: 'coupon_invalid', title: '❌ Sem Cupom' },
+        ];
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg-${Date.now()}-${Math.random()}`,
+            sender: 'bot',
+            content: `🎟️ *Cupom de Desconto Especial:*\n\nGanhe *10% OFF* na sua primeira compra com o cupom *${coupon}*!\n\nDeseja aplicar agora ao seu pedido?`,
+            buttons,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            nodeId: nextNode.id,
+          },
+        ]);
+        break;
+      }
       // 15. End Flow Node
       else if (type === 'end_flow' || type === 'finish_flow' || type === 'end') {
         const finalMsg = config.message
@@ -547,6 +814,50 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
     if (btnId) updatedVars.botao_id = btnId;
 
     // Store variables based on button type
+    if (btnId === 'store_matriz' || btnId === 'store_boulevard' || btnId === 'store_ecommerce') {
+      const storeMap: Record<string, string> = {
+        store_matriz: 'Matriz Centro (Recife)',
+        store_boulevard: 'Shopping Boulevard',
+        store_ecommerce: 'Loja Virtual & E-commerce',
+      };
+      const storeName = storeMap[btnId] || btnTitle;
+      updatedVars.loja_escolhida = storeName;
+      updatedVars.loja_id = btnId;
+      updatedVars.opcao_selecionada = storeName;
+    }
+    if (btnId === 'shipping_motoboy' || btnId === 'shipping_correios' || btnId === 'shipping_pickup') {
+      const shipMap: Record<string, { label: string; price: string; days: string }> = {
+        shipping_motoboy: { label: 'Motoboy Express (Recife)', price: 'R$ 15,00', days: 'Hoje' },
+        shipping_correios: { label: 'Correios SEDEX / PAC', price: 'R$ 24,90', days: '2 a 5 dias úteis' },
+        shipping_pickup: { label: 'Retirada Grátis em Loja', price: 'Grátis', days: 'Pronto em 2h' },
+      };
+      const sInfo = shipMap[btnId] || { label: btnTitle, price: 'R$ 15,00', days: '1 dia' };
+      updatedVars.tipo_frete = sInfo.label;
+      updatedVars.valor_frete = sInfo.price;
+      updatedVars.prazo_entrega = sInfo.days;
+      updatedVars.tipo_frete_id = btnId;
+    }
+    if (btnId === 'pix_paid' || btnId === 'pix_help') {
+      updatedVars.status_pagamento = btnId === 'pix_paid' ? 'comprovante_enviado' : 'ajuda_solicitada';
+    }
+    if (btnId === 'consult_online' || btnId === 'consult_store') {
+      updatedVars.tipo_consultoria = btnId === 'consult_online' ? 'Online (Vídeo / WhatsApp)' : 'Presencial na Loja Física';
+      updatedVars.consultoria_id = btnId;
+    }
+    if (btnId === 'coupon_valid' || btnId === 'coupon_invalid') {
+      updatedVars.cupom_aplicado = btnId === 'coupon_valid' ? 'BEMVINDO10' : '';
+      updatedVars.desconto_valor = btnId === 'coupon_valid' ? '10%' : '0%';
+    }
+    if (btnId?.startsWith('prod_') || btnTitle.includes('Body') || btnTitle.includes('Macacão') || btnTitle.includes('Saída')) {
+      const pName = btnTitle.split('(')[0].trim();
+      updatedVars.produto_selecionado = pName;
+      updatedVars.opcao_selecionada = pName;
+      if (btnTitle.includes('49')) updatedVars.valor_produto = 'R$ 49,90';
+      else if (btnTitle.includes('89')) updatedVars.valor_produto = 'R$ 89,90';
+      else if (btnTitle.includes('199')) updatedVars.valor_produto = 'R$ 199,90';
+      else updatedVars.valor_produto = 'R$ 79,90';
+      updatedVars.valor_total = updatedVars.valor_produto;
+    }
     if (btnId?.startsWith('srv_') || btnTitle.includes('R$')) {
       const srvName = btnTitle.split('(')[0].trim();
       const matched = agendaServices.find(s => s.name?.toLowerCase().trim() === srvName.toLowerCase().trim());
@@ -624,7 +935,13 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
       (activeType === 'buttons' ||
         activeType === 'select_service' ||
         activeType === 'select_date' ||
-        activeType === 'select_time_slot') &&
+        activeType === 'select_time_slot' ||
+        activeType === 'store_selector' ||
+        activeType === 'select_product' ||
+        activeType === 'shipping_calculator' ||
+        activeType === 'pix_payment' ||
+        activeType === 'vip_consultation' ||
+        activeType === 'promotional_coupon') &&
       availableButtons.length > 0
     ) {
       const normalize = (str: string) =>

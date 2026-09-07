@@ -333,6 +333,9 @@ export type NodeTypeEnum =
   | 'pix_payment'
   | 'vip_consultation'
   | 'store_selector'
+  | 'cart_order'
+  | 'order_tracking'
+  | 'promotional_coupon'
   | 'check_contact'
   | 'end_flow'
   // Backward compatibility alias

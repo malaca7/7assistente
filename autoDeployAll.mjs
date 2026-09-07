@@ -115,7 +115,7 @@ async function main() {
     const status = execSync('git status --porcelain', { cwd: __dirname, encoding: 'utf8' }).trim();
     if (status.length > 0) {
       console.log('📌 Mudanças detectadas. Criando commit de deploy...');
-      execSync('git commit -m "fix(flow): sincronizar e executar no bot whatsapp o fluxo ativo publicado no painel em tempo real"', { cwd: __dirname, stdio: 'inherit' });
+      execSync('git commit -m "feat(flow-studio): adicionar 11 novos nos de loja virtual, selecao de filiais e atendimento de vendas online"', { cwd: __dirname, stdio: 'inherit' });
       console.log('✅ Commit criado com sucesso!');
     } else {
       console.log('ℹ️ Nenhuma alteração pendente para commit.');

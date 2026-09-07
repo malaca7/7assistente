@@ -27,12 +27,22 @@ import {
   Layers,
   ChevronDown,
   OctagonX,
-  Scissors
+  Scissors,
+  Store,
+  ShoppingBag,
+  ShoppingCart,
+  Truck,
+  CreditCard,
+  Ruler,
+  Luggage,
+  Package,
+  BadgePercent,
+  HeartHandshake
 } from 'lucide-react';
 import { NodeTypeEnum } from '../../types';
 import { cn } from '../../lib/utils';
 
-export type NodeCategory = 'Triggers' | 'Messages' | 'Agenda' | 'CRM & Logic' | 'AI & Support' | 'Integrations';
+export type NodeCategory = 'Triggers' | 'Messages' | 'Ecommerce' | 'Agenda' | 'CRM & Logic' | 'AI & Support' | 'Integrations';
 
 export interface NodeDefinition {
   type: NodeTypeEnum;
@@ -59,6 +69,12 @@ export const CATEGORY_INFO: Record<NodeCategory, { label: string; icon: React.Re
     icon: <MessageSquare className="w-3.5 h-3.5" />,
     color: 'text-primary-400',
     bg: 'bg-primary-500/10 border-primary-500/20',
+  },
+  'Ecommerce': {
+    label: 'Loja & E-commerce',
+    icon: <ShoppingBag className="w-3.5 h-3.5" />,
+    color: 'text-pink-400',
+    bg: 'bg-pink-500/10 border-pink-500/20',
   },
   'Agenda': {
     label: 'Agenda & Serviços',
@@ -156,7 +172,173 @@ export const NODE_DEFINITIONS: NodeDefinition[] = [
     defaultConfig: { mediaType: 'image', mediaUrl: '', caption: '' },
   },
 
-  // 3. Agenda & Serviços
+  // 3. Loja Virtual & E-commerce (Pitoco de Gente)
+  {
+    type: 'store_selector',
+    label: 'Escolha de Loja / Filial',
+    category: 'Ecommerce',
+    description: 'Apresenta as lojas físicas e online (Matriz, Shopping Boulevard, E-commerce) com 3 saídas.',
+    icon: <Store className="w-4 h-4" />,
+    iconBg: 'bg-amber-600',
+    accentColor: 'border-amber-500/40',
+    badge: 'Multi-Loja',
+    outputVars: ['loja_escolhida', 'loja_id', 'loja_whatsapp'],
+    defaultConfig: {
+      introMessage: '🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?',
+      footerText: 'Toque na loja desejada:',
+    },
+  },
+  {
+    type: 'show_catalog',
+    label: 'Vitrine da Loja Virtual',
+    category: 'Ecommerce',
+    description: 'Envia vitrine de roupas de bebê e enxovais com categorias, fotos, tamanhos e valores.',
+    icon: <ShoppingBag className="w-4 h-4" />,
+    iconBg: 'bg-pink-600',
+    accentColor: 'border-pink-500/40',
+    badge: 'Vitrine',
+    outputVars: ['catalogo_produtos_texto'],
+    defaultConfig: {
+      categoryFilter: 'all',
+      headerText: '🍼 *PITOCO DE GENTE — Moda Bebê & Enxovais*\nConfira nossos destaques mais amados:',
+      footerText: 'Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!',
+    },
+  },
+  {
+    type: 'select_product',
+    label: 'Selecionar Produto do Catálogo',
+    category: 'Ecommerce',
+    description: 'Apresenta produtos como botões interativos para a mamãe escolher a peça e tamanho.',
+    icon: <ShoppingCart className="w-4 h-4" />,
+    iconBg: 'bg-emerald-600',
+    accentColor: 'border-emerald-500/40',
+    badge: 'Escolha',
+    outputVars: ['produto_selecionado', 'valor_produto', 'tamanho_escolhido'],
+    defaultConfig: {
+      introMessage: 'Qual peça linda você deseja encomendar para o seu bebê hoje?',
+      footerText: 'Toque no produto desejado:',
+    },
+  },
+  {
+    type: 'shipping_calculator',
+    label: 'Calculadora de Frete & Entrega',
+    category: 'Ecommerce',
+    description: 'Oferece Motoboy Express (mesmo dia), Correios (SEDEX/PAC) ou Retirada Grátis em Loja.',
+    icon: <Truck className="w-4 h-4" />,
+    iconBg: 'bg-blue-600',
+    accentColor: 'border-blue-500/40',
+    badge: 'Logística',
+    outputVars: ['tipo_frete', 'valor_frete', 'prazo_entrega'],
+    defaultConfig: {
+      motoboyPrice: 15.00,
+      correiosPrice: 24.90,
+      freeShippingThreshold: 250.00,
+      introMessage: 'Como você prefere receber seu pedido?',
+    },
+  },
+  {
+    type: 'pix_payment',
+    label: 'Cobrança PIX Automática',
+    category: 'Ecommerce',
+    description: 'Gera chave PIX da loja e código Copia e Cola instantâneo para pagamento no WhatsApp.',
+    icon: <CreditCard className="w-4 h-4" />,
+    iconBg: 'bg-emerald-600',
+    accentColor: 'border-emerald-500/40',
+    badge: 'Pagamento',
+    outputVars: ['pix_copia_cola', 'valor_total', 'status_pagamento'],
+    defaultConfig: {
+      pixKey: 'financeiro@pitocodegente.com.br',
+      pixName: 'Pitoco de Gente Artigos Infantis LTDA',
+      pixCity: 'Recife',
+      instructionsMessage: 'Copie a chave PIX acima ou o código Copia e Cola para pagar no seu app bancário.',
+    },
+  },
+  {
+    type: 'cart_order',
+    label: 'Criar Pedido de Venda',
+    category: 'Ecommerce',
+    description: 'Gera protocolo oficial (PED-XXXXXX), calcula valor final e salva no banco de dados.',
+    icon: <Package className="w-4 h-4" />,
+    iconBg: 'bg-purple-600',
+    accentColor: 'border-purple-500/40',
+    badge: 'Pedido',
+    outputVars: ['numero_pedido', 'total_pedido', 'status_pedido'],
+    defaultConfig: {
+      prefix: 'PED',
+      confirmMessage: '🎉 *Pedido Registrado com Sucesso!*\n\nNúmero: *{{numero_pedido}}*\nTotal: *{{total_pedido}}*\n\nNossa equipe já está separando com todo o carinho!',
+    },
+  },
+  {
+    type: 'measure_guide',
+    label: 'Guia de Medidas (RN a 3 Anos)',
+    category: 'Ecommerce',
+    description: 'Envia a tabela oficial de medidas com peso (kg), altura (cm) e idade para orientar o tamanho correto.',
+    icon: <Ruler className="w-4 h-4" />,
+    iconBg: 'bg-cyan-600',
+    accentColor: 'border-cyan-500/40',
+    badge: 'Tamanhos',
+    defaultConfig: {
+      title: '📏 *GUIA DE MEDIDAS OFICIAL — PITOCO DE GENTE*',
+    },
+  },
+  {
+    type: 'layette_checklist',
+    label: 'Checklist Mala de Maternidade',
+    category: 'Ecommerce',
+    description: 'Envia lista pronta e carinhosa com os 10 itens essenciais para a mala do bebê no hospital.',
+    icon: <Luggage className="w-4 h-4" />,
+    iconBg: 'bg-amber-600',
+    accentColor: 'border-amber-500/40',
+    badge: 'Mala Bebê',
+    defaultConfig: {
+      title: '🧳 *CHECKLIST MALA DE MATERNIDADE — PITOCO DE GENTE*',
+    },
+  },
+  {
+    type: 'vip_consultation',
+    label: 'Agendar Consultoria de Enxoval',
+    category: 'Ecommerce',
+    description: 'Permite à mamãe agendar consultoria exclusiva online (vídeo/WhatsApp) ou presencial na loja.',
+    icon: <HeartHandshake className="w-4 h-4" />,
+    iconBg: 'bg-pink-600',
+    accentColor: 'border-pink-500/40',
+    badge: 'VIP',
+    outputVars: ['tipo_consultoria', 'data_consultoria', 'dpp_bebe'],
+    defaultConfig: {
+      introMessage: 'Como você deseja realizar sua Consultoria VIP de Enxoval?',
+    },
+  },
+  {
+    type: 'order_tracking',
+    label: 'Rastreamento de Pedido',
+    category: 'Ecommerce',
+    description: 'Localiza pedidos do cliente pelo WhatsApp e informa status de separação e envio.',
+    icon: <Package className="w-4 h-4" />,
+    iconBg: 'bg-emerald-600',
+    accentColor: 'border-emerald-500/40',
+    badge: 'Rastreio',
+    outputVars: ['status_rastreio', 'codigo_rastreio'],
+    defaultConfig: {
+      notFoundMessage: 'Não localizamos nenhum pedido pendente para este número. Digite *0* para falar com uma consultora.',
+    },
+  },
+  {
+    type: 'promotional_coupon',
+    label: 'Aplicar Cupom de Desconto',
+    category: 'Ecommerce',
+    description: 'Valida cupom promocional digitado (ex: BEMVINDO10) e aplica desconto na compra.',
+    icon: <BadgePercent className="w-4 h-4" />,
+    iconBg: 'bg-yellow-600',
+    accentColor: 'border-yellow-500/40',
+    badge: 'Cupom',
+    outputVars: ['cupom_aplicado', 'desconto_valor', 'total_com_desconto'],
+    defaultConfig: {
+      couponCode: 'BEMVINDO10',
+      discountPercentage: 10,
+    },
+  },
+
+  // 4. Agenda & Serviços
   {
     type: 'show_services',
     label: '1. Exibir Catálogo de Serviços',
@@ -401,6 +583,7 @@ export const NodePalette: React.FC<NodePaletteProps> = ({
     { id: 'all', label: 'Todos', icon: <Layers className="w-3 h-3" /> },
     { id: 'Triggers', label: 'Gatilhos', icon: <Zap className="w-3 h-3 text-amber-400" /> },
     { id: 'Messages', label: 'Mensagens', icon: <MessageSquare className="w-3 h-3 text-primary-400" /> },
+    { id: 'Ecommerce', label: 'Loja & E-commerce', icon: <ShoppingBag className="w-3 h-3 text-pink-400" /> },
     { id: 'Agenda', label: 'Agenda & Serviços', icon: <Calendar className="w-3 h-3 text-emerald-400" /> },
     { id: 'CRM & Logic', label: 'Lógica & CRM', icon: <GitBranch className="w-3 h-3 text-purple-400" /> },
     { id: 'AI & Support', label: 'IA & Atendimento', icon: <Sparkles className="w-3 h-3 text-pink-400" /> },

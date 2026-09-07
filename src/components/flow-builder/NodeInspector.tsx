@@ -24,7 +24,17 @@ import {
   FileText,
   Wand2,
   Tag,
-  Scissors
+  Scissors,
+  Store,
+  ShoppingBag,
+  ShoppingCart,
+  Truck,
+  CreditCard,
+  Ruler,
+  Luggage,
+  Package,
+  BadgePercent,
+  HeartHandshake
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { VariableBadge } from './ui/VariableBadge';
@@ -1555,6 +1565,422 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
                 />
               </div>
             </div>
+          </div>
+        )}
+
+        {/* 15. Store Selector Node (Multi-Filiais) */}
+        {nodeType === 'store_selector' && (
+          <div className="space-y-4">
+            <div className="p-3 rounded-2xl bg-amber-950/40 border border-amber-500/30 text-xs text-amber-200 space-y-1">
+              <span className="font-bold flex items-center gap-1.5 text-amber-300">
+                <Store className="w-4 h-4" />
+                Seleção de Filial / Loja (3 Saídas)
+              </span>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Permite ao cliente escolher com qual unidade física ou atendimento online deseja falar. Cada filial possui uma <strong>saída dedicada</strong> no fluxo.
+              </p>
+            </div>
+
+            <Textarea
+              label="Mensagem de Apresentação das Lojas"
+              value={config.introMessage ?? 'Olá! Seja bem-vinda à *Pitoco de Gente*. 🍼 Com qual de nossas unidades você deseja falar hoje?'}
+              onChange={(e) => handleConfigChange('introMessage', e.target.value)}
+              rows={3}
+              placeholder="Mensagem de saudação e apresentação das lojas..."
+            />
+
+            <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-3">
+              <span className="text-xs font-semibold text-amber-400 block">
+                Filiais Disponíveis no Bot:
+              </span>
+              
+              <div className="space-y-1 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <span className="text-[11px] font-bold text-amber-300 flex items-center gap-1">
+                  1️⃣ Matriz Centro (Recife)
+                </span>
+                <p className="text-[10px] text-slate-400">Rua da Penha, 120 - São José • Saída: <code>store_matriz</code></p>
+              </div>
+
+              <div className="space-y-1 p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                <span className="text-[11px] font-bold text-yellow-300 flex items-center gap-1">
+                  2️⃣ Shopping Boulevard
+                </span>
+                <p className="text-[10px] text-slate-400">Piso L2 - Próximo à Praça de Alimentação • Saída: <code>store_boulevard</code></p>
+              </div>
+
+              <div className="space-y-1 p-2 rounded-lg bg-pink-500/10 border border-pink-500/20">
+                <span className="text-[11px] font-bold text-pink-300 flex items-center gap-1">
+                  3️⃣ Loja Virtual & E-commerce (Brasil)
+                </span>
+                <p className="text-[10px] text-slate-400">Envio para todo o Brasil com frete rápido • Saída: <code>store_ecommerce</code></p>
+              </div>
+            </div>
+
+            <Input
+              label="Variável para Salvar a Escolha"
+              value={config.storeVarName || 'loja_escolhida'}
+              onChange={(e) => handleConfigChange('storeVarName', e.target.value)}
+              placeholder="loja_escolhida"
+              hint="Armazena o nome da loja selecionada (ex: Matriz Centro, Shopping Boulevard, Loja Virtual)."
+            />
+          </div>
+        )}
+
+        {/* 16. Show Catalog Node */}
+        {nodeType === 'show_catalog' && (
+          <div className="space-y-4">
+            <div className="p-3 rounded-2xl bg-pink-950/40 border border-pink-500/30 text-xs text-pink-200 space-y-1">
+              <span className="font-bold flex items-center gap-1.5 text-pink-300">
+                <ShoppingBag className="w-4 h-4" />
+                Vitrine da Loja Virtual
+              </span>
+              <p className="text-[11px] text-slate-300 leading-snug">
+                Envia uma apresentação das peças em destaque com fotos, tamanhos (RN a 3 anos) e preços da Pitoco de Gente.
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-300">Filtro de Categoria</label>
+              <select
+                value={config.categoryFilter || 'all'}
+                onChange={(e) => handleConfigChange('categoryFilter', e.target.value)}
+                className="w-full bg-dark-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-pink-500"
+              >
+                <option value="all">Todas as Categorias em Destaque</option>
+                <option value="bodies">Bodies & Macacões Confort</option>
+                <option value="saidas">Saídas Maternidade de Tricot Luxo</option>
+                <option value="berco">Kits de Berço & Quarto de Bebê</option>
+                <option value="enxoval">Enxoval Completo para Recém-Nascido</option>
+              </select>
+            </div>
+
+            <Textarea
+              label="Cabeçalho da Mensagem"
+              value={config.headerText ?? '🍼 *Vitrine Pitoco de Gente — Moda Bebê & Enxovais*\n\nConheça nossas peças mais amadas pelas mamães:'}
+              onChange={(e) => handleConfigChange('headerText', e.target.value)}
+              rows={3}
+            />
+
+            <Textarea
+              label="Rodapé / Instruções"
+              value={config.footerText ?? '✨ Trabalhamos do RN ao 3 anos. Peças 100% algodão suedine e tricot antialérgico.'}
+              onChange={(e) => handleConfigChange('footerText', e.target.value)}
+              rows={2}
+            />
+          </div>
+        )}
+
+        {/* 17. Select Product Node */}
+        {nodeType === 'select_product' && (
+          <div className="space-y-4">
+            <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-200 space-y-1">
+              <span className="font-bold flex items-center gap-1.5 text-emerald-300">
+                <ShoppingCart className="w-4 h-4" />
+                Seleção de Produto Interativo
+              </span>
+              <p className="text-[11px] text-slate-300 leading-snug">
+                Disponibiliza botões clicáveis no WhatsApp com os produtos mais vendidos para o cliente escolher.
+              </p>
+            </div>
+
+            <Textarea
+              label="Mensagem de Introdução"
+              value={config.introMessage ?? 'Qual peça da Pitoco de Gente você gostaria de escolher agora?'}
+              onChange={(e) => handleConfigChange('introMessage', e.target.value)}
+              rows={2}
+            />
+
+            <Input
+              label="Variável do Produto"
+              value={config.productVarName || 'produto_selecionado'}
+              onChange={(e) => handleConfigChange('productVarName', e.target.value)}
+              placeholder="produto_selecionado"
+            />
+
+            <Input
+              label="Variável do Preço"
+              value={config.priceVarName || 'valor_produto'}
+              onChange={(e) => handleConfigChange('priceVarName', e.target.value)}
+              placeholder="valor_produto"
+            />
+          </div>
+        )}
+
+        {/* 18. Shipping Calculator Node */}
+        {nodeType === 'shipping_calculator' && (
+          <div className="space-y-4">
+            <div className="p-3 rounded-2xl bg-blue-950/40 border border-blue-500/30 text-xs text-blue-200 space-y-1">
+              <span className="font-bold flex items-center gap-1.5 text-blue-300">
+                <Truck className="w-4 h-4" />
+                Calculadora de Frete & Entrega (3 Saídas)
+              </span>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Calcula o frete e disponibiliza 3 saídas independentes: <strong>1. Motoboy Express</strong> (<code>shipping_motoboy</code>), <strong>2. Correios PAC/SEDEX</strong> (<code>shipping_correios</code>) e <strong>3. Retirada em Loja</strong> (<code>shipping_pickup</code>).
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <Input
+                label="Valor Motoboy (R$)"
+                type="number"
+                step="0.5"
+                value={config.motoboyPrice ?? 15.00}
+                onChange={(e) => handleConfigChange('motoboyPrice', parseFloat(e.target.value) || 0)}
+              />
+              <Input
+                label="Valor Correios (R$)"
+                type="number"
+                step="0.5"
+                value={config.correiosPrice ?? 24.90}
+                onChange={(e) => handleConfigChange('correiosPrice', parseFloat(e.target.value) || 0)}
+              />
+            </div>
+
+            <Input
+              label="Frete Grátis Acima de (R$)"
+              type="number"
+              value={config.freeShippingThreshold ?? 250.00}
+              onChange={(e) => handleConfigChange('freeShippingThreshold', parseFloat(e.target.value) || 0)}
+              hint="Pedidos com valor igual ou superior ganham frete gratuito."
+            />
+
+            <Textarea
+              label="Texto Explicativo de Entrega"
+              value={config.introMessage ?? 'Como você prefere receber seu pedido da Pitoco de Gente?'}
+              onChange={(e) => handleConfigChange('introMessage', e.target.value)}
+              rows={2}
+            />
+          </div>
+        )}
+
+        {/* 19. Pix Payment Node */}
+        {nodeType === 'pix_payment' && (
+          <div className="space-y-4">
+            <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-200 space-y-1">
+              <span className="font-bold flex items-center gap-1.5 text-emerald-300">
+                <CreditCard className="w-4 h-4" />
+                Cobrança PIX Automática (2 Saídas)
+              </span>
+              <p className="text-[11px] text-slate-300 leading-snug">
+                Envia os dados do PIX oficial e o código Copia e Cola para pagamento rápido. Saídas: <strong>Comprovante Enviado</strong> (<code>pix_paid</code>) e <strong>Dúvida / Outra Forma</strong> (<code>pix_help</code>).
+              </p>
+            </div>
+
+            <Input
+              label="Chave PIX Oficial"
+              value={config.pixKey ?? 'financeiro@pitocodegente.com.br'}
+              onChange={(e) => handleConfigChange('pixKey', e.target.value)}
+              placeholder="Chave CNPJ, E-mail ou Telefone..."
+            />
+
+            <div className="grid grid-cols-2 gap-2">
+              <Input
+                label="Tipo da Chave"
+                value={config.pixKeyType ?? 'E-mail'}
+                onChange={(e) => handleConfigChange('pixKeyType', e.target.value)}
+                placeholder="CNPJ, E-mail, Celular..."
+              />
+              <Input
+                label="Banco / Instituição"
+                value={config.pixBank ?? 'Banco Santander / Inter'}
+                onChange={(e) => handleConfigChange('pixBank', e.target.value)}
+              />
+            </div>
+
+            <Input
+              label="Beneficiário / Razão Social"
+              value={config.pixBeneficiary ?? 'Pitoco de Gente Bebê e Criança LTDA'}
+              onChange={(e) => handleConfigChange('pixBeneficiary', e.target.value)}
+            />
+
+            <Textarea
+              label="Instruções de Pagamento"
+              value={config.paymentInstructions ?? 'Após efetuar o PIX, toque no botão *Já Efetuei o Pagamento* ou envie a foto do comprovante aqui para agilizar o envio! 🚀'}
+              onChange={(e) => handleConfigChange('paymentInstructions', e.target.value)}
+              rows={2}
+            />
+          </div>
+        )}
+
+        {/* 20. Cart Order Node */}
+        {nodeType === 'cart_order' && (
+          <div className="space-y-4">
+            <div className="p-3 rounded-2xl bg-purple-950/40 border border-purple-500/30 text-xs text-purple-200 space-y-1">
+              <span className="font-bold flex items-center gap-1.5 text-purple-300">
+                <ShoppingBag className="w-4 h-4" />
+                Criar Pedido de Venda Online
+              </span>
+              <p className="text-[11px] text-slate-300 leading-snug">
+                Gera o protocolo oficial <code>PED-XXXXXX</code>, grava no banco de dados e exibe o resumo completo com total, frete e itens para a mamãe.
+              </p>
+            </div>
+
+            <Input
+              label="Prefixo do Pedido"
+              value={config.orderPrefix ?? 'PED-'}
+              onChange={(e) => handleConfigChange('orderPrefix', e.target.value)}
+              placeholder="PED-"
+            />
+
+            <Input
+              label="Status Inicial"
+              value={config.initialStatus ?? 'Aguardando Pagamento'}
+              onChange={(e) => handleConfigChange('initialStatus', e.target.value)}
+              placeholder="Aguardando Pagamento"
+            />
+
+            <Textarea
+              label="Resumo do Pedido (Template)"
+              value={config.summaryMessage ?? '🎉 *Pedido Realizado com Sucesso!*\n\n• *Protocolo:* {{numero_pedido}}\n• *Cliente:* {{nome_cliente}}\n• *Item:* {{produto_selecionado}}\n• *Entrega:* {{tipo_frete}} ({{valor_frete}})\n• *Valor Total:* {{valor_total}}\n\nNossa equipe já está separando com todo amor e carinho! 💕'}
+              onChange={(e) => handleConfigChange('summaryMessage', e.target.value)}
+              rows={5}
+            />
+          </div>
+        )}
+
+        {/* 21. Measure Guide Node */}
+        {nodeType === 'measure_guide' && (
+          <div className="space-y-4">
+            <div className="p-3 rounded-2xl bg-cyan-950/40 border border-cyan-500/30 text-xs text-cyan-200 space-y-1">
+              <span className="font-bold flex items-center gap-1.5 text-cyan-300">
+                <Ruler className="w-4 h-4" />
+                Guia de Medidas do Bebê (RN a 3 Anos)
+              </span>
+              <p className="text-[11px] text-slate-300 leading-snug">
+                Envia a tabela oficial de tamanhos por peso e estatura da Pitoco de Gente para garantir o tamanho perfeito para o bebê.
+              </p>
+            </div>
+
+            <Textarea
+              label="Texto de Apresentação"
+              value={config.introText ?? '📏 *Tabela de Medidas Pitoco de Gente (RN a 3 Anos)*\n\nConfira as referências para não errar no tamanho:'}
+              onChange={(e) => handleConfigChange('introText', e.target.value)}
+              rows={3}
+            />
+
+            <Textarea
+              label="Dicas Adicionais para Enxoval"
+              value={config.footerTips ?? '💡 *Dica da Especialista:* Bebês crescem muito rápido nos primeiros 3 meses! Sugerimos comprar poucas peças RN e focar nos tamanhos P e M.'}
+              onChange={(e) => handleConfigChange('footerTips', e.target.value)}
+              rows={3}
+            />
+          </div>
+        )}
+
+        {/* 22. Layette Checklist Node */}
+        {nodeType === 'layette_checklist' && (
+          <div className="space-y-4">
+            <div className="p-3 rounded-2xl bg-amber-950/40 border border-amber-500/30 text-xs text-amber-200 space-y-1">
+              <span className="font-bold flex items-center gap-1.5 text-amber-300">
+                <Luggage className="w-4 h-4" />
+                Checklist Mala de Maternidade
+              </span>
+              <p className="text-[11px] text-slate-300 leading-snug">
+                Envia a lista com os 10 itens essenciais recomendados para a mala do hospital (bebê + mamãe).
+              </p>
+            </div>
+
+            <Textarea
+              label="Texto Introdutório"
+              value={config.introText ?? '🧳 *Checklist da Mala de Maternidade — Pitoco de Gente*\n\nTudo o que você precisa levar para as primeiras 48 horas no hospital:'}
+              onChange={(e) => handleConfigChange('introText', e.target.value)}
+              rows={3}
+            />
+
+            <Textarea
+              label="Dica Final"
+              value={config.footerTips ?? '💖 Temos kits completos de malas, saídas maternidade e roupinhas já lavadas e prontas para uso!'}
+              onChange={(e) => handleConfigChange('footerTips', e.target.value)}
+              rows={2}
+            />
+          </div>
+        )}
+
+        {/* 23. VIP Consultation Node */}
+        {nodeType === 'vip_consultation' && (
+          <div className="space-y-4">
+            <div className="p-3 rounded-2xl bg-pink-950/40 border border-pink-500/30 text-xs text-pink-200 space-y-1">
+              <span className="font-bold flex items-center gap-1.5 text-pink-300">
+                <HeartHandshake className="w-4 h-4" />
+                Consultoria VIP de Enxoval (2 Saídas)
+              </span>
+              <p className="text-[11px] text-slate-300 leading-snug">
+                Agendamento de consultoria personalizada com uma consultora da Pitoco de Gente. Saídas: <strong>Online</strong> (<code>consult_online</code>) e <strong>Presencial em Loja</strong> (<code>consult_store</code>).
+              </p>
+            </div>
+
+            <Textarea
+              label="Mensagem de Convite"
+              value={config.introMessage ?? '✨ Que alegria poder fazer parte desse momento tão mágico! Nossa consultoria de enxoval é 100% gratuita e personalizada.\n\nComo você prefere ser atendida?'}
+              onChange={(e) => handleConfigChange('introMessage', e.target.value)}
+              rows={3}
+            />
+
+            <Input
+              label="Nome da Consultora"
+              value={config.consultantName ?? 'Sofia — Especialista em Moda Bebê'}
+              onChange={(e) => handleConfigChange('consultantName', e.target.value)}
+            />
+          </div>
+        )}
+
+        {/* 24. Order Tracking Node */}
+        {nodeType === 'order_tracking' && (
+          <div className="space-y-4">
+            <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-200 space-y-1">
+              <span className="font-bold flex items-center gap-1.5 text-emerald-300">
+                <Package className="w-4 h-4" />
+                Rastreamento de Pedido
+              </span>
+              <p className="text-[11px] text-slate-300 leading-snug">
+                Localiza automaticamente os pedidos vinculados ao número do WhatsApp do cliente e envia o status de separação, envio e código de rastreio.
+              </p>
+            </div>
+
+            <Textarea
+              label="Mensagem Quando Não Houver Pedido"
+              value={config.notFoundMessage ?? 'Não encontramos nenhum pedido pendente vinculado ao seu número. Digite *0* para falar com uma de nossas consultoras ou envie o número do pedido.'}
+              onChange={(e) => handleConfigChange('notFoundMessage', e.target.value)}
+              rows={3}
+            />
+          </div>
+        )}
+
+        {/* 25. Promotional Coupon Node */}
+        {nodeType === 'promotional_coupon' && (
+          <div className="space-y-4">
+            <div className="p-3 rounded-2xl bg-yellow-950/40 border border-yellow-500/30 text-xs text-yellow-200 space-y-1">
+              <span className="font-bold flex items-center gap-1.5 text-yellow-300">
+                <BadgePercent className="w-4 h-4" />
+                Aplicar Cupom de Desconto (2 Saídas)
+              </span>
+              <p className="text-[11px] text-slate-300 leading-snug">
+                Valida o cupom promocional e concede o desconto. Saídas: <strong>Cupom Válido</strong> (<code>coupon_valid</code>) e <strong>Cupom Inválido / Expirado</strong> (<code>coupon_invalid</code>).
+              </p>
+            </div>
+
+            <Input
+              label="Código do Cupom Aceito"
+              value={config.couponCode ?? 'BEMVINDO10'}
+              onChange={(e) => handleConfigChange('couponCode', e.target.value.toUpperCase())}
+              placeholder="BEMVINDO10"
+            />
+
+            <Input
+              label="Porcentagem de Desconto (%)"
+              type="number"
+              value={config.discountPercentage ?? 10}
+              onChange={(e) => handleConfigChange('discountPercentage', parseFloat(e.target.value) || 0)}
+              placeholder="10"
+            />
+
+            <Input
+              label="Valor Mínimo do Pedido (R$)"
+              type="number"
+              value={config.minOrderValue ?? 0}
+              onChange={(e) => handleConfigChange('minOrderValue', parseFloat(e.target.value) || 0)}
+              placeholder="0 para qualquer valor"
+            />
           </div>
         )}
       </div>

@@ -353,7 +353,15 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
   const handleStartConnecting = (node: FlowNode, handleId?: string | null, handleLabel?: string) => {
     const nodeType = node.data?.nodeType || node.type;
 
-    if (nodeType === 'check_contact' && !handleId) {
+    if (
+      (nodeType === 'check_contact' ||
+        nodeType === 'store_selector' ||
+        nodeType === 'shipping_calculator' ||
+        nodeType === 'pix_payment' ||
+        nodeType === 'vip_consultation' ||
+        nodeType === 'promotional_coupon') &&
+      !handleId
+    ) {
       setBranchSelectorNode(node);
       return;
     }
@@ -478,6 +486,21 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
           return 130;
         case 'confirm_booking':
           return 140;
+        case 'store_selector':
+        case 'shipping_calculator':
+          return 145;
+        case 'show_catalog':
+        case 'select_product':
+        case 'vip_consultation':
+          return 140;
+        case 'pix_payment':
+        case 'cart_order':
+        case 'promotional_coupon':
+          return 135;
+        case 'measure_guide':
+        case 'layette_checklist':
+        case 'order_tracking':
+          return 125;
         case 'condition':
           return 130;
         case 'variable': {
@@ -527,10 +550,10 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
     const sortedEdges = [...(currentEdges || [])].sort((a, b) => {
       const hA = a.sourceHandle || '';
       const hB = b.sourceHandle || '';
-      if (hA === 'is_new' || hA === 'true' || hA.includes('1') || hA.includes('new')) return -1;
-      if (hB === 'is_new' || hB === 'true' || hB.includes('1') || hB.includes('new')) return 1;
-      if (hA === 'is_existing' || hA === 'false' || hA.includes('2') || hA.includes('exist')) return 1;
-      if (hB === 'is_existing' || hB === 'false' || hB.includes('2') || hB.includes('exist')) return -1;
+      if (hA === 'is_new' || hA === 'store_matriz' || hA === 'shipping_motoboy' || hA === 'pix_paid' || hA === 'consult_online' || hA === 'coupon_valid' || hA === 'true' || hA.includes('1') || hA.includes('new')) return -1;
+      if (hB === 'is_new' || hB === 'store_matriz' || hB === 'shipping_motoboy' || hB === 'pix_paid' || hB === 'consult_online' || hB === 'coupon_valid' || hB === 'true' || hB.includes('1') || hB.includes('new')) return 1;
+      if (hA === 'is_existing' || hA === 'store_ecommerce' || hA === 'shipping_pickup' || hA === 'pix_help' || hA === 'consult_store' || hA === 'coupon_invalid' || hA === 'false' || hA.includes('2') || hA.includes('exist')) return 1;
+      if (hB === 'is_existing' || hB === 'store_ecommerce' || hB === 'shipping_pickup' || hB === 'pix_help' || hB === 'consult_store' || hB === 'coupon_invalid' || hB === 'false' || hB.includes('2') || hB.includes('exist')) return -1;
       return hA.localeCompare(hB);
     });
 
@@ -688,6 +711,38 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
         if (handle === 'is_existing' || handle.includes('exist') || handle === 'false') {
           return COL_WIDTH / 2;
         }
+      }
+
+      // Store selector: 3 dedicated branch handles
+      if (pType === 'store_selector' || handle.startsWith('store_')) {
+        if (handle === 'store_matriz') return -COL_WIDTH;
+        if (handle === 'store_boulevard') return 0;
+        if (handle === 'store_ecommerce') return COL_WIDTH;
+      }
+
+      // Shipping calculator: 3 dedicated branch handles
+      if (pType === 'shipping_calculator' || handle.startsWith('shipping_')) {
+        if (handle === 'shipping_motoboy') return -COL_WIDTH;
+        if (handle === 'shipping_correios') return 0;
+        if (handle === 'shipping_pickup') return COL_WIDTH;
+      }
+
+      // PIX payment: 2 handles
+      if (pType === 'pix_payment' || handle.startsWith('pix_')) {
+        if (handle === 'pix_paid') return -COL_WIDTH / 2;
+        if (handle === 'pix_help') return COL_WIDTH / 2;
+      }
+
+      // VIP consultation: 2 handles
+      if (pType === 'vip_consultation' || handle.startsWith('consult_')) {
+        if (handle === 'consult_online') return -COL_WIDTH / 2;
+        if (handle === 'consult_store') return COL_WIDTH / 2;
+      }
+
+      // Promotional coupon: 2 handles
+      if (pType === 'promotional_coupon' || handle.startsWith('coupon_')) {
+        if (handle === 'coupon_valid') return -COL_WIDTH / 2;
+        if (handle === 'coupon_invalid') return COL_WIDTH / 2;
       }
 
       // Condition: true (left) vs false (right)
@@ -1445,6 +1500,196 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
                   <div className="flex items-center gap-2.5">
                     <span className="w-3 h-3 rounded-full bg-cyan-400" />
                     <span>🔵 Saída: Se for Cliente Já Salvo</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </>
+            ) : (branchSelectorNode.data?.nodeType || branchSelectorNode.type) === 'store_selector' ? (
+              <>
+                <button
+                  onClick={() => {
+                    const node = branchSelectorNode;
+                    setBranchSelectorNode(null);
+                    handleStartConnecting(node, 'store_matriz', '1. Matriz Centro');
+                  }}
+                  className="w-full p-3 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 font-bold text-xs flex items-center justify-between text-left transition-all"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-3 h-3 rounded-full bg-amber-400" />
+                    <span>🏬 1. Matriz Centro (Recife)</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    const node = branchSelectorNode;
+                    setBranchSelectorNode(null);
+                    handleStartConnecting(node, 'store_boulevard', '2. Shopping Boulevard');
+                  }}
+                  className="w-full p-3 rounded-2xl bg-yellow-500/15 hover:bg-yellow-500/25 border border-yellow-500/30 text-yellow-300 font-bold text-xs flex items-center justify-between text-left transition-all"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-3 h-3 rounded-full bg-yellow-400" />
+                    <span>🏬 2. Shopping Boulevard</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    const node = branchSelectorNode;
+                    setBranchSelectorNode(null);
+                    handleStartConnecting(node, 'store_ecommerce', '3. Loja Virtual & E-commerce');
+                  }}
+                  className="w-full p-3 rounded-2xl bg-pink-500/15 hover:bg-pink-500/25 border border-pink-500/30 text-pink-300 font-bold text-xs flex items-center justify-between text-left transition-all"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-3 h-3 rounded-full bg-pink-400" />
+                    <span>🌐 3. Loja Virtual & E-commerce (Brasil)</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </>
+            ) : (branchSelectorNode.data?.nodeType || branchSelectorNode.type) === 'shipping_calculator' ? (
+              <>
+                <button
+                  onClick={() => {
+                    const node = branchSelectorNode;
+                    setBranchSelectorNode(null);
+                    handleStartConnecting(node, 'shipping_motoboy', 'Motoboy Express');
+                  }}
+                  className="w-full p-3 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 font-bold text-xs flex items-center justify-between text-left transition-all"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-3 h-3 rounded-full bg-amber-400" />
+                    <span>🛵 1. Motoboy Express (Recife e RMR)</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    const node = branchSelectorNode;
+                    setBranchSelectorNode(null);
+                    handleStartConnecting(node, 'shipping_correios', 'Correios PAC/SEDEX');
+                  }}
+                  className="w-full p-3 rounded-2xl bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 text-blue-300 font-bold text-xs flex items-center justify-between text-left transition-all"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-3 h-3 rounded-full bg-blue-400" />
+                    <span>📦 2. Correios PAC / SEDEX (Brasil)</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    const node = branchSelectorNode;
+                    setBranchSelectorNode(null);
+                    handleStartConnecting(node, 'shipping_pickup', 'Retirada em Loja');
+                  }}
+                  className="w-full p-3 rounded-2xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 font-bold text-xs flex items-center justify-between text-left transition-all"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-3 h-3 rounded-full bg-emerald-400" />
+                    <span>🏪 3. Retirada Grátis na Loja Física</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </>
+            ) : (branchSelectorNode.data?.nodeType || branchSelectorNode.type) === 'pix_payment' ? (
+              <>
+                <button
+                  onClick={() => {
+                    const node = branchSelectorNode;
+                    setBranchSelectorNode(null);
+                    handleStartConnecting(node, 'pix_paid', 'Comprovante Enviado');
+                  }}
+                  className="w-full p-3 rounded-2xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 font-bold text-xs flex items-center justify-between text-left transition-all"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-3 h-3 rounded-full bg-emerald-400" />
+                    <span>✅ 1. Comprovante Enviado / PIX Pago</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    const node = branchSelectorNode;
+                    setBranchSelectorNode(null);
+                    handleStartConnecting(node, 'pix_help', 'Dúvida / Outra Forma');
+                  }}
+                  className="w-full p-3 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 font-bold text-xs flex items-center justify-between text-left transition-all"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-3 h-3 rounded-full bg-amber-400" />
+                    <span>❓ 2. Dúvida / Outra Forma de Pagamento</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </>
+            ) : (branchSelectorNode.data?.nodeType || branchSelectorNode.type) === 'vip_consultation' ? (
+              <>
+                <button
+                  onClick={() => {
+                    const node = branchSelectorNode;
+                    setBranchSelectorNode(null);
+                    handleStartConnecting(node, 'consult_online', 'Consultoria Online');
+                  }}
+                  className="w-full p-3 rounded-2xl bg-pink-500/15 hover:bg-pink-500/25 border border-pink-500/30 text-pink-300 font-bold text-xs flex items-center justify-between text-left transition-all"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-3 h-3 rounded-full bg-pink-400" />
+                    <span>📱 1. Consultoria Online (WhatsApp / Vídeo)</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    const node = branchSelectorNode;
+                    setBranchSelectorNode(null);
+                    handleStartConnecting(node, 'consult_store', 'Presencial na Loja');
+                  }}
+                  className="w-full p-3 rounded-2xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-300 font-bold text-xs flex items-center justify-between text-left transition-all"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-3 h-3 rounded-full bg-purple-400" />
+                    <span>🏬 2. Presencial na Loja Física</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </>
+            ) : (branchSelectorNode.data?.nodeType || branchSelectorNode.type) === 'promotional_coupon' ? (
+              <>
+                <button
+                  onClick={() => {
+                    const node = branchSelectorNode;
+                    setBranchSelectorNode(null);
+                    handleStartConnecting(node, 'coupon_valid', 'Cupom Válido');
+                  }}
+                  className="w-full p-3 rounded-2xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 font-bold text-xs flex items-center justify-between text-left transition-all"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-3 h-3 rounded-full bg-emerald-400" />
+                    <span>🎟️ 1. Cupom Válido (Aplicado)</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    const node = branchSelectorNode;
+                    setBranchSelectorNode(null);
+                    handleStartConnecting(node, 'coupon_invalid', 'Cupom Inválido');
+                  }}
+                  className="w-full p-3 rounded-2xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 font-bold text-xs flex items-center justify-between text-left transition-all"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-3 h-3 rounded-full bg-rose-400" />
+                    <span>❌ 2. Cupom Inválido / Expirado</span>
                   </div>
                   <ChevronRight className="w-4 h-4" />
                 </button>

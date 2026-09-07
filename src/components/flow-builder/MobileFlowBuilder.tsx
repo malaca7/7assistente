@@ -562,6 +562,201 @@ export const MobileFlowBuilder: React.FC<MobileFlowBuilderProps> = ({
                           </select>
                         </div>
                       </div>
+                    ) : nodeType === 'store_selector' ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                            🏬 Matriz Centro:
+                          </span>
+                          <select
+                            value={outgoingEdges.find(e => e.sourceHandle === 'store_matriz')?.target || ''}
+                            onChange={e => handleSetTargetNode(node.id, e.target.value, 'store_matriz')}
+                            className="w-full bg-dark-800 border border-white/10 rounded-xl px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
+                          >
+                            <option value="">-- Próximo Passo --</option>
+                            {nodes.filter(n => n.id !== node.id).map(n => (
+                              <option key={n.id} value={n.id}>➡️ {n.data?.label || n.id}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-1">
+                            🏬 Shopping Boulevard:
+                          </span>
+                          <select
+                            value={outgoingEdges.find(e => e.sourceHandle === 'store_boulevard')?.target || ''}
+                            onChange={e => handleSetTargetNode(node.id, e.target.value, 'store_boulevard')}
+                            className="w-full bg-dark-800 border border-white/10 rounded-xl px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-yellow-500"
+                          >
+                            <option value="">-- Próximo Passo --</option>
+                            {nodes.filter(n => n.id !== node.id).map(n => (
+                              <option key={n.id} value={n.id}>➡️ {n.data?.label || n.id}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-pink-400 uppercase tracking-wider flex items-center gap-1">
+                            🌐 Loja Virtual Brasil:
+                          </span>
+                          <select
+                            value={outgoingEdges.find(e => e.sourceHandle === 'store_ecommerce')?.target || ''}
+                            onChange={e => handleSetTargetNode(node.id, e.target.value, 'store_ecommerce')}
+                            className="w-full bg-dark-800 border border-white/10 rounded-xl px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-pink-500"
+                          >
+                            <option value="">-- Próximo Passo --</option>
+                            {nodes.filter(n => n.id !== node.id).map(n => (
+                              <option key={n.id} value={n.id}>➡️ {n.data?.label || n.id}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    ) : nodeType === 'shipping_calculator' ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                            🛵 Motoboy Express:
+                          </span>
+                          <select
+                            value={outgoingEdges.find(e => e.sourceHandle === 'shipping_motoboy')?.target || ''}
+                            onChange={e => handleSetTargetNode(node.id, e.target.value, 'shipping_motoboy')}
+                            className="w-full bg-dark-800 border border-white/10 rounded-xl px-2 py-1.5 text-xs text-slate-200"
+                          >
+                            <option value="">-- Próximo Passo --</option>
+                            {nodes.filter(n => n.id !== node.id).map(n => (
+                              <option key={n.id} value={n.id}>➡️ {n.data?.label || n.id}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1">
+                            📦 Correios PAC/SEDEX:
+                          </span>
+                          <select
+                            value={outgoingEdges.find(e => e.sourceHandle === 'shipping_correios')?.target || ''}
+                            onChange={e => handleSetTargetNode(node.id, e.target.value, 'shipping_correios')}
+                            className="w-full bg-dark-800 border border-white/10 rounded-xl px-2 py-1.5 text-xs text-slate-200"
+                          >
+                            <option value="">-- Próximo Passo --</option>
+                            {nodes.filter(n => n.id !== node.id).map(n => (
+                              <option key={n.id} value={n.id}>➡️ {n.data?.label || n.id}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                            🏪 Retirada em Loja:
+                          </span>
+                          <select
+                            value={outgoingEdges.find(e => e.sourceHandle === 'shipping_pickup')?.target || ''}
+                            onChange={e => handleSetTargetNode(node.id, e.target.value, 'shipping_pickup')}
+                            className="w-full bg-dark-800 border border-white/10 rounded-xl px-2 py-1.5 text-xs text-slate-200"
+                          >
+                            <option value="">-- Próximo Passo --</option>
+                            {nodes.filter(n => n.id !== node.id).map(n => (
+                              <option key={n.id} value={n.id}>➡️ {n.data?.label || n.id}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    ) : nodeType === 'pix_payment' ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                            ✅ Comprovante Enviado:
+                          </span>
+                          <select
+                            value={outgoingEdges.find(e => e.sourceHandle === 'pix_paid')?.target || ''}
+                            onChange={e => handleSetTargetNode(node.id, e.target.value, 'pix_paid')}
+                            className="w-full bg-dark-800 border border-white/10 rounded-xl px-2 py-1.5 text-xs text-slate-200"
+                          >
+                            <option value="">-- Próximo Passo --</option>
+                            {nodes.filter(n => n.id !== node.id).map(n => (
+                              <option key={n.id} value={n.id}>➡️ {n.data?.label || n.id}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                            ❓ Dúvida / Ajuda:
+                          </span>
+                          <select
+                            value={outgoingEdges.find(e => e.sourceHandle === 'pix_help')?.target || ''}
+                            onChange={e => handleSetTargetNode(node.id, e.target.value, 'pix_help')}
+                            className="w-full bg-dark-800 border border-white/10 rounded-xl px-2 py-1.5 text-xs text-slate-200"
+                          >
+                            <option value="">-- Próximo Passo --</option>
+                            {nodes.filter(n => n.id !== node.id).map(n => (
+                              <option key={n.id} value={n.id}>➡️ {n.data?.label || n.id}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    ) : nodeType === 'vip_consultation' ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-pink-400 uppercase tracking-wider flex items-center gap-1">
+                            📱 Consultoria Online:
+                          </span>
+                          <select
+                            value={outgoingEdges.find(e => e.sourceHandle === 'consult_online')?.target || ''}
+                            onChange={e => handleSetTargetNode(node.id, e.target.value, 'consult_online')}
+                            className="w-full bg-dark-800 border border-white/10 rounded-xl px-2 py-1.5 text-xs text-slate-200"
+                          >
+                            <option value="">-- Próximo Passo --</option>
+                            {nodes.filter(n => n.id !== node.id).map(n => (
+                              <option key={n.id} value={n.id}>➡️ {n.data?.label || n.id}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider flex items-center gap-1">
+                            🏬 Presencial na Loja:
+                          </span>
+                          <select
+                            value={outgoingEdges.find(e => e.sourceHandle === 'consult_store')?.target || ''}
+                            onChange={e => handleSetTargetNode(node.id, e.target.value, 'consult_store')}
+                            className="w-full bg-dark-800 border border-white/10 rounded-xl px-2 py-1.5 text-xs text-slate-200"
+                          >
+                            <option value="">-- Próximo Passo --</option>
+                            {nodes.filter(n => n.id !== node.id).map(n => (
+                              <option key={n.id} value={n.id}>➡️ {n.data?.label || n.id}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    ) : nodeType === 'promotional_coupon' ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                            🎟️ Cupom Válido:
+                          </span>
+                          <select
+                            value={outgoingEdges.find(e => e.sourceHandle === 'coupon_valid')?.target || ''}
+                            onChange={e => handleSetTargetNode(node.id, e.target.value, 'coupon_valid')}
+                            className="w-full bg-dark-800 border border-white/10 rounded-xl px-2 py-1.5 text-xs text-slate-200"
+                          >
+                            <option value="">-- Próximo Passo --</option>
+                            {nodes.filter(n => n.id !== node.id).map(n => (
+                              <option key={n.id} value={n.id}>➡️ {n.data?.label || n.id}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1">
+                            ❌ Cupom Inválido:
+                          </span>
+                          <select
+                            value={outgoingEdges.find(e => e.sourceHandle === 'coupon_invalid')?.target || ''}
+                            onChange={e => handleSetTargetNode(node.id, e.target.value, 'coupon_invalid')}
+                            className="w-full bg-dark-800 border border-white/10 rounded-xl px-2 py-1.5 text-xs text-slate-200"
+                          >
+                            <option value="">-- Próximo Passo --</option>
+                            {nodes.filter(n => n.id !== node.id).map(n => (
+                              <option key={n.id} value={n.id}>➡️ {n.data?.label || n.id}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
                     ) : (
                       <div className="flex items-center justify-between gap-2 text-xs">
                         <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1 flex-shrink-0">
