@@ -159,6 +159,8 @@ async function main() {
     // Inicializar repositório Git isolado para a branch gh-pages
     execSync('git init', { cwd: tempDeployDir, stdio: 'pipe' });
     execSync('git checkout -b gh-pages', { cwd: tempDeployDir, stdio: 'pipe' });
+    execSync('git config user.email "bot@pitoco.malaca.com.br"', { cwd: tempDeployDir, stdio: 'pipe' });
+    execSync('git config user.name "Pitoco Bot"', { cwd: tempDeployDir, stdio: 'pipe' });
     execSync('git add -A', { cwd: tempDeployDir, stdio: 'pipe' });
     execSync('git commit -m "deploy: update GitHub Pages production release with official logo and n8n flow studio"', { cwd: tempDeployDir, stdio: 'pipe' });
 
