@@ -542,6 +542,26 @@ export interface SlotSuggestion {
   isSameDate: boolean;
 }
 
+export interface AgendaServiceItem {
+  id: string;
+  name: string;
+  duration_minutes: number;
+  price: number;
+  category?: string;
+  description?: string;
+  is_active?: boolean;
+  active?: boolean;
+  [key: string]: any;
+}
+
+export interface DayScheduleConfig {
+  enabled: boolean;
+  start_time: string;
+  end_time: string;
+  break_start_time?: string;
+  break_end_time?: string;
+}
+
 // AgendaSettings fallback for VIP Consultation scheduler
 export interface AgendaSettings {
   business_days: string[];
@@ -551,5 +571,8 @@ export interface AgendaSettings {
   break_start_time?: string;
   break_end_time?: string;
   buffer_minutes?: number;
-  services?: any[];
+  out_of_hours_message?: string;
+  services?: AgendaServiceItem[];
+  day_schedules?: Record<string, DayScheduleConfig>;
+  [key: string]: any;
 }

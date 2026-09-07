@@ -15,6 +15,9 @@ import {
   Category, 
   SupportTicket, 
   VIPConsultation, 
+  Appointment,
+  AgendaSettings,
+  AgendaServiceItem,
   SystemUser, 
   SystemAccessUser,
   UserPermissions, 
@@ -610,8 +613,140 @@ export const StorageService = {
   },
 
   // Backward compatibility alias for appointments
-  async getAppointments(storeId?: string) {
+  async getAppointments(storeId?: string): Promise<Appointment[]> {
     return this.getVIPConsultations(storeId);
+  },
+
+  async saveAppointment(apt: Partial<Appointment>): Promise<Appointment> {
+    return this.saveVIPConsultation(apt);
+  },
+
+  async updateAppointmentStatus(aptId: string, newStatus: string): Promise<Appointment | null> {
+    const list = await this.getVIPConsultations();
+    const idx = list.findIndex(a => a.id === aptId);
+    if (idx >= 0) {
+      list[idx].status = newStatus;
+      list[idx].updated_at = new Date().toISOString();
+      setItem(STORAGE_KEYS.VIP_CONSULTATIONS, list);
+      return list[idx];
+    }
+    return null;
+  },
+
+  async deleteAppointment(aptId: string): Promise<boolean> {
+    const list = await this.getVIPConsultations();
+    const filtered = list.filter(a => a.id !== aptId);
+    setItem(STORAGE_KEYS.VIP_CONSULTATIONS, filtered);
+    return true;
+  },
+
+  // ==============================================================================
+  // AGENDA SETTINGS & SERVIÇOS DE CONSULTORIA
+  // ==============================================================================
+  async getAgendaSettings(): Promise<AgendaSettings> {
+    const defaultSettings: AgendaSettings = {
+      business_days: ['1', '2', '3', '4', '5', '6'],
+      start_time: '08:00',
+      end_time: '19:00',
+      slot_duration_minutes: 30,
+      break_start_time: '12:00',
+      break_end_time: '13:00',
+      buffer_minutes: 5,
+      out_of_hours_message: 'Olá! Nosso horário de expediente é de Segunda a Sábado das 08:00 às 19:00. Deixe sua mensagem ou escolha um horário que responderemos com prioridade!',
+      services: [
+        {
+          id: 'srv-1',
+          name: 'Consultoria VIP de Enxoval',
+          duration_minutes: 45,
+          price: 0,
+          category: 'Consultoria',
+          description: 'Atendimento personalizado com especialista em montagem de enxoval de bebê completo.',
+          is_active: true,
+          active: true,
+        },
+        {
+          id: 'srv-2',
+          name: 'Guia de Medidas & Escolha de Tamanho',
+          duration_minutes: 20,
+          price: 0,
+          category: 'Atendimento',
+          description: 'Ajuda para acertar o tamanho ideal RN a 3 anos (tabela de peso e altura).',
+          is_active: true,
+          active: true,
+        },
+        {
+          id: 'srv-3',
+          name: 'Separação de Pedido para Retirada na Loja',
+          duration_minutes: 15,
+          price: 0,
+          category: 'Retirada',
+          description: 'Agendamento de retirada expressa no balcão da filial selecionada.',
+          is_active: true,
+          active: true,
+        }
+      ],
+      day_schedules: {
+        '1': { enabled: true, start_time: '08:00', end_time: '19:00', break_start_time: '12:00', break_end_time: '13:00' },
+        '2': { enabled: true, start_time: '08:00', end_time: '19:00', break_start_time: '12:00', break_end_time: '13:00' },
+        '3': { enabled: true, start_time: '08:00', end_time: '19:00', break_start_time: '12:00', break_end_time: '13:00' },
+        '4': { enabled: true, start_time: '08:00', end_time: '19:00', break_start_time: '12:00', break_end_time: '13:00' },
+        '5': { enabled: true, start_time: '08:00', end_time: '19:00', break_start_time: '12:00', break_end_time: '13:00' },
+        '6': { enabled: true, start_time: '08:00', end_time: '18:00', break_start_time: '12:00', break_end_time: '13:00' },
+        '0': { enabled: false, start_time: '09:00', end_time: '14:00' },
+      }
+    };
+
+    let settings = getItem<AgendaSettings>('pitoco_agenda_settings', defaultSettings);
+    if (!settings || !Array.isArray(settings.business_days)) {
+      settings = defaultSettings;
+      setItem('pitoco_agenda_settings', settings);
+    }
+    return settings;
+  },
+
+  async updateAgendaSettings(newSettings: Partial<AgendaSettings>): Promise<AgendaSettings> {
+    const current = await this.getAgendaSettings();
+    const merged: AgendaSettings = {
+      ...current,
+      ...newSettings,
+      updated_at: new Date().toISOString(),
+    };
+    setItem('pitoco_agenda_settings', merged);
+    try {
+      await fetch(`${API_BASE}/api/agenda-settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(merged),
+        signal: AbortSignal.timeout(3000),
+      });
+    } catch {}
+    return merged;
+  },
+
+  async saveAgendaSettings(newSettings: Partial<AgendaSettings>): Promise<AgendaSettings> {
+    return this.updateAgendaSettings(newSettings);
+  },
+
+  async saveAgendaServiceItem(item: AgendaServiceItem): Promise<AgendaSettings> {
+    const current = await this.getAgendaSettings();
+    const services = Array.isArray(current.services) ? [...current.services] : [];
+    const idx = services.findIndex(s => s.id === item.id);
+    if (idx >= 0) {
+      services[idx] = { ...services[idx], ...item };
+    } else {
+      services.push({
+        ...item,
+        id: item.id || `srv-${Date.now()}`,
+        is_active: item.is_active !== undefined ? item.is_active : (item.active !== undefined ? item.active : true),
+      });
+    }
+    return this.updateAgendaSettings({ ...current, services });
+  },
+
+  async deleteAgendaServiceItem(itemId: string): Promise<AgendaSettings> {
+    const current = await this.getAgendaSettings();
+    const services = (current.services || []).filter(s => s.id !== itemId);
+    return this.updateAgendaSettings({ ...current, services });
   },
 
   // ==============================================================================
@@ -1069,9 +1204,99 @@ export const StorageService = {
     setItem(STORAGE_KEYS.SETTINGS, settings);
   },
 
-  // Backward compatibility methods
+  // Backward compatibility methods & aliases
+  async updateSettings(settings: Partial<Settings>): Promise<Settings> {
+    return this.saveSettings(settings);
+  },
+
+  async updateBotProfile(profile: Partial<BotProfile>): Promise<BotProfile> {
+    return this.saveBotProfile(profile);
+  },
+
+  async updateAdminProfile(profile: Partial<AdminProfile>): Promise<AdminProfile> {
+    return this.saveAdminProfile(profile);
+  },
+
+  async saveSystemUser(user: any): Promise<any> {
+    const users = await this.getSystemUsers();
+    const idx = users.findIndex(u => u.id === user.id || u.username === user.username);
+    if (idx >= 0) {
+      users[idx] = { ...users[idx], ...user, updated_at: new Date().toISOString() };
+    } else {
+      users.push({
+        id: user.id || `usr-${Date.now()}`,
+        created_at: new Date().toISOString(),
+        ...user,
+      });
+    }
+    setItem(STORAGE_KEYS.SYSTEM_USERS, users);
+    return user;
+  },
+
+  async getCustomVariables(): Promise<any[]> {
+    return getItem<any[]>('pitoco_custom_variables', [
+      { id: 'var-1', name: 'nome_loja', key: 'nome_loja', value: 'Pitoco de Gente', description: 'Nome fantasia da marca' },
+      { id: 'var-2', name: 'cidade_matriz', key: 'cidade_matriz', value: 'Recife/PE', description: 'Sede da matriz' },
+      { id: 'var-3', name: 'chave_pix', key: 'chave_pix', value: 'financeiro@pitocodegente.com.br', description: 'Chave PIX oficial' },
+      { id: 'var-4', name: 'frete_gratis_valor', key: 'frete_gratis_valor', value: '250.00', description: 'Valor mínimo frete grátis' },
+    ]);
+  },
+
+  async saveCustomVariable(v: any): Promise<any> {
+    const list = await this.getCustomVariables();
+    const idx = list.findIndex(item => item.id === v.id || item.key === v.key);
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], ...v };
+    } else {
+      list.push({ ...v, id: v.id || `var-${Date.now()}` });
+    }
+    setItem('pitoco_custom_variables', list);
+    return v;
+  },
+
+  async deleteCustomVariable(id: string): Promise<boolean> {
+    const list = await this.getCustomVariables();
+    const filtered = list.filter(item => item.id !== id);
+    setItem('pitoco_custom_variables', filtered);
+    return true;
+  },
+
+  async getBotVariables(): Promise<Record<string, any>> {
+    const custom = await this.getCustomVariables();
+    const map: Record<string, any> = {
+      empresa: 'Pitoco de Gente',
+      marca: 'Pitoco de Gente',
+      site: 'https://pitoco.malaca.com.br',
+      whatsapp: '(81) 98765-4321',
+      chave_pix: 'financeiro@pitocodegente.com.br',
+    };
+    for (const c of custom) {
+      if (c.key) map[c.key] = c.value;
+    }
+    return map;
+  },
+
   getAttendants(): Attendant[] {
     return getItem<Attendant[]>(STORAGE_KEYS.ATTENDANTS, initialAttendants);
+  },
+
+  async saveAttendant(att: any): Promise<any> {
+    const list = getItem<any[]>(STORAGE_KEYS.ATTENDANTS, initialAttendants);
+    const idx = list.findIndex(a => a.id === att.id);
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], ...att };
+    } else {
+      list.push({ ...att, id: att.id || `att-${Date.now()}` });
+    }
+    setItem(STORAGE_KEYS.ATTENDANTS, list);
+    return att;
+  },
+
+  async deleteAttendant(id: string): Promise<boolean> {
+    const list = getItem<any[]>(STORAGE_KEYS.ATTENDANTS, initialAttendants);
+    const filtered = list.filter(a => a.id !== id);
+    setItem(STORAGE_KEYS.ATTENDANTS, filtered);
+    return true;
   },
 
   getCannedReplies(): CannedReply[] {
@@ -1080,5 +1305,229 @@ export const StorageService = {
 
   getAuditLogs(): AuditLog[] {
     return getItem<AuditLog[]>(STORAGE_KEYS.AUDIT_LOGS, []);
+  },
+
+  async getLogs(): Promise<AuditLog[]> {
+    return getItem<AuditLog[]>(STORAGE_KEYS.AUDIT_LOGS, []);
+  },
+
+  async clearLogs(): Promise<boolean> {
+    setItem(STORAGE_KEYS.AUDIT_LOGS, []);
+    return true;
+  },
+
+  async deleteContact(id: string): Promise<boolean> {
+    const list = await this.getContacts();
+    const filtered = list.filter(c => c.id !== id);
+    setItem(STORAGE_KEYS.CONTACTS, filtered);
+    return true;
+  },
+
+  isContactDeleted(c: any): boolean {
+    if (!c) return true;
+    if (c.is_deleted) return true;
+    return false;
+  },
+
+  async saveConversation(conv: Partial<Conversation>): Promise<Conversation> {
+    const list = await this.getConversations();
+    const idx = list.findIndex(c => c.id === conv.id);
+    let updated: Conversation;
+    if (idx >= 0) {
+      updated = { ...list[idx], ...conv, updated_at: new Date().toISOString() };
+      list[idx] = updated;
+    } else {
+      updated = {
+        id: conv.id || `conv-${Date.now()}`,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        status: conv.status || 'bot',
+        unread_count: 0,
+        ...conv,
+      } as Conversation;
+      list.unshift(updated);
+    }
+    setItem(STORAGE_KEYS.CONVERSATIONS, list);
+    return updated;
+  },
+
+  async deleteConversation(id: string): Promise<boolean> {
+    const list = await this.getConversations();
+    const filtered = list.filter(c => c.id !== id);
+    setItem(STORAGE_KEYS.CONVERSATIONS, filtered);
+    return true;
+  },
+
+  async assignConversation(convId: string, attendantId: string): Promise<Conversation | null> {
+    const attendants = this.getAttendants();
+    const att = attendants.find(a => a.id === attendantId);
+    const convs = await this.getConversations();
+    const idx = convs.findIndex(c => c.id === convId);
+    if (idx >= 0) {
+      convs[idx] = {
+        ...convs[idx],
+        assigned_attendant_id: attendantId,
+        assigned_attendant_name: att?.name || 'Atendente',
+        status: 'human',
+        updated_at: new Date().toISOString(),
+      };
+      setItem(STORAGE_KEYS.CONVERSATIONS, convs);
+      return convs[idx];
+    }
+    return null;
+  },
+
+  async transferConversation(convId: string, storeId?: string, attendantId?: string): Promise<Conversation | null> {
+    const convs = await this.getConversations();
+    const idx = convs.findIndex(c => c.id === convId);
+    if (idx >= 0) {
+      convs[idx] = {
+        ...convs[idx],
+        store_id: storeId || convs[idx].store_id,
+        assigned_attendant_id: attendantId || convs[idx].assigned_attendant_id,
+        status: 'waiting_human',
+        updated_at: new Date().toISOString(),
+      };
+      setItem(STORAGE_KEYS.CONVERSATIONS, convs);
+      return convs[idx];
+    }
+    return null;
+  },
+
+  async sendMessage(convId: string, text: string, type: MessageType = 'text', mediaUrl?: string): Promise<Message> {
+    return this.addMessage({
+      conversation_id: convId,
+      direction: 'outbound',
+      message_type: type,
+      content: text,
+      media_url: mediaUrl,
+      status: 'delivered',
+      created_at: new Date().toISOString(),
+    });
+  },
+
+  async sendInternalNote(convId: string, text: string, author: string = 'Atendente'): Promise<Message> {
+    return this.addMessage({
+      conversation_id: convId,
+      direction: 'outbound',
+      message_type: 'internal_note',
+      content: text,
+      author_name: author,
+      is_internal: true,
+      status: 'delivered',
+      created_at: new Date().toISOString(),
+    });
+  },
+
+  async deleteMessage(convId: string, msgId: string): Promise<boolean> {
+    const key = `${STORAGE_KEYS.MESSAGES_PREFIX}${convId}`;
+    const msgs = getItem<Message[]>(key, []);
+    const filtered = msgs.filter(m => m.id !== msgId);
+    setItem(key, filtered);
+    return true;
+  },
+
+  async clearMessages(convId: string): Promise<boolean> {
+    const key = `${STORAGE_KEYS.MESSAGES_PREFIX}${convId}`;
+    setItem(key, []);
+    return true;
+  },
+
+  async duplicateFlow(flowId: string): Promise<Flow | null> {
+    const flow = await this.getFlow(flowId);
+    if (!flow) return null;
+    const newId = `flow-${Date.now()}`;
+    const duplicated: Flow = {
+      ...flow,
+      id: newId,
+      name: `${flow.name} (Cópia)`,
+      is_active: false,
+      status: 'draft',
+      version: (flow.version || 1) + 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    await this.saveFlow(duplicated);
+    const nodes = await this.getFlowNodes(flowId);
+    const edges = await this.getFlowEdges(flowId);
+    if (nodes && nodes.length > 0) {
+      await this.saveFlowGraph(newId, nodes, edges);
+    }
+    return duplicated;
+  },
+
+  async getAvailableSlots(dateStr: string, durationMinutes: number = 30): Promise<string[]> {
+    const settings = await this.getAgendaSettings();
+    const startTime = settings.start_time || '08:00';
+    const endTime = settings.end_time || '19:00';
+    const breakStart = settings.break_start_time || '12:00';
+    const breakEnd = settings.break_end_time || '13:00';
+    const slotDuration = durationMinutes || settings.slot_duration_minutes || 30;
+
+    const [startH, startM] = startTime.split(':').map(Number);
+    const [endH, endM] = endTime.split(':').map(Number);
+    const [breakStartH, breakStartM] = breakStart.split(':').map(Number);
+    const [breakEndH, breakEndM] = breakEnd.split(':').map(Number);
+
+    const startTotal = (startH || 8) * 60 + (startM || 0);
+    const endTotal = (endH || 19) * 60 + (endM || 0);
+    const breakStartTotal = (breakStartH || 12) * 60 + (breakStartM || 0);
+    const breakEndTotal = (breakEndH || 13) * 60 + (breakEndM || 0);
+
+    const existingApts = await this.getAppointments();
+    const bookedTimes = new Set(
+      existingApts
+        .filter(a => (a.consultation_date === dateStr || (a as any).date === dateStr) && a.status !== 'cancelled')
+        .map(a => a.consultation_time || (a as any).time)
+    );
+
+    const slots: string[] = [];
+    for (let cur = startTotal; cur + slotDuration <= endTotal; cur += slotDuration) {
+      if (cur >= breakStartTotal && cur < breakEndTotal) {
+        continue;
+      }
+      const h = Math.floor(cur / 60);
+      const m = cur % 60;
+      const slotStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      if (!bookedTimes.has(slotStr)) {
+        slots.push(slotStr);
+      }
+    }
+    return slots;
+  },
+
+  async getNextAvailableSlot(dateStr: string, timeStr: string, durationMinutes: number = 30): Promise<any> {
+    const slots = await this.getAvailableSlots(dateStr, durationMinutes);
+    const nextSlot = slots.find(s => s >= timeStr) || slots[0] || '14:00';
+    return {
+      date: dateStr,
+      time: nextSlot,
+      formattedDate: dateStr.split('-').reverse().join('/'),
+      dayOfWeek: 'Hoje',
+      displayFull: `${dateStr} às ${nextSlot}`,
+      displayShort: nextSlot,
+      isSameDate: true,
+    };
+  },
+
+  async saveSupportTicket(ticket: Partial<SupportTicket>): Promise<SupportTicket> {
+    const list = await this.getSupportTickets();
+    const idx = list.findIndex(t => t.id === ticket.id);
+    let updated: SupportTicket;
+    if (idx >= 0) {
+      updated = { ...list[idx], ...ticket, updated_at: new Date().toISOString() };
+      list[idx] = updated;
+    } else {
+      updated = {
+        id: ticket.id || `tkt-${Date.now()}`,
+        status: ticket.status || 'open',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        ...ticket,
+      } as SupportTicket;
+      list.unshift(updated);
+    }
+    setItem(STORAGE_KEYS.TICKETS, list);
+    return updated;
   },
 };
