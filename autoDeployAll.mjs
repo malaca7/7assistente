@@ -115,7 +115,7 @@ async function main() {
     const status = execSync('git status --porcelain', { cwd: __dirname, encoding: 'utf8' }).trim();
     if (status.length > 0) {
       console.log('📌 Mudanças detectadas. Criando commit de deploy...');
-      execSync('git commit -m "feat(flow-studio): adicionar 11 novos nos de loja virtual, selecao de filiais e atendimento de vendas online"', { cwd: __dirname, stdio: 'inherit' });
+      execSync('git commit -m "fix(persistence): persistencia permanente do painel admin e bot whatsapp com banco de dados central protegido e sync"', { cwd: __dirname, stdio: 'inherit' });
       console.log('✅ Commit criado com sucesso!');
     } else {
       console.log('ℹ️ Nenhuma alteração pendente para commit.');
@@ -129,7 +129,8 @@ async function main() {
   try {
     execSync('git branch -f main HEAD', { cwd: __dirname, stdio: 'inherit' });
     execSync('git push botpitoco main --force', { cwd: __dirname, stdio: 'inherit' });
-    console.log('✅ Branch main enviada com sucesso para botpitoco!');
+    execSync('git push botpitoco source --force', { cwd: __dirname, stdio: 'inherit' });
+    console.log('✅ Branches main e source enviadas com sucesso para botpitoco!');
   } catch (pushErr) {
     console.error('❌ Erro no push para GitHub botpitoco:', pushErr.message);
   }
@@ -139,8 +140,9 @@ async function main() {
     const remotes = execSync('git remote', { cwd: __dirname, encoding: 'utf8' });
     if (remotes.includes('origin')) {
       console.log('📡 Sincronizando também com remote origin...');
-      execSync('git push origin HEAD --force', { cwd: __dirname, stdio: 'inherit' });
-      console.log('✅ Remote origin sincronizado!');
+      execSync('git push origin main --force', { cwd: __dirname, stdio: 'inherit' });
+      execSync('git push origin source --force', { cwd: __dirname, stdio: 'inherit' });
+      console.log('✅ Remote origin sincronizado (main e source)!');
     }
   } catch (origErr) {
     console.warn('⚠️ Aviso ao sincronizar com origin:', origErr.message);
@@ -162,7 +164,7 @@ async function main() {
     execSync('git config user.email "bot@pitoco.malaca.com.br"', { cwd: tempDeployDir, stdio: 'pipe' });
     execSync('git config user.name "Pitoco Bot"', { cwd: tempDeployDir, stdio: 'pipe' });
     execSync('git add -A', { cwd: tempDeployDir, stdio: 'pipe' });
-    execSync('git commit -m "deploy: sincronizar fluxos ativos do painel com bot whatsapp no discloud"', { cwd: tempDeployDir, stdio: 'pipe' });
+    execSync('git commit -m "fix(persistence): persistencia permanente do painel admin e bot whatsapp com banco de dados central protegido e sync"', { cwd: tempDeployDir, stdio: 'pipe' });
 
     // Push para botpitoco gh-pages
     execSync('git remote add botpitoco https://github.com/malaca7/botpitoco.git', { cwd: tempDeployDir, stdio: 'pipe' });

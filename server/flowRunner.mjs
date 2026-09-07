@@ -14,6 +14,25 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DB_PATH = path.resolve(__dirname, 'flows_db.json');
 
+import {
+  initialStores,
+  initialCategories,
+  initialProducts,
+  sampleFlows,
+  initialFlowNodes,
+  initialFlowEdges,
+  initialAccessUsers,
+  defaultBotProfile,
+  initialSettings,
+  initialAttendants,
+  defaultCannedReplies,
+  DEFAULT_AGENDA_SETTINGS,
+  defaultCustomVariables,
+  sampleContacts,
+  sampleConversations,
+  initialTickets
+} from './defaultData.mjs';
+
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://cbeiguyvoepbcafmxduy.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiZWlndXl2b2VwYmNhZm14ZHV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzU5NzcsImV4cCI6MjEwNDMxMTk3N30.1XpWL6ns9NlPh4sQ3M8-OJTnKCPH-jf89iFspmBrKxM';
 
@@ -23,6 +42,7 @@ export const supabaseClient = (createClient && SUPABASE_URL && SUPABASE_ANON_KEY
       realtime: WebSocketClient ? { transport: WebSocketClient } : undefined
     }) 
   : null;
+
 
 // Async Supabase Sync Helpers
 export async function syncContactToSupabase(contact) {
@@ -119,19 +139,7 @@ export async function syncAppointmentToSupabase(apt) {
 }
 
 
-const DEFAULT_AGENDA_SETTINGS = {
-  business_days: ['1', '2', '3', '4', '5'], // Monday to Friday
-  start_time: '08:00',
-  end_time: '18:00',
-  slot_duration_minutes: 30,
-  break_start_time: '12:00',
-  break_end_time: '13:00',
-  services: [
-    { id: 'srv-1', name: 'Atendimento Especialista', duration_minutes: 30, price: 150 },
-    { id: 'srv-2', name: 'Demonstração da Plataforma', duration_minutes: 45, price: 0 },
-    { id: 'srv-3', name: 'Suporte & Configuração', duration_minutes: 30, price: 80 },
-  ],
-};
+
 
 function migrateLidContacts(db) {
   if (!db || !db.contacts) return;
@@ -179,128 +187,230 @@ function migrateLidContacts(db) {
   }
 }
 
+const DATA_DIR = path.resolve(__dirname, 'data');
+const PRIMARY_DB_PATH = path.resolve(DATA_DIR, 'pitoco_database.json');
 const AUTH_DIR = path.resolve(__dirname, 'whatsapp_auth');
-const BACKUP_DB_PATH = path.resolve(AUTH_DIR, 'flows_db_backup.json');
+const MASTER_BACKUP_PATH = path.resolve(AUTH_DIR, 'database_master_backup.json');
+const LEGACY_BACKUP_PATH = path.resolve(AUTH_DIR, 'flows_db_backup.json');
+const LEGACY_DB_PATH = path.resolve(__dirname, 'flows_db.json');
 
-export const DEFAULT_SYSTEM_USERS = [
-  {
-    id: 'user-admin',
-    name: 'Rogerio (CEO / Administrador Geral)',
-    phone: '81996138924',
-    password: 'admin',
-    pin: '1234',
-    role: 'ceo',
-    permissions: {
-      can_access_admin: true,
-      can_access_atendimento: true,
-      can_access_barbeiro: true,
-    },
-    status: 'active',
-    created_at: '2026-09-03T21:24:01.059Z',
-  },
-];
+export const DEFAULT_SYSTEM_USERS = initialAccessUsers;
 
-export function loadDb() {
-  let parsed = null;
+function readJsonFileSafe(filePath) {
   try {
-    if (fs.existsSync(DB_PATH)) {
-      const data = fs.readFileSync(DB_PATH, 'utf-8');
-      parsed = JSON.parse(data);
-    }
-  } catch (err) {
-    console.error('[FlowRunner] Erro ao ler flows_db.json:', err);
-  }
-
-  // Restore & Merge from Persistent WhatsApp Auth Backup (never deleted during deploys)
-  try {
-    if (fs.existsSync(BACKUP_DB_PATH)) {
-      const backupData = JSON.parse(fs.readFileSync(BACKUP_DB_PATH, 'utf-8'));
-      if (backupData) {
-        if (!parsed) {
-          parsed = backupData;
-        } else {
-          if (backupData.botProfile && Object.keys(backupData.botProfile).length > 0) {
-            parsed.botProfile = { ...parsed.botProfile, ...backupData.botProfile };
-          }
-          if (backupData.settings && Object.keys(backupData.settings).length > 0) {
-            parsed.settings = { ...parsed.settings, ...backupData.settings };
-          }
-          if (parsed.contacts === undefined && backupData.contacts && Object.keys(backupData.contacts).length > 0) {
-            parsed.contacts = { ...backupData.contacts };
-          }
-          if (backupData.conversations && Object.keys(backupData.conversations).length > 0) {
-            parsed.conversations = { ...backupData.conversations, ...parsed.conversations };
-          }
-          if (backupData.attendants && backupData.attendants.length > 0) {
-            parsed.attendants = backupData.attendants;
-          }
-          if (backupData.systemUsers && backupData.systemUsers.length > 0) {
-            parsed.systemUsers = backupData.systemUsers;
-          }
-          if (backupData.rolePermissions) {
-            parsed.rolePermissions = { ...backupData.rolePermissions, ...(parsed.rolePermissions || {}) };
-          }
-          if (backupData.customVariables && Array.isArray(backupData.customVariables)) {
-            parsed.customVariables = backupData.customVariables;
-          }
-        }
+    if (fs.existsSync(filePath)) {
+      const raw = fs.readFileSync(filePath, 'utf-8');
+      if (raw && raw.trim()) {
+        return JSON.parse(raw);
       }
     }
-  } catch (bErr) {
-    // Ignore backup read error
+  } catch (err) {
+    console.warn(`[DB Engine] Aviso ao ler ${filePath}:`, err.message);
   }
+  return null;
+}
 
-  if (parsed) {
-    migrateLidContacts(parsed);
-    return {
-      flows: parsed.flows || [],
-      nodes: parsed.nodes || {},
-      edges: parsed.edges || {},
-      botProfile: parsed.botProfile || {},
-      settings: parsed.settings || {},
-      sessions: parsed.sessions || {},
-      appointments: parsed.appointments || [],
-      contacts: parsed.contacts || {},
-      conversations: parsed.conversations || {},
-      messages: parsed.messages || {},
-      attendants: parsed.attendants || [],
-      agendaSettings: parsed.agendaSettings || DEFAULT_AGENDA_SETTINGS,
-      systemUsers: (parsed.systemUsers && parsed.systemUsers.length > 0) ? parsed.systemUsers : DEFAULT_SYSTEM_USERS,
-      rolePermissions: parsed.rolePermissions || {},
-      customVariables: parsed.customVariables || parsed.botProfile?.custom_variables || [],
-    };
-  }
+export function loadDb() {
+  const primaryDb = readJsonFileSafe(PRIMARY_DB_PATH);
+  const masterBackup = readJsonFileSafe(MASTER_BACKUP_PATH);
+  const legacyBackup = readJsonFileSafe(LEGACY_BACKUP_PATH);
+  const legacyDb = readJsonFileSafe(LEGACY_DB_PATH);
 
-  return {
+  // Selecionar fontes disponíveis ordenadas por prioridade de preservação
+  const sources = [primaryDb, masterBackup, legacyBackup, legacyDb].filter(Boolean);
+
+  // Base inicial vazia que será populada
+  const result = {
+    stores: [],
+    categories: [],
+    products: [],
     flows: [],
     nodes: {},
     edges: {},
-    botProfile: {},
-    settings: {},
-    sessions: {},
-    appointments: [],
     contacts: {},
     conversations: {},
     messages: {},
-    attendants: [],
+    tickets: [],
+    appointments: [],
     agendaSettings: DEFAULT_AGENDA_SETTINGS,
     systemUsers: DEFAULT_SYSTEM_USERS,
+    attendants: initialAttendants,
+    cannedReplies: defaultCannedReplies,
+    botProfile: defaultBotProfile,
+    settings: initialSettings,
+    customVariables: defaultCustomVariables,
+    auditLogs: [],
+    sessions: {},
     rolePermissions: {},
-    customVariables: [],
   };
+
+  // Se houver qualquer fonte salva anteriormente, consolidar os dados
+  for (const src of sources) {
+    if (Array.isArray(src.stores) && src.stores.length > 0 && result.stores.length === 0) {
+      result.stores = src.stores;
+    }
+    if (Array.isArray(src.categories) && src.categories.length > 0 && result.categories.length === 0) {
+      result.categories = src.categories;
+    }
+    if (Array.isArray(src.products) && src.products.length > 0 && result.products.length === 0) {
+      result.products = src.products;
+    }
+    if (Array.isArray(src.flows) && src.flows.length > 0 && result.flows.length === 0) {
+      result.flows = src.flows;
+    }
+    if (src.nodes && Object.keys(src.nodes).length > 0 && Object.keys(result.nodes).length === 0) {
+      result.nodes = { ...src.nodes };
+    }
+    if (src.edges && Object.keys(src.edges).length > 0 && Object.keys(result.edges).length === 0) {
+      result.edges = { ...src.edges };
+    }
+    if (src.contacts && Object.keys(src.contacts).length > 0 && Object.keys(result.contacts).length === 0) {
+      result.contacts = { ...src.contacts };
+    }
+    if (src.conversations && Object.keys(src.conversations).length > 0 && Object.keys(result.conversations).length === 0) {
+      result.conversations = { ...src.conversations };
+    }
+    if (src.messages && Object.keys(src.messages).length > 0 && Object.keys(result.messages).length === 0) {
+      result.messages = { ...src.messages };
+    }
+    if (Array.isArray(src.tickets) && src.tickets.length > 0 && result.tickets.length === 0) {
+      result.tickets = src.tickets;
+    }
+    if (Array.isArray(src.appointments) && src.appointments.length > 0 && result.appointments.length === 0) {
+      result.appointments = src.appointments;
+    }
+    if (src.agendaSettings && src.agendaSettings.services?.length > 0 && result.agendaSettings === DEFAULT_AGENDA_SETTINGS) {
+      result.agendaSettings = src.agendaSettings;
+    }
+    if (Array.isArray(src.systemUsers) && src.systemUsers.length > 0 && result.systemUsers === DEFAULT_SYSTEM_USERS) {
+      result.systemUsers = src.systemUsers;
+    }
+    if (Array.isArray(src.attendants) && src.attendants.length > 0 && result.attendants === initialAttendants) {
+      result.attendants = src.attendants;
+    }
+    if (Array.isArray(src.cannedReplies) && src.cannedReplies.length > 0 && result.cannedReplies === defaultCannedReplies) {
+      result.cannedReplies = src.cannedReplies;
+    }
+    if (src.botProfile && Object.keys(src.botProfile).length > 0 && result.botProfile === defaultBotProfile) {
+      result.botProfile = { ...defaultBotProfile, ...src.botProfile };
+    }
+    if (src.settings && Object.keys(src.settings).length > 0 && result.settings === initialSettings) {
+      result.settings = { ...initialSettings, ...src.settings };
+    }
+    if (Array.isArray(src.customVariables) && src.customVariables.length > 0 && result.customVariables === defaultCustomVariables) {
+      result.customVariables = src.customVariables;
+    }
+    if (Array.isArray(src.auditLogs) && src.auditLogs.length > 0 && result.auditLogs.length === 0) {
+      result.auditLogs = src.auditLogs;
+    }
+    if (src.sessions && Object.keys(src.sessions).length > 0 && Object.keys(result.sessions).length === 0) {
+      result.sessions = { ...src.sessions };
+    }
+    if (src.rolePermissions && Object.keys(src.rolePermissions).length > 0 && Object.keys(result.rolePermissions).length === 0) {
+      result.rolePermissions = { ...src.rolePermissions };
+    }
+  }
+
+  // Garantir dados iniciais oficiais do Pitoco se ainda estiverem vazios
+  if (!result.stores || result.stores.length === 0) {
+    result.stores = [...initialStores];
+  }
+  if (!result.categories || result.categories.length === 0) {
+    result.categories = [...initialCategories];
+  }
+  if (!result.products || result.products.length === 0) {
+    result.products = [...initialProducts];
+  }
+  if (!result.flows || result.flows.length === 0) {
+    result.flows = [...sampleFlows];
+  }
+  if (!result.nodes || Object.keys(result.nodes).length === 0) {
+    result.nodes = { 'flow-pitoco-001': initialFlowNodes };
+  }
+  if (!result.edges || Object.keys(result.edges).length === 0) {
+    result.edges = { 'flow-pitoco-001': initialFlowEdges };
+  }
+  if (!result.tickets || result.tickets.length === 0) {
+    result.tickets = [...initialTickets];
+  }
+  if (!result.contacts || Object.keys(result.contacts).length === 0) {
+    result.contacts = {};
+    for (const c of sampleContacts) {
+      result.contacts[c.phone] = c;
+    }
+  }
+  if (!result.conversations || Object.keys(result.conversations).length === 0) {
+    result.conversations = {};
+    for (const conv of sampleConversations) {
+      result.conversations[conv.id] = conv;
+    }
+  }
+
+  migrateLidContacts(result);
+  return result;
 }
 
 export function saveDb(data) {
   try {
-    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
     if (!fs.existsSync(AUTH_DIR)) {
       fs.mkdirSync(AUTH_DIR, { recursive: true });
     }
-    fs.writeFileSync(BACKUP_DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
+
+    const payload = JSON.stringify(data, null, 2);
+
+    // 1. Arquivo principal no data/
+    fs.writeFileSync(PRIMARY_DB_PATH, payload, 'utf-8');
+
+    // 2. Master Backup dentro de whatsapp_auth (imune a commits/deploys na Discloud)
+    fs.writeFileSync(MASTER_BACKUP_PATH, payload, 'utf-8');
+    fs.writeFileSync(LEGACY_BACKUP_PATH, payload, 'utf-8');
+
+    // 3. Fallback legado para compatibilidade com rotinas antigas
+    fs.writeFileSync(LEGACY_DB_PATH, payload, 'utf-8');
+
+    console.log(`[DB Engine] 💾 Banco salvo com sucesso (${data.stores?.length || 0} lojas, ${data.products?.length || 0} produtos, ${data.flows?.length || 0} fluxos)`);
   } catch (err) {
-    console.error('[FlowRunner] Erro ao salvar flows_db.json:', err);
+    console.error('[DB Engine] ❌ Erro ao salvar banco persistente:', err);
   }
 }
+
+export function exportDatabase() {
+  return loadDb();
+}
+
+export function importDatabase(incomingData) {
+  if (!incomingData || typeof incomingData !== 'object') {
+    throw new Error('Dados para importação inválidos');
+  }
+  const current = loadDb();
+  const merged = {
+    ...current,
+    ...incomingData,
+    updated_at: new Date().toISOString(),
+  };
+  saveDb(merged);
+  return merged;
+}
+
+export function getDatabaseStats() {
+  const db = loadDb();
+  return {
+    storesCount: db.stores?.length || 0,
+    categoriesCount: db.categories?.length || 0,
+    productsCount: db.products?.length || 0,
+    flowsCount: db.flows?.length || 0,
+    contactsCount: Object.keys(db.contacts || {}).length,
+    conversationsCount: Object.keys(db.conversations || {}).length,
+    ticketsCount: db.tickets?.length || 0,
+    appointmentsCount: db.appointments?.length || 0,
+    usersCount: db.systemUsers?.length || 0,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 
 // Generate available time slots for a given date based on Agenda Settings and Booked Appointments
 // Generate available time slots for a given date based on Agenda Settings and Booked Appointments

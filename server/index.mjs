@@ -26,7 +26,10 @@ import {
   executePublishedFlow, 
   loadDb, 
   saveDb, 
-  getActiveFlowAndGraph 
+  getActiveFlowAndGraph,
+  exportDatabase,
+  importDatabase,
+  getDatabaseStats
 } from './flowRunner.mjs';
 import { processAdminBotMessage } from './botEngine.mjs';
 
@@ -447,6 +450,9 @@ app.post('/api/whatsapp/disconnect', async (req, res) => {
   }
 });
 
+// ==============================================================================
+// 1. CONFIGURAÇÕES & BOT PROFILE
+// ==============================================================================
 app.get('/api/bot-config', (req, res) => {
   try {
     const db = loadDb();
@@ -467,66 +473,443 @@ app.put('/api/bot-config', (req, res) => {
   }
 });
 
+app.post('/api/bot-config', (req, res) => {
+  try {
+    const db = loadDb();
+    db.botProfile = { ...(db.botProfile || {}), ...req.body };
+    saveDb(db);
+    res.json({ success: true, botProfile: db.botProfile });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/settings', (req, res) => {
+  try {
+    const db = loadDb();
+    res.json(db.settings || {});
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/settings', (req, res) => {
+  try {
+    const db = loadDb();
+    db.settings = { ...(db.settings || {}), ...req.body, updated_at: new Date().toISOString() };
+    saveDb(db);
+    res.json({ success: true, settings: db.settings });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/settings', (req, res) => {
+  try {
+    const db = loadDb();
+    db.settings = { ...(db.settings || {}), ...req.body, updated_at: new Date().toISOString() };
+    saveDb(db);
+    res.json({ success: true, settings: db.settings });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==============================================================================
+// 2. MULTI-LOJAS CRUD
+// ==============================================================================
+app.get('/api/stores', (req, res) => {
+  try {
+    const db = loadDb();
+    res.json(db.stores || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/stores/:id', (req, res) => {
+  try {
+    const db = loadDb();
+    const id = req.params.id;
+    const store = (db.stores || []).find(s => s.id === id || s.slug === id);
+    if (!store) return res.status(404).json({ error: 'Loja não encontrada' });
+    res.json(store);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/stores', (req, res) => {
+  try {
+    const db = loadDb();
+    if (!db.stores) db.stores = [];
+    const storeData = req.body;
+    if (!storeData || (!storeData.id && !storeData.name)) {
+      return res.status(400).json({ error: 'Dados da loja inválidos' });
+    }
+
+    const newStore = {
+      id: storeData.id || `store-${Date.now()}`,
+      slug: storeData.slug || `loja-${Date.now()}`,
+      name: storeData.name || 'Nova Loja',
+      address: storeData.address || '',
+      phone: storeData.phone || '',
+      whatsapp_number: storeData.whatsapp_number || storeData.phone || '',
+      is_active: storeData.is_active !== false,
+      business_hours: storeData.business_hours || '08:30 às 18:30',
+      city: storeData.city || 'Recife - PE',
+      monthly_revenue: Number(storeData.monthly_revenue) || 0,
+      active_chats: Number(storeData.active_chats) || 0,
+      manager_name: storeData.manager_name || 'Gerente',
+      created_at: storeData.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      ...storeData,
+    };
+
+    const idx = db.stores.findIndex(s => s.id === newStore.id || s.slug === newStore.slug);
+    if (idx >= 0) {
+      db.stores[idx] = { ...db.stores[idx], ...newStore, updated_at: new Date().toISOString() };
+    } else {
+      db.stores.push(newStore);
+    }
+
+    saveDb(db);
+    console.log(`[Stores API] 🏬 Loja salva: "${newStore.name}" (${newStore.id})`);
+    res.json({ success: true, store: newStore });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/stores/:id', (req, res) => {
+  try {
+    const db = loadDb();
+    const id = req.params.id;
+    if (db.stores) {
+      db.stores = db.stores.filter(s => s.id !== id && s.slug !== id);
+    }
+    saveDb(db);
+    console.log(`[Stores API] 🗑️ Loja removida: ${id}`);
+    res.json({ success: true, message: `Loja ${id} removida` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==============================================================================
+// 3. CATEGORIAS DO CATÁLOGO CRUD
+// ==============================================================================
+app.get('/api/categories', (req, res) => {
+  try {
+    const db = loadDb();
+    let categories = db.categories || [];
+    if (req.query.store_id) {
+      categories = categories.filter(c => !c.store_id || c.store_id === req.query.store_id);
+    }
+    res.json(categories);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/categories', (req, res) => {
+  try {
+    const db = loadDb();
+    if (!db.categories) db.categories = [];
+    const catData = req.body;
+    const newCat = {
+      id: catData.id || `cat-${Date.now()}`,
+      name: catData.name || 'Nova Categoria',
+      slug: catData.slug || `categoria-${Date.now()}`,
+      description: catData.description || '',
+      icon: catData.icon || 'tag',
+      sort_order: Number(catData.sort_order) || db.categories.length + 1,
+      is_active: catData.is_active !== false,
+      created_at: catData.created_at || new Date().toISOString(),
+      ...catData,
+    };
+
+    const idx = db.categories.findIndex(c => c.id === newCat.id || c.slug === newCat.slug);
+    if (idx >= 0) {
+      db.categories[idx] = { ...db.categories[idx], ...newCat };
+    } else {
+      db.categories.push(newCat);
+    }
+
+    saveDb(db);
+    res.json({ success: true, category: newCat });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/categories/:id', (req, res) => {
+  try {
+    const db = loadDb();
+    const id = req.params.id;
+    if (db.categories) {
+      db.categories = db.categories.filter(c => c.id !== id && c.slug !== id);
+    }
+    saveDb(db);
+    res.json({ success: true, message: `Categoria ${id} removida` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==============================================================================
+// 4. PRODUTOS DO CATÁLOGO DE BEBÊ CRUD
+// ==============================================================================
 app.get('/api/products', (req, res) => {
   try {
     const db = loadDb();
-    res.json(db.agendaSettings?.services || []);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/api/users', (req, res) => {
-  try {
-    const db = loadDb();
-    res.json(db.systemUsers || []);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/auth/login', (req, res) => {
-  try {
-    const { username, password } = req.body;
-    const cleanUser = String(username || '').toLowerCase().trim();
-    const cleanPass = String(password || '').trim();
-
-    const db = loadDb();
-    const users = db.systemUsers || [];
-    const found = users.find(u => (u.username?.toLowerCase() === cleanUser || u.phone === cleanPass) && (u.password === cleanPass || u.pin === cleanPass));
-    if (found || (cleanUser === 'admin' && (cleanPass === '1234' || cleanPass === '123456' || cleanPass === 'admin'))) {
-      const userObj = found || { id: 'user-admin', name: 'Administrador Geral', role: 'admin', username: 'admin' };
-      return res.json({ success: true, user: userObj });
+    let prods = db.products || [];
+    const { store_id, category_id } = req.query;
+    if (store_id) {
+      prods = prods.filter(p => !p.store_id || p.store_id === store_id);
     }
-    return res.status(401).json({ success: false, error: 'Usuário ou senha inválidos' });
+    if (category_id) {
+      prods = prods.filter(p => p.category_id === category_id);
+    }
+    res.json(prods);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/send-message', async (req, res) => {
-  const { phone, text, message } = req.body;
-  const bodyText = text || message;
-  if (!phone || !bodyText) return res.status(400).json({ success: false, error: 'phone e text são obrigatórios' });
-  const cleanPhone = String(phone).replace(/\D/g, '');
-  const success = await sendWhatsAppMessage(`${cleanPhone}@s.whatsapp.net`, bodyText);
-  if (success) {
-    res.json({ success: true, messageId: `msg-${Date.now()}`, status: 'sent' });
-  } else {
-    res.status(500).json({ success: false, error: 'Falha no envio via Baileys', status: connectionStatus });
+app.get('/api/products/:id', (req, res) => {
+  try {
+    const db = loadDb();
+    const prod = (db.products || []).find(p => p.id === req.params.id);
+    if (!prod) return res.status(404).json({ error: 'Produto não encontrado' });
+    res.json(prod);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-app.get('/api/stores', (req, res) => {
-  res.json(STORES);
+app.post('/api/products', (req, res) => {
+  try {
+    const db = loadDb();
+    if (!db.products) db.products = [];
+    const prodData = req.body;
+    if (!prodData || (!prodData.id && !prodData.name)) {
+      return res.status(400).json({ error: 'Dados do produto inválidos' });
+    }
+
+    const newProd = {
+      id: prodData.id || `prod-${Date.now()}`,
+      category_id: prodData.category_id || 'cat-001',
+      category_name: prodData.category_name || 'Roupas & Enxovais',
+      name: prodData.name || 'Novo Produto',
+      description: prodData.description || '',
+      price: Number(prodData.price) || 49.90,
+      promotional_price: prodData.promotional_price ? Number(prodData.promotional_price) : undefined,
+      sizes: Array.isArray(prodData.sizes) ? prodData.sizes : ['RN', 'P', 'M'],
+      colors: Array.isArray(prodData.colors) ? prodData.colors : ['Branco Puro', 'Azul Bebê'],
+      stock_quantity: prodData.stock_quantity !== undefined ? Number(prodData.stock_quantity) : 50,
+      is_featured: Boolean(prodData.is_featured),
+      is_active: prodData.is_active !== false,
+      material: prodData.material || 'Algodão Suedine 100%',
+      image_url: prodData.image_url || '',
+      store_id: prodData.store_id || null,
+      created_at: prodData.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      ...prodData,
+    };
+
+    const idx = db.products.findIndex(p => p.id === newProd.id);
+    if (idx >= 0) {
+      db.products[idx] = { ...db.products[idx], ...newProd, updated_at: new Date().toISOString() };
+    } else {
+      db.products.unshift(newProd);
+    }
+
+    saveDb(db);
+    console.log(`[Products API] 👶 Produto salvo: "${newProd.name}" (${newProd.id}) - R$ ${newProd.price}`);
+    res.json({ success: true, product: newProd });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Conversas do Atendimento Humano Inbox
+app.delete('/api/products/:id', (req, res) => {
+  try {
+    const db = loadDb();
+    const id = req.params.id;
+    if (db.products) {
+      db.products = db.products.filter(p => p.id !== id);
+    }
+    saveDb(db);
+    console.log(`[Products API] 🗑️ Produto removido: ${id}`);
+    res.json({ success: true, message: `Produto ${id} removido` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==============================================================================
+// 5. CRM & CONTATOS DE CLIENTES CRUD
+// ==============================================================================
+app.get('/api/contacts', (req, res) => {
+  try {
+    const db = loadDb();
+    let contacts = Object.values(db.contacts || {});
+    if (req.query.store_id) {
+      contacts = contacts.filter(c => !c.store_id || c.store_id === req.query.store_id);
+    }
+    res.json(contacts);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/contacts', (req, res) => {
+  try {
+    const db = loadDb();
+    if (!db.contacts) db.contacts = {};
+    const contactData = req.body;
+    const cleanPhone = String(contactData.phone || '').replace(/\D/g, '');
+    if (!cleanPhone) {
+      return res.status(400).json({ error: 'Telefone do contato é obrigatório' });
+    }
+
+    const newContact = {
+      id: contactData.id || `client-${cleanPhone}`,
+      phone: cleanPhone,
+      name: contactData.name || 'Cliente WhatsApp',
+      email: contactData.email || null,
+      store_id: contactData.store_id || null,
+      store_name: contactData.store_name || null,
+      baby_name: contactData.baby_name || null,
+      due_date: contactData.due_date || null,
+      status: contactData.status || 'active',
+      tags: Array.isArray(contactData.tags) ? contactData.tags : ['Cliente'],
+      total_orders: Number(contactData.total_orders) || 0,
+      total_spent: Number(contactData.total_spent) || 0,
+      created_at: contactData.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      ...contactData,
+    };
+
+    db.contacts[cleanPhone] = newContact;
+    saveDb(db);
+    res.json({ success: true, contact: newContact });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/contacts/:id', (req, res) => {
+  try {
+    const db = loadDb();
+    const id = req.params.id;
+    const cleanPhone = id.replace(/\D/g, '');
+    if (db.contacts && (db.contacts[id] || db.contacts[cleanPhone])) {
+      delete db.contacts[id];
+      delete db.contacts[cleanPhone];
+    }
+    saveDb(db);
+    res.json({ success: true, message: `Contato ${id} removido` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==============================================================================
+// 6. CONVERSAS & MENSAGENS DO ATENDIMENTO CRUD
+// ==============================================================================
 app.get('/api/conversations', (req, res) => {
   try {
     const db = loadDb();
-    const convs = Object.values(db.conversations || {});
+    let convs = Object.values(db.conversations || {});
+    if (req.query.store_id) {
+      convs = convs.filter(c => !c.store_id || c.store_id === req.query.store_id);
+    }
     res.json(convs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/conversations', (req, res) => {
+  try {
+    const db = loadDb();
+    if (!db.conversations) db.conversations = {};
+    const convData = req.body;
+    const id = convData.id || `conv-${Date.now()}`;
+    const newConv = {
+      id,
+      contact_name: convData.contact_name || 'Cliente',
+      contact_phone: convData.contact_phone || '',
+      phone: convData.phone || convData.contact_phone || '',
+      status: convData.status || 'bot',
+      unread_count: Number(convData.unread_count) || 0,
+      created_at: convData.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      ...convData,
+    };
+    db.conversations[id] = newConv;
+    saveDb(db);
+    res.json({ success: true, conversation: newConv });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/conversations/:id', (req, res) => {
+  try {
+    const db = loadDb();
+    const id = req.params.id;
+    if (db.conversations && db.conversations[id]) {
+      delete db.conversations[id];
+    }
+    if (db.messages && db.messages[id]) {
+      delete db.messages[id];
+    }
+    saveDb(db);
+    res.json({ success: true, message: `Conversa ${id} removida` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/conversations/:id/assign', (req, res) => {
+  try {
+    const db = loadDb();
+    const id = req.params.id;
+    if (!db.conversations || !db.conversations[id]) {
+      return res.status(404).json({ error: 'Conversa não encontrada' });
+    }
+    const { attendant_id, attendant_name } = req.body;
+    db.conversations[id].assigned_to = attendant_name;
+    db.conversations[id].assigned_attendant_id = attendant_id;
+    db.conversations[id].assigned_attendant_name = attendant_name;
+    db.conversations[id].status = 'human';
+    db.conversations[id].updated_at = new Date().toISOString();
+    saveDb(db);
+    res.json({ success: true, conversation: db.conversations[id] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/conversations/:id/transfer', (req, res) => {
+  try {
+    const db = loadDb();
+    const id = req.params.id;
+    if (!db.conversations || !db.conversations[id]) {
+      return res.status(404).json({ error: 'Conversa não encontrada' });
+    }
+    const { store_id, store_name, attendant_id, attendant_name } = req.body;
+    if (store_id) db.conversations[id].store_id = store_id;
+    if (store_name) db.conversations[id].store_name = store_name;
+    if (attendant_id) db.conversations[id].assigned_attendant_id = attendant_id;
+    if (attendant_name) db.conversations[id].assigned_to = attendant_name;
+    db.conversations[id].status = 'waiting_human';
+    db.conversations[id].updated_at = new Date().toISOString();
+    saveDb(db);
+    res.json({ success: true, conversation: db.conversations[id] });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -542,11 +925,66 @@ app.get('/api/conversations/:id/messages', (req, res) => {
   }
 });
 
-// Tickets de Atendimento das Lojas
+app.post('/api/conversations/:id/messages', (req, res) => {
+  try {
+    const db = loadDb();
+    const convId = req.params.id;
+    if (!db.messages) db.messages = {};
+    if (!db.messages[convId]) db.messages[convId] = [];
+
+    const msgData = req.body;
+    const newMsg = {
+      id: msgData.id || `msg-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      conversation_id: convId,
+      direction: msgData.direction || 'outbound',
+      message_type: msgData.message_type || 'text',
+      content: msgData.content || '',
+      media_url: msgData.media_url,
+      author_name: msgData.author_name || 'Atendente',
+      status: msgData.status || 'delivered',
+      created_at: msgData.created_at || new Date().toISOString(),
+      ...msgData,
+    };
+
+    db.messages[convId].push(newMsg);
+    if (db.conversations && db.conversations[convId]) {
+      db.conversations[convId].last_message = newMsg.content;
+      db.conversations[convId].last_message_at = newMsg.created_at;
+      db.conversations[convId].updated_at = new Date().toISOString();
+    }
+
+    saveDb(db);
+    res.json({ success: true, message: newMsg });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/conversations/:id/messages/:msgId', (req, res) => {
+  try {
+    const db = loadDb();
+    const { id, msgId } = req.params;
+    if (db.messages && db.messages[id]) {
+      db.messages[id] = db.messages[id].filter(m => m.id !== msgId);
+      saveDb(db);
+    }
+    res.json({ success: true, message: `Mensagem ${msgId} removida` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==============================================================================
+// 7. TICKETS DE ATENDIMENTO DAS LOJAS CRUD
+// ==============================================================================
 app.get('/api/tickets', (req, res) => {
   try {
     const db = loadDb();
-    res.json(db.tickets || []);
+    let tickets = db.tickets || [];
+    if (req.query.store_id) {
+      tickets = tickets.filter(t => !t.store_id || t.store_id === req.query.store_id);
+    }
+    res.json(tickets);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -589,21 +1027,120 @@ app.put('/api/tickets/:id', (req, res) => {
   }
 });
 
-// Consultorias VIP / Agendamentos
-app.get('/api/consultations', (req, res) => {
+app.delete('/api/tickets/:id', (req, res) => {
   try {
     const db = loadDb();
-    res.json(db.appointments || []);
+    if (db.tickets) {
+      db.tickets = db.tickets.filter(t => t.id !== req.params.id);
+      saveDb(db);
+    }
+    res.json({ success: true, message: `Ticket ${req.params.id} removido` });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
 // ==============================================================================
-// GESTÃO E SINCRONIZAÇÃO DINÂMICA DE FLUXOS NO BOT
+// 8. CONSULTORIAS VIP & AGENDAMENTOS CRUD
 // ==============================================================================
+app.get('/api/consultations', (req, res) => {
+  try {
+    const db = loadDb();
+    let list = db.appointments || [];
+    if (req.query.store_id) {
+      list = list.filter(a => !a.store_id || a.store_id === req.query.store_id);
+    }
+    res.json(list);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-// Listar todos os fluxos
+app.post('/api/consultations', (req, res) => {
+  try {
+    const db = loadDb();
+    if (!db.appointments) db.appointments = [];
+    const newCons = {
+      id: req.body.id || `cons-${Date.now()}`,
+      store_id: req.body.store_id || 'store-001',
+      store_name: req.body.store_name || 'Loja Matriz — Centro',
+      client_name: req.body.client_name || 'Cliente',
+      client_phone: req.body.client_phone || '',
+      consultation_type: req.body.consultation_type || 'online_whatsapp',
+      consultation_date: req.body.consultation_date || new Date().toISOString().split('T')[0],
+      consultation_time: req.body.consultation_time || '14:00',
+      status: req.body.status || 'confirmed',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      ...req.body,
+    };
+    db.appointments.unshift(newCons);
+    saveDb(db);
+    res.json({ success: true, consultation: newCons });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/consultations/:id', (req, res) => {
+  try {
+    const db = loadDb();
+    if (!db.appointments) db.appointments = [];
+    const idx = db.appointments.findIndex(a => a.id === req.params.id);
+    if (idx >= 0) {
+      db.appointments[idx] = { ...db.appointments[idx], ...req.body, updated_at: new Date().toISOString() };
+      saveDb(db);
+      return res.json({ success: true, consultation: db.appointments[idx] });
+    }
+    res.status(404).json({ error: 'Consultoria não encontrada' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/consultations/:id', (req, res) => {
+  try {
+    const db = loadDb();
+    if (db.appointments) {
+      db.appointments = db.appointments.filter(a => a.id !== req.params.id);
+      saveDb(db);
+    }
+    res.json({ success: true, message: `Consultoria ${req.params.id} removida` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Alias appointments
+app.get('/api/appointments', (req, res) => res.redirect('/api/consultations'));
+app.post('/api/appointments', (req, res) => res.redirect(307, '/api/consultations'));
+
+// ==============================================================================
+// 9. AGENDA SETTINGS & SERVIÇOS
+// ==============================================================================
+app.get('/api/agenda-settings', (req, res) => {
+  try {
+    const db = loadDb();
+    res.json(db.agendaSettings || {});
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/agenda-settings', (req, res) => {
+  try {
+    const db = loadDb();
+    db.agendaSettings = { ...(db.agendaSettings || {}), ...req.body, updated_at: new Date().toISOString() };
+    saveDb(db);
+    res.json({ success: true, agendaSettings: db.agendaSettings });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==============================================================================
+// 10. GESTÃO E SINCRONIZAÇÃO DINÂMICA DE FLUXOS NO BOT
+// ==============================================================================
 app.get('/api/flows', (req, res) => {
   try {
     const db = loadDb();
@@ -613,7 +1150,6 @@ app.get('/api/flows', (req, res) => {
   }
 });
 
-// Obter o fluxo ativo no momento e seu grafo de nós
 app.get('/api/flows/active/current', async (req, res) => {
   try {
     const db = loadDb();
@@ -630,7 +1166,6 @@ app.get('/api/flows/active/current', async (req, res) => {
   }
 });
 
-// Testar execução do fluxo ativo em tempo real
 app.post('/api/flows/test-execution', async (req, res) => {
   try {
     const { phone, message, name } = req.body;
@@ -645,7 +1180,6 @@ app.post('/api/flows/test-execution', async (req, res) => {
   }
 });
 
-// Obter fluxo específico
 app.get('/api/flows/:id', (req, res) => {
   try {
     const db = loadDb();
@@ -657,7 +1191,6 @@ app.get('/api/flows/:id', (req, res) => {
   }
 });
 
-// Criar ou atualizar fluxo (com ativação única e segura)
 app.post('/api/flows', (req, res) => {
   try {
     const db = loadDb();
@@ -669,7 +1202,6 @@ app.post('/api/flows', (req, res) => {
 
     const isPublishing = flowData.status === 'published' || flowData.is_active === true;
     if (isPublishing) {
-      // Garantir que apenas este fluxo fique ativo
       db.flows.forEach(f => {
         if (f.id !== flowData.id) {
           f.status = 'draft';
@@ -695,7 +1227,6 @@ app.post('/api/flows', (req, res) => {
   }
 });
 
-// Excluir fluxo
 app.delete('/api/flows/:id', (req, res) => {
   try {
     const db = loadDb();
@@ -716,7 +1247,6 @@ app.delete('/api/flows/:id', (req, res) => {
   }
 });
 
-// Alternar status do fluxo (Ativo <-> Pausado)
 app.patch('/api/flows/:id/toggle', (req, res) => {
   try {
     const db = loadDb();
@@ -747,7 +1277,6 @@ app.patch('/api/flows/:id/toggle', (req, res) => {
   }
 });
 
-// Publicar fluxo e ativar no bot WhatsApp
 app.post('/api/whatsapp/flows/:id/publish', (req, res) => {
   try {
     const db = loadDb();
@@ -772,7 +1301,6 @@ app.post('/api/whatsapp/flows/:id/publish', (req, res) => {
   }
 });
 
-// Sincronizar array de fluxos
 app.post('/api/whatsapp/sync-flows', (req, res) => {
   try {
     const db = loadDb();
@@ -787,7 +1315,6 @@ app.post('/api/whatsapp/sync-flows', (req, res) => {
   }
 });
 
-// Obter nós e arestas de um fluxo
 app.get('/api/flows/:id/graph', (req, res) => {
   try {
     const db = loadDb();
@@ -800,7 +1327,6 @@ app.get('/api/flows/:id/graph', (req, res) => {
   }
 });
 
-// Salvar nós e arestas de um fluxo (Grafo completo)
 app.post('/api/flows/:id/graph', (req, res) => {
   try {
     const db = loadDb();
@@ -832,6 +1358,315 @@ app.post('/api/flows/:id/graph', (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// ==============================================================================
+// 11. GESTÃO DE ACESSOS & USUÁRIOS
+// ==============================================================================
+app.get('/api/users', (req, res) => {
+  try {
+    const db = loadDb();
+    res.json(db.systemUsers || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/users', (req, res) => {
+  try {
+    const db = loadDb();
+    if (!db.systemUsers) db.systemUsers = [];
+    const userData = req.body;
+    const rawUsername = (userData.username || '').trim().toLowerCase();
+
+    const idx = db.systemUsers.findIndex(u => u.id === userData.id || u.username?.toLowerCase() === rawUsername);
+    const updatedUser = {
+      id: userData.id || `user-${Date.now()}`,
+      name: userData.name || rawUsername,
+      username: rawUsername,
+      password: userData.password || (idx >= 0 ? db.systemUsers[idx].password : '123456'),
+      role: userData.role || 'attendant',
+      store_id: userData.store_id || null,
+      store_name: userData.store_name || (userData.store_id ? 'Filial Vinculada' : 'Toda a Rede (Global)'),
+      status: userData.status || 'active',
+      created_at: userData.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      ...userData,
+    };
+
+    if (idx >= 0) {
+      db.systemUsers[idx] = updatedUser;
+    } else {
+      db.systemUsers.push(updatedUser);
+    }
+
+    saveDb(db);
+    res.json({ success: true, user: updatedUser });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/users/:id', (req, res) => {
+  try {
+    const db = loadDb();
+    const id = req.params.id;
+    if (db.systemUsers) {
+      db.systemUsers = db.systemUsers.filter(u => u.id !== id && u.username !== id);
+      saveDb(db);
+    }
+    res.json({ success: true, message: `Usuário ${id} removido` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/users/:id/toggle', (req, res) => {
+  try {
+    const db = loadDb();
+    const id = req.params.id;
+    const user = (db.systemUsers || []).find(u => u.id === id || u.username === id);
+    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+
+    user.status = user.status === 'active' ? 'inactive' : 'active';
+    user.updated_at = new Date().toISOString();
+    saveDb(db);
+    res.json({ success: true, user });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/login', (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const cleanUser = String(username || '').toLowerCase().trim();
+    const cleanPass = String(password || '').trim();
+
+    const db = loadDb();
+    const users = db.systemUsers || [];
+    const found = users.find(u => (u.username?.toLowerCase() === cleanUser) && (String(u.password) === cleanPass || String(u.pin) === cleanPass));
+    
+    // Master emergency logins
+    if (found) {
+      if (found.status === 'inactive') {
+        return res.status(403).json({ success: false, error: 'Usuário inativo no momento.' });
+      }
+      return res.json({ success: true, user: found });
+    }
+
+    if ((cleanUser === 'admin' || cleanUser === 'ceo' || cleanUser === 'malaca') && (cleanPass === '1234' || cleanPass === '123456' || cleanPass === '199425')) {
+      const userObj = { id: `user-${cleanUser}`, name: cleanUser.toUpperCase(), role: cleanUser === 'admin' ? 'admin' : 'ceo', username: cleanUser };
+      return res.json({ success: true, user: userObj });
+    }
+
+    return res.status(401).json({ success: false, error: 'Usuário ou senha inválidos' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==============================================================================
+// 12. ATENDENTES & RESPOSTAS RÁPIDAS
+// ==============================================================================
+app.get('/api/attendants', (req, res) => {
+  try {
+    const db = loadDb();
+    res.json(db.attendants || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/attendants', (req, res) => {
+  try {
+    const db = loadDb();
+    if (!db.attendants) db.attendants = [];
+    const attData = req.body;
+    const newAtt = {
+      id: attData.id || `att-${Date.now()}`,
+      created_at: new Date().toISOString(),
+      ...attData,
+    };
+    const idx = db.attendants.findIndex(a => a.id === newAtt.id);
+    if (idx >= 0) {
+      db.attendants[idx] = { ...db.attendants[idx], ...newAtt };
+    } else {
+      db.attendants.push(newAtt);
+    }
+    saveDb(db);
+    res.json({ success: true, attendant: newAtt });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/attendants/:id', (req, res) => {
+  try {
+    const db = loadDb();
+    if (db.attendants) {
+      db.attendants = db.attendants.filter(a => a.id !== req.params.id);
+      saveDb(db);
+    }
+    res.json({ success: true, message: `Atendente ${req.params.id} removido` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/canned-replies', (req, res) => {
+  try {
+    const db = loadDb();
+    res.json(db.cannedReplies || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/canned-replies', (req, res) => {
+  try {
+    const db = loadDb();
+    if (!db.cannedReplies) db.cannedReplies = [];
+    const replyData = req.body;
+    const newReply = {
+      id: replyData.id || `canned-${Date.now()}`,
+      ...replyData,
+    };
+    const idx = db.cannedReplies.findIndex(r => r.id === newReply.id);
+    if (idx >= 0) {
+      db.cannedReplies[idx] = { ...db.cannedReplies[idx], ...newReply };
+    } else {
+      db.cannedReplies.push(newReply);
+    }
+    saveDb(db);
+    res.json({ success: true, cannedReply: newReply });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/canned-replies/:id', (req, res) => {
+  try {
+    const db = loadDb();
+    if (db.cannedReplies) {
+      db.cannedReplies = db.cannedReplies.filter(r => r.id !== req.params.id);
+      saveDb(db);
+    }
+    res.json({ success: true, message: `Resposta rápida ${req.params.id} removida` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==============================================================================
+// 13. VARIÁVEIS CUSTOMIZADAS
+// ==============================================================================
+app.get('/api/custom-variables', (req, res) => {
+  try {
+    const db = loadDb();
+    res.json(db.customVariables || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/custom-variables', (req, res) => {
+  try {
+    const db = loadDb();
+    if (!db.customVariables) db.customVariables = [];
+    const vData = req.body;
+    const newV = {
+      id: vData.id || `var-${Date.now()}`,
+      ...vData,
+    };
+    const idx = db.customVariables.findIndex(item => item.id === newV.id || item.key === newV.key);
+    if (idx >= 0) {
+      db.customVariables[idx] = { ...db.customVariables[idx], ...newV };
+    } else {
+      db.customVariables.push(newV);
+    }
+    saveDb(db);
+    res.json({ success: true, variable: newV });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/custom-variables/:id', (req, res) => {
+  try {
+    const db = loadDb();
+    if (db.customVariables) {
+      db.customVariables = db.customVariables.filter(v => v.id !== req.params.id);
+      saveDb(db);
+    }
+    res.json({ success: true, message: `Variável ${req.params.id} removida` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==============================================================================
+// 14. ENVIO DE MENSAGENS WHATSAPP
+// ==============================================================================
+app.post('/api/send-message', async (req, res) => {
+  const { phone, text, message } = req.body;
+  const bodyText = text || message;
+  if (!phone || !bodyText) return res.status(400).json({ success: false, error: 'phone e text são obrigatórios' });
+  const cleanPhone = String(phone).replace(/\D/g, '');
+  const success = await sendWhatsAppMessage(`${cleanPhone}@s.whatsapp.net`, bodyText);
+  if (success) {
+    res.json({ success: true, messageId: `msg-${Date.now()}`, status: 'sent' });
+  } else {
+    res.status(500).json({ success: false, error: 'Falha no envio via Baileys', status: connectionStatus });
+  }
+});
+
+// ==============================================================================
+// 15. BACKUP, RESTAURAÇÃO E ESTATÍSTICAS DO BANCO CENTRAL
+// ==============================================================================
+app.get('/api/db/export', (req, res) => {
+  try {
+    const data = exportDatabase();
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="pitoco_backup_${new Date().toISOString().slice(0, 10)}.json"`);
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/db/import', (req, res) => {
+  try {
+    const imported = importDatabase(req.body);
+    res.json({ success: true, stats: getDatabaseStats() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/db/stats', (req, res) => {
+  try {
+    res.json(getDatabaseStats());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/db/sync', (req, res) => {
+  try {
+    const current = loadDb();
+    const incoming = req.body || {};
+    const merged = {
+      ...current,
+      ...incoming,
+      updated_at: new Date().toISOString(),
+    };
+    saveDb(merged);
+    res.json({ success: true, message: 'Sincronização concluída com sucesso', stats: getDatabaseStats() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 // Single Page App fallback for non-API routes
 app.get('*', (req, res, next) => {

@@ -12,6 +12,8 @@ import { SettingsPage } from './pages/settings/SettingsPage';
 import { LogsPage } from './pages/logs/LogsPage';
 import { UsersPage } from './pages/users/UsersPage';
 
+import { StorageService } from './lib/storage';
+
 const normalizePath = (rawPath: string) => {
   let clean = rawPath.replace(/^\/pitocodegente\/?/, '/').replace(/^\/7assistente\/?/, '/');
   if (!clean.startsWith('/')) clean = `/${clean}`;
@@ -26,6 +28,7 @@ export const App: React.FC = () => {
   });
 
   useEffect(() => {
+    StorageService.syncAllFromBackend().catch(() => {});
     const handlePopState = () => {
       setCurrentPath(normalizePath(window.location.pathname || '/'));
     };

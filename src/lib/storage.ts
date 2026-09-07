@@ -202,6 +202,18 @@ export const StorageService = {
   // 2. CATEGORIAS & PRODUTOS DO CATÁLOGO DE BEBÊ & CRUD
   // ==============================================================================
   async getCategories(storeId?: string): Promise<Category[]> {
+    try {
+      const url = storeId ? `${API_BASE}/api/categories?store_id=${storeId}` : `${API_BASE}/api/categories`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(3000) }).catch(() => null);
+      if (res && res.ok) {
+        const apiCats = await res.json();
+        if (Array.isArray(apiCats) && apiCats.length > 0) {
+          setItem(STORAGE_KEYS.CATEGORIES, apiCats);
+          return apiCats;
+        }
+      }
+    } catch (e) {}
+
     if (SupabaseService.isSupabaseReady) {
       const dbCats = await SupabaseService.getCategories(storeId);
       if (dbCats.length > 0) {
@@ -210,6 +222,46 @@ export const StorageService = {
       }
     }
     return getItem<Category[]>(STORAGE_KEYS.CATEGORIES, initialCategories);
+  },
+
+  async saveCategory(cat: Partial<Category>): Promise<Category> {
+    const updatedCat: Category = {
+      id: cat.id || `cat-${Date.now()}`,
+      name: cat.name || 'Nova Categoria',
+      slug: cat.slug || `categoria-${Date.now()}`,
+      description: cat.description || '',
+      icon: cat.icon || 'tag',
+      sort_order: cat.sort_order || 1,
+      is_active: cat.is_active !== false,
+      ...cat,
+    };
+
+    try {
+      await fetch(`${API_BASE}/api/categories`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedCat),
+      }).catch(() => {});
+    } catch (e) {}
+
+    const local = getItem<Category[]>(STORAGE_KEYS.CATEGORIES, initialCategories);
+    const idx = local.findIndex(c => c.id === updatedCat.id || c.slug === updatedCat.slug);
+    if (idx >= 0) local[idx] = updatedCat;
+    else local.push(updatedCat);
+    setItem(STORAGE_KEYS.CATEGORIES, local);
+
+    return updatedCat;
+  },
+
+  async deleteCategory(id: string): Promise<boolean> {
+    try {
+      await fetch(`${API_BASE}/api/categories/${id}`, { method: 'DELETE' }).catch(() => {});
+    } catch (e) {}
+
+    const local = getItem<Category[]>(STORAGE_KEYS.CATEGORIES, initialCategories);
+    const filtered = local.filter(c => c.id !== id && c.slug !== id);
+    setItem(STORAGE_KEYS.CATEGORIES, filtered);
+    return true;
   },
 
   async getProducts(storeId?: string, categoryId?: string): Promise<Product[]> {
@@ -408,6 +460,17 @@ export const StorageService = {
   // 4. MENSAGENS EM TEMPO REAL
   // ==============================================================================
   async getMessages(conversationId: string): Promise<Message[]> {
+    try {
+      const res = await fetch(`${API_BASE}/api/conversations/${conversationId}/messages`, { signal: AbortSignal.timeout(3000) }).catch(() => null);
+      if (res && res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setItem(`${STORAGE_KEYS.MESSAGES_PREFIX}${conversationId}`, data);
+          return data;
+        }
+      }
+    } catch {}
+
     if (SupabaseService.isSupabaseReady) {
       const dbMsgs = await SupabaseService.getChatMessages(conversationId);
       if (dbMsgs.length > 0) {
@@ -441,16 +504,6 @@ export const StorageService = {
 
   async addMessage(msg: Partial<Message>): Promise<Message> {
     const convId = msg.conversation_id || 'conv-default';
-    if (SupabaseService.isSupabaseReady) {
-      const inserted = await SupabaseService.insertChatMessage(msg);
-      if (inserted) {
-        const msgs = getItem<Message[]>(`${STORAGE_KEYS.MESSAGES_PREFIX}${convId}`, []);
-        msgs.push(inserted);
-        setItem(`${STORAGE_KEYS.MESSAGES_PREFIX}${convId}`, msgs);
-        return inserted;
-      }
-    }
-    const msgs = getItem<Message[]>(`${STORAGE_KEYS.MESSAGES_PREFIX}${convId}`, []);
     const newMsg: Message = {
       id: msg.id || `msg-${Date.now()}`,
       conversation_id: convId,
@@ -462,7 +515,25 @@ export const StorageService = {
       status: msg.status || 'delivered',
       author_name: msg.author_name || 'Pitoco Atendente',
       created_at: new Date().toISOString(),
+      ...msg,
     };
+
+    // 1. Salvar no Backend Discloud
+    try {
+      await fetch(`${API_BASE}/api/conversations/${convId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newMsg),
+      }).catch(() => {});
+    } catch {}
+
+    // 2. Salvar no Supabase
+    if (SupabaseService.isSupabaseReady) {
+      await SupabaseService.insertChatMessage(newMsg);
+    }
+
+    // 3. Atualizar LocalStorage
+    const msgs = getItem<Message[]>(`${STORAGE_KEYS.MESSAGES_PREFIX}${convId}`, []);
     msgs.push(newMsg);
     setItem(`${STORAGE_KEYS.MESSAGES_PREFIX}${convId}`, msgs);
     return newMsg;
@@ -472,6 +543,18 @@ export const StorageService = {
   // 5. CRM & CLIENTES
   // ==============================================================================
   async getContacts(storeId?: string): Promise<Contact[]> {
+    try {
+      const url = storeId ? `${API_BASE}/api/contacts?store_id=${storeId}` : `${API_BASE}/api/contacts`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(3000) }).catch(() => null);
+      if (res && res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setItem(STORAGE_KEYS.CONTACTS, data);
+          return data;
+        }
+      }
+    } catch {}
+
     if (SupabaseService.isSupabaseReady) {
       const dbClients = await SupabaseService.getClients(storeId);
       if (dbClients.length > 0) {
@@ -492,12 +575,7 @@ export const StorageService = {
   },
 
   async saveContact(contact: Partial<Contact>): Promise<Contact> {
-    if (SupabaseService.isSupabaseReady) {
-      await SupabaseService.upsertClient(contact);
-    }
-    const contacts = getItem<Contact[]>(STORAGE_KEYS.CONTACTS, sampleContacts);
     const cleanPhone = String(contact.phone || '').replace(/\D/g, '');
-    const index = contacts.findIndex(c => c.phone.replace(/\D/g, '') === cleanPhone);
     const newContact: Contact = {
       id: contact.id || `client-${cleanPhone}`,
       phone: cleanPhone,
@@ -513,12 +591,32 @@ export const StorageService = {
       total_spent: contact.total_spent || 0,
       created_at: contact.created_at || new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      ...contact,
     };
+
+    // 1. Salvar no Backend Discloud
+    try {
+      await fetch(`${API_BASE}/api/contacts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newContact),
+      }).catch(() => {});
+    } catch {}
+
+    // 2. Salvar no Supabase
+    if (SupabaseService.isSupabaseReady) {
+      await SupabaseService.upsertClient(newContact);
+    }
+
+    // 3. Atualizar LocalStorage
+    const contacts = getItem<Contact[]>(STORAGE_KEYS.CONTACTS, sampleContacts);
+    const index = contacts.findIndex(c => c.phone.replace(/\D/g, '') === cleanPhone);
     if (index >= 0) contacts[index] = { ...contacts[index], ...newContact };
     else contacts.unshift(newContact);
     setItem(STORAGE_KEYS.CONTACTS, contacts);
     return newContact;
   },
+
 
   // ==============================================================================
   // 6. TICKETS DE ATENDIMENTO HUMANO
@@ -567,11 +665,6 @@ export const StorageService = {
   },
 
   async createSupportTicket(ticket: Partial<SupportTicket>): Promise<SupportTicket> {
-    if (SupabaseService.isSupabaseReady) {
-      const created = await SupabaseService.createSupportTicket(ticket);
-      if (created) return created;
-    }
-    const tickets = getItem<SupportTicket[]>(STORAGE_KEYS.TICKETS, []);
     const newTicket: SupportTicket = {
       id: ticket.id || `ticket-${Date.now()}`,
       store_id: ticket.store_id || 'store-001',
@@ -584,16 +677,52 @@ export const StorageService = {
       priority: ticket.priority || 'normal',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      ...ticket,
     };
+
+    try {
+      await fetch(`${API_BASE}/api/tickets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newTicket),
+      }).catch(() => {});
+    } catch {}
+
+    if (SupabaseService.isSupabaseReady) {
+      await SupabaseService.createSupportTicket(newTicket);
+    }
+    const tickets = getItem<SupportTicket[]>(STORAGE_KEYS.TICKETS, []);
     tickets.unshift(newTicket);
     setItem(STORAGE_KEYS.TICKETS, tickets);
     return newTicket;
+  },
+
+  async deleteSupportTicket(id: string): Promise<boolean> {
+    try {
+      await fetch(`${API_BASE}/api/tickets/${id}`, { method: 'DELETE' }).catch(() => {});
+    } catch {}
+    const tickets = getItem<SupportTicket[]>(STORAGE_KEYS.TICKETS, []);
+    const filtered = tickets.filter(t => t.id !== id);
+    setItem(STORAGE_KEYS.TICKETS, filtered);
+    return true;
   },
 
   // ==============================================================================
   // 7. CONSULTORIAS VIP DE ENXOVAL
   // ==============================================================================
   async getVIPConsultations(storeId?: string): Promise<VIPConsultation[]> {
+    try {
+      const url = storeId ? `${API_BASE}/api/consultations?store_id=${storeId}` : `${API_BASE}/api/consultations`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(3000) }).catch(() => null);
+      if (res && res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setItem(STORAGE_KEYS.VIP_CONSULTATIONS, data);
+          return data;
+        }
+      }
+    } catch {}
+
     let list = getItem<VIPConsultation[]>(STORAGE_KEYS.VIP_CONSULTATIONS, [
       {
         id: 'cons-1',
@@ -619,7 +748,6 @@ export const StorageService = {
   },
 
   async saveVIPConsultation(cons: Partial<VIPConsultation>): Promise<VIPConsultation> {
-    const list = getItem<VIPConsultation[]>(STORAGE_KEYS.VIP_CONSULTATIONS, []);
     const newCons: VIPConsultation = {
       id: cons.id || `cons-${Date.now()}`,
       store_id: cons.store_id || 'store-001',
@@ -633,7 +761,19 @@ export const StorageService = {
       created_at: new Date().toISOString(),
       ...cons,
     };
-    list.unshift(newCons);
+
+    try {
+      await fetch(`${API_BASE}/api/consultations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newCons),
+      }).catch(() => {});
+    } catch {}
+
+    const list = getItem<VIPConsultation[]>(STORAGE_KEYS.VIP_CONSULTATIONS, []);
+    const idx = list.findIndex(c => c.id === newCons.id);
+    if (idx >= 0) list[idx] = newCons;
+    else list.unshift(newCons);
     setItem(STORAGE_KEYS.VIP_CONSULTATIONS, list);
     return newCons;
   },
@@ -651,15 +791,18 @@ export const StorageService = {
     const list = await this.getVIPConsultations();
     const idx = list.findIndex(a => a.id === aptId);
     if (idx >= 0) {
-      list[idx].status = newStatus;
+      list[idx].status = newStatus as any;
       list[idx].updated_at = new Date().toISOString();
-      setItem(STORAGE_KEYS.VIP_CONSULTATIONS, list);
+      await this.saveVIPConsultation(list[idx]);
       return list[idx];
     }
     return null;
   },
 
   async deleteAppointment(aptId: string): Promise<boolean> {
+    try {
+      await fetch(`${API_BASE}/api/consultations/${aptId}`, { method: 'DELETE' }).catch(() => {});
+    } catch {}
     const list = await this.getVIPConsultations();
     const filtered = list.filter(a => a.id !== aptId);
     setItem(STORAGE_KEYS.VIP_CONSULTATIONS, filtered);
@@ -1226,6 +1369,16 @@ export const StorageService = {
   // 11. SETTINGS & BOT PROFILE
   // ==============================================================================
   async getSettings(): Promise<Settings> {
+    try {
+      const res = await fetch(`${API_BASE}/api/settings`, { signal: AbortSignal.timeout(3000) }).catch(() => null);
+      if (res && res.ok) {
+        const data = await res.json();
+        if (data && Object.keys(data).length > 0) {
+          setItem(STORAGE_KEYS.SETTINGS, data);
+          return data;
+        }
+      }
+    } catch {}
     return getItem<Settings>(STORAGE_KEYS.SETTINGS, initialSettings);
   },
 
@@ -1233,10 +1386,31 @@ export const StorageService = {
     const current = await this.getSettings();
     const updated = { ...current, ...settings, updated_at: new Date().toISOString() };
     setItem(STORAGE_KEYS.SETTINGS, updated);
+
+    try {
+      await fetch(`${API_BASE}/api/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      }).catch(() => {});
+    } catch {}
+
     return updated;
   },
 
   async getBotProfile(): Promise<BotProfile> {
+    try {
+      const res = await fetch(`${API_BASE}/api/bot-config`, { signal: AbortSignal.timeout(3000) }).catch(() => null);
+      if (res && res.ok) {
+        const data = await res.json();
+        if (data && Object.keys(data).length > 0) {
+          const settings = getItem<Settings>(STORAGE_KEYS.SETTINGS, initialSettings);
+          settings.bot_profile = { ...(settings.bot_profile || {}), ...data };
+          setItem(STORAGE_KEYS.SETTINGS, settings);
+          return data;
+        }
+      }
+    } catch {}
     const settings = await this.getSettings();
     return settings.bot_profile || defaultBotProfile;
   },
@@ -1245,6 +1419,15 @@ export const StorageService = {
     const current = await this.getBotProfile();
     const updated = { ...current, ...profile };
     await this.saveSettings({ bot_profile: updated });
+
+    try {
+      await fetch(`${API_BASE}/api/bot-config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      }).catch(() => {});
+    } catch {}
+
     return updated;
   },
 
@@ -1276,22 +1459,20 @@ export const StorageService = {
   },
 
   async saveSystemUser(user: any): Promise<any> {
-    const users = await this.getSystemUsers();
-    const idx = users.findIndex(u => u.id === user.id || u.username === user.username);
-    if (idx >= 0) {
-      users[idx] = { ...users[idx], ...user, updated_at: new Date().toISOString() };
-    } else {
-      users.push({
-        id: user.id || `usr-${Date.now()}`,
-        created_at: new Date().toISOString(),
-        ...user,
-      });
-    }
-    setItem(STORAGE_KEYS.SYSTEM_USERS, users);
-    return user;
+    return this.saveAccessUser(user);
   },
 
   async getCustomVariables(): Promise<any[]> {
+    try {
+      const res = await fetch(`${API_BASE}/api/custom-variables`, { signal: AbortSignal.timeout(3000) }).catch(() => null);
+      if (res && res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setItem('pitoco_custom_variables', data);
+          return data;
+        }
+      }
+    } catch {}
     return getItem<any[]>('pitoco_custom_variables', [
       { id: 'var-1', name: 'nome_loja', key: 'nome_loja', value: 'Pitoco de Gente', description: 'Nome fantasia da marca' },
       { id: 'var-2', name: 'cidade_matriz', key: 'cidade_matriz', value: 'Recife/PE', description: 'Sede da matriz' },
@@ -1301,18 +1482,30 @@ export const StorageService = {
   },
 
   async saveCustomVariable(v: any): Promise<any> {
+    const itemToSave = { ...v, id: v.id || `var-${Date.now()}` };
+    try {
+      await fetch(`${API_BASE}/api/custom-variables`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(itemToSave),
+      }).catch(() => {});
+    } catch {}
+
     const list = await this.getCustomVariables();
-    const idx = list.findIndex(item => item.id === v.id || item.key === v.key);
+    const idx = list.findIndex(item => item.id === itemToSave.id || item.key === itemToSave.key);
     if (idx >= 0) {
-      list[idx] = { ...list[idx], ...v };
+      list[idx] = { ...list[idx], ...itemToSave };
     } else {
-      list.push({ ...v, id: v.id || `var-${Date.now()}` });
+      list.push(itemToSave);
     }
     setItem('pitoco_custom_variables', list);
-    return v;
+    return itemToSave;
   },
 
   async deleteCustomVariable(id: string): Promise<boolean> {
+    try {
+      await fetch(`${API_BASE}/api/custom-variables/${id}`, { method: 'DELETE' }).catch(() => {});
+    } catch {}
     const list = await this.getCustomVariables();
     const filtered = list.filter(item => item.id !== id);
     setItem('pitoco_custom_variables', filtered);
@@ -1338,19 +1531,45 @@ export const StorageService = {
     return getItem<Attendant[]>(STORAGE_KEYS.ATTENDANTS, initialAttendants);
   },
 
+  async fetchAttendants(): Promise<Attendant[]> {
+    try {
+      const res = await fetch(`${API_BASE}/api/attendants`, { signal: AbortSignal.timeout(3000) }).catch(() => null);
+      if (res && res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setItem(STORAGE_KEYS.ATTENDANTS, data);
+          return data;
+        }
+      }
+    } catch {}
+    return this.getAttendants();
+  },
+
   async saveAttendant(att: any): Promise<any> {
+    const newAtt = { ...att, id: att.id || `att-${Date.now()}` };
+    try {
+      await fetch(`${API_BASE}/api/attendants`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newAtt),
+      }).catch(() => {});
+    } catch {}
+
     const list = getItem<any[]>(STORAGE_KEYS.ATTENDANTS, initialAttendants);
-    const idx = list.findIndex(a => a.id === att.id);
+    const idx = list.findIndex(a => a.id === newAtt.id);
     if (idx >= 0) {
-      list[idx] = { ...list[idx], ...att };
+      list[idx] = { ...list[idx], ...newAtt };
     } else {
-      list.push({ ...att, id: att.id || `att-${Date.now()}` });
+      list.push(newAtt);
     }
     setItem(STORAGE_KEYS.ATTENDANTS, list);
-    return att;
+    return newAtt;
   },
 
   async deleteAttendant(id: string): Promise<boolean> {
+    try {
+      await fetch(`${API_BASE}/api/attendants/${id}`, { method: 'DELETE' }).catch(() => {});
+    } catch {}
     const list = getItem<any[]>(STORAGE_KEYS.ATTENDANTS, initialAttendants);
     const filtered = list.filter(a => a.id !== id);
     setItem(STORAGE_KEYS.ATTENDANTS, filtered);
@@ -1359,6 +1578,55 @@ export const StorageService = {
 
   getCannedReplies(): CannedReply[] {
     return getItem<CannedReply[]>(STORAGE_KEYS.CANNED_REPLIES, defaultCannedReplies);
+  },
+
+  async fetchCannedReplies(): Promise<CannedReply[]> {
+    try {
+      const res = await fetch(`${API_BASE}/api/canned-replies`, { signal: AbortSignal.timeout(3000) }).catch(() => null);
+      if (res && res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setItem(STORAGE_KEYS.CANNED_REPLIES, data);
+          return data;
+        }
+      }
+    } catch {}
+    return this.getCannedReplies();
+  },
+
+  async saveCannedReply(reply: Partial<CannedReply>): Promise<CannedReply> {
+    const newReply = {
+      id: reply.id || `canned-${Date.now()}`,
+      label: reply.label || 'Nova Resposta',
+      cmd: reply.cmd || '/resposta',
+      text: reply.text || '',
+      category: reply.category || 'Atendimento',
+      ...reply,
+    };
+    try {
+      await fetch(`${API_BASE}/api/canned-replies`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newReply),
+      }).catch(() => {});
+    } catch {}
+
+    const list = getItem<CannedReply[]>(STORAGE_KEYS.CANNED_REPLIES, defaultCannedReplies);
+    const idx = list.findIndex(r => r.id === newReply.id);
+    if (idx >= 0) list[idx] = newReply as CannedReply;
+    else list.push(newReply as CannedReply);
+    setItem(STORAGE_KEYS.CANNED_REPLIES, list);
+    return newReply as CannedReply;
+  },
+
+  async deleteCannedReply(id: string): Promise<boolean> {
+    try {
+      await fetch(`${API_BASE}/api/canned-replies/${id}`, { method: 'DELETE' }).catch(() => {});
+    } catch {}
+    const list = getItem<CannedReply[]>(STORAGE_KEYS.CANNED_REPLIES, defaultCannedReplies);
+    const filtered = list.filter(r => r.id !== id);
+    setItem(STORAGE_KEYS.CANNED_REPLIES, filtered);
+    return true;
   },
 
   getAuditLogs(): AuditLog[] {
@@ -1375,6 +1643,9 @@ export const StorageService = {
   },
 
   async deleteContact(id: string): Promise<boolean> {
+    try {
+      await fetch(`${API_BASE}/api/contacts/${id}`, { method: 'DELETE' }).catch(() => {});
+    } catch {}
     const list = await this.getContacts();
     const filtered = list.filter(c => c.id !== id);
     setItem(STORAGE_KEYS.CONTACTS, filtered);
@@ -1405,11 +1676,23 @@ export const StorageService = {
       } as Conversation;
       list.unshift(updated);
     }
+
+    try {
+      await fetch(`${API_BASE}/api/conversations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      }).catch(() => {});
+    } catch {}
+
     setItem(STORAGE_KEYS.CONVERSATIONS, list);
     return updated;
   },
 
   async deleteConversation(id: string): Promise<boolean> {
+    try {
+      await fetch(`${API_BASE}/api/conversations/${id}`, { method: 'DELETE' }).catch(() => {});
+    } catch {}
     const list = await this.getConversations();
     const filtered = list.filter(c => c.id !== id);
     setItem(STORAGE_KEYS.CONVERSATIONS, filtered);
@@ -1419,13 +1702,23 @@ export const StorageService = {
   async assignConversation(convId: string, attendantId: string): Promise<Conversation | null> {
     const attendants = this.getAttendants();
     const att = attendants.find(a => a.id === attendantId);
+    const attendantName = att?.name || 'Atendente';
+
+    try {
+      await fetch(`${API_BASE}/api/conversations/${convId}/assign`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ attendant_id: attendantId, attendant_name: attendantName }),
+      }).catch(() => {});
+    } catch {}
+
     const convs = await this.getConversations();
     const idx = convs.findIndex(c => c.id === convId);
     if (idx >= 0) {
       convs[idx] = {
         ...convs[idx],
         assigned_attendant_id: attendantId,
-        assigned_attendant_name: att?.name || 'Atendente',
+        assigned_attendant_name: attendantName,
         status: 'human',
         updated_at: new Date().toISOString(),
       };
@@ -1436,6 +1729,14 @@ export const StorageService = {
   },
 
   async transferConversation(convId: string, storeId?: string, attendantId?: string): Promise<Conversation | null> {
+    try {
+      await fetch(`${API_BASE}/api/conversations/${convId}/transfer`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ store_id: storeId, attendant_id: attendantId }),
+      }).catch(() => {});
+    } catch {}
+
     const convs = await this.getConversations();
     const idx = convs.findIndex(c => c.id === convId);
     if (idx >= 0) {
@@ -1451,6 +1752,7 @@ export const StorageService = {
     }
     return null;
   },
+
 
   async sendMessage(convId: string, text: string, type: MessageType = 'text', mediaUrl?: string): Promise<Message> {
     return this.addMessage({
@@ -1575,6 +1877,13 @@ export const StorageService = {
     if (idx >= 0) {
       updated = { ...list[idx], ...ticket, updated_at: new Date().toISOString() };
       list[idx] = updated;
+      try {
+        await fetch(`${API_BASE}/api/tickets/${updated.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updated),
+        }).catch(() => {});
+      } catch {}
     } else {
       updated = {
         id: ticket.id || `tkt-${Date.now()}`,
@@ -1584,8 +1893,66 @@ export const StorageService = {
         ...ticket,
       } as SupportTicket;
       list.unshift(updated);
+      try {
+        await fetch(`${API_BASE}/api/tickets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updated),
+        }).catch(() => {});
+      } catch {}
     }
     setItem(STORAGE_KEYS.TICKETS, list);
     return updated;
   },
+
+  async syncAllFromBackend(): Promise<boolean> {
+    try {
+      const res = await fetch(`${API_BASE}/api/db/export`, { signal: AbortSignal.timeout(4000) }).catch(() => null);
+      if (res && res.ok) {
+        const db = await res.json();
+        if (db) {
+          if (Array.isArray(db.stores) && db.stores.length > 0) setItem(STORAGE_KEYS.STORES, db.stores);
+          if (Array.isArray(db.categories) && db.categories.length > 0) setItem(STORAGE_KEYS.CATEGORIES, db.categories);
+          if (Array.isArray(db.products) && db.products.length > 0) setItem(STORAGE_KEYS.PRODUCTS, db.products);
+          if (Array.isArray(db.flows) && db.flows.length > 0) setItem(STORAGE_KEYS.FLOWS, db.flows);
+          if (db.nodes) {
+            for (const flowId of Object.keys(db.nodes)) {
+              setItem(`${STORAGE_KEYS.FLOW_NODES_PREFIX}${flowId}`, db.nodes[flowId]);
+            }
+          }
+          if (db.edges) {
+            for (const flowId of Object.keys(db.edges)) {
+              setItem(`${STORAGE_KEYS.FLOW_EDGES_PREFIX}${flowId}`, db.edges[flowId]);
+            }
+          }
+          if (db.contacts) {
+            const list = Object.values(db.contacts);
+            if (list.length > 0) setItem(STORAGE_KEYS.CONTACTS, list);
+          }
+          if (db.conversations) {
+            const list = Object.values(db.conversations);
+            if (list.length > 0) setItem(STORAGE_KEYS.CONVERSATIONS, list);
+          }
+          if (Array.isArray(db.tickets) && db.tickets.length > 0) setItem(STORAGE_KEYS.TICKETS, db.tickets);
+          if (Array.isArray(db.appointments) && db.appointments.length > 0) setItem(STORAGE_KEYS.VIP_CONSULTATIONS, db.appointments);
+          if (db.agendaSettings) setItem('pitoco_agenda_settings', db.agendaSettings);
+          if (Array.isArray(db.systemUsers) && db.systemUsers.length > 0) setItem(STORAGE_KEYS.SYSTEM_USERS, db.systemUsers);
+          if (Array.isArray(db.attendants) && db.attendants.length > 0) setItem(STORAGE_KEYS.ATTENDANTS, db.attendants);
+          if (Array.isArray(db.cannedReplies) && db.cannedReplies.length > 0) setItem(STORAGE_KEYS.CANNED_REPLIES, db.cannedReplies);
+          if (db.botProfile) {
+            const settings = getItem<Settings>(STORAGE_KEYS.SETTINGS, initialSettings);
+            settings.bot_profile = { ...(settings.bot_profile || {}), ...db.botProfile };
+            setItem(STORAGE_KEYS.SETTINGS, settings);
+          }
+          if (Array.isArray(db.customVariables) && db.customVariables.length > 0) setItem('pitoco_custom_variables', db.customVariables);
+          console.log('[StorageService] 🔄 Sincronização completa do banco de dados realizada com sucesso!');
+          return true;
+        }
+      }
+    } catch (err) {
+      console.warn('[StorageService] Falha ao sincronizar estado com backend:', err);
+    }
+    return false;
+  },
 };
+

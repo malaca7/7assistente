@@ -1,4 +1,219 @@
 {
+  "stores": [
+    {
+      "id": "store-001",
+      "name": "Loja Matriz — Centro",
+      "slug": "matriz",
+      "address": "Rua do Sol, 120 - Centro, Recife - PE",
+      "phone": "8132211000",
+      "whatsapp_number": "81996138924",
+      "is_active": true,
+      "business_hours": "Seg a Sex: 08:30 às 18:30 | Sáb: 08:30 às 14:00",
+      "city": "Recife - PE",
+      "manager_name": "Juliana Matriz",
+      "monthly_revenue": 48500,
+      "active_chats": 6
+    },
+    {
+      "id": "store-002",
+      "name": "Loja Shopping Boulevard",
+      "slug": "boulevard",
+      "address": "Av. Principal, 500 - Piso L2, Loja 204",
+      "phone": "8134422000",
+      "whatsapp_number": "81996138924",
+      "is_active": true,
+      "business_hours": "Seg a Sáb: 10:00 às 22:00 | Dom: 13:00 às 21:00",
+      "city": "Recife - PE",
+      "manager_name": "Carla Boulevard",
+      "monthly_revenue": 62300,
+      "active_chats": 11
+    },
+    {
+      "id": "store-003",
+      "name": "Atendimento Geral / E-commerce",
+      "slug": "ecommerce",
+      "address": "Centro de Distribuição Online - Av. Brasil, 1500",
+      "phone": "81996138924",
+      "whatsapp_number": "81996138924",
+      "is_active": true,
+      "business_hours": "24 horas (Automático) | Consultoras: 08h às 20h",
+      "city": "Digital / Brasil",
+      "manager_name": "Equipe Digital Pitoco",
+      "monthly_revenue": 95800,
+      "active_chats": 18
+    }
+  ],
+  "categories": [
+    {
+      "id": "cat-001",
+      "name": "Bodies & Roupinhas Básicas",
+      "slug": "bodies-roupinhas",
+      "description": "Bodies em algodão suedine 100% Pima, mijões e kits essenciais",
+      "sort_order": 1,
+      "is_active": true
+    },
+    {
+      "id": "cat-002",
+      "name": "Macacões com Zíper Duplo",
+      "slug": "macacoes-ziper",
+      "description": "Macacões práticos com duplo cursor que facilitam a troca de fraldas",
+      "sort_order": 2,
+      "is_active": true
+    },
+    {
+      "id": "cat-003",
+      "name": "Saídas de Maternidade",
+      "slug": "saidas-maternidade",
+      "description": "Conjuntos luxo em tricot antialérgico com manta coordenada",
+      "sort_order": 3,
+      "is_active": true
+    },
+    {
+      "id": "cat-004",
+      "name": "Kits de Berço & Quarto",
+      "slug": "kits-berco",
+      "description": "Kits de berço 400 fios, tranças, ninhos redutores e lençóis acetinados",
+      "sort_order": 4,
+      "is_active": true
+    },
+    {
+      "id": "cat-005",
+      "name": "Mala & Acessórios Maternidade",
+      "slug": "malas-acessorios",
+      "description": "Malas térmicas impermeáveis e kits organizadores de maternidade",
+      "sort_order": 5,
+      "is_active": true
+    }
+  ],
+  "products": [
+    {
+      "id": "prod-001",
+      "category_id": "cat-001",
+      "category_name": "Bodies & Roupinhas Básicas",
+      "name": "Body Manga Longa Algodão Suedine 100% Pima",
+      "description": "Puro algodão suedine 100% egípcio com toque sedoso e gola envelope que não aperta a cabeça do bebê.",
+      "price": 49.9,
+      "promotional_price": 39.9,
+      "sizes": [
+        "RN",
+        "P",
+        "M",
+        "G",
+        "GG"
+      ],
+      "colors": [
+        "Branco Puro",
+        "Azul Bebê",
+        "Rosa Seco",
+        "Verde Menta",
+        "Bege Neutro"
+      ],
+      "stock_quantity": 120,
+      "is_featured": true,
+      "is_active": true,
+      "material": "Algodão Suedine 100% Pima",
+      "image_url": "https://images.unsplash.com/photo-1522771930-78848d9293e8?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": "prod-002",
+      "category_id": "cat-002",
+      "category_name": "Macacões com Zíper Duplo",
+      "name": "Macacão Canelado com Zíper Duplo Soft",
+      "description": "Possui zíper com cursor duplo que abre por cima e por baixo, proteção interna de zíper e pezinho reversível.",
+      "price": 79.9,
+      "promotional_price": 69.9,
+      "sizes": [
+        "RN",
+        "P",
+        "M",
+        "G",
+        "1 ano"
+      ],
+      "colors": [
+        "Azul Bebê",
+        "Rosa Seco",
+        "Verde Menta",
+        "Bege Neutro"
+      ],
+      "stock_quantity": 85,
+      "is_featured": true,
+      "is_active": true,
+      "material": "Algodão Canelado Premium",
+      "image_url": "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": "prod-003",
+      "category_id": "cat-003",
+      "category_name": "Saídas de Maternidade",
+      "name": "Saída de Maternidade Tricot Luxo Realeza 4 Peças",
+      "description": "Conjunto completo para o grande dia: Macacão bordado, manta aconchegante coordenada, touquinha e luvinhas.",
+      "price": 189.9,
+      "promotional_price": 169.9,
+      "sizes": [
+        "RN",
+        "P"
+      ],
+      "colors": [
+        "Branco Puro",
+        "Rosa Seco",
+        "Azul Bebê",
+        "Amarelo Manteiga"
+      ],
+      "stock_quantity": 45,
+      "is_featured": true,
+      "is_active": true,
+      "material": "Tricot Luxo 50% Algodão 50% Acrílico Antialérgico",
+      "image_url": "https://images.unsplash.com/photo-1596870230751-ebdfce98ec42?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": "prod-004",
+      "category_id": "cat-004",
+      "category_name": "Kits de Berço & Quarto",
+      "name": "Kit Berço Algodão 400 Fios Trança Nuvem",
+      "description": "Lateral em trança macia, cabeceira nuvem, lençol com elástico 400 fios e fronha delicada antissufocante.",
+      "price": 289.9,
+      "promotional_price": 259.9,
+      "sizes": [
+        "RN",
+        "P",
+        "M",
+        "G"
+      ],
+      "colors": [
+        "Branco Puro",
+        "Verde Menta",
+        "Bege Neutro"
+      ],
+      "stock_quantity": 30,
+      "is_featured": true,
+      "is_active": true,
+      "material": "Algodão Percal 400 Fios Acetinado",
+      "image_url": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": "prod-005",
+      "category_id": "cat-005",
+      "category_name": "Mala & Acessórios Maternidade",
+      "name": "Mala Maternidade Térmica Master Impermeável",
+      "description": "Compartimento amplo com divisórias para as roupinhas das primeiras 48h, forro térmico fácil de limpar e bolsos externos.",
+      "price": 219.9,
+      "promotional_price": 199.9,
+      "sizes": [
+        "G",
+        "GG"
+      ],
+      "colors": [
+        "Bege Neutro",
+        "Rosa Seco",
+        "Azul Bebê"
+      ],
+      "stock_quantity": 40,
+      "is_featured": false,
+      "is_active": true,
+      "material": "Couro Ecológico Impermeável Soft",
+      "image_url": "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=500&auto=format&fit=crop"
+    }
+  ],
   "flows": [
     {
       "id": "flow-pitoco-001",
@@ -1022,288 +1237,6 @@
       }
     ]
   },
-  "botProfile": {
-    "name": "Pitoco Bot",
-    "company_name": "Pitoco de Gente",
-    "gender": "male",
-    "tone": "Amigável e Profissional",
-    "support_phone": "81996138924",
-    "business_hours": "08:00 às 19:00",
-    "welcome_message": "👶✨ *PITOCO DE GENTE — Roupas de Bebê & Enxovais*\nOlá, *{clientName}*! Bem-vindo(a) à nossa loja oficial! Como podemos te ajudar hoje?",
-    "avatar_url": "",
-    "company_segment": "Barbearia e Estética Masculina",
-    "support_email": "contato@pitocodegente.com.br",
-    "website_url": "https://talvane.malaca.com.br",
-    "id": "default",
-    "updated_at": "2026-09-03T16:56:59.719Z",
-    "handoff_message": "Vou transferir seu atendimento para um de nossos profissionais. Por favor, aguarde um instante!",
-    "company_address": "",
-    "pix_key_type": "telefone",
-    "pix_key": "financeiro@pitocodegente.com.br",
-    "pix_owner": "Pitoco de Gente Artigos Infantis LTDA",
-    "notify_new_bookings": true,
-    "notify_phone": "81996138924",
-    "play_audio_alerts": true,
-    "custom_variables": [],
-    "bot_nome": "Pitoco Bot",
-    "empresa": "Pitoco de Gente",
-    "pix_name": "Pitoco de Gente Artigos Infantis LTDA",
-    "shipping_motoboy_price": 15,
-    "shipping_correios_price": 24.9,
-    "free_shipping_threshold": 250,
-    "is_active": true
-  },
-  "settings": {
-    "id": "settings-001",
-    "whatsapp_phone_number_id": "109876543210987",
-    "whatsapp_business_account_id": "209876543210987",
-    "whatsapp_access_token_encrypted": "EAAO...7assistente_token_secret_vault",
-    "webhook_verify_token": "7assistente_meta_webhook_token_2026",
-    "bot_profile": {
-      "name": "Pitoco Bot",
-      "company_name": "Pitoco de Gente",
-      "gender": "male",
-      "tone": "Amigável e Profissional",
-      "avatar_url": "",
-      "company_segment": "Barbearia e Estética Masculina",
-      "support_email": "contato@talvanebarber.com.br",
-      "support_phone": "81996138924",
-      "business_hours": "08:00 às 19:00",
-      "website_url": "https://talvane.malaca.com.br",
-      "welcome_message": "Olá! Seja bem-vindo à Pitoco de Gente. Como podemos te ajudar hoje?",
-      "id": "default",
-      "updated_at": "2026-09-03T16:56:59.719Z"
-    },
-    "whatsapp_session": {
-      "status": "disconnected",
-      "phone": "",
-      "name": ""
-    },
-    "created_at": "2026-09-03T16:43:07.297Z",
-    "updated_at": "2026-09-03T18:19:57.748Z",
-    "backend_url": "https://talvane.discloud.app",
-    "custom_variables": []
-  },
-  "sessions": {
-    "5511999999999": {
-      "flowId": "flow-1788452126641",
-      "currentNodeId": "node-message-1788454336019",
-      "variables": {
-        "whatsapp_pushname": "Dev Test",
-        "telefone_cliente": "5511999999999",
-        "telefone_whatsapp": "5511999999999",
-        "ultima_mensagem": "2",
-        "nome_cliente": "2",
-        "is_primeiro_contato": true,
-        "is_novo_contato": true,
-        "tipo_cliente": "novo",
-        "nome_novocliente": "2",
-        "{{nome_novocliente}}": "2",
-        "resposta_usuario": "2",
-        "cliente_nome": "2",
-        "nome": "2",
-        "interesse_principal": "servico_selecionado",
-        "etapa_funil": "agendamento_iniciado"
-      },
-      "waitingForVar": null
-    },
-    "5511888888888": {
-      "flowId": "flow-1788452126641",
-      "currentNodeId": "node-buttons-1788485584016",
-      "variables": {
-        "whatsapp_pushname": "Dev User",
-        "telefone_cliente": "5511888888888",
-        "telefone_whatsapp": "5511888888888",
-        "ultima_mensagem": "2",
-        "nome_cliente": "Carlos",
-        "is_primeiro_contato": true,
-        "is_novo_contato": true,
-        "tipo_cliente": "novo",
-        "nome_novocliente": "Carlos",
-        "{{nome_novocliente}}": "Carlos",
-        "resposta_usuario": "Carlos",
-        "cliente_nome": "Carlos",
-        "nome": "Carlos",
-        "interesse_principal": "servico_selecionado",
-        "nome_liente": "Carlos",
-        "opcao_selecionada": "2. Consultar Preços",
-        "botao_id": "btn_2",
-        "catalogo_servicos_texto": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Consultoria VIP de Enxoval*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Kit Saída de Maternidade Tricot*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Consultoria VIP + Kit Saída Maternidade (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Kit Bodies Suedine Pima*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Consultoria VIP + Kit Saída Maternidade + Kit Bodies Suedine Pima (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._"
-      },
-      "waitingForVar": null,
-      "activeButtons": [
-        {
-          "id": "btn_1",
-          "title": "1. Agendar Horário"
-        },
-        {
-          "id": "btn_2",
-          "title": "2. Consultar Preços"
-        },
-        {
-          "id": "btn_3",
-          "title": "3. Falar com Atendente"
-        }
-      ]
-    },
-    "5511777777777": {
-      "flowId": "flow-1788452126641",
-      "currentNodeId": "node-buttons-1788485584016",
-      "variables": {
-        "whatsapp_pushname": "Tester",
-        "telefone_cliente": "5511777777777",
-        "telefone_whatsapp": "5511777777777",
-        "ultima_mensagem": "2",
-        "nome_cliente": "Carlos Silva",
-        "is_primeiro_contato": true,
-        "is_novo_contato": true,
-        "tipo_cliente": "novo",
-        "nome_novocliente": "Carlos Silva",
-        "{{nome_novocliente}}": "Carlos Silva",
-        "resposta_usuario": "Carlos Silva",
-        "cliente_nome": "Carlos Silva",
-        "nome": "Carlos Silva",
-        "interesse_principal": "servico_selecionado",
-        "nome_liente": "Carlos Silva",
-        "opcao_selecionada": "2. Consultar Preços",
-        "botao_id": "btn_2",
-        "catalogo_servicos_texto": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Consultoria VIP de Enxoval*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Kit Saída de Maternidade Tricot*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Consultoria VIP + Kit Saída Maternidade (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Kit Bodies Suedine Pima*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Consultoria VIP + Kit Saída Maternidade + Kit Bodies Suedine Pima (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._",
-        "catalogo_servicos": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Consultoria VIP de Enxoval*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Kit Saída de Maternidade Tricot*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Consultoria VIP + Kit Saída Maternidade (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Kit Bodies Suedine Pima*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Consultoria VIP + Kit Saída Maternidade + Kit Bodies Suedine Pima (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._"
-      },
-      "waitingForVar": null,
-      "activeButtons": [
-        {
-          "id": "btn_1",
-          "title": "1. Agendar Horário"
-        },
-        {
-          "id": "btn_2",
-          "title": "2. Consultar Preços"
-        },
-        {
-          "id": "btn_3",
-          "title": "3. Falar com Atendente"
-        }
-      ]
-    },
-    "5581999999999": {
-      "flowId": "flow-pitoco-001",
-      "currentNodeId": null,
-      "variables": {
-        "whatsapp_pushname": "Maria Clara",
-        "telefone_cliente": "5581999999999",
-        "telefone_whatsapp": "5581999999999",
-        "ultima_mensagem": "3",
-        "nome_cliente": "",
-        "opcao_selecionada": "3. Falar com Atendente",
-        "botao_id": "btn_atendente",
-        "catalogo_servicos_texto": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
-        "catalogo_servicos": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_"
-      },
-      "activeButtons": [
-        {
-          "id": "btn_catalogo",
-          "title": "1. Ver Catálogo Bebê"
-        },
-        {
-          "id": "btn_enxoval",
-          "title": "2. Consultoria de Enxoval"
-        },
-        {
-          "id": "btn_atendente",
-          "title": "3. Falar com Atendente"
-        }
-      ]
-    },
-    "558199999999": {
-      "flowId": "flow-pitoco-001",
-      "currentNodeId": "node-catalog-pitoco",
-      "variables": {
-        "whatsapp_pushname": "Rogerio",
-        "telefone_cliente": "558199999999",
-        "telefone_whatsapp": "558199999999",
-        "ultima_mensagem": "1",
-        "nome_cliente": "",
-        "opcao_selecionada": "1. Ver Catálogo Bebê",
-        "botao_id": "btn_catalogo",
-        "catalogo_servicos_texto": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
-        "catalogo_servicos": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_"
-      },
-      "activeButtons": [
-        {
-          "id": "btn_catalogo",
-          "title": "1. Ver Catálogo Bebê"
-        },
-        {
-          "id": "btn_enxoval",
-          "title": "2. Consultoria de Enxoval"
-        },
-        {
-          "id": "btn_atendente",
-          "title": "3. Falar com Atendente"
-        }
-      ]
-    },
-    "5581988887777": {
-      "flowId": "flow-pitoco-001",
-      "currentNodeId": null,
-      "variables": {
-        "whatsapp_pushname": "Mariana",
-        "telefone_cliente": "5581988887777",
-        "telefone_whatsapp": "5581988887777",
-        "ultima_mensagem": "3",
-        "nome_cliente": "",
-        "opcao_selecionada": "3. Falar com Atendente",
-        "botao_id": "btn_atendente",
-        "catalogo_servicos_texto": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
-        "catalogo_servicos": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_"
-      },
-      "activeButtons": [
-        {
-          "id": "btn_catalogo",
-          "title": "1. Ver Catálogo Bebê"
-        },
-        {
-          "id": "btn_enxoval",
-          "title": "2. Consultoria de Enxoval"
-        },
-        {
-          "id": "btn_atendente",
-          "title": "3. Falar com Atendente"
-        }
-      ]
-    }
-  },
-  "appointments": [
-    {
-      "id": "apt-1788468016809",
-      "contact_name": "Julio",
-      "contact_phone": "81999999999",
-      "service_name": "Consultoria VIP + Kit Saída Maternidade (Promoção)",
-      "duration_minutes": 50,
-      "price": 45,
-      "appointment_date": "2026-09-03",
-      "appointment_time": "18:15",
-      "status": "confirmed",
-      "created_at": "2026-09-03T20:40:18.218Z",
-      "end_time": "19:05",
-      "slots_count": 4
-    },
-    {
-      "id": "apt-1788469977786",
-      "contact_name": "Leo",
-      "contact_phone": "81900000003",
-      "service_name": "Consultoria VIP + Kit Saída Maternidade (Promoção)",
-      "duration_minutes": 50,
-      "end_time": "20:20",
-      "slots_count": 4,
-      "price": 45,
-      "appointment_date": "2026-09-03",
-      "appointment_time": "19:30",
-      "status": "confirmed",
-      "created_at": "2026-09-03T21:12:59.200Z"
-    }
-  ],
   "contacts": {
     "5581999999999": {
       "id": "contact-5581999999999",
@@ -2467,25 +2400,50 @@
       }
     ]
   },
-  "attendants": [
+  "tickets": [
     {
-      "id": "user-talvane",
-      "name": "Malaca",
-      "email": "81996138924@atendente.local",
-      "phone": "81996138924",
-      "password": "102030",
-      "role": "atendente",
-      "status": "offline",
-      "active_chats_count": 0,
-      "updated_at": "2026-09-03T23:59:52.153Z",
-      "created_at": "2026-09-03T23:26:18.789Z",
-      "metrics": {
-        "chats_assigned": 1,
-        "chats_resolved": 0,
-        "messages_sent": 0,
-        "avg_response_time_min": 0,
-        "rating": 5
-      }
+      "id": "tkt-1",
+      "store_id": "store-001",
+      "store_name": "Loja Matriz — Centro",
+      "client_id": "client-81991234567",
+      "client_name": "Mariana Silva (Mamãe do Theo)",
+      "client_phone": "81991234567",
+      "protocol": "PTC-849102",
+      "subject": "Solicitação de retirada de Saída Maternidade",
+      "status": "open",
+      "priority": "high",
+      "created_at": "2026-09-07T22:04:29.143Z",
+      "updated_at": "2026-09-07T22:04:29.143Z"
+    }
+  ],
+  "appointments": [
+    {
+      "id": "apt-1788468016809",
+      "contact_name": "Julio",
+      "contact_phone": "81999999999",
+      "service_name": "Consultoria VIP + Kit Saída Maternidade (Promoção)",
+      "duration_minutes": 50,
+      "price": 45,
+      "appointment_date": "2026-09-03",
+      "appointment_time": "18:15",
+      "status": "confirmed",
+      "created_at": "2026-09-03T20:40:18.218Z",
+      "end_time": "19:05",
+      "slots_count": 4
+    },
+    {
+      "id": "apt-1788469977786",
+      "contact_name": "Leo",
+      "contact_phone": "81900000003",
+      "service_name": "Consultoria VIP + Kit Saída Maternidade (Promoção)",
+      "duration_minutes": 50,
+      "end_time": "20:20",
+      "slots_count": 4,
+      "price": 45,
+      "appointment_date": "2026-09-03",
+      "appointment_time": "19:30",
+      "status": "confirmed",
+      "created_at": "2026-09-03T21:12:59.200Z"
     }
   ],
   "agendaSettings": {
@@ -2575,21 +2533,342 @@
       "updated_at": "2026-09-03T23:26:14.663Z"
     }
   ],
-  "rolePermissions": {},
-  "customVariables": [],
-  "logs": [
+  "attendants": [
     {
-      "id": "log-1788813261494-rz9e0",
-      "type": "message_outbound",
-      "title": "Resposta para Mariana",
-      "description": "👩‍💼 *Atendimento Humanizado*\n\nConectando você agora com uma de nossas consultoras especi...",
-      "contact_phone": "5581988887777",
-      "contact_name": "Mariana",
-      "details": {
-        "direction": "outbound",
-        "messageId": "msg-1788813261482-rfxns"
-      },
-      "created_at": "2026-09-07T20:34:21.494Z"
+      "id": "user-talvane",
+      "name": "Malaca",
+      "email": "81996138924@atendente.local",
+      "phone": "81996138924",
+      "password": "102030",
+      "role": "atendente",
+      "status": "offline",
+      "active_chats_count": 0,
+      "updated_at": "2026-09-03T23:59:52.153Z",
+      "created_at": "2026-09-03T23:26:18.789Z",
+      "metrics": {
+        "chats_assigned": 1,
+        "chats_resolved": 0,
+        "messages_sent": 0,
+        "avg_response_time_min": 0,
+        "rating": 5
+      }
     }
-  ]
+  ],
+  "cannedReplies": [
+    {
+      "id": "canned-1",
+      "label": "Boas-vindas Consultoria",
+      "cmd": "/bemvindo",
+      "text": "Olá, mamãe! É uma alegria enorme poder te ajudar a escolher o enxoval mais especial para o seu bebê! 💕",
+      "category": "Atendimento"
+    },
+    {
+      "id": "canned-2",
+      "label": "Tamanhos RN vs P",
+      "cmd": "/tamanhos",
+      "text": "O tamanho RN veste bebês de até 4kg (ideal para os primeiros 20 a 30 dias). O tamanho P veste de 4 a 6kg (de 1 a 3 meses com folguinha). Recomendamos ter pelo menos 4 a 6 peças RN e 6 a 8 peças P!",
+      "category": "Dúvidas"
+    },
+    {
+      "id": "canned-3",
+      "label": "Dados PIX",
+      "cmd": "/pix",
+      "text": "Nossa chave PIX oficial é financeiro@pitocodegente.com.br (Banco Inter / Pitoco de Gente Artigos Infantis LTDA). Ao efetuar o pagamento, basta nos enviar o comprovante!",
+      "category": "Pagamento"
+    },
+    {
+      "id": "canned-4",
+      "label": "Retirada em Loja",
+      "cmd": "/retirada",
+      "text": "Seu pedido já foi separado com muito carinho e está pronto para retirada no balcão da loja selecionada! Basta informar seu nome e número de telefone.",
+      "category": "Entrega"
+    }
+  ],
+  "botProfile": {
+    "name": "Pitoco Bot",
+    "company_name": "Pitoco de Gente",
+    "gender": "male",
+    "tone": "Amigável e Profissional",
+    "avatar_url": "",
+    "company_segment": "Barbearia e Estética Masculina",
+    "support_email": "contato@pitocodegente.com.br",
+    "support_phone": "81996138924",
+    "business_hours": "08:00 às 19:00",
+    "website_url": "https://talvane.malaca.com.br",
+    "welcome_message": "👶✨ *PITOCO DE GENTE — Roupas de Bebê & Enxovais*\nOlá, *{clientName}*! Bem-vindo(a) à nossa loja oficial! Como podemos te ajudar hoje?",
+    "company_address": "",
+    "pix_key": "financeiro@pitocodegente.com.br",
+    "pix_owner": "Pitoco de Gente Artigos Infantis LTDA",
+    "shipping_motoboy": 15,
+    "shipping_correios": 24.9,
+    "free_shipping_min": 250,
+    "id": "default",
+    "updated_at": "2026-09-03T16:56:59.719Z",
+    "handoff_message": "Vou transferir seu atendimento para um de nossos profissionais. Por favor, aguarde um instante!",
+    "pix_key_type": "telefone",
+    "notify_new_bookings": true,
+    "notify_phone": "81996138924",
+    "play_audio_alerts": true,
+    "custom_variables": [],
+    "bot_nome": "Pitoco Bot",
+    "empresa": "Pitoco de Gente",
+    "pix_name": "Pitoco de Gente Artigos Infantis LTDA",
+    "shipping_motoboy_price": 15,
+    "shipping_correios_price": 24.9,
+    "free_shipping_threshold": 250,
+    "is_active": true
+  },
+  "settings": {
+    "id": "settings-001",
+    "whatsapp_phone_number_id": "109876543210987",
+    "whatsapp_business_account_id": "209876543210987",
+    "webhook_verify_token": "7assistente_meta_webhook_token_2026",
+    "bot_profile": {
+      "name": "Pitoco Bot",
+      "company_name": "Pitoco de Gente",
+      "gender": "male",
+      "tone": "Amigável e Profissional",
+      "avatar_url": "",
+      "company_segment": "Barbearia e Estética Masculina",
+      "support_email": "contato@talvanebarber.com.br",
+      "support_phone": "81996138924",
+      "business_hours": "08:00 às 19:00",
+      "website_url": "https://talvane.malaca.com.br",
+      "welcome_message": "Olá! Seja bem-vindo à Pitoco de Gente. Como podemos te ajudar hoje?",
+      "id": "default",
+      "updated_at": "2026-09-03T16:56:59.719Z"
+    },
+    "whatsapp_session": {
+      "status": "disconnected",
+      "phone": "",
+      "name": ""
+    },
+    "created_at": "2026-09-03T16:43:07.297Z",
+    "updated_at": "2026-09-03T18:19:57.748Z",
+    "whatsapp_access_token_encrypted": "EAAO...7assistente_token_secret_vault",
+    "backend_url": "https://talvane.discloud.app",
+    "custom_variables": []
+  },
+  "customVariables": [
+    {
+      "id": "var-1",
+      "name": "nome_loja",
+      "key": "nome_loja",
+      "value": "Pitoco de Gente",
+      "description": "Nome fantasia da marca"
+    },
+    {
+      "id": "var-2",
+      "name": "cidade_matriz",
+      "key": "cidade_matriz",
+      "value": "Recife/PE",
+      "description": "Sede da matriz"
+    },
+    {
+      "id": "var-3",
+      "name": "chave_pix",
+      "key": "chave_pix",
+      "value": "financeiro@pitocodegente.com.br",
+      "description": "Chave PIX oficial"
+    },
+    {
+      "id": "var-4",
+      "name": "frete_gratis_valor",
+      "key": "frete_gratis_valor",
+      "value": "250.00",
+      "description": "Valor mínimo frete grátis"
+    }
+  ],
+  "auditLogs": [],
+  "sessions": {
+    "5511999999999": {
+      "flowId": "flow-1788452126641",
+      "currentNodeId": "node-message-1788454336019",
+      "variables": {
+        "whatsapp_pushname": "Dev Test",
+        "telefone_cliente": "5511999999999",
+        "telefone_whatsapp": "5511999999999",
+        "ultima_mensagem": "2",
+        "nome_cliente": "2",
+        "is_primeiro_contato": true,
+        "is_novo_contato": true,
+        "tipo_cliente": "novo",
+        "nome_novocliente": "2",
+        "{{nome_novocliente}}": "2",
+        "resposta_usuario": "2",
+        "cliente_nome": "2",
+        "nome": "2",
+        "interesse_principal": "servico_selecionado",
+        "etapa_funil": "agendamento_iniciado"
+      },
+      "waitingForVar": null
+    },
+    "5511888888888": {
+      "flowId": "flow-1788452126641",
+      "currentNodeId": "node-buttons-1788485584016",
+      "variables": {
+        "whatsapp_pushname": "Dev User",
+        "telefone_cliente": "5511888888888",
+        "telefone_whatsapp": "5511888888888",
+        "ultima_mensagem": "2",
+        "nome_cliente": "Carlos",
+        "is_primeiro_contato": true,
+        "is_novo_contato": true,
+        "tipo_cliente": "novo",
+        "nome_novocliente": "Carlos",
+        "{{nome_novocliente}}": "Carlos",
+        "resposta_usuario": "Carlos",
+        "cliente_nome": "Carlos",
+        "nome": "Carlos",
+        "interesse_principal": "servico_selecionado",
+        "nome_liente": "Carlos",
+        "opcao_selecionada": "2. Consultar Preços",
+        "botao_id": "btn_2",
+        "catalogo_servicos_texto": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Consultoria VIP de Enxoval*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Kit Saída de Maternidade Tricot*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Consultoria VIP + Kit Saída Maternidade (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Kit Bodies Suedine Pima*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Consultoria VIP + Kit Saída Maternidade + Kit Bodies Suedine Pima (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._"
+      },
+      "waitingForVar": null,
+      "activeButtons": [
+        {
+          "id": "btn_1",
+          "title": "1. Agendar Horário"
+        },
+        {
+          "id": "btn_2",
+          "title": "2. Consultar Preços"
+        },
+        {
+          "id": "btn_3",
+          "title": "3. Falar com Atendente"
+        }
+      ]
+    },
+    "5511777777777": {
+      "flowId": "flow-1788452126641",
+      "currentNodeId": "node-buttons-1788485584016",
+      "variables": {
+        "whatsapp_pushname": "Tester",
+        "telefone_cliente": "5511777777777",
+        "telefone_whatsapp": "5511777777777",
+        "ultima_mensagem": "2",
+        "nome_cliente": "Carlos Silva",
+        "is_primeiro_contato": true,
+        "is_novo_contato": true,
+        "tipo_cliente": "novo",
+        "nome_novocliente": "Carlos Silva",
+        "{{nome_novocliente}}": "Carlos Silva",
+        "resposta_usuario": "Carlos Silva",
+        "cliente_nome": "Carlos Silva",
+        "nome": "Carlos Silva",
+        "interesse_principal": "servico_selecionado",
+        "nome_liente": "Carlos Silva",
+        "opcao_selecionada": "2. Consultar Preços",
+        "botao_id": "btn_2",
+        "catalogo_servicos_texto": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Consultoria VIP de Enxoval*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Kit Saída de Maternidade Tricot*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Consultoria VIP + Kit Saída Maternidade (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Kit Bodies Suedine Pima*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Consultoria VIP + Kit Saída Maternidade + Kit Bodies Suedine Pima (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._",
+        "catalogo_servicos": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Consultoria VIP de Enxoval*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Kit Saída de Maternidade Tricot*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Consultoria VIP + Kit Saída Maternidade (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Kit Bodies Suedine Pima*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Consultoria VIP + Kit Saída Maternidade + Kit Bodies Suedine Pima (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._"
+      },
+      "waitingForVar": null,
+      "activeButtons": [
+        {
+          "id": "btn_1",
+          "title": "1. Agendar Horário"
+        },
+        {
+          "id": "btn_2",
+          "title": "2. Consultar Preços"
+        },
+        {
+          "id": "btn_3",
+          "title": "3. Falar com Atendente"
+        }
+      ]
+    },
+    "5581999999999": {
+      "flowId": "flow-pitoco-001",
+      "currentNodeId": null,
+      "variables": {
+        "whatsapp_pushname": "Maria Clara",
+        "telefone_cliente": "5581999999999",
+        "telefone_whatsapp": "5581999999999",
+        "ultima_mensagem": "3",
+        "nome_cliente": "",
+        "opcao_selecionada": "3. Falar com Atendente",
+        "botao_id": "btn_atendente",
+        "catalogo_servicos_texto": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
+        "catalogo_servicos": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_"
+      },
+      "activeButtons": [
+        {
+          "id": "btn_catalogo",
+          "title": "1. Ver Catálogo Bebê"
+        },
+        {
+          "id": "btn_enxoval",
+          "title": "2. Consultoria de Enxoval"
+        },
+        {
+          "id": "btn_atendente",
+          "title": "3. Falar com Atendente"
+        }
+      ]
+    },
+    "558199999999": {
+      "flowId": "flow-pitoco-001",
+      "currentNodeId": "node-catalog-pitoco",
+      "variables": {
+        "whatsapp_pushname": "Rogerio",
+        "telefone_cliente": "558199999999",
+        "telefone_whatsapp": "558199999999",
+        "ultima_mensagem": "1",
+        "nome_cliente": "",
+        "opcao_selecionada": "1. Ver Catálogo Bebê",
+        "botao_id": "btn_catalogo",
+        "catalogo_servicos_texto": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
+        "catalogo_servicos": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_"
+      },
+      "activeButtons": [
+        {
+          "id": "btn_catalogo",
+          "title": "1. Ver Catálogo Bebê"
+        },
+        {
+          "id": "btn_enxoval",
+          "title": "2. Consultoria de Enxoval"
+        },
+        {
+          "id": "btn_atendente",
+          "title": "3. Falar com Atendente"
+        }
+      ]
+    },
+    "5581988887777": {
+      "flowId": "flow-pitoco-001",
+      "currentNodeId": null,
+      "variables": {
+        "whatsapp_pushname": "Mariana",
+        "telefone_cliente": "5581988887777",
+        "telefone_whatsapp": "5581988887777",
+        "ultima_mensagem": "3",
+        "nome_cliente": "",
+        "opcao_selecionada": "3. Falar com Atendente",
+        "botao_id": "btn_atendente",
+        "catalogo_servicos_texto": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
+        "catalogo_servicos": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_"
+      },
+      "activeButtons": [
+        {
+          "id": "btn_catalogo",
+          "title": "1. Ver Catálogo Bebê"
+        },
+        {
+          "id": "btn_enxoval",
+          "title": "2. Consultoria de Enxoval"
+        },
+        {
+          "id": "btn_atendente",
+          "title": "3. Falar com Atendente"
+        }
+      ]
+    }
+  },
+  "rolePermissions": {}
 }
