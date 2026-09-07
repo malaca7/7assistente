@@ -15,6 +15,7 @@ import { UsersPage } from './pages/users/UsersPage';
 const normalizePath = (rawPath: string) => {
   let clean = rawPath.replace(/^\/pitocodegente\/?/, '/').replace(/^\/7assistente\/?/, '/');
   if (!clean.startsWith('/')) clean = `/${clean}`;
+  if (clean.length > 1 && clean.endsWith('/')) clean = clean.slice(0, -1);
   return clean;
 };
 

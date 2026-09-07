@@ -24,14 +24,51 @@ async function main() {
     process.exit(1);
   }
 
-  // 2. Garantir assets no dist (CNAME, .nojekyll, 404.html)
+  // 2. Garantir assets no dist (CNAME, .nojekyll, 404.html e rotas físicas)
   const distDir = path.resolve(__dirname, 'dist');
   if (fs.existsSync(distDir)) {
     fs.writeFileSync(path.join(distDir, 'CNAME'), 'pitoco.malaca.com.br\n');
     fs.writeFileSync(path.join(distDir, '.nojekyll'), '');
-    if (fs.existsSync(path.join(distDir, 'index.html'))) {
-      fs.copyFileSync(path.join(distDir, 'index.html'), path.join(distDir, '404.html'));
+    fs.writeFileSync(path.resolve(__dirname, 'CNAME'), 'pitoco.malaca.com.br\n');
+    fs.writeFileSync(path.resolve(__dirname, '.nojekyll'), '');
+
+    const root404 = path.resolve(__dirname, '404.html');
+    if (fs.existsSync(root404)) {
+      fs.copyFileSync(root404, path.join(distDir, '404.html'));
     }
+
+    const distHtml = fs.readFileSync(path.join(distDir, 'index.html'), 'utf8');
+
+    // Criar diretórios físicos para cada rota SPA para eliminar erro 404 no GitHub Pages
+    const routes = [
+      'admin', 
+      'login', 
+      'ceo', 
+      'atendimento', 
+      'lojas', 
+      'fluxos', 
+      'whatsapp', 
+      'catalogo', 
+      'enxoval', 
+      'medidas', 
+      'fila', 
+      'tickets', 
+      'conversas', 
+      'dashboard'
+    ];
+
+    for (const route of routes) {
+      // 1. No dist/
+      const routeDistDir = path.join(distDir, route);
+      if (!fs.existsSync(routeDistDir)) fs.mkdirSync(routeDistDir, { recursive: true });
+      fs.writeFileSync(path.join(routeDistDir, 'index.html'), distHtml, 'utf8');
+
+      // 2. Na raiz do repositório
+      const routeRootDir = path.resolve(__dirname, route);
+      if (!fs.existsSync(routeRootDir)) fs.mkdirSync(routeRootDir, { recursive: true });
+      fs.writeFileSync(path.join(routeRootDir, 'index.html'), distHtml, 'utf8');
+    }
+    console.log('✅ Diretórios físicos de rotas (/admin, /login, etc.) gerados para prevenir erro 404.');
 
     // Copiar assets para a raiz para evitar tela branca caso GitHub Pages sirva da raiz do main
     const rootAssets = path.resolve(__dirname, 'assets');
@@ -58,7 +95,7 @@ async function main() {
     const status = execSync('git status --porcelain', { cwd: __dirname, encoding: 'utf8' }).trim();
     if (status.length > 0) {
       console.log('📌 Mudanças detectadas. Criando commit de deploy...');
-      execSync('git commit -m "feat: correcao tela branca GitHub Pages, sincronizacao realtime CEO e bot"', { cwd: __dirname, stdio: 'inherit' });
+      execSync('git commit -m "fix(router): eliminar 404 no /admin do GitHub Pages e adicionar sincronizacao realtime CEO"', { cwd: __dirname, stdio: 'inherit' });
       console.log('✅ Commit criado com sucesso!');
     } else {
       console.log('ℹ️ Nenhuma alteração pendente para commit.');
@@ -94,7 +131,7 @@ async function main() {
   try {
     const treeHash = execSync('git write-tree --prefix=dist/', { cwd: __dirname, encoding: 'utf8' }).trim();
     if (treeHash) {
-      const commitHash = execSync(`git commit-tree ${treeHash} -m "deploy: update GitHub Pages production release"`, { cwd: __dirname, encoding: 'utf8' }).trim();
+      const commitHash = execSync(`git commit-tree ${treeHash} -m "deploy: update GitHub Pages production release with /admin route"`, { cwd: __dirname, encoding: 'utf8' }).trim();
       execSync(`git push botpitoco ${commitHash}:refs/heads/gh-pages --force`, { cwd: __dirname, stdio: 'inherit' });
       console.log('✅ Branch gh-pages enviada com sucesso para botpitoco!');
       
@@ -119,7 +156,7 @@ async function main() {
   console.log('\n===============================================================');
   console.log('🎉 DEPLOY COMPLETO CONCLUÍDO COM SUCESSO!');
   console.log(' - GitHub Repository: https://github.com/malaca7/botpitoco/tree/main');
-  console.log(' - GitHub Pages:      https://pitoco.malaca.com.br');
+  console.log(' - GitHub Pages:      https://pitoco.malaca.com.br/admin');
   console.log(' - Bot Discloud API:  https://pitoco.discloud.app');
   console.log(' - Health Check:      https://pitoco.discloud.app/health');
   console.log('===============================================================');
