@@ -13,6 +13,8 @@
     "discloud": "node discloud/server.js",
     "deploy:bot": "node deployDiscloud.mjs",
     "deploy:discloud": "node deployDiscloud.mjs",
+    "deploy:github": "node autoDeployAll.mjs",
+    "deploy:full": "node autoDeployAll.mjs",
     "bot:rebuild": "node deployDiscloud.mjs",
     "bot:restart": "node deployDiscloud.mjs",
     "deploy": "powershell -ExecutionPolicy Bypass -File .\\deployAllBranches.ps1",

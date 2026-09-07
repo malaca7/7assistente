@@ -121,6 +121,18 @@ async function main() {
     console.log('📊 Status Atual do Container:', JSON.stringify(statusJson?.apps || statusJson, null, 2));
   } catch (e) {}
 
+  // Health check
+  try {
+    await wait(3000);
+    const healthRes = await fetch(`https://${APP_ID}.discloud.app/health`);
+    if (healthRes.ok) {
+      const healthJson = await healthRes.json();
+      console.log('🩺 Health Check (https://' + APP_ID + '.discloud.app/health):', JSON.stringify(healthJson));
+    }
+  } catch (e) {
+    console.log('ℹ️ Container iniciando, endpoint responderá em instantes.');
+  }
+
   console.log(`🎉 Deploy e Rebuild concluídos com sucesso no Discloud! (https://${APP_ID}.discloud.app)`);
 }
 
