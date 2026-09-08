@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   GitFork, 
   Play, 
   Save, 
   Plus, 
   Sparkles, 
-  Smartphone, 
   Layers, 
   CheckCircle2, 
   Store as StoreIcon, 
@@ -20,23 +19,32 @@ import {
   Trash2,
   Copy,
   Power,
-  RefreshCw,
   Search,
   Check,
   X,
   ArrowRight,
   HelpCircle,
-  Clock
+  Clock,
+  Palette
 } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { Modal } from './ui/Modal';
 import { useToast } from '../contexts/ToastContext';
-import { FlowSimulator } from './flow-builder/FlowSimulator';
 import { FlowEditorPage } from '../pages/flows/FlowEditorPage';
 import { StorageService } from '../lib/storage';
 import { Flow, FlowStep, NodeTypeEnum, Store } from '../types';
+
+export const FLOW_COLORS = [
+  { id: 'emerald', hex: '#10b981', label: 'Verde Pitoco' },
+  { id: 'blue', hex: '#3b82f6', label: 'Azul Safira' },
+  { id: 'purple', hex: '#a855f7', label: 'Roxo Neon' },
+  { id: 'pink', hex: '#ec4899', label: 'Rosa Bebê' },
+  { id: 'amber', hex: '#f59e0b', label: 'Âmbar Sol' },
+  { id: 'cyan', hex: '#06b6d4', label: 'Ciano Elétrico' },
+  { id: 'slate', hex: '#64748b', label: 'Ardósia / Neutro' },
+];
 
 interface FlowBuilderViewProps {
   onNavigate?: (path: string) => void;
@@ -48,12 +56,9 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
   const [flows, setFlows] = useState<Flow[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isSimulating, setIsSimulating] = useState(false);
-  const [selectedFlowForSteps, setSelectedFlowForSteps] = useState<Flow | null>(null);
 
-  // Modo de visualização: 'list' (gerenciador tradicional) ou 'studio' (Studio Visual N8N / BotGhost)
+  // Modo de visualização: 'list' (gerenciador tradicional) ou 'studio' (Studio Visual)
   const [viewMode, setViewMode] = useState<'list' | 'studio'>('list');
   const [studioFlowId, setStudioFlowId] = useState<string>('');
 
@@ -66,13 +71,15 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
   const [flowStoreId, setFlowStoreId] = useState<string>('all');
   const [flowActive, setFlowActive] = useState(true);
   const [flowSteps, setFlowSteps] = useState<FlowStep[]>([]);
+  const [flowColor, setFlowColor] = useState<string>('#10b981');
   const [isSavingFlow, setIsSavingFlow] = useState(false);
 
   // Modal de Confirmação de Exclusão
   const [flowToDelete, setFlowToDelete] = useState<Flow | null>(null);
 
-  // Carregar dados
-  const loadData = async () => {
+  // Carregar dados com suporte a atualização silenciosa em tempo real
+  const loadData = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const [flowsData, storesData] = await Promise.all([
         StorageService.getFlows(),
@@ -80,24 +87,45 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
       ]);
       setFlows(flowsData);
       setStores(storesData);
-      if (!selectedFlowForSteps && flowsData.length > 0) {
-        setSelectedFlowForSteps(flowsData[0]);
-      }
     } catch (err) {
-      console.error('Erro ao carregar fluxos:', err);
+      console.error('Erro ao sincronizar fluxos em tempo real:', err);
     } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
+      if (!silent) setIsLoading(false);
     }
-  };
-
-  useEffect(() => {
-    loadData();
   }, []);
 
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    loadData();
+  useEffect(() => {
+    loadData(false);
+
+    // Sincronização e atualização contínua em tempo real a cada 3.5 segundos
+    const syncTimer = setInterval(() => {
+      if (!isFlowModalOpen && !isSavingFlow) {
+        loadData(true);
+      }
+    }, 3500);
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'pitoco_flows') {
+        loadData(true);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      clearInterval(syncTimer);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [loadData, isFlowModalOpen, isSavingFlow]);
+
+  // Atualizar cor do fluxo diretamente pelo card
+  const handleUpdateFlowColor = async (flow: Flow, newColor: string) => {
+    try {
+      await StorageService.saveFlow({ id: flow.id, color: newColor });
+      setFlows(prev => prev.map(f => f.id === flow.id ? { ...f, color: newColor } : f));
+      success('Cor do Fluxo Atualizada!', `A cor do fluxo "${flow.name}" foi alterada com sucesso.`);
+    } catch (err: any) {
+      toastError('Erro ao atualizar cor', err.message);
+    }
   };
 
   // Abrir Modal de Criação
@@ -108,6 +136,7 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
     setFlowTrigger('Qualquer Mensagem Recebida');
     setFlowStoreId('all');
     setFlowActive(true);
+    setFlowColor('#10b981');
     setFlowSteps([
       { id: `step-${Date.now()}-1`, title: 'Gatilho de Mensagem Recebida', type: 'trigger', category: 'Início', description: 'Dispara quando o cliente envia qualquer texto.' },
       { id: `step-${Date.now()}-2`, title: 'Boas-Vindas Pitoco de Gente', type: 'message', category: 'Atendimento', description: 'Saudação com menu de opções de 1 a 7.' },
@@ -125,6 +154,7 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
     setFlowTrigger(flow.trigger_type || 'Qualquer Mensagem Recebida');
     setFlowStoreId(flow.store_id || 'all');
     setFlowActive(flow.is_active !== false);
+    setFlowColor(flow.color || '#10b981');
     setFlowSteps(flow.steps && flow.steps.length > 0 ? [...flow.steps] : [
       { id: `step-1`, title: 'Gatilho Inicial', type: 'trigger', category: 'Início', description: 'Disparo do fluxo' },
       { id: `step-2`, title: 'Mensagem de Atendimento', type: 'message', category: 'Atendimento', description: 'Apresentação do menu' },
@@ -157,6 +187,7 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
         version: editingFlow ? (editingFlow.version + 1) : 1,
         node_count: flowSteps.length,
         steps: flowSteps,
+        color: flowColor,
         created_at: editingFlow?.created_at,
       };
 
@@ -202,6 +233,7 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
         version: 1,
         node_count: flow.node_count || 4,
         steps: flow.steps ? JSON.parse(JSON.stringify(flow.steps)) : [],
+        color: flow.color || '#10b981',
       };
       await StorageService.saveFlow(clonePayload);
       success('Fluxo Duplicado!', 'Uma cópia em rascunho foi criada com sucesso.');
@@ -312,38 +344,10 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="text-xs border-white/10 text-slate-300 hover:text-white flex items-center gap-2"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
-
-          <Button
-            size="sm"
-            onClick={() => setIsSimulating(!isSimulating)}
-            className={`text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 ${
-              isSimulating 
-                ? 'bg-pitoco-pink text-slate-950' 
-                : 'bg-white/10 hover:bg-white/15 text-white'
-            }`}
-          >
-            <Smartphone className="w-4 h-4" />
-            {isSimulating ? 'Fechar Simulador' : 'Simular WhatsApp'}
-          </Button>
-
-          <Button
-            size="sm"
-            onClick={() => handleOpenStudio()}
-            className="bg-gradient-to-r from-purple-600 via-indigo-600 to-pitoco-blue hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-2 shadow-glow-primary border border-purple-400/30"
-          >
-            <Sparkles className="w-4 h-4 text-white animate-pulse" />
-            Studio N8N / BotGhost
-          </Button>
+          <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            Sincronizado em Tempo Real
+          </span>
 
           <Button
             size="sm"
@@ -374,202 +378,177 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
         </span>
       </div>
 
-      {/* Grid Principal: Fluxos e Simulador Opcional */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-        {/* Lado Esquerdo: Lista de Fluxos */}
-        <div className={isSimulating ? 'md:col-span-7 space-y-4' : 'md:col-span-12 space-y-4'}>
-          {filteredFlows.map((flow) => {
-            const isSelected = selectedFlowForSteps?.id === flow.id;
-            return (
-              <Card 
-                key={flow.id} 
-                className={`p-5 bg-dark-900 border transition-all ${
-                  flow.is_active 
-                    ? 'border-white/10 hover:border-pitoco-blue/40' 
-                    : 'border-white/5 opacity-70 bg-dark-950/50'
-                }`}
-              >
-                {/* Cabeçalho do Card */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
-                  <div className="flex items-center gap-2.5">
-                    <div className={`p-2 rounded-xl border ${
-                      flow.is_active 
-                        ? 'bg-pitoco-blue/15 text-pitoco-blue border-pitoco-blue/30' 
-                        : 'bg-dark-800 text-slate-500 border-white/5'
-                    }`}>
-                      <GitFork className="w-4 h-4" />
-                    </div>
+      {/* Lista Principal de Fluxos */}
+      <div className="w-full space-y-4">
+        {filteredFlows.map((flow) => {
+          const currentFlowColor = flow.color || '#10b981';
 
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-bold text-white">
-                          {flow.name}
-                        </h3>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/5 text-slate-400 border border-white/10">
-                          v{flow.version || 1}
-                        </span>
-                      </div>
-                      <span className="text-[11px] text-slate-400 block mt-0.5">
-                        {flow.description}
+          return (
+            <Card 
+              key={flow.id} 
+              className={`p-5 bg-dark-900 border transition-all relative overflow-hidden ${
+                flow.is_active 
+                  ? 'border-white/10 hover:border-white/25 shadow-md' 
+                  : 'border-white/5 opacity-70 bg-dark-950/50'
+              }`}
+              style={{
+                borderLeft: `4px solid ${currentFlowColor}`,
+              }}
+            >
+              {/* Cabeçalho do Card */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="p-2.5 rounded-xl border transition-all shadow-sm"
+                    style={{
+                      backgroundColor: `${currentFlowColor}15`,
+                      borderColor: `${currentFlowColor}35`,
+                      color: currentFlowColor,
+                    }}
+                  >
+                    <GitFork className="w-4 h-4" />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-white">
+                        {flow.name}
+                      </h3>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/5 text-slate-400 border border-white/10">
+                        v{flow.version || 1}
                       </span>
                     </div>
-                  </div>
-
-                  {/* Ativar / Desativar Switch Button */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleToggleFlowStatus(flow)}
-                      title={flow.is_active ? 'Clique para desativar este fluxo' : 'Clique para ativar este fluxo'}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
-                        flow.is_active
-                          ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 shadow-sm'
-                          : 'bg-dark-800 text-slate-400 border border-white/10 hover:bg-white/5 hover:text-white'
-                      }`}
-                    >
-                      <Power className={`w-3.5 h-3.5 ${flow.is_active ? 'text-emerald-400' : 'text-slate-500'}`} />
-                      {flow.is_active ? 'Fluxo Ativo' : 'Desativado'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Metadados: Gatilho, Loja Vinculada, Quantidade de Passos */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 my-3 py-2 text-xs bg-dark-950/40 rounded-xl p-3 border border-white/5">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5 text-pitoco-blue" />
-                    <div>
-                      <span className="text-[10px] text-slate-500 block uppercase font-semibold">Gatilho</span>
-                      <span className="text-slate-200 font-medium">{flow.trigger_type || 'Mensagem'}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <StoreIcon className="w-3.5 h-3.5 text-emerald-400" />
-                    <div>
-                      <span className="text-[10px] text-slate-500 block uppercase font-semibold">Loja / Destino</span>
-                      <span className="text-slate-200 font-medium">{flow.store_name || 'Toda a Rede'}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Layers className="w-3.5 h-3.5 text-pitoco-pink" />
-                    <div>
-                      <span className="text-[10px] text-slate-500 block uppercase font-semibold">Estrutura</span>
-                      <span className="text-slate-200 font-medium">{flow.steps?.length || flow.node_count || 4} Nós / Passos</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Lista Visual Resumida dos Passos do Fluxo */}
-                {flow.steps && flow.steps.length > 0 && (
-                  <div className="mb-4">
-                    <span className="text-[10px] font-semibold text-slate-400 block mb-1.5 uppercase">
-                      Jornada do Cliente no Fluxo:
+                    <span className="text-[11px] text-slate-400 block mt-0.5">
+                      {flow.description}
                     </span>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {flow.steps.map((step, idx) => (
-                        <React.Fragment key={step.id}>
-                          <span className="px-2 py-1 rounded-lg text-[10px] font-semibold bg-dark-800 border border-white/10 text-slate-300 flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-pitoco-blue" />
-                            {step.title}
-                          </span>
-                          {idx < flow.steps.length - 1 && (
-                            <ArrowRight className="w-3 h-3 text-slate-600" />
-                          )}
-                        </React.Fragment>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Botões de Ação do Card */}
-                <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/5">
-                  <div className="flex items-center gap-1.5">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setSelectedFlowForSteps(flow)}
-                      className={`text-xs font-semibold px-3 py-1.5 rounded-xl border flex items-center gap-1.5 ${
-                        isSelected 
-                          ? 'border-pitoco-blue bg-pitoco-blue/15 text-pitoco-blue' 
-                          : 'border-white/10 text-slate-300 hover:text-white'
-                      }`}
-                    >
-                      <Layers className="w-3.5 h-3.5" />
-                      Visualizar Passos
-                    </Button>
-
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleDuplicateFlow(flow)}
-                      className="text-xs font-semibold border-white/10 text-slate-300 hover:text-white px-2.5 py-1.5 rounded-xl flex items-center gap-1"
-                      title="Duplicar Fluxo"
-                    >
-                      <Copy className="w-3.5 h-3.5" />
-                      Duplicar
-                    </Button>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <Button
-                      size="sm"
-                      onClick={() => handleOpenStudio(flow.id)}
-                      className="bg-gradient-to-r from-purple-600/20 via-indigo-600/20 to-pitoco-blue/20 hover:from-purple-600/35 hover:to-pitoco-blue/35 text-white font-bold text-xs px-3 py-1.5 rounded-xl border border-purple-500/40 flex items-center gap-1.5 shadow-sm transition-all"
-                      title="Abrir e editar fluxo no Studio Visual estilo N8N e BotGhost"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-pitoco-blue animate-pulse" />
-                      Visual Studio N8N
-                    </Button>
-
-                    <Button
-                      size="sm"
-                      onClick={() => handleOpenEditFlow(flow)}
-                      className="bg-white/10 hover:bg-white/15 text-white font-bold text-xs px-3 py-1.5 rounded-xl flex items-center gap-1.5"
-                    >
-                      <Edit3 className="w-3.5 h-3.5 text-pitoco-blue" />
-                      Editar Fluxo
-                    </Button>
-
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setFlowToDelete(flow)}
-                      className="p-2 border-white/10 text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/30 rounded-xl"
-                      title="Apagar Fluxo"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
                   </div>
                 </div>
-              </Card>
-            );
-          })}
 
-          {filteredFlows.length === 0 && (
-            <div className="p-12 text-center rounded-2xl bg-dark-900 border border-white/5">
-              <GitFork className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-              <h3 className="text-base font-bold text-white">Nenhum fluxo encontrado</h3>
-              <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-                Crie um novo fluxo de atendimento clicando no botão acima.
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Lado Direito: Simulador de WhatsApp Live */}
-        {isSimulating && (
-          <div className="md:col-span-5 sticky top-6">
-            <Card className="p-4 bg-dark-900 border-white/10 flex flex-col items-center">
-              <div className="w-full flex items-center justify-between pb-3 mb-3 border-b border-white/5">
-                <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                  <Smartphone className="w-3.5 h-3.5 text-pitoco-blue" />
-                  Simulador de Atendimento Live
-                </span>
-                <span className="text-[10px] text-emerald-400 font-medium">WhatsApp Online</span>
+                {/* Ativar / Desativar Switch Button */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleFlowStatus(flow)}
+                    title={flow.is_active ? 'Clique para desativar este fluxo' : 'Clique para ativar este fluxo'}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                      flow.is_active
+                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 shadow-sm'
+                        : 'bg-dark-800 text-slate-400 border border-white/10 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <Power className={`w-3.5 h-3.5 ${flow.is_active ? 'text-emerald-400' : 'text-slate-500'}`} />
+                    {flow.is_active ? 'Fluxo Ativo' : 'Desativado'}
+                  </button>
+                </div>
               </div>
-              <FlowSimulator />
+
+              {/* Metadados: Gatilho, Loja Vinculada, Quantidade de Passos */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 my-3 py-2 text-xs bg-dark-950/40 rounded-xl p-3 border border-white/5">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5 text-pitoco-blue" />
+                  <div>
+                    <span className="text-[10px] text-slate-500 block uppercase font-semibold">Gatilho</span>
+                    <span className="text-slate-200 font-medium">{flow.trigger_type || 'Mensagem'}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <StoreIcon className="w-3.5 h-3.5 text-emerald-400" />
+                  <div>
+                    <span className="text-[10px] text-slate-500 block uppercase font-semibold">Loja / Destino</span>
+                    <span className="text-slate-200 font-medium">{flow.store_name || 'Toda a Rede'}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Layers className="w-3.5 h-3.5 text-pitoco-pink" />
+                  <div>
+                    <span className="text-[10px] text-slate-500 block uppercase font-semibold">Estrutura</span>
+                    <span className="text-slate-200 font-medium">{flow.steps?.length || flow.node_count || 4} Nós / Passos</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Botões de Ação do Card */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-white/5">
+                <div className="flex items-center gap-2">
+                  {/* Seletor Rápido de Cor do Fluxo */}
+                  <div className="flex items-center gap-1.5 bg-dark-950/60 px-2 py-1.5 rounded-xl border border-white/5" title="Escolher cor para o fluxo">
+                    <Palette className="w-3.5 h-3.5 text-slate-400 mr-0.5" />
+                    {FLOW_COLORS.map(c => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => handleUpdateFlowColor(flow, c.hex)}
+                        className={`w-4 h-4 rounded-full transition-transform hover:scale-125 flex items-center justify-center ${
+                          currentFlowColor.toLowerCase() === c.hex.toLowerCase()
+                            ? 'ring-2 ring-white scale-110 shadow-sm'
+                            : 'opacity-70 hover:opacity-100'
+                        }`}
+                        style={{ backgroundColor: c.hex }}
+                        title={`Cor: ${c.label}`}
+                      >
+                        {currentFlowColor.toLowerCase() === c.hex.toLowerCase() && (
+                          <Check className="w-2.5 h-2.5 text-white drop-shadow stroke-[3]" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDuplicateFlow(flow)}
+                    className="text-xs font-semibold border-white/10 text-slate-300 hover:text-white px-2.5 py-1.5 rounded-xl flex items-center gap-1"
+                    title="Duplicar Fluxo"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    Duplicar
+                  </Button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => handleOpenStudio(flow.id)}
+                    className="bg-gradient-to-r from-purple-600/20 via-indigo-600/20 to-pitoco-blue/20 hover:from-purple-600/35 hover:to-pitoco-blue/35 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl border border-purple-500/40 flex items-center gap-1.5 shadow-sm transition-all"
+                    title="Abrir e editar fluxo no Studio Visual"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-pitoco-blue animate-pulse" />
+                    Editar no Studio
+                  </Button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditFlow(flow)}
+                    className="p-2 border border-white/10 hover:border-white/20 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white rounded-xl transition-all"
+                    title="Editar Informações do Fluxo"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-pitoco-blue" />
+                  </button>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setFlowToDelete(flow)}
+                    className="p-2 border-white/10 text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/30 rounded-xl"
+                    title="Apagar Fluxo"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
             </Card>
+          );
+        })}
+
+        {filteredFlows.length === 0 && (
+          <div className="p-12 text-center rounded-2xl bg-dark-900 border border-white/5">
+            <GitFork className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+            <h3 className="text-base font-bold text-white">Nenhum fluxo encontrado</h3>
+            <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+              Crie um novo fluxo de atendimento clicando no botão acima.
+            </p>
           </div>
         )}
       </div>
@@ -671,6 +650,34 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
               >
                 Desativado / Rascunho
               </button>
+            </div>
+          </div>
+
+          {/* Escolha da Cor do Fluxo */}
+          <div>
+            <label className="text-xs font-semibold text-slate-300 block mb-1.5 flex items-center gap-1.5">
+              <Palette className="w-3.5 h-3.5 text-pitoco-blue" />
+              Cor de Destaque do Fluxo:
+            </label>
+            <div className="flex flex-wrap items-center gap-2 p-2.5 rounded-xl bg-dark-800/80 border border-white/10">
+              {FLOW_COLORS.map(c => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setFlowColor(c.hex)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs transition-all ${
+                    flowColor.toLowerCase() === c.hex.toLowerCase()
+                      ? 'border-white text-white font-bold bg-white/10 ring-2 ring-pitoco-blue shadow-sm'
+                      : 'border-white/5 text-slate-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <span
+                    className="w-3.5 h-3.5 rounded-full inline-block shadow-sm"
+                    style={{ backgroundColor: c.hex }}
+                  />
+                  <span>{c.label}</span>
+                </button>
+              ))}
             </div>
           </div>
 
@@ -790,7 +797,7 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
                   className="bg-gradient-to-r from-purple-600 to-pitoco-blue hover:from-purple-500 hover:to-pitoco-blue text-white font-bold text-xs px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm"
                 >
                   <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-                  Abrir no Studio N8N
+                  Editar no Studio
                 </Button>
               )}
             </div>

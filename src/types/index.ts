@@ -314,6 +314,7 @@ export interface Flow {
   store_id?: string | null; // null = Toda a Rede
   store_name?: string;
   steps?: FlowStep[];
+  color?: string; // Cor personalizada do fluxo (#10b981, #3b82f6, etc.)
   created_at: string;
   updated_at: string;
 }

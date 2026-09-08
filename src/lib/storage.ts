@@ -1128,19 +1128,22 @@ export const StorageService = {
       });
     }
 
+    const existing = existingIndex >= 0 ? flows[existingIndex] : null;
     const updatedFlow: Flow = {
-      id: flow.id || `flow-${Date.now()}`,
-      name: flow.name || 'Novo Fluxo de Atendimento',
-      description: flow.description || '',
-      status: flow.status || (flow.is_active ? 'published' : 'draft'),
-      is_active: flow.is_active !== undefined ? flow.is_active : (flow.status === 'published'),
-      version: flow.version || 1,
-      node_count: flow.steps ? flow.steps.length : (flow.node_count || 4),
-      trigger_type: flow.trigger_type || 'Qualquer Mensagem Recebida',
-      store_id: flow.store_id || null,
-      store_name: flow.store_name || (flow.store_id ? 'Filial Específica' : 'Toda a Rede'),
-      steps: flow.steps || [],
-      created_at: flow.created_at || new Date().toISOString(),
+      ...(existing || {}),
+      id: flow.id || existing?.id || `flow-${Date.now()}`,
+      name: flow.name ?? existing?.name ?? 'Novo Fluxo de Atendimento',
+      description: flow.description ?? existing?.description ?? '',
+      status: flow.status ?? existing?.status ?? (flow.is_active ? 'published' : 'draft'),
+      is_active: flow.is_active !== undefined ? flow.is_active : (existing?.is_active ?? (flow.status === 'published')),
+      version: flow.version ?? existing?.version ?? 1,
+      node_count: flow.steps ? flow.steps.length : (flow.node_count ?? existing?.node_count ?? 4),
+      trigger_type: flow.trigger_type ?? existing?.trigger_type ?? 'Qualquer Mensagem Recebida',
+      store_id: flow.store_id !== undefined ? flow.store_id : (existing?.store_id ?? null),
+      store_name: flow.store_name ?? existing?.store_name ?? (flow.store_id ? 'Filial Específica' : 'Toda a Rede'),
+      steps: flow.steps ?? existing?.steps ?? [],
+      color: flow.color ?? existing?.color ?? '#10b981',
+      created_at: flow.created_at || existing?.created_at || new Date().toISOString(),
       updated_at: new Date().toISOString(),
       ...flow,
     };
