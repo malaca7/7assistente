@@ -224,48 +224,33 @@
   "flows": [
     {
       "id": "flow-pitoco-001",
-      "name": "Atendimento & Vendas Principal (WhatsApp Geral)",
-      "description": "Fluxo oficial com cat\u00e1logo de beb\u00eas, guia de medidas, consultoria VIP, frete, PIX e transbordo por loja.",
+      "name": "Atendimento Principal",
+      "description": "Atendimento ao cliente principal",
       "status": "published",
-      "version": 3,
+      "version": 5,
       "is_active": true,
       "trigger_type": "Qualquer Mensagem Recebida",
       "store_id": null,
-      "store_name": null,
+      "store_name": "Toda a Rede (Global)",
       "node_count": 9,
-      "steps": [],
+      "steps": [
+        {
+          "id": "step-1",
+          "type": "trigger",
+          "title": "Gatilho Inicial",
+          "category": "In\u00edcio",
+          "description": "Disparo do fluxo"
+        },
+        {
+          "id": "step-2",
+          "type": "message",
+          "title": "Mensagem de Atendimento",
+          "category": "Atendimento",
+          "description": "Apresenta\u00e7\u00e3o do menu"
+        }
+      ],
       "created_at": "2026-09-08T20:00:48.042417+00:00",
-      "updated_at": "2026-09-08T20:26:35.717Z"
-    },
-    {
-      "id": "flow-pitoco-003",
-      "name": "Recep\u00e7\u00e3o Loja Matriz Centro",
-      "description": "Atendimento e roteamento direto para a equipe presencial da Loja Matriz Centro.",
-      "status": "draft",
-      "version": 1,
-      "is_active": false,
-      "trigger_type": "Filial Centro",
-      "store_id": null,
-      "store_name": null,
-      "node_count": 3,
-      "steps": [],
-      "created_at": "2026-09-08T20:00:48.042417+00:00",
-      "updated_at": "2026-09-08T20:00:48.042417+00:00"
-    },
-    {
-      "id": "flow-pitoco-004",
-      "name": "Recep\u00e7\u00e3o Loja Ipojuca",
-      "description": "Atendimento e suporte presencial aos clientes da loja Ipojuca.",
-      "status": "draft",
-      "version": 1,
-      "is_active": false,
-      "trigger_type": "Filial Ipojuca",
-      "store_id": null,
-      "store_name": null,
-      "node_count": 3,
-      "steps": [],
-      "created_at": "2026-09-08T20:00:48.042417+00:00",
-      "updated_at": "2026-09-08T20:00:48.042417+00:00"
+      "updated_at": "2026-09-08T21:00:18.939Z"
     }
   ],
   "nodes": {
@@ -795,6 +780,10 @@
           "nodeType": "question",
           "description": "Faz uma pergunta ao cliente e salva o texto digitado em uma vari\u00e1vel.",
           "isConfigured": true
+        },
+        "measured": {
+          "width": 330,
+          "height": 165
         }
       },
       {
@@ -814,6 +803,10 @@
           "nodeType": "trigger",
           "description": "Dispara quando o cliente envia qualquer mensagem no WhatsApp",
           "isConfigured": true
+        },
+        "measured": {
+          "width": 330,
+          "height": 172
         }
       },
       {
@@ -832,6 +825,10 @@
           "nodeType": "message",
           "description": "Mensagem carinhosa de boas-vindas com o nome do cliente",
           "isConfigured": true
+        },
+        "measured": {
+          "width": 330,
+          "height": 213
         }
       },
       {
@@ -865,6 +862,10 @@
           "nodeType": "buttons",
           "description": "Op\u00e7\u00f5es r\u00e1pidas para agilizar o atendimento",
           "isConfigured": true
+        },
+        "measured": {
+          "width": 330,
+          "height": 248
         }
       },
       {
@@ -884,6 +885,10 @@
           "nodeType": "show_services",
           "description": "Lista de pe\u00e7as em destaque: bodies, macac\u00f5es e sa\u00eddas de maternidade",
           "isConfigured": true
+        },
+        "measured": {
+          "width": 150,
+          "height": 58
         }
       },
       {
@@ -902,6 +907,10 @@
           "nodeType": "human_handoff",
           "description": "Transfere para atendimento humanizado da loja",
           "isConfigured": true
+        },
+        "measured": {
+          "width": 330,
+          "height": 130
         }
       },
       {
@@ -918,6 +927,10 @@
           "nodeType": "check_contact",
           "description": "Bifurca o fluxo entre Primeiro Contato (1\u00aa Vez) e Contato Salvo (Recorrente).",
           "isConfigured": true
+        },
+        "measured": {
+          "width": 330,
+          "height": 247
         }
       },
       {
@@ -940,6 +953,10 @@
           "nodeType": "update_contact",
           "description": "Salva nome, foto oficial, tags e campos customizados direto no perfil do WhatsApp.",
           "isConfigured": true
+        },
+        "measured": {
+          "width": 330,
+          "height": 182
         }
       },
       {
@@ -968,6 +985,10 @@
           "nodeType": "variable",
           "description": "Armazena valores, c\u00e1lculos, dados de contato ou datas em vari\u00e1veis.",
           "isConfigured": true
+        },
+        "measured": {
+          "width": 330,
+          "height": 131
         }
       }
     ]
@@ -1303,7 +1324,8 @@
         "flow_id": "flow-pitoco-001",
         "source": "node-variable-1788893776618",
         "target": "node-welcome-pitoco",
-        "data": {}
+        "data": {},
+        "targetHandle": null
       },
       {
         "id": "xy-edge__node-check_contact-1788893686878is_existing-node-welcome-pitoco",
@@ -1311,14 +1333,16 @@
         "source": "node-check_contact-1788893686878",
         "target": "node-welcome-pitoco",
         "sourceHandle": "is_existing",
-        "data": {}
+        "data": {},
+        "targetHandle": null
       },
       {
         "id": "edge-p2-p3",
         "flow_id": "flow-pitoco-001",
         "source": "node-welcome-pitoco",
         "target": "node-buttons-pitoco",
-        "data": {}
+        "data": {},
+        "targetHandle": null
       },
       {
         "id": "edge-p3-p4",
@@ -1326,7 +1350,8 @@
         "source": "node-buttons-pitoco",
         "target": "node-catalog-pitoco",
         "sourceHandle": "btn_catalogo",
-        "data": {}
+        "data": {},
+        "targetHandle": null
       },
       {
         "id": "edge-p3-p5",
@@ -1334,21 +1359,24 @@
         "source": "node-buttons-pitoco",
         "target": "node-handoff-pitoco",
         "sourceHandle": "btn_atendente",
-        "data": {}
+        "data": {},
+        "targetHandle": null
       },
       {
         "id": "xy-edge__node-question-1788893542405-node-update_contact-1788893708199",
         "flow_id": "flow-pitoco-001",
         "source": "node-question-1788893542405",
         "target": "node-update_contact-1788893708199",
-        "data": {}
+        "data": {},
+        "targetHandle": null
       },
       {
         "id": "xy-edge__node-trigger-pitoco-node-check_contact-1788893686878",
         "flow_id": "flow-pitoco-001",
         "source": "node-trigger-pitoco",
         "target": "node-check_contact-1788893686878",
-        "data": {}
+        "data": {},
+        "targetHandle": null
       },
       {
         "id": "xy-edge__node-check_contact-1788893686878is_new-node-question-1788893542405",
@@ -1356,14 +1384,16 @@
         "source": "node-check_contact-1788893686878",
         "target": "node-question-1788893542405",
         "sourceHandle": "is_new",
-        "data": {}
+        "data": {},
+        "targetHandle": null
       },
       {
         "id": "xy-edge__node-update_contact-1788893708199-node-variable-1788893776618",
         "flow_id": "flow-pitoco-001",
         "source": "node-update_contact-1788893708199",
         "target": "node-variable-1788893776618",
-        "data": {}
+        "data": {},
+        "targetHandle": null
       }
     ]
   },

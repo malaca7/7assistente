@@ -5,6 +5,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { WhatsAppProvider } from './contexts/WhatsAppContext';
 import { AttendantAuthProvider } from './contexts/AttendantAuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import './index.css';
 
 interface ErrorBoundaryProps {
@@ -63,11 +64,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <ErrorBoundary>
       <ToastProvider>
         <AuthProvider>
-          <AttendantAuthProvider>
-            <WhatsAppProvider>
-              <App />
-            </WhatsAppProvider>
-          </AttendantAuthProvider>
+          <ThemeProvider>
+            <AttendantAuthProvider>
+              <WhatsAppProvider>
+                <App />
+              </WhatsAppProvider>
+            </AttendantAuthProvider>
+          </ThemeProvider>
         </AuthProvider>
       </ToastProvider>
     </ErrorBoundary>

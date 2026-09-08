@@ -1,13 +1,14 @@
-import React from 'react';
 import { 
   Menu, 
   Bell, 
   ExternalLink,
-  QrCode
+  QrCode,
+  Palette
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWhatsApp } from '../../contexts/WhatsAppContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { formatPhone } from '../../lib/utils';
 
 export interface TopbarProps {
@@ -25,6 +26,7 @@ export const Topbar: React.FC<TopbarProps> = ({
 }) => {
   const { user } = useAuth();
   const { isConnected, session } = useWhatsApp();
+  const { openThemeModal } = useTheme();
 
   return (
     <header className="h-16 bg-[#09090b]/90 backdrop-blur-xl border-b border-white/10 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30">
@@ -74,6 +76,19 @@ export const Topbar: React.FC<TopbarProps> = ({
             </span>
           </div>
         )}
+
+        {/* Botão de Personalização de Tema */}
+        <button
+          type="button"
+          onClick={openThemeModal}
+          title="Personalizar Tema (Brilho, Contraste e Cores)"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-white/10 hover:border-white/20 bg-white/[0.03] hover:bg-white/10 text-zinc-300 hover:text-white transition-all group shadow-sm"
+        >
+          <Palette className="w-4 h-4 text-zinc-400 group-hover:text-white transition-transform group-hover:rotate-12" />
+          <span className="text-xs font-semibold hidden md:inline">
+            Tema
+          </span>
+        </button>
 
         {/* User Info & Portal Pill */}
         <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-white/10">

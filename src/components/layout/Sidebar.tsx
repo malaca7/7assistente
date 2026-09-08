@@ -18,10 +18,12 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Palette
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWhatsApp } from '../../contexts/WhatsAppContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { cn } from '../../lib/utils';
 
 export interface SidebarProps {
@@ -45,8 +47,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   mobileOpen,
   onCloseMobile,
 }) => {
-  const { user, isCEO, isManager, isAttendant, logout } = useAuth();
+  const { user, isCEO, isManager, isAttendant, hasAdminAccess, hasManagerAccess, logout } = useAuth();
   const { isConnected } = useWhatsApp();
+  const { openThemeModal } = useTheme();
 
   // Todos os itens de navegação organizados conforme nova estrutura oficial
   const allNavigationGroups = [
@@ -146,16 +149,53 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
   ];
 
-  // Filtrar de acordo com os painéis marcados para o usuário (ou pelo papel de fallback)
-  const allowedPanels = user?.allowed_panels;
+  // Determinação de Permissões do Usuário Logado
+  const userPanels = Array.isArray(user?.panels) ? user.panels : [];
+  const allowedPanels = Array.isArray(user?.allowed_panels) ? user.allowed_panels : [];
   const currentRole = user?.role || 'ceo';
+  const currentUsername = (user?.username || '').toLowerCase();
+
+  // É Admin/CEO se tiver 'admin' nos painéis, role ceo/admin, flag do AuthContext, ou username malaca/admin/ceo
+  const isAdmin = 
+    Boolean(hasAdminAccess) || 
+    Boolean(isCEO) || 
+    currentRole === 'ceo' || 
+    currentRole === 'admin' || 
+    userPanels.includes('admin') || 
+    allowedPanels.includes('admin') ||
+    currentUsername === 'malaca' ||
+    currentUsername === 'admin' ||
+    currentUsername === 'ceo';
+
+  // É Gerente se tiver 'gerente' nos painéis ou role 'manager'
+  const isMgr = 
+    isAdmin || 
+    Boolean(hasManagerAccess) || 
+    Boolean(isManager) || 
+    currentRole === 'manager' || 
+    userPanels.includes('gerente') || 
+    allowedPanels.includes('gerente');
+
+  // Filtragem dos grupos de navegação
   const filteredGroups = allNavigationGroups.map(group => ({
     ...group,
     items: group.items.filter(item => {
-      if (Array.isArray(allowedPanels) && allowedPanels.length > 0) {
-        return allowedPanels.includes(item.id);
+      // 1. Se for Admin/CEO (incluindo malaca), tem visão e controle IRRESTRITO de todos os menus
+      if (isAdmin) return true;
+
+      // 2. Se houver permissões granulares por item ID atribuídas explicitamente
+      const granularItemIds = allowedPanels.filter(p => !['admin', 'gerente', 'atendimento'].includes(p));
+      if (granularItemIds.length > 0 && granularItemIds.includes(item.id)) {
+        return true;
       }
-      return item.roles.includes(currentRole);
+
+      // 3. Gerente acessa itens com role 'manager' e 'attendant'
+      if (isMgr) {
+        return item.roles.includes('manager') || item.roles.includes('attendant');
+      }
+
+      // 4. Atendente acessa itens com role 'attendant'
+      return item.roles.includes('attendant');
     }),
   })).filter(group => group.items.length > 0);
 
@@ -286,10 +326,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex-1 overflow-y-auto py-3 px-2.5 space-y-4">
           {filteredGroups.map(group => (
             <div key={group.title} className="space-y-1">
-              {!collapsed && (
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-3 py-1 block">
-                  {group.title}
-                </span>
+              {!collapsed ? (
+                <div className="px-3 pt-2 pb-1 flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
+                    {group.title}
+                  </span>
+                </div>
+              ) : (
+                <div className="w-full h-px bg-white/5 my-2" />
               )}
 
               {group.items.map(item => {
@@ -304,16 +348,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     onClick={() => handleItemClick(item.path)}
                     title={collapsed ? item.label : undefined}
                     className={cn(
-                      'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs transition-all duration-150',
+                      'w-full flex items-center rounded-xl text-xs transition-all duration-150 relative group',
+                      collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2.5',
                       isActive
                         ? 'bg-white text-black font-bold shadow-md'
                         : 'text-zinc-400 hover:text-white hover:bg-white/[0.06] font-medium'
                     )}
                   >
-                    <Icon className={cn('w-4 h-4 shrink-0', isActive ? 'text-black' : 'text-zinc-400')} />
+                    <Icon className={cn('w-4 h-4 shrink-0 transition-transform group-hover:scale-110', isActive ? 'text-black' : 'text-zinc-400 group-hover:text-white')} />
                     
                     {!collapsed && (
-                      <span className="truncate flex-1 text-left">
+                      <span className="truncate flex-1 text-left font-medium">
                         {item.label}
                       </span>
                     )}
@@ -330,7 +375,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ))}
         </div>
 
-        {/* Footer Controls: WhatsApp Status & Logout */}
+        {/* Footer Controls: Theme, WhatsApp Status & Logout */}
         <div className="p-3 border-t border-white/[0.08] space-y-2 bg-[#0c0c0e]/80 shrink-0">
           {!collapsed ? (
             <div className="flex items-center justify-between px-2 py-1 text-xs">
@@ -342,14 +387,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {isConnected ? 'WhatsApp Online' : 'WhatsApp Offline'}
               </span>
 
-              <button
-                onClick={logout}
-                className="text-[11px] text-zinc-400 hover:text-white flex items-center gap-1 transition-colors"
-                title="Sair do painel"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                Sair
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={openThemeModal}
+                  className="text-[11px] text-zinc-400 hover:text-white flex items-center gap-1 transition-colors px-1.5 py-0.5 rounded hover:bg-white/10"
+                  title="Personalizar Tema e Aparência"
+                >
+                  <Palette className="w-3.5 h-3.5" />
+                  Tema
+                </button>
+
+                <button
+                  onClick={logout}
+                  className="text-[11px] text-zinc-400 hover:text-white flex items-center gap-1 transition-colors px-1.5 py-0.5 rounded hover:bg-white/10"
+                  title="Sair do painel"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  Sair
+                </button>
+              </div>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-2">
@@ -360,6 +417,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 )} 
                 title={isConnected ? 'WhatsApp Online' : 'WhatsApp Offline'}
               />
+              <button
+                type="button"
+                onClick={openThemeModal}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+                title="Personalizar Tema"
+              >
+                <Palette className="w-4 h-4" />
+              </button>
               <button
                 onClick={logout}
                 className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"

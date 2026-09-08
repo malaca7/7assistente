@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
+import { ThemeSettingsModal } from '../theme/ThemeSettingsModal';
 
 export interface AdminLayoutProps {
   children: React.ReactNode;
@@ -92,6 +93,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           {children}
         </main>
       </div>
+
+      {/* Modal de Personalização de Tema */}
+      <ThemeSettingsModal />
     </div>
   );
 };

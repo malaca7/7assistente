@@ -7,14 +7,188 @@
     --bg-main: #000000;
     --card-bg: #070707;
     --border-color: rgba(255, 255, 255, 0.04);
+    --theme-brightness: 1;
+    --theme-contrast: 1;
+    --theme-accent: #10b981;
+    --theme-accent-hover: #059669;
+    --theme-accent-rgb: 16, 185, 129;
+  }
+
+  html {
+    filter: brightness(var(--theme-brightness, 1)) contrast(var(--theme-contrast, 1));
+    min-height: 100%;
+    transition: filter 0.15s ease;
   }
 
   body {
-    background-color: #000000;
-    color: #cbd5e1; /* Softer text color to reduce glare */
+    background-color: var(--bg-main, #000000);
+    color: #cbd5e1;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
+
+/* ==============================================================================
+   5 TEMAS (3 ESCUROS + 2 CLAROS)
+   ============================================================================== */
+
+/* 1. DARK MIDNIGHT (Preto Puro OLED) */
+[data-theme="dark-midnight"] {
+  --bg-main: #000000;
+  --card-bg: #080809;
+  --border-color: rgba(255, 255, 255, 0.05);
+}
+
+/* 2. DARK SLATE (Carvão & Ardósia) */
+[data-theme="dark-slate"] {
+  --bg-main: #0b0f17;
+  --card-bg: #111827;
+  --border-color: rgba(255, 255, 255, 0.08);
+}
+[data-theme="dark-slate"] body,
+[data-theme="dark-slate"] .bg-black {
+  background-color: #0b0f17 !important;
+}
+[data-theme="dark-slate"] .bg-\[\#09090b\],
+[data-theme="dark-slate"] .bg-dark-900,
+[data-theme="dark-slate"] .bg-zinc-900 {
+  background-color: #111827 !important;
+}
+[data-theme="dark-slate"] .bg-\[\#141416\],
+[data-theme="dark-slate"] .bg-dark-850,
+[data-theme="dark-slate"] .bg-zinc-800 {
+  background-color: #1a2233 !important;
+}
+
+/* 3. DARK VIOLET (Deep Nebula / Cyber Roxo) */
+[data-theme="dark-violet"] {
+  --bg-main: #090514;
+  --card-bg: #130a24;
+  --border-color: rgba(168, 85, 247, 0.15);
+}
+[data-theme="dark-violet"] body,
+[data-theme="dark-violet"] .bg-black {
+  background-color: #090514 !important;
+}
+[data-theme="dark-violet"] .bg-\[\#09090b\],
+[data-theme="dark-violet"] .bg-dark-900,
+[data-theme="dark-violet"] .bg-zinc-900 {
+  background-color: #130a24 !important;
+}
+[data-theme="dark-violet"] .bg-\[\#141416\],
+[data-theme="dark-violet"] .bg-dark-850,
+[data-theme="dark-violet"] .bg-zinc-800 {
+  background-color: #1c0f33 !important;
+}
+
+/* 4. LIGHT MINIMAL (Neve Clean / Branco Alto Contraste) */
+[data-theme="light-minimal"] {
+  --bg-main: #f8fafc;
+  --card-bg: #ffffff;
+  --border-color: rgba(15, 23, 42, 0.08);
+}
+[data-theme="light-minimal"] body,
+[data-theme="light-minimal"] .bg-black {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+[data-theme="light-minimal"] .bg-\[\#09090b\],
+[data-theme="light-minimal"] .bg-dark-900,
+[data-theme="light-minimal"] .bg-zinc-900 {
+  background-color: #ffffff !important;
+}
+[data-theme="light-minimal"] .bg-\[\#141416\],
+[data-theme="light-minimal"] .bg-dark-850,
+[data-theme="light-minimal"] .bg-zinc-800 {
+  background-color: #f1f5f9 !important;
+}
+
+/* 5. LIGHT WARM (Areia Quente & Papel Editorial) */
+[data-theme="light-warm"] {
+  --bg-main: #fbf9f4;
+  --card-bg: #ffffff;
+  --border-color: rgba(120, 53, 15, 0.1);
+}
+[data-theme="light-warm"] body,
+[data-theme="light-warm"] .bg-black {
+  background-color: #fbf9f4 !important;
+  color: #292524 !important;
+}
+[data-theme="light-warm"] .bg-\[\#09090b\],
+[data-theme="light-warm"] .bg-dark-900,
+[data-theme="light-warm"] .bg-zinc-900 {
+  background-color: #ffffff !important;
+}
+[data-theme="light-warm"] .bg-\[\#141416\],
+[data-theme="light-warm"] .bg-dark-850,
+[data-theme="light-warm"] .bg-zinc-800 {
+  background-color: #f4ede4 !important;
+}
+
+/* Regras universais para os 2 temas claros */
+[data-theme^="light"] .text-white {
+  color: #0f172a !important;
+}
+[data-theme^="light"] .text-zinc-100,
+[data-theme^="light"] .text-slate-200 {
+  color: #1e293b !important;
+}
+[data-theme^="light"] .text-zinc-300,
+[data-theme^="light"] .text-slate-300 {
+  color: #334155 !important;
+}
+[data-theme^="light"] .text-zinc-400,
+[data-theme^="light"] .text-slate-400 {
+  color: #64748b !important;
+}
+[data-theme^="light"] .text-zinc-500,
+[data-theme^="light"] .text-slate-500 {
+  color: #94a3b8 !important;
+}
+[data-theme^="light"] .border-white\/5,
+[data-theme^="light"] .border-white\/10,
+[data-theme^="light"] .border-white\/15,
+[data-theme^="light"] .border-white\/20,
+[data-theme^="light"] .border-zinc-800,
+[data-theme^="light"] .border-slate-800\/80 {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+[data-theme^="light"] .bg-white\/5 {
+  background-color: rgba(0, 0, 0, 0.03) !important;
+}
+[data-theme^="light"] .bg-white\/10 {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+[data-theme^="light"] .hover\:bg-white\/5:hover {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+[data-theme^="light"] .hover\:bg-white\/10:hover {
+  background-color: rgba(0, 0, 0, 0.07) !important;
+}
+[data-theme^="light"] .glass-panel {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+[data-theme^="light"] .glass-dropdown {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+[data-theme^="light"] input,
+[data-theme^="light"] textarea,
+[data-theme^="light"] select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+[data-theme^="light"] ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+[data-theme^="light"] ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+[data-theme^="light"] ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
 
 /* Dark Low-Brightness Scrollbars */
 ::-webkit-scrollbar {

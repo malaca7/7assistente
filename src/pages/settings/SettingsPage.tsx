@@ -41,7 +41,10 @@ import {
   Plus,
   Download,
   Volume2,
-  HardDrive
+  HardDrive,
+  Palette,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -51,6 +54,8 @@ import { Modal } from '../../components/ui/Modal';
 import { QRCodeView } from '../../components/ui/QRCodeView';
 import { useToast } from '../../contexts/ToastContext';
 import { useWhatsApp } from '../../contexts/WhatsAppContext';
+import { useTheme } from '../../contexts/ThemeContext';
+import { THEME_OPTIONS, ACCENT_OPTIONS } from '../../types/theme';
 import { StorageService, isSupabaseConfigured } from '../../lib/storage';
 import { BotProfile, BotGender, BotTone, Attendant, CustomVariable, Settings } from '../../types';
 import { defaultBotProfile } from '../../lib/mockData';
@@ -106,6 +111,17 @@ export const SettingsPage: React.FC = () => {
     setCustomBackendUrl,
     refreshStatus
   } = useWhatsApp();
+
+  const { 
+    themeMode, 
+    brightness, 
+    contrast, 
+    accentColor, 
+    openThemeModal, 
+    setThemeMode, 
+    setAccentColor, 
+    currentUserIdentifier 
+  } = useTheme();
 
   const [activeTab, setActiveTab] = useState<string>('whatsapp_qr');
   const [isSaving, setIsSaving] = useState(false);
@@ -660,7 +676,158 @@ export const SettingsPage: React.FC = () => {
           <ShieldCheck className="w-4 h-4" />
           <span>Segurança & Senha</span>
         </button>
+
+        <button
+          onClick={() => setActiveTab('theme')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+            activeTab === 'theme'
+              ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Palette className="w-4 h-4" />
+          <span>Tema & Aparência</span>
+        </button>
       </div>
+
+      {/* ========================================================================= */}
+      {/* TAB: THEME & APARÊNCIA */}
+      {/* ========================================================================= */}
+      {activeTab === 'theme' && (
+        <div className="space-y-6 animate-in fade-in">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center text-primary-400">
+                    <Palette className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <CardTitle>Tema & Personalização Visual do Painel</CardTitle>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Configurações salvas individualmente para <strong className="text-white">@{currentUserIdentifier}</strong>
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  variant="primary"
+                  onClick={openThemeModal}
+                  className="flex items-center gap-2 text-xs"
+                >
+                  <Palette className="w-4 h-4" />
+                  Abrir Configurador Completo
+                </Button>
+              </div>
+            </CardHeader>
+
+            {/* Quick overview of active theme settings */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+              <div className="bg-dark-950/60 p-4 rounded-xl border border-white/5">
+                <span className="text-[11px] font-semibold text-slate-400 block uppercase">Tema Atual</span>
+                <span className="text-base font-bold text-white mt-1 block">
+                  {THEME_OPTIONS.find(t => t.id === themeMode)?.name || themeMode}
+                </span>
+                <span className="text-xs text-slate-500 mt-0.5 block">
+                  {themeMode.startsWith('dark') ? '🌙 3 Opções Escuras' : '☀️ 2 Opções Claras'}
+                </span>
+              </div>
+
+              <div className="bg-dark-950/60 p-4 rounded-xl border border-white/5">
+                <span className="text-[11px] font-semibold text-slate-400 block uppercase">Cor de Destaque</span>
+                <div className="flex items-center gap-2 mt-1">
+                  <span 
+                    className="w-3.5 h-3.5 rounded-full shadow-sm"
+                    style={{ backgroundColor: ACCENT_OPTIONS.find(a => a.id === accentColor)?.hex }}
+                  />
+                  <span className="text-base font-bold text-white">
+                    {ACCENT_OPTIONS.find(a => a.id === accentColor)?.name || accentColor}
+                  </span>
+                </div>
+                <span className="text-xs text-slate-500 mt-0.5 block">Acentos, botões e badges</span>
+              </div>
+
+              <div className="bg-dark-950/60 p-4 rounded-xl border border-white/5">
+                <span className="text-[11px] font-semibold text-slate-400 block uppercase">Brilho</span>
+                <span className="text-base font-bold text-white mt-1 block font-mono">
+                  {brightness}%
+                </span>
+                <span className="text-xs text-slate-500 mt-0.5 block">
+                  {brightness === 100 ? 'Calibração normal' : brightness > 100 ? 'Mais iluminado' : 'Atenuado'}
+                </span>
+              </div>
+
+              <div className="bg-dark-950/60 p-4 rounded-xl border border-white/5">
+                <span className="text-[11px] font-semibold text-slate-400 block uppercase">Contraste</span>
+                <span className="text-base font-bold text-white mt-1 block font-mono">
+                  {contrast}%
+                </span>
+                <span className="text-xs text-slate-500 mt-0.5 block">
+                  {contrast === 100 ? 'Contraste balanceado' : contrast > 100 ? 'Alto contraste' : 'Suave'}
+                </span>
+              </div>
+            </div>
+
+            {/* Quick switcher buttons for all 5 themes */}
+            <div className="mt-6 pt-6 border-t border-white/5">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+                Seleção Rápida de Tema (3 Escuros e 2 Claros)
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                {THEME_OPTIONS.map(opt => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setThemeMode(opt.id)}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      themeMode === opt.id
+                        ? 'border-white bg-white/10 ring-1 ring-white/30 shadow-md'
+                        : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/15'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-bold text-white">{opt.name}</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-zinc-300">
+                        {opt.category === 'dark' ? '🌙' : '☀️'}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 line-clamp-2 leading-relaxed">
+                      {opt.description}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Quick accent color picker */}
+            <div className="mt-6 pt-6 border-t border-white/5">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+                Paleta de Cores de Acento
+              </h4>
+              <div className="flex flex-wrap gap-2.5">
+                {ACCENT_OPTIONS.map(acc => (
+                  <button
+                    key={acc.id}
+                    type="button"
+                    onClick={() => setAccentColor(acc.id)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all ${
+                      accentColor === acc.id
+                        ? 'border-white bg-white/10 ring-2 ring-white/20'
+                        : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]'
+                    }`}
+                  >
+                    <span 
+                      className="w-3.5 h-3.5 rounded-full shadow-sm"
+                      style={{ backgroundColor: acc.hex }}
+                    />
+                    <span className="text-zinc-200">{acc.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* TAB 1: WHATSAPP QR CODE & DISCLOUD CONNECTION */}
