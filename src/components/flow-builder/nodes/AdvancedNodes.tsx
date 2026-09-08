@@ -444,6 +444,112 @@ export const CheckContactNode: React.FC<NodeProps> = ({ id, selected, data }) =>
   );
 };
 
+export const ClientUpsertNode: React.FC<NodeProps> = ({ id, selected, data }) => {
+  const nodeData = data as unknown as FlowNodeData;
+  const config = nodeData.config || {};
+  const nameVal = config.nameField || config.contactName || '{{nome_cliente}}';
+  const phoneVal = config.phoneField || config.phoneVariable || '{{telefone_whatsapp}}';
+  const babyVal = config.babyNameField;
+  const tagsVal = config.tagsField || config.tags;
+
+  return (
+    <BaseNode
+      id={id}
+      selected={selected}
+      title={nodeData.label || 'Cadastrar / Atualizar Cliente'}
+      subtitle="Registra e atualiza cliente no CRM"
+      icon={<Users className="w-4 h-4" />}
+      iconBg="bg-indigo-600"
+      accentColor="bg-indigo-500"
+      hasInput={true}
+      hasOutput={true}
+      isConfigured={true}
+    >
+      <div className="space-y-1.5 p-2.5 rounded-xl bg-dark-950/90 border border-indigo-500/20 text-[11px] text-slate-300">
+        <div className="flex items-center justify-between text-[10px]">
+          <span className="text-indigo-400 font-bold flex items-center gap-1">
+            <Users className="w-3 h-3" />
+            Dados do CRM:
+          </span>
+          <span className="text-emerald-400 font-mono text-[9px]">Auto-Sync</span>
+        </div>
+
+        <div className="space-y-1 pt-0.5">
+          <div className="flex items-center gap-1.5 text-[10px]">
+            <span className="text-slate-400 font-medium">Nome:</span>
+            <VariableBadge name={nameVal} />
+          </div>
+
+          <div className="flex items-center gap-1.5 text-[10px]">
+            <span className="text-slate-400 font-medium">Whats:</span>
+            <VariableBadge name={phoneVal} />
+          </div>
+
+          {babyVal && (
+            <div className="flex items-center gap-1.5 text-[10px]">
+              <span className="text-pink-400 font-medium">Bebê:</span>
+              <VariableBadge name={babyVal} />
+            </div>
+          )}
+
+          {tagsVal && (
+            <div className="flex items-center gap-1 text-[9.5px] truncate pt-0.5">
+              <span className="text-slate-400">Tags:</span>
+              <span className="bg-indigo-950/80 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-800/60 font-sans truncate">
+                {tagsVal}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="pt-1.5 border-t border-white/5 flex items-center justify-between text-[9px] text-slate-400">
+          <span>Saída:</span>
+          <div className="flex gap-1">
+            <span className="font-mono text-cyan-300 bg-cyan-950/60 px-1 rounded border border-cyan-800/40">cliente_salvo</span>
+            <span className="font-mono text-indigo-300 bg-indigo-950/60 px-1 rounded border border-indigo-800/40">cliente_id</span>
+          </div>
+        </div>
+      </div>
+    </BaseNode>
+  );
+};
+
+export const ClientLookupNode: React.FC<NodeProps> = ({ id, selected, data }) => {
+  const nodeData = data as unknown as FlowNodeData;
+  const config = nodeData.config || {};
+  const phoneVar = config.phoneVar || 'telefone_whatsapp';
+
+  return (
+    <BaseNode
+      id={id}
+      selected={selected}
+      title={nodeData.label || 'Consultar Cliente (CRM)'}
+      subtitle="Busca dados pelo WhatsApp"
+      icon={<UserCheck className="w-4 h-4" />}
+      iconBg="bg-emerald-600"
+      accentColor="bg-emerald-500"
+      hasInput={true}
+      hasOutput={true}
+      isConfigured={true}
+    >
+      <div className="space-y-1.5 p-2.5 rounded-xl bg-dark-950/90 border border-emerald-500/20 text-[11px] text-slate-300">
+        <div className="flex items-center justify-between text-[10px]">
+          <span className="text-emerald-400 font-bold">Buscar por:</span>
+          <span className="text-emerald-300 font-mono text-[9px]">1-Clique</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-[10px]">
+          <span className="text-slate-400">WhatsApp:</span>
+          <VariableBadge name={phoneVar} />
+        </div>
+        <div className="pt-1 border-t border-white/5 flex flex-wrap gap-1">
+          <VariableBadge name="cliente_encontrado" />
+          <VariableBadge name="cliente_nome" />
+          <VariableBadge name="cliente_bebe" />
+        </div>
+      </div>
+    </BaseNode>
+  );
+};
 
 export const UpdateContactNode: React.FC<NodeProps> = ({ id, selected, data }) => {
   const nodeData = data as unknown as FlowNodeData;

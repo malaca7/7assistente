@@ -330,10 +330,11 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
         }
         break;
       }
-      // 6. Update Contact Node
-      else if (type === 'update_contact') {
-        const resolvedName = config.contactName
-          ? (activeVars[config.contactName.replace(/[{}]/g, '').trim()] || activeVars[config.contactName] || activeVars.nome_cliente)
+      // 6. Update Contact / Client Upsert Node
+      else if (type === 'update_contact' || type === 'client_upsert' || type === 'save_contact') {
+        const rawName = config.nameField || config.contactName;
+        const resolvedName = rawName
+          ? (activeVars[rawName.replace(/[{}]/g, '').trim()] || activeVars[rawName] || activeVars.nome_cliente)
           : (activeVars.nome_cliente || activeVars.whatsapp_pushname || 'Cliente');
         if (resolvedName) {
           activeVars.nome_cliente = resolvedName;
