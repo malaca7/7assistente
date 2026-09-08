@@ -448,43 +448,73 @@ export const CheckContactNode: React.FC<NodeProps> = ({ id, selected, data }) =>
 export const UpdateContactNode: React.FC<NodeProps> = ({ id, selected, data }) => {
   const nodeData = data as unknown as FlowNodeData;
   const config = nodeData.config || {};
+  const hasPhoto = config.saveProfilePicture !== false;
+  const contactName = config.contactName || config.nameField;
+  const phoneLabel = config.phoneMode === 'fixed' 
+    ? config.fixedPhone 
+    : config.phoneMode === 'variable' 
+    ? (config.phoneVariable || 'variável')
+    : 'WhatsApp Atual (Interação)';
 
   return (
     <BaseNode
       id={id}
       selected={selected}
       title={nodeData.label || 'Salvar / Vincular Dados'}
-      subtitle="Grava campos no perfil do WhatsApp"
+      subtitle="Cadastra e atualiza cliente no CRM"
       icon={<Sliders className="w-4 h-4" />}
       iconBg="bg-cyan-600"
       accentColor="bg-cyan-500"
       hasInput={true}
       hasOutput={true}
-      isConfigured={Boolean(config.contactName || config.tags || config.customField)}
+      isConfigured={Boolean(contactName || config.tags || config.phoneMode || hasPhoto)}
     >
-      <div className="space-y-1 p-2 rounded-xl bg-dark-950/80 border border-cyan-500/20 text-[11px] text-slate-300">
-        {config.contactName && (
+      <div className="space-y-1.5 p-2 rounded-xl bg-dark-950/80 border border-cyan-500/20 text-[11px] text-slate-300">
+        {contactName ? (
           <div className="flex items-center gap-1.5">
             <span className="text-cyan-400 font-semibold text-[10px]">Nome: </span>
-            <VariableBadge name={config.contactName} />
+            <VariableBadge name={contactName} />
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+            <span className="text-cyan-400 font-semibold">Nome: </span>
+            <span>Automático</span>
           </div>
         )}
-        {config.tags && (
+
+        <div className="flex items-center gap-1 text-[10px] text-slate-300 truncate">
+          <span className="text-emerald-400 font-semibold">Whats: </span>
+          <span className="font-mono text-slate-200 truncate">{phoneLabel}</span>
+        </div>
+
+        {hasPhoto && (
+          <div className="flex items-center gap-1 text-[9.5px] text-purple-300 bg-purple-950/40 px-1.5 py-0.5 rounded border border-purple-500/30">
+            <span>📸</span>
+            <span>Salva Foto do WhatsApp</span>
+          </div>
+        )}
+
+        {config.babyNameField && (
+          <div className="flex items-center gap-1 text-[10px] text-pink-300">
+            <span className="font-semibold text-pink-400">Bebê: </span>
+            <VariableBadge name={config.babyNameField} />
+          </div>
+        )}
+
+        {(config.tags || config.tagsField) && (
           <div className="truncate">
             <span className="text-cyan-400 font-semibold text-[10px]">Tags: </span>
-            <span className="text-[10px] bg-cyan-950/80 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-800/60 font-sans">
-              {config.tags}
+            <span className="text-[9.5px] bg-cyan-950/80 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-800/60 font-sans">
+              {config.tags || config.tagsField}
             </span>
           </div>
         )}
+
         {config.customFieldKey && (
           <div className="flex items-center gap-1.5 text-[10px]">
             <span className="font-mono text-slate-400">{config.customFieldKey} =</span>
             <VariableBadge name={config.customFieldValue || 'valor'} />
           </div>
-        )}
-        {!config.contactName && !config.tags && !config.customFieldKey && (
-          <span className="italic text-slate-500 text-[10px]">Clique para configurar os dados a vincular</span>
         )}
       </div>
     </BaseNode>

@@ -26,6 +26,7 @@ import {
   AlertCircle,
   HelpCircle,
   ArrowRightLeft,
+  ArrowUpDown,
   Trash2,
   Download,
   Eraser,
@@ -109,6 +110,7 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
   const [contactInfo, setContactInfo] = useState<Contact | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [sortOrder, setSortOrder] = useState<'oldest_first' | 'newest_first'>('oldest_first');
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -445,11 +447,35 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
   };
 
   // 6. Transferir Atendimento para Atendente / Filial
+  // 6. Transferir Atendimento para Atendente / Filial / Fila Geral
   const handleTransferConversation = async () => {
     if (!activeConv || !transferTargetAttendant) {
-      warning('Selecione um atendente para transferir a conversa.');
+      warning('Selecione um destino para transferir a conversa.');
       return;
     }
+
+    // Caso de liberar para a Fila Geral (sem atendente atribuído)
+    if (transferTargetAttendant === '__unassigned__') {
+      await StorageService.updateConversationStatus(activeConv.id, 'waiting_human', activeConv.store_id || undefined);
+      await StorageService.assignAttendant(activeConv.id, '', '');
+
+      const updated: Conversation = {
+        ...activeConv,
+        assigned_to: undefined,
+        assigned_attendant_name: null,
+        assigned_attendant_id: null,
+        status: 'waiting_human',
+        updated_at: new Date().toISOString()
+      };
+
+      setActiveConv(updated);
+      setConversations(prev => prev.map(c => c.id === activeConv.id ? updated : c));
+      setIsTransferModalOpen(false);
+      setTransferTargetAttendant('');
+      success('Conversa devolvida para a Fila Geral de Espera!');
+      return;
+    }
+
     const attendant = attendants.find(a => a.id === transferTargetAttendant || (a.name || a.username) === transferTargetAttendant);
     const attendantName = attendant ? (attendant.name || attendant.username) : transferTargetAttendant;
 
@@ -461,16 +487,19 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
       activeConv.store_name
     );
 
-    const updated = {
+    const updated: Conversation = {
       ...activeConv,
       assigned_to: attendantName,
       assigned_attendant_name: attendantName,
-      status: 'waiting_human' as const,
+      assigned_attendant_id: attendant?.id || `att-${Date.now()}`,
+      status: 'human',
+      updated_at: new Date().toISOString()
     };
 
     setActiveConv(updated);
     setConversations(prev => prev.map(c => c.id === activeConv.id ? updated : c));
     setIsTransferModalOpen(false);
+    setTransferTargetAttendant('');
     success(`Conversa transferida com sucesso para ${attendantName}`);
   };
 
@@ -651,7 +680,22 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
     }
   };
 
-  // Filtragem estrita de conversas
+  // Utilitário para formatar tempo de espera relativo
+  const getWaitingTime = (dateStr?: string) => {
+    if (!dateStr) return null;
+    const t = new Date(dateStr).getTime();
+    if (isNaN(t)) return null;
+    const diffMs = Date.now() - t;
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return 'Agora';
+    if (diffMin < 60) return `${diffMin}m`;
+    const diffHours = Math.floor(diffMin / 60);
+    if (diffHours < 24) return `${diffHours}h ${diffMin % 60}m`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}d`;
+  };
+
+  // Filtragem estrita de conversas com controle de privacidade e permissões
   const filteredConversations = conversations.filter(conv => {
     // 1. Filtro de Lixeira
     if (statusFilter === 'trash') {
@@ -660,20 +704,78 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
       if (conv.is_deleted) return false;
     }
 
-    // 2. Busca por texto
+    // 2. PRIVACIDADE DE ATENDIMENTO ASSUMIDO:
+    // "quando o atendimento for assumido, só o atendente que assumiu pode ver a conversa,
+    // exceto no painel admin o usuario com admin consegue ver todas as conversas do atendimento e transferir para qualquer pessoa"
+    const isAssigned = Boolean(
+      conv.status === 'human' || 
+      conv.assigned_to || 
+      conv.assigned_attendant_name || 
+      conv.assigned_attendant_id
+    );
+
+    if (!isAdmin && isAssigned) {
+      const myIdentifiers = [
+        user?.name?.toLowerCase().trim(),
+        user?.username?.toLowerCase().trim(),
+        user?.id?.toLowerCase().trim(),
+      ].filter(Boolean) as string[];
+
+      const assignedToName = (conv.assigned_to || conv.assigned_attendant_name || '').toLowerCase().trim();
+      const assignedToId = (conv.assigned_attendant_id || '').toLowerCase().trim();
+
+      const isAssignedToMe = myIdentifiers.some(id => 
+        (assignedToName && (assignedToName.includes(id) || id.includes(assignedToName))) ||
+        (assignedToId && assignedToId === id)
+      );
+
+      // Se a conversa foi assumida por OUTRO atendente, este operador NÃO pode ver!
+      if (!isAssignedToMe) {
+        return false;
+      }
+    }
+
+    // 3. Busca por texto
     const matchesSearch = 
       (conv.contact_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (conv.contact_phone || conv.phone || '').includes(searchTerm) ||
       (conv.last_message || '').toLowerCase().includes(searchTerm.toLowerCase());
 
-    // 3. Status
+    // 4. Status
     const matchesStatus = statusFilter === 'all' || statusFilter === 'trash' || conv.status === statusFilter;
 
-    // 4. Setor
+    // 5. Setor
     const matchesSector = selectedSectorFilter === 'all' || (conv.sector || 'Vendas & Enxoval') === selectedSectorFilter;
 
     return matchesSearch && matchesStatus && matchesSector;
   });
+
+  // ORDENAÇÃO DA FILA:
+  // "criar uma fila da interação mais antiga para mais nova para facilitar atendimento"
+  const sortedConversations = [...filteredConversations].sort((a, b) => {
+    const timeA = new Date(a.last_message_at || a.updated_at || a.created_at || 0).getTime();
+    const timeB = new Date(b.last_message_at || b.updated_at || b.created_at || 0).getTime();
+
+    if (sortOrder === 'oldest_first') {
+      // Interação mais antiga no topo (Fila FIFO para atender quem espera há mais tempo)
+      return (isNaN(timeA) ? 0 : timeA) - (isNaN(timeB) ? 0 : timeB);
+    } else {
+      // Mais recente no topo
+      return (isNaN(timeB) ? 0 : timeB) - (isNaN(timeA) ? 0 : timeA);
+    }
+  });
+
+  // Garantir que a conversa ativa seja permitida para o atendente atual
+  useEffect(() => {
+    if (activeConv && !isAdmin) {
+      const isStillAllowed = sortedConversations.some(c => c.id === activeConv.id);
+      if (!isStillAllowed && sortedConversations.length > 0) {
+        setActiveConv(sortedConversations[0]);
+      } else if (!isStillAllowed && sortedConversations.length === 0) {
+        setActiveConv(null);
+      }
+    }
+  }, [sortedConversations, activeConv, isAdmin]);
 
   return (
     <div className="h-[calc(100vh-120px)] flex flex-col gap-4">
@@ -755,7 +857,7 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
         {/* Coluna Esquerda: Lista de Conversas (4 colunas) */}
         <Card className="md:col-span-4 flex flex-col h-full bg-dark-900 border-white/10 overflow-hidden">
           {/* Busca & Filtro de Status */}
-          <div className="p-3 border-b border-white/5 space-y-2">
+          <div className="p-3 border-b border-white/5 space-y-2.5">
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -767,7 +869,8 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
               />
             </div>
 
-            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pt-1">
+            {/* Status Tabs */}
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pt-0.5">
               {[
                 { id: 'all', label: 'Todos' },
                 { id: 'waiting_human', label: 'Aguardando ⏳' },
@@ -790,21 +893,48 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                 </button>
               ))}
             </div>
+
+            {/* Alternador de Ordenação da Fila (Mais antiga para mais nova vs Recente) */}
+            <div className="flex items-center justify-between pt-1 border-t border-white/5 text-[10.5px]">
+              <span className="text-slate-400 font-medium">
+                {statusFilter === 'waiting_human' ? 'Fila de Espera:' : 'Ordenação da Fila:'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setSortOrder(prev => prev === 'oldest_first' ? 'newest_first' : 'oldest_first')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-all font-semibold ${
+                  sortOrder === 'oldest_first'
+                    ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                    : 'bg-dark-800 text-slate-300 border-white/10 hover:text-white'
+                }`}
+                title="Alternar entre fila por tempo de espera (mais antiga) ou interações mais recentes"
+              >
+                <ArrowUpDown className="w-3 h-3 text-pitoco-blue" />
+                <span>
+                  {sortOrder === 'oldest_first' ? '⏳ Mais antiga ➔ Mais nova (Fila)' : '⚡ Mais recentes no topo'}
+                </span>
+              </button>
+            </div>
           </div>
 
           {/* Lista Rolável */}
           <div className="flex-1 overflow-y-auto divide-y divide-white/5">
-            {filteredConversations.length === 0 ? (
+            {sortedConversations.length === 0 ? (
               <div className="p-8 text-center text-slate-500 text-xs">
                 {statusFilter === 'trash' 
                   ? 'A lixeira está vazia.' 
+                  : !isAdmin && statusFilter === 'human'
+                  ? 'Você não possui atendimentos assumidos no momento.'
                   : 'Nenhuma conversa encontrada neste filtro.'}
               </div>
             ) : (
-              filteredConversations.map(conv => {
+              sortedConversations.map((conv, index) => {
                 const isActive = activeConv?.id === conv.id;
                 const isWaiting = conv.status === 'waiting_human';
                 const isDeleted = conv.is_deleted;
+                const waitingTime = getWaitingTime(conv.last_message_at || conv.updated_at || conv.created_at);
+                const isAssignedToMe = (conv.assigned_to === user?.name || conv.assigned_attendant_name === user?.name);
+
                 return (
                   <div
                     key={conv.id}
@@ -817,8 +947,12 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                   >
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-pitoco-blue/30 to-pitoco-pink/30 flex items-center justify-center text-white text-xs font-bold border border-white/10">
-                          {(conv.contact_name || 'C')[0]}
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-pitoco-blue/30 to-pitoco-pink/30 flex items-center justify-center text-white text-xs font-bold border border-white/10 flex-shrink-0">
+                          {conv.profile_pic ? (
+                            <img src={conv.profile_pic} alt="" className="w-full h-full rounded-full object-cover" />
+                          ) : (
+                            (conv.contact_name || 'C')[0]
+                          )}
                         </div>
                         <div>
                           <h4 className="text-xs font-bold text-white truncate max-w-[140px]">
@@ -830,23 +964,41 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                         </div>
                       </div>
 
-                      {/* Status Badge */}
-                      <div>
+                      {/* Status & Posição na Fila */}
+                      <div className="flex flex-col items-end gap-1">
                         {isDeleted ? (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30">
                             Lixeira
                           </span>
                         ) : isWaiting ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse">
-                            Aguardando
-                          </span>
+                          <div className="flex items-center gap-1">
+                            {sortOrder === 'oldest_first' && (
+                              <span className="px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                #{index + 1}
+                              </span>
+                            )}
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse">
+                              Aguardando
+                            </span>
+                          </div>
                         ) : conv.status === 'human' ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/20 text-emerald-300">
-                            Humano
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                            isAssignedToMe
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold'
+                              : 'bg-emerald-500/10 text-emerald-300'
+                          }`}>
+                            {isAssignedToMe ? '✓ Seu Chat' : 'Humano'}
                           </span>
                         ) : (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-800 text-zinc-300 border border-zinc-700/60">
                             Robô
+                          </span>
+                        )}
+
+                        {/* Tempo de Espera para quem está aguardando */}
+                        {isWaiting && waitingTime && (
+                          <span className="text-[9.5px] font-mono text-amber-300/80 font-medium">
+                            ⏳ {waitingTime}
                           </span>
                         )}
                       </div>
@@ -862,7 +1014,7 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                           📍 {conv.store_name ? conv.store_name.replace('Loja ', '') : 'Rede'}
                         </span>
                         {conv.assigned_to && (
-                          <span className="text-emerald-400 font-medium truncate max-w-[80px]" title={`Atribuído a ${conv.assigned_to}`}>
+                          <span className="text-emerald-400 font-medium truncate max-w-[90px]" title={`Atribuído a ${conv.assigned_to}`}>
                             👤 {conv.assigned_to.split(' ')[0]}
                           </span>
                         )}
@@ -1712,21 +1864,28 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1 font-medium">Atendente / Responsável Destino:</label>
+                <label className="block text-slate-400 mb-1 font-medium">Atendente / Destino da Conversa:</label>
                 <select
                   value={transferTargetAttendant}
                   onChange={(e) => setTransferTargetAttendant(e.target.value)}
                   className="w-full bg-dark-850 border border-white/10 rounded-lg px-3 py-2.5 text-white text-xs focus:outline-none focus:border-white/30"
                 >
-                  <option value="">Selecione um atendente cadastrado...</option>
-                  {attendants.map((att) => (
-                    <option key={att.id} value={att.name || att.username}>
-                      {att.name || att.username} ({att.role.toUpperCase()})
-                    </option>
-                  ))}
+                  <option value="">Selecione o destino...</option>
+                  <option value="__unassigned__" className="text-amber-400 font-bold">
+                    🔓 Devolver para a Fila Geral (Qualquer Atendente pode assumir)
+                  </option>
+                  <optgroup label="Equipe e Atendentes Cadastrados">
+                    {attendants.map((att) => (
+                      <option key={att.id} value={att.name || att.username}>
+                        👤 {att.name || att.username} ({att.role.toUpperCase()})
+                      </option>
+                    ))}
+                  </optgroup>
                 </select>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  A conversa será movida para a fila do atendente selecionado com notificação de espera.
+                <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+                  {transferTargetAttendant === '__unassigned__' 
+                    ? 'A conversa voltará para o status "Aguardando", visível para toda a equipe na fila.'
+                    : 'A conversa será atribuída diretamente ao atendente escolhido, mantendo a privacidade de atendimento.'}
                 </p>
               </div>
             </div>

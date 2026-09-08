@@ -1403,67 +1403,253 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
           </div>
         )}
 
-        {/* 13. Update Contact Profile */}
+        {/* 13. Update Contact Profile (Salvar / Vincular Dados) */}
         {nodeType === 'update_contact' && (
           <div className="space-y-4">
-            <div className="p-3 rounded-2xl bg-cyan-950/40 border border-cyan-500/30 text-xs text-cyan-200 space-y-1">
+            <div className="p-3.5 rounded-2xl bg-gradient-to-br from-cyan-950/60 to-dark-950 border border-cyan-500/30 text-xs text-cyan-200 space-y-1.5 shadow-lg shadow-cyan-950/20">
               <span className="font-bold flex items-center gap-1.5 text-cyan-300">
-                <Sparkles className="w-3.5 h-3.5" />
-                Sincronização Completa de Contato:
+                <Sparkles className="w-4 h-4 text-cyan-400" />
+                Salvar / Vincular Dados do Cliente no Banco
               </span>
               <p className="text-[11px] text-slate-300 leading-relaxed">
-                Este nó salva a <strong>Foto Oficial do WhatsApp</strong>, <strong>Nome</strong> e <strong>Número de Telefone</strong> automaticamente no perfil do cliente.
+                Salva e atualiza o cadastro do cliente no banco de dados e Supabase com <strong>Nome</strong>, <strong>WhatsApp</strong>, <strong>Foto Oficial do WhatsApp</strong> e dados de CRM.
               </p>
             </div>
 
-            <Input
-              label="Nome da Variável para Salvar o WhatsApp"
-              value={config.phoneVarName || 'telefone_whatsapp'}
-              onChange={(e) => handleConfigChange('phoneVarName', e.target.value)}
-              placeholder="telefone_whatsapp"
-              hint="Cria esta variável com o número de quem está falando para você usar em mensagens (ex: {{telefone_whatsapp}})."
-            />
+            {/* 1. Nome do Cliente */}
+            <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-cyan-400" />
+                  Nome do Cliente (Digitado ou Variável)
+                </label>
+                <span className="text-[10px] text-cyan-400 font-mono">1-Clique Inserir</span>
+              </div>
+              <Input
+                value={config.contactName ?? config.nameField ?? '{{nome_cliente}}'}
+                onChange={(e) => {
+                  handleConfigChange('contactName', e.target.value);
+                  handleConfigChange('nameField', e.target.value);
+                }}
+                placeholder="Ex: {{nome_cliente}} ou Maria Oliveira"
+                className="text-xs font-mono"
+              />
+              <div className="flex flex-wrap gap-1 pt-0.5">
+                {[
+                  { tag: '{{nome_cliente}}', label: 'Nome Completo' },
+                  { tag: '{{primeiro_nome}}', label: '1º Nome' },
+                  { tag: '{{nome}}', label: 'Nome' },
+                  { tag: '{{resposta_usuario}}', label: 'Última Resposta' },
+                ].map((item) => (
+                  <button
+                    key={item.tag}
+                    type="button"
+                    onClick={() => {
+                      handleConfigChange('contactName', item.tag);
+                      handleConfigChange('nameField', item.tag);
+                    }}
+                    className="px-2 py-0.5 rounded-md bg-dark-900 hover:bg-cyan-950/80 text-cyan-300 border border-slate-700/80 hover:border-cyan-500/60 font-mono text-[10px] transition-colors"
+                  >
+                    + {item.tag}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-slate-500">
+                Você pode digitar um nome fixo ou usar uma variável coletada em nós de pergunta anteriores.
+              </p>
+            </div>
 
-            <Input
-              label="Variável com o Nome do Cliente (Opcional)"
-              value={config.contactName || ''}
-              onChange={(e) => handleConfigChange('contactName', e.target.value)}
-              placeholder="Ex: nome_cliente"
-              hint="Atualiza o nome do contato com o dado informado pelo cliente."
-            />
+            {/* 2. WhatsApp do Cliente */}
+            <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-2.5">
+              <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                WhatsApp do Cliente
+              </label>
 
-            <Input
-              label="Sobrescrever Telefone com outra Variável (Opcional)"
-              value={config.phoneVariable || ''}
-              onChange={(e) => handleConfigChange('phoneVariable', e.target.value)}
-              placeholder="Ex: outro_telefone"
-              hint="Se o cliente digitou outro número e você deseja cadastrar esse novo telefone."
-            />
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-medium text-slate-300">Origem do Número</label>
+                <select
+                  value={config.phoneMode || 'sender'}
+                  onChange={(e) => handleConfigChange('phoneMode', e.target.value)}
+                  className="w-full rounded-xl bg-dark-850 border border-slate-700/60 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                >
+                  <option value="sender">📱 Número que está interagindo no WhatsApp (Automático)</option>
+                  <option value="variable">🔤 Variável com outro telefone (ex: {'{{telefone_digitado}}'})</option>
+                  <option value="fixed">✏️ Número digitado fixo (ex: 81999998888)</option>
+                </select>
+              </div>
 
-            <Input
-              label="Tags a Vincular (separadas por vírgula)"
-              value={config.tags || ''}
-              onChange={(e) => handleConfigChange('tags', e.target.value)}
-              placeholder="Ex: Cliente, VIP, Agendou"
-              hint="Define as tags exatas que o cliente receberá."
-            />
+              {config.phoneMode === 'variable' && (
+                <Input
+                  label="Nome da Variável com o Telefone"
+                  value={config.phoneVariable || ''}
+                  onChange={(e) => handleConfigChange('phoneVariable', e.target.value)}
+                  placeholder="Ex: {{outro_telefone}} ou telefone_contato"
+                  className="text-xs font-mono"
+                />
+              )}
 
+              {config.phoneMode === 'fixed' && (
+                <Input
+                  label="Número de Telefone Fixo (DDD + Número)"
+                  value={config.fixedPhone || ''}
+                  onChange={(e) => handleConfigChange('fixedPhone', e.target.value)}
+                  placeholder="Ex: 81999998888"
+                  className="text-xs font-mono"
+                />
+              )}
+
+              <div>
+                <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                  Gravar em Variável de Saída (Opcional):
+                </label>
+                <Input
+                  value={config.phoneVarName || 'telefone_whatsapp'}
+                  onChange={(e) => handleConfigChange('phoneVarName', e.target.value)}
+                  placeholder="telefone_whatsapp"
+                  className="text-xs font-mono"
+                />
+              </div>
+            </div>
+
+            {/* 3. Foto de Perfil do WhatsApp */}
+            <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-2.5">
+              <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                Foto de Perfil do Cliente
+              </label>
+
+              <div className="flex items-start gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="saveProfilePicCheck"
+                  checked={config.saveProfilePicture !== false}
+                  onChange={(e) => handleConfigChange('saveProfilePicture', e.target.checked)}
+                  className="w-4 h-4 rounded border-white/20 bg-dark-800 text-cyan-500 focus:ring-cyan-500 mt-0.5"
+                />
+                <label htmlFor="saveProfilePicCheck" className="text-xs text-slate-200 cursor-pointer">
+                  <span className="font-semibold block">Capturar foto oficial do perfil do WhatsApp</span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">
+                    O robô baixa a foto pública de perfil do WhatsApp do cliente e vincula ao contato no CRM e na Central de Atendimento.
+                  </span>
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                  Ou URL Personalizada de Foto (Opcional):
+                </label>
+                <Input
+                  value={config.customPhotoUrl || ''}
+                  onChange={(e) => handleConfigChange('customPhotoUrl', e.target.value)}
+                  placeholder="Ex: {{foto_cliente}} ou https://exemplo.com/foto.jpg"
+                  className="text-xs"
+                />
+              </div>
+            </div>
+
+            {/* 4. Dados Complementares do CRM (Pitoco de Gente) */}
             <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-3">
-              <span className="text-xs font-semibold text-cyan-400 block">
-                Campo Personalizado Adicional:
+              <span className="text-xs font-bold text-white block">
+                👶 Dados de Enxoval & CRM (Pitoco de Gente)
               </span>
-              <Input
-                label="Nome do Campo"
-                value={config.customFieldKey || ''}
-                onChange={(e) => handleConfigChange('customFieldKey', e.target.value)}
-                placeholder="Ex: interesse_produto, cpf, cidade"
-              />
-              <Input
-                label="Valor ou Variável a Gravar"
-                value={config.customFieldValue || ''}
-                onChange={(e) => handleConfigChange('customFieldValue', e.target.value)}
-                placeholder="Ex: opcao_selecionada ou valor fixo"
-              />
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                    Nome do Bebê:
+                  </label>
+                  <Input
+                    value={config.babyNameField || ''}
+                    onChange={(e) => handleConfigChange('babyNameField', e.target.value)}
+                    placeholder="Ex: {{nome_bebe}}"
+                    className="text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                    Data Parto / DPP:
+                  </label>
+                  <Input
+                    value={config.dueDateField || ''}
+                    onChange={(e) => handleConfigChange('dueDateField', e.target.value)}
+                    placeholder="Ex: {{data_parto}}"
+                    className="text-xs"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                  E-mail do Cliente:
+                </label>
+                <Input
+                  value={config.emailField || ''}
+                  onChange={(e) => handleConfigChange('emailField', e.target.value)}
+                  placeholder="Ex: {{email_cliente}} ou contato@cliente.com"
+                  className="text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                  Tags do Cliente (separadas por vírgula):
+                </label>
+                <Input
+                  value={config.tags || config.tagsField || 'Cliente WhatsApp, Bot'}
+                  onChange={(e) => {
+                    handleConfigChange('tags', e.target.value);
+                    handleConfigChange('tagsField', e.target.value);
+                  }}
+                  placeholder="Ex: Cliente WhatsApp, Enxoval, VIP"
+                  className="text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                  Notas / Observações Internas:
+                </label>
+                <Input
+                  value={config.notesField || ''}
+                  onChange={(e) => handleConfigChange('notesField', e.target.value)}
+                  placeholder="Ex: Cadastrado no fluxo de boas-vindas"
+                  className="text-xs"
+                />
+              </div>
+
+              <div className="pt-2 border-t border-white/5 space-y-2">
+                <span className="text-[11px] font-semibold text-cyan-400 block">
+                  Campo Personalizado Adicional (Chave = Valor):
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    placeholder="Nome do Campo (ex: cidade)"
+                    value={config.customFieldKey || ''}
+                    onChange={(e) => handleConfigChange('customFieldKey', e.target.value)}
+                    className="text-xs"
+                  />
+                  <Input
+                    placeholder="Valor (ex: {{cidade}})"
+                    value={config.customFieldValue || ''}
+                    onChange={(e) => handleConfigChange('customFieldValue', e.target.value)}
+                    className="text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                <div>
+                  <span className="text-xs font-semibold text-white block">Atualizar Conversa Ativa</span>
+                  <span className="text-[10px] text-slate-400">Reflete o novo nome e foto no chat imediatamente</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={config.updateActiveConversation !== false}
+                  onChange={(e) => handleConfigChange('updateActiveConversation', e.target.checked)}
+                  className="rounded bg-dark-900 border-white/10 text-cyan-500"
+                />
+              </div>
             </div>
           </div>
         )}

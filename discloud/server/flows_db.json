@@ -297,7 +297,7 @@
       "node_count": 9,
       "steps": [],
       "created_at": "2026-09-08T20:00:48.042417+00:00",
-      "updated_at": "2026-09-08T22:09:20.407Z",
+      "updated_at": "2026-09-08T22:13:04.832Z",
       "color": "#10b981"
     }
   ],
@@ -870,8 +870,8 @@
         "flow_id": "flow-pitoco-001",
         "type": "check_contact",
         "position": {
-          "x": 480,
-          "y": 480
+          "x": 315,
+          "y": 300
         },
         "data": {
           "label": "Verificar Contato (Novo vs Salvo)",
@@ -892,7 +892,7 @@
         "flow_id": "flow-pitoco-001",
         "type": "trigger",
         "position": {
-          "x": 530,
+          "x": 315,
           "y": 100
         },
         "data": {
@@ -1023,8 +1023,8 @@
         "id": "node-shipping_calculator-1788905161954",
         "type": "shipping_calculator",
         "position": {
-          "x": 585,
-          "y": 1875
+          "x": 530,
+          "y": 1764
         },
         "data": {
           "label": "Calculadora de Frete & Entrega",
@@ -1557,9 +1557,13 @@
       "phone": "168650497613858",
       "last_message": "oi",
       "last_message_at": "2026-09-08T22:06:25.845Z",
-      "status": "active",
+      "status": "human",
       "store_name": "Pitoco de Gente",
-      "contact_id": "contact-558196138924"
+      "contact_id": "contact-558196138924",
+      "assigned_to": "Jefferson",
+      "updated_at": "2026-09-08T22:13:54.207Z",
+      "assigned_attendant_id": "user-1788799117994",
+      "assigned_attendant_name": "Jefferson"
     },
     "conv-168650497613858": {
       "id": "conv-168650497613858",
