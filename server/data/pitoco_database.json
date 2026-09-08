@@ -223,6 +223,15 @@
   ],
   "flows": [
     {
+      "id": "flow-test-backend-1788909946259",
+      "name": "Teste Discloud",
+      "description": "Teste",
+      "status": "draft",
+      "is_active": false,
+      "created_at": "2026-09-08T23:25:51.092Z",
+      "updated_at": "2026-09-08T23:25:51.092Z"
+    },
+    {
       "id": "flow-pitoco-001",
       "name": "Atendimento ao cliente Principal",
       "description": "Atendimento ao cliente Principal",
@@ -250,7 +259,7 @@
         }
       ],
       "created_at": "2026-09-08T20:00:48.042417+00:00",
-      "updated_at": "2026-09-08T23:10:34.746Z",
+      "updated_at": "2026-09-08T23:22:33.601Z",
       "color": "#10b981",
       "order_index": 0
     }
@@ -1211,10 +1220,10 @@
     ],
     "flow-pitoco-001": [
       {
-        "id": "xy-edge__node-question-1788893542405-node-update_contact-1788906881259",
+        "id": "xy-edge__node-message-1788908658917-node-message-1788908698448",
         "flow_id": "flow-pitoco-001",
-        "source": "node-question-1788893542405",
-        "target": "node-update_contact-1788906881259",
+        "source": "node-message-1788908658917",
+        "target": "node-message-1788908698448",
         "data": {}
       },
       {
@@ -1226,10 +1235,10 @@
         "data": {}
       },
       {
-        "id": "xy-edge__node-message-1788908658917-node-message-1788908698448",
+        "id": "xy-edge__node-question-1788893542405-node-update_contact-1788906881259",
         "flow_id": "flow-pitoco-001",
-        "source": "node-message-1788908658917",
-        "target": "node-message-1788908698448",
+        "source": "node-question-1788893542405",
+        "target": "node-update_contact-1788906881259",
         "data": {}
       },
       {
@@ -1319,6 +1328,27 @@
       "last_interaction": "2026-09-08T23:24:38.319Z",
       "updated_at": "2026-09-08T23:24:46.845Z",
       "whatsapp_pushname": "Maria Teste"
+    },
+    "5581987654321": {
+      "id": "contact-5581987654321",
+      "name": "Lucas",
+      "phone": "5581987654321",
+      "tags": [
+        "Lead",
+        "Cliente",
+        "Cliente WhatsApp",
+        "Bot"
+      ],
+      "status": "active",
+      "notes": "Cadastrado e atualizado pelo fluxo do bot",
+      "custom_fields": {
+        "nome_cliente": "Lucas"
+      },
+      "is_registered": true,
+      "created_at": "2026-09-08T23:35:55.155Z",
+      "last_interaction": "2026-09-08T23:35:56.207Z",
+      "updated_at": "2026-09-08T23:35:56.544Z",
+      "whatsapp_pushname": "Lucas Silva"
     }
   },
   "conversations": {
@@ -1343,26 +1373,26 @@
       "contact_phone": "168650497613858",
       "phone": "168650497613858",
       "last_message": "oi",
-      "last_message_at": "2026-09-08T23:08:43.692Z",
+      "last_message_at": "2026-09-08T23:25:05.048Z",
       "status": "waiting_human",
       "store_name": "Pitoco de Gente",
       "assigned_attendant_id": "user-1788477817013",
       "assigned_to": "Jefferson",
-      "updated_at": "2026-09-08T23:08:43.692Z"
+      "updated_at": "2026-09-08T23:25:05.048Z"
     },
-    "conv-5581999998888": {
-      "id": "conv-5581999998888",
-      "contact_id": "contact-5581999998888",
-      "contact_name": "Maria Clara",
-      "contact_phone": "5581999998888",
+    "conv-5581987654321": {
+      "id": "conv-5581987654321",
+      "contact_id": "contact-5581987654321",
+      "contact_name": "Lucas",
+      "contact_phone": "5581987654321",
       "status": "bot",
       "store_name": "Pitoco de Gente",
-      "started_at": "2026-09-08T23:24:37.649Z",
+      "started_at": "2026-09-08T23:35:55.155Z",
       "unread_count": 0,
-      "created_at": "2026-09-08T23:24:37.649Z",
+      "created_at": "2026-09-08T23:35:55.155Z",
       "last_message": "Me chamo *Victoria*, e sou assistente virtual. É um prazer atender você...",
-      "last_message_at": "2026-09-08T23:24:46.845Z",
-      "updated_at": "2026-09-08T23:24:46.845Z"
+      "last_message_at": "2026-09-08T23:35:56.544Z",
+      "updated_at": "2026-09-08T23:35:56.544Z"
     }
   },
   "messages": {
@@ -1581,44 +1611,62 @@
         "sender": "user",
         "author_name": "rogerio mlc",
         "created_at": "2026-09-08T23:08:43.692Z"
+      },
+      {
+        "id": "msg-1788909559590-eqm1s",
+        "conversation_id": "conv-168650497613858",
+        "direction": "inbound",
+        "content": "oi",
+        "sender": "user",
+        "author_name": "rogerio mlc",
+        "created_at": "2026-09-08T23:19:19.590Z"
+      },
+      {
+        "id": "msg-1788909722983-vu9xl",
+        "conversation_id": "conv-168650497613858",
+        "direction": "inbound",
+        "content": "oi",
+        "sender": "user",
+        "author_name": "rogerio mlc",
+        "created_at": "2026-09-08T23:22:02.983Z"
+      },
+      {
+        "id": "msg-1788909905049-mz0za",
+        "conversation_id": "conv-168650497613858",
+        "direction": "inbound",
+        "content": "oi",
+        "sender": "user",
+        "author_name": "rogerio mlc",
+        "created_at": "2026-09-08T23:25:05.049Z"
       }
     ],
-    "conv-5581999998888": [
+    "conv-5581987654321": [
       {
-        "id": "msg-1788909877649-5de3v",
-        "conversation_id": "conv-5581999998888",
+        "id": "msg-1788910555155-nbwzg",
+        "conversation_id": "conv-5581987654321",
         "direction": "outbound",
         "message_type": "text",
         "content": "Por favor, informe seu *Nome*:",
         "status": "delivered",
-        "created_at": "2026-09-08T23:24:37.649Z"
+        "created_at": "2026-09-08T23:35:55.155Z"
       },
       {
-        "id": "msg-1788909878599-799to",
-        "conversation_id": "conv-5581999998888",
+        "id": "msg-1788910556530-896ur",
+        "conversation_id": "conv-5581987654321",
         "direction": "outbound",
         "message_type": "text",
-        "content": "👶✨ Olá *Maria Clara*! Seja muito bem-vindo(a) à *Pitoco de Gente*!",
+        "content": "👶✨ Olá *Lucas*! Seja muito bem-vindo(a) à *Pitoco de Gente*!",
         "status": "delivered",
-        "created_at": "2026-09-08T23:24:38.599Z"
+        "created_at": "2026-09-08T23:35:56.530Z"
       },
       {
-        "id": "msg-1788909878607-p6r25",
-        "conversation_id": "conv-5581999998888",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Me chamo *Victoria*, e sou assistente virtual. É um prazer atender você...",
-        "status": "delivered",
-        "created_at": "2026-09-08T23:24:38.607Z"
-      },
-      {
-        "id": "msg-1788909886845-dvh85",
-        "conversation_id": "conv-5581999998888",
+        "id": "msg-1788910556544-zlwwa",
+        "conversation_id": "conv-5581987654321",
         "direction": "outbound",
         "message_type": "text",
         "content": "Me chamo *Victoria*, e sou assistente virtual. É um prazer atender você...",
         "status": "delivered",
-        "created_at": "2026-09-08T23:24:46.845Z"
+        "created_at": "2026-09-08T23:35:56.544Z"
       }
     ]
   },
@@ -2186,26 +2234,26 @@
       "step": "MAIN_MENU",
       "userName": "rogerio mlc"
     },
-    "5581999998888": {
+    "5581987654321": {
       "flowId": "flow-pitoco-001",
       "currentNodeId": "node-message-1788908698448",
       "variables": {
-        "whatsapp_pushname": "Maria Teste",
-        "telefone_cliente": "5581999998888",
-        "telefone_whatsapp": "5581999998888",
-        "ultima_mensagem": "Tudo bem?",
-        "nome_cliente": "Maria Clara",
+        "whatsapp_pushname": "Lucas Silva",
+        "telefone_cliente": "5581987654321",
+        "telefone_whatsapp": "5581987654321",
+        "ultima_mensagem": "Lucas",
+        "nome_cliente": "Lucas",
         "is_primeiro_contato": true,
         "is_novo_contato": true,
         "tipo_cliente": "novo",
-        "{{nome_cliente}}": "Maria Clara",
-        "resposta_usuario": "Maria Clara",
-        "cliente_nome": "Maria Clara",
-        "nome": "Maria Clara",
-        "cliente_telefone": "5581999998888",
+        "{{nome_cliente}}": "Lucas",
+        "resposta_usuario": "Lucas",
+        "cliente_nome": "Lucas",
+        "nome": "Lucas",
+        "cliente_telefone": "5581987654321",
         "cliente_salvo": true,
-        "cliente_id": "contact-5581999998888",
-        "primeiro_nome": "Maria",
+        "cliente_id": "contact-5581987654321",
+        "primeiro_nome": "Lucas",
         "cliente_foto": "",
         "foto_cliente": ""
       },
@@ -2215,17 +2263,17 @@
   "rolePermissions": {},
   "logs": [
     {
-      "id": "log-1788909886851-ufrst",
+      "id": "log-1788910556549-o5fl1",
       "type": "message_outbound",
-      "title": "Resposta para Maria Teste",
+      "title": "Resposta para Lucas Silva",
       "description": "Me chamo *Victoria*, e sou assistente virtual. É um prazer atender você...",
-      "contact_phone": "5581999998888",
-      "contact_name": "Maria Teste",
+      "contact_phone": "5581987654321",
+      "contact_name": "Lucas Silva",
       "details": {
         "direction": "outbound",
-        "messageId": "msg-1788909886845-dvh85"
+        "messageId": "msg-1788910556544-zlwwa"
       },
-      "created_at": "2026-09-08T23:24:46.851Z"
+      "created_at": "2026-09-08T23:35:56.549Z"
     }
   ]
 }

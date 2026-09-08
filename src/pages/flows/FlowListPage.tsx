@@ -510,6 +510,7 @@ export const FlowListPage: React.FC<FlowListPageProps> = ({ onNavigate }) => {
                       }`}>
                         {flow.status === 'published' ? '🟢 Ativo' : '⚪ Inativo'}
                       </span>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">

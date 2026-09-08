@@ -223,6 +223,15 @@
   ],
   "flows": [
     {
+      "id": "flow-test-backend-1788909946259",
+      "name": "Teste Discloud",
+      "description": "Teste",
+      "status": "draft",
+      "is_active": false,
+      "created_at": "2026-09-08T23:25:51.092Z",
+      "updated_at": "2026-09-08T23:25:51.092Z"
+    },
+    {
       "id": "flow-pitoco-001",
       "name": "Atendimento ao cliente Principal",
       "description": "Atendimento ao cliente Principal",
@@ -250,7 +259,7 @@
         }
       ],
       "created_at": "2026-09-08T20:00:48.042417+00:00",
-      "updated_at": "2026-09-08T23:10:34.746Z",
+      "updated_at": "2026-09-08T23:22:33.601Z",
       "color": "#10b981",
       "order_index": 0
     }
@@ -1263,7 +1272,8 @@
         "style": {
           "stroke": "#06b6d4",
           "strokeWidth": 2.5
-        }
+        },
+        "targetHandle": null
       },
       {
         "id": "xy-edge__node-message-1788908658917-node-message-1788908698448",
@@ -1274,7 +1284,8 @@
         "style": {
           "stroke": "#06b6d4",
           "strokeWidth": 2.5
-        }
+        },
+        "targetHandle": null
       },
       {
         "id": "xy-edge__node-update_contact-1788906881259-node-message-1788908658917",
@@ -1285,7 +1296,8 @@
         "style": {
           "stroke": "#06b6d4",
           "strokeWidth": 2.5
-        }
+        },
+        "targetHandle": null
       },
       {
         "id": "xy-edge__node-check_contact-1788893686878-is_existing-node-message-1788908658917",
@@ -1297,7 +1309,8 @@
         "style": {
           "stroke": "#06b6d4",
           "strokeWidth": 2.5
-        }
+        },
+        "targetHandle": null
       }
     ]
   },
@@ -1324,12 +1337,12 @@
       "contact_phone": "168650497613858",
       "phone": "168650497613858",
       "last_message": "oi",
-      "last_message_at": "2026-09-08T23:08:43.692Z",
+      "last_message_at": "2026-09-08T23:25:05.048Z",
       "status": "waiting_human",
       "store_name": "Pitoco de Gente",
       "assigned_attendant_id": "user-1788477817013",
       "assigned_to": "Jefferson",
-      "updated_at": "2026-09-08T23:08:43.692Z"
+      "updated_at": "2026-09-08T23:25:05.048Z"
     }
   },
   "messages": {
@@ -1548,6 +1561,33 @@
         "sender": "user",
         "author_name": "rogerio mlc",
         "created_at": "2026-09-08T23:08:43.692Z"
+      },
+      {
+        "id": "msg-1788909559590-eqm1s",
+        "conversation_id": "conv-168650497613858",
+        "direction": "inbound",
+        "content": "oi",
+        "sender": "user",
+        "author_name": "rogerio mlc",
+        "created_at": "2026-09-08T23:19:19.590Z"
+      },
+      {
+        "id": "msg-1788909722983-vu9xl",
+        "conversation_id": "conv-168650497613858",
+        "direction": "inbound",
+        "content": "oi",
+        "sender": "user",
+        "author_name": "rogerio mlc",
+        "created_at": "2026-09-08T23:22:02.983Z"
+      },
+      {
+        "id": "msg-1788909905049-mz0za",
+        "conversation_id": "conv-168650497613858",
+        "direction": "inbound",
+        "content": "oi",
+        "sender": "user",
+        "author_name": "rogerio mlc",
+        "created_at": "2026-09-08T23:25:05.049Z"
       }
     ]
   },

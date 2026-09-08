@@ -75,6 +75,7 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
   const [flowSteps, setFlowSteps] = useState<FlowStep[]>([]);
   const [flowColor, setFlowColor] = useState<string>('#10b981');
   const [isSavingFlow, setIsSavingFlow] = useState(false);
+  const [flowToDelete, setFlowToDelete] = useState<Flow | null>(null);
 
   // Drag and Drop State para reordenação dos cards
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
