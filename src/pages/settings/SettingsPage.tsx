@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Settings as SettingsIcon, 
   Bot, 
@@ -10,41 +10,20 @@ import {
   Sparkles, 
   Phone, 
   Mail, 
-  Clock, 
-  Globe, 
   Code2, 
-  Image as ImageIcon,
   Check, 
-  Unplug, 
-  BatteryCharging, 
-  Wifi, 
-  ShieldCheck, 
-  AlertTriangle, 
   Copy, 
-  Database, 
   Bell, 
-  Lock, 
-  Key, 
   CreditCard, 
-  MapPin, 
-  RefreshCw, 
-  ExternalLink,
-  Sliders,
-  CheckCheck,
-  Server,
-  Headphones,
-  UserPlus,
-  Trash2,
-  Edit3,
-  Star,
-  MessageSquare,
-  Plus,
-  Download,
-  Volume2,
-  HardDrive,
+  Server, 
+  Trash2, 
+  Edit3, 
+  Plus, 
   Palette,
-  Moon,
-  Sun
+  Upload,
+  User,
+  Info,
+  X
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -56,44 +35,119 @@ import { useToast } from '../../contexts/ToastContext';
 import { useWhatsApp } from '../../contexts/WhatsAppContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { THEME_OPTIONS, ACCENT_OPTIONS } from '../../types/theme';
-import { StorageService, isSupabaseConfigured } from '../../lib/storage';
-import { BotProfile, BotGender, BotTone, Attendant, CustomVariable, Settings } from '../../types';
+import { StorageService } from '../../lib/storage';
+import { BotProfile, BotGender, BotTone, CustomVariable } from '../../types';
 import { defaultBotProfile } from '../../lib/mockData';
-import { formatPhone, formatDate } from '../../lib/utils';
 
-// Preset avatar options
+// Preset avatar options enriquecidos com fotos profissionais, infantis e mascotes
 const AVATAR_PRESETS = [
+  // Femininos
   {
     gender: 'female',
-    name: 'Sofia (Feminino)',
+    name: 'Sofia (Consultora)',
+    category: 'Feminino',
     url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80',
   },
   {
     gender: 'female',
-    name: 'Camila (Feminino)',
+    name: 'Camila (Atendimento)',
+    category: 'Feminino',
     url: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&auto=format&fit=crop&q=80',
   },
   {
     gender: 'female',
-    name: 'Sofia (Consultora VIP)',
-    url: 'https://pitoco.malaca.com.br/logo.png',
+    name: 'Ana (Especialista Enxoval)',
+    category: 'Feminino',
+    url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
   },
   {
+    gender: 'female',
+    name: 'Clara (Recepção Kids)',
+    category: 'Feminino',
+    url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&auto=format&fit=crop&q=80',
+  },
+  {
+    gender: 'female',
+    name: 'Bia (Consultora Bebê)',
+    category: 'Feminino',
+    url: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=200&auto=format&fit=crop&q=80',
+  },
+
+  // Masculinos
+  {
     gender: 'male',
-    name: 'Lucas (Masculino)',
+    name: 'Lucas (Consultor)',
+    category: 'Masculino',
     url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
   },
   {
+    gender: 'male',
+    name: 'Gabriel (Especialista)',
+    category: 'Masculino',
+    url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80',
+  },
+  {
+    gender: 'male',
+    name: 'Pedro (Atendimento)',
+    category: 'Masculino',
+    url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&auto=format&fit=crop&q=80',
+  },
+  {
+    gender: 'male',
+    name: 'André (Suporte Comercial)',
+    category: 'Masculino',
+    url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=200&auto=format&fit=crop&q=80',
+  },
+
+  // Mascotes / 3D / Neutros
+  {
     gender: 'neutral',
-    name: 'Robô Cyber (Neutro)',
-    url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&auto=format&fit=crop&q=80',
+    name: 'Pitoco Logo Oficial',
+    category: 'Institucional',
+    url: 'https://pitoco.malaca.com.br/logo.png',
   },
   {
     gender: 'neutral',
-    name: '7 Assistente Ícone',
-    url: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=200&auto=format&fit=crop&q=80',
+    name: 'Ursinho Pitoco 3D',
+    category: 'Mascote',
+    url: 'https://images.unsplash.com/photo-1559454403-b8fb88521f11?w=200&auto=format&fit=crop&q=80',
+  },
+  {
+    gender: 'neutral',
+    name: 'Robô Cyber IA',
+    category: 'Tecnologia',
+    url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&auto=format&fit=crop&q=80',
   },
 ];
+
+// Helper para obter variáveis de gênero e tratamento do assistente
+export const getGenderVariables = (g: BotGender) => {
+  if (g === 'female') {
+    return {
+      artigo: 'a',
+      pronome: 'ela',
+      tratamento: 'da',
+      saudacao: 'bem-vinda',
+      termo: 'assistente'
+    };
+  } else if (g === 'male') {
+    return {
+      artigo: 'o',
+      pronome: 'ele',
+      tratamento: 'do',
+      saudacao: 'bem-vindo',
+      termo: 'assistente'
+    };
+  } else {
+    return {
+      artigo: 'o(a)',
+      pronome: 'ele(a)',
+      tratamento: 'do(a)',
+      saudacao: 'bem-vindo(a)',
+      termo: 'assistente virtual'
+    };
+  }
+};
 
 export const SettingsPage: React.FC = () => {
   const { success, error: toastError, info } = useToast();
@@ -106,8 +160,6 @@ export const SettingsPage: React.FC = () => {
     backendUrl,
     generateQRCode, 
     requestPairingCode,
-    connectDevice, 
-    disconnect,
     setCustomBackendUrl,
     refreshStatus
   } = useWhatsApp();
@@ -123,23 +175,12 @@ export const SettingsPage: React.FC = () => {
     currentUserIdentifier 
   } = useTheme();
 
-  const [activeTab, setActiveTab] = useState<string>('whatsapp_qr');
+  // Aba inicial agora é 'profile' (Perfil do Assistente). WhatsApp Conexão será a última aba.
+  const [activeTab, setActiveTab] = useState<string>('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [customServerInput, setCustomServerInput] = useState(backendUrl || 'https://pitoco.discloud.app');
   const [isTestingServer, setIsTestingServer] = useState(false);
-
-  // Attendants Management State
-  const [attendants, setAttendants] = useState<Attendant[]>([]);
-  const [isAttendantModalOpen, setIsAttendantModalOpen] = useState(false);
-  const [editingAttendant, setEditingAttendant] = useState<Attendant | null>(null);
-  const [attName, setAttName] = useState('');
-  const [attEmail, setAttEmail] = useState('');
-  const [attPhone, setAttPhone] = useState('');
-  const [attPassword, setAttPassword] = useState('123');
-  const [attRole, setAttRole] = useState<'attendant' | 'supervisor' | 'admin'>('attendant');
-  const [attDepartment, setAttDepartment] = useState('Comercial & Vendas');
-  const [attAvatar, setAttAvatar] = useState('');
 
   // Bot Profile form state
   const [botName, setBotName] = useState(defaultBotProfile.name);
@@ -151,9 +192,10 @@ export const SettingsPage: React.FC = () => {
   const [supportEmail, setSupportEmail] = useState(defaultBotProfile.support_email);
   const [businessHours, setBusinessHours] = useState(defaultBotProfile.business_hours);
   const [websiteUrl, setWebsiteUrl] = useState(defaultBotProfile.website_url);
-  const [welcomeMessage, setWelcomeMessage] = useState(defaultBotProfile.welcome_message);
-  const [fallbackMessage, setFallbackMessage] = useState(defaultBotProfile.fallback_message);
-  const [handoffMessage, setHandoffMessage] = useState('Vou transferir seu atendimento para um de nossos profissionais. Por favor, aguarde um instante!');
+
+  // Upload Avatar State
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   // Company Details & Pix State
   const [companyAddress, setCompanyAddress] = useState('Rua Principal, 100 - Centro');
@@ -166,20 +208,6 @@ export const SettingsPage: React.FC = () => {
   const [notifyPhone, setNotifyPhone] = useState('81996138924');
   const [playAudioAlerts, setPlayAudioAlerts] = useState(true);
 
-  // Database Management State
-  const [supabaseUrl, setSupabaseUrl] = useState('https://cbeiguyvoepbcafmxduy.supabase.co');
-  const [supabaseKey, setSupabaseKey] = useState('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiZWlndXl2b2VwYmNhZm14ZHV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzU5NzcsImV4cCI6MjEwNDMxMTk3N30.1XpWL6ns9NlPh4sQ3M8-OJTnKCPH-jf89iFspmBrKxM');
-  const [dbStats, setDbStats] = useState({
-    contacts_count: 0,
-    appointments_count: 0,
-    flows_count: 0,
-    attendants_count: 0,
-    custom_variables_count: 0,
-    system_users_count: 0,
-    conversations_count: 0,
-  });
-  const [isSavingDbConfig, setIsSavingDbConfig] = useState(false);
-
   // Custom Variables State
   const [customVariables, setCustomVariables] = useState<CustomVariable[]>([]);
   const [isVarModalOpen, setIsVarModalOpen] = useState(false);
@@ -188,68 +216,83 @@ export const SettingsPage: React.FC = () => {
   const [varValueInput, setVarValueInput] = useState('');
   const [varDescInput, setVarDescInput] = useState('');
 
-  // Security
-  const [newAdminPassword, setNewAdminPassword] = useState('');
-  const [confirmAdminPassword, setConfirmAdminPassword] = useState('');
-  const [isSavingPassword, setIsSavingPassword] = useState(false);
+  // Sincroniza e cria as variáveis de tratamento do bot com base no gênero
+  const syncGenderVariables = async (selectedGender: BotGender) => {
+    const gVars = getGenderVariables(selectedGender);
+    const varsToSync = [
+      {
+        key: 'artigo_assistente',
+        name: '{{artigo_assistente}}',
+        value: gVars.artigo,
+        description: `Artigo do assistente (${selectedGender === 'female' ? 'feminino "a"' : selectedGender === 'male' ? 'masculino "o"' : 'neutro "o(a)"'})`
+      },
+      {
+        key: 'pronome_assistente',
+        name: '{{pronome_assistente}}',
+        value: gVars.pronome,
+        description: `Pronome do assistente (${selectedGender === 'female' ? 'ela' : selectedGender === 'male' ? 'ele' : 'ele(a)'})`
+      },
+      {
+        key: 'tratamento_assistente',
+        name: '{{tratamento_assistente}}',
+        value: gVars.tratamento,
+        description: `Artigo de tratamento (ex: "falar com a consultoria ${gVars.tratamento} Pitoco")`
+      },
+      {
+        key: 'saudacao_assistente',
+        name: '{{saudacao_assistente}}',
+        value: gVars.saudacao,
+        description: `Saudação do assistente (ex: "${gVars.saudacao}")`
+      },
+      {
+        key: 'termo_assistente',
+        name: '{{termo_assistente}}',
+        value: gVars.termo,
+        description: `Classificação do assistente (ex: "${gVars.termo}")`
+      },
+    ];
 
-  // Load Database Stats
-  const loadDbStats = useCallback(async () => {
-    const targetUrl = backendUrl || 'https://pitoco.discloud.app';
-    try {
-      const res = await fetch(`${targetUrl}/api/whatsapp/database/stats`, { signal: AbortSignal.timeout(4000) });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.stats) {
-          setDbStats(data.stats);
-          return;
-        }
+    for (const item of varsToSync) {
+      try {
+        await StorageService.saveCustomVariable({
+          id: `var-${item.key}`,
+          key: item.key,
+          name: item.name,
+          value: item.value,
+          description: item.description,
+        });
+      } catch (e) {
+        console.error('Erro ao salvar variável de gênero:', item.key, e);
       }
-    } catch {}
+    }
 
-    // Fallback counts from StorageService
     try {
-      const contacts = await StorageService.getContacts();
-      const apts = await StorageService.getAppointments();
-      const flows = await StorageService.getFlows();
-      const atts = await StorageService.getAttendants();
       const vars = await StorageService.getCustomVariables();
-      setDbStats({
-        contacts_count: contacts.length,
-        appointments_count: apts.length,
-        flows_count: flows.length,
-        attendants_count: atts.length,
-        custom_variables_count: vars.length,
-        system_users_count: 1,
-        conversations_count: 0,
-      });
+      setCustomVariables(vars);
     } catch {}
-  }, [backendUrl]);
+  };
 
-  // Load all configuration data from database on mount
+  // Load configuration data on mount
   useEffect(() => {
     const loadAllData = async () => {
       try {
-        const [savedProfile, savedSettings, savedAttendants, savedVars] = await Promise.all([
+        const [savedProfile, savedSettings, savedVars] = await Promise.all([
           StorageService.getBotProfile(),
           StorageService.getSettings(),
-          StorageService.getAttendants(),
           StorageService.getCustomVariables(),
         ]);
 
         if (savedProfile) {
           setBotName(savedProfile.name || defaultBotProfile.name);
           setCompanyName(savedProfile.company_name || defaultBotProfile.company_name);
-          setGender(savedProfile.gender || defaultBotProfile.gender);
+          const currentGender = (savedProfile.gender as BotGender) || defaultBotProfile.gender;
+          setGender(currentGender);
           setTone(savedProfile.tone || defaultBotProfile.tone);
           setAvatarUrl(savedProfile.avatar_url || defaultBotProfile.avatar_url);
           setSupportPhone(savedProfile.support_phone || defaultBotProfile.support_phone);
           setSupportEmail(savedProfile.support_email || defaultBotProfile.support_email);
           setBusinessHours(savedProfile.business_hours || defaultBotProfile.business_hours);
           setWebsiteUrl(savedProfile.website_url || defaultBotProfile.website_url);
-          setWelcomeMessage(savedProfile.welcome_message || defaultBotProfile.welcome_message);
-          setFallbackMessage(savedProfile.fallback_message || defaultBotProfile.fallback_message);
-          if (savedProfile.handoff_message) setHandoffMessage(savedProfile.handoff_message);
           if (savedProfile.company_address) setCompanyAddress(savedProfile.company_address);
           if (savedProfile.pix_key_type) setPixKeyType(savedProfile.pix_key_type);
           if (savedProfile.pix_key) setPixKey(savedProfile.pix_key);
@@ -257,38 +300,125 @@ export const SettingsPage: React.FC = () => {
           if (typeof savedProfile.notify_new_bookings === 'boolean') setNotifyNewBookings(savedProfile.notify_new_bookings);
           if (savedProfile.notify_phone) setNotifyPhone(savedProfile.notify_phone);
           if (typeof savedProfile.play_audio_alerts === 'boolean') setPlayAudioAlerts(savedProfile.play_audio_alerts);
+
+          // Inicializar variáveis de gênero caso ainda não existam
+          syncGenderVariables(currentGender);
         }
 
         if (savedSettings) {
           if (savedSettings.backend_url) setCustomServerInput(savedSettings.backend_url);
-          if (savedSettings.supabase_url) setSupabaseUrl(savedSettings.supabase_url);
-          if (savedSettings.supabase_anon_key) setSupabaseKey(savedSettings.supabase_anon_key);
-        }
-
-        if (savedAttendants) {
-          setAttendants(savedAttendants);
         }
 
         if (savedVars) {
           setCustomVariables(savedVars);
         }
-
-        loadDbStats();
       } catch (e) {
         console.error('Error loading configuration data:', e);
       }
     };
 
     loadAllData();
-  }, [loadDbStats]);
+  }, []);
 
-  // Tab 1: Save Backend URL to Database
+  // Mudança de Gênero com atualização instantânea de variáveis
+  const handleGenderChange = async (newGender: BotGender) => {
+    setGender(newGender);
+    await syncGenderVariables(newGender);
+    info(
+      'Gênero & Tratamento Atualizados',
+      `Variáveis de tratamento configuradas para gênero ${newGender === 'female' ? 'feminino ("a", "ela", "da")' : newGender === 'male' ? 'masculino ("o", "ele", "do")' : 'neutro ("o(a)", "ele(a)", "do(a)")'}.`
+    );
+  };
+
+  // Upload de Imagem do Avatar
+  const handleAvatarFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toastError('Arquivo inválido', 'Selecione uma imagem válida (PNG, JPG, JPEG ou WebP).');
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          // Criar canvas 256x256 com crop centralizado quadrado
+          const canvas = document.createElement('canvas');
+          const size = 256;
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            const minDim = Math.min(img.width, img.height);
+            const startX = (img.width - minDim) / 2;
+            const startY = (img.height - minDim) / 2;
+            ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, size, size);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+            setAvatarUrl(dataUrl);
+            success('Foto Carregada com Sucesso', 'Avatar personalizado definido. Clique em "Salvar Alterações" para persistir no banco.');
+          }
+        } catch (err: any) {
+          toastError('Erro ao processar imagem', err.message || 'Falha ao redimensionar.');
+        } finally {
+          setIsUploadingAvatar(false);
+        }
+      };
+      img.onerror = () => {
+        toastError('Erro ao ler imagem', 'Não foi possível carregar o arquivo selecionado.');
+        setIsUploadingAvatar(false);
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Save Bot Profile & Commercial Details
+  const handleSaveProfile = async (e?: React.FormEvent) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setIsSaving(true);
+    try {
+      const updated: BotProfile = {
+        name: botName,
+        company_name: companyName,
+        gender,
+        tone,
+        avatar_url: avatarUrl,
+        support_phone: supportPhone,
+        support_email: supportEmail,
+        business_hours: businessHours,
+        website_url: websiteUrl,
+        company_address: companyAddress,
+        pix_key_type: pixKeyType,
+        pix_key: pixKey,
+        pix_owner: pixOwner,
+        notify_new_bookings: notifyNewBookings,
+        notify_phone: notifyPhone,
+        play_audio_alerts: playAudioAlerts,
+        updated_at: new Date().toISOString(),
+      };
+
+      await StorageService.updateBotProfile(updated);
+      await syncGenderVariables(gender);
+
+      success('Perfil Atualizado com Sucesso', 'Identidade do assistente e variáveis de gênero gravadas no banco de dados.');
+    } catch (err: any) {
+      toastError('Erro ao salvar', err.message || 'Falha ao gravar configurações');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Backend URL Handlers (Tab WhatsApp Conexão)
   const handleSaveBackendUrl = async () => {
     setIsTestingServer(true);
     try {
       setCustomBackendUrl(customServerInput);
       await StorageService.updateSettings({ backend_url: customServerInput });
-      success('URL Salva no Banco de Dados', `Servidor configurado e gravado no banco: ${customServerInput}`);
+      success('URL Salva no Banco de Dados', `Servidor configurado e gravado: ${customServerInput}`);
       refreshStatus();
     } catch (err: any) {
       toastError('Erro ao salvar URL', err.message);
@@ -309,150 +439,14 @@ export const SettingsPage: React.FC = () => {
       } else {
         toastError('Servidor respondeu com erro', `Código HTTP: ${res.status}`);
       }
-    } catch (err: any) {
+    } catch {
       toastError('Falha ao conectar no servidor', 'Verifique se a aplicação está online no Discloud.');
     } finally {
       setIsTestingServer(false);
     }
   };
 
-  // Tab 3 & 4: Save Bot Profile, Commercial Details, and Notifications to Database
-  const handleSaveProfile = async (e?: React.FormEvent) => {
-    if (e && e.preventDefault) e.preventDefault();
-    setIsSaving(true);
-    try {
-      const updated: BotProfile = {
-        name: botName,
-        company_name: companyName,
-        gender,
-        tone,
-        avatar_url: avatarUrl,
-        support_phone: supportPhone,
-        support_email: supportEmail,
-        business_hours: businessHours,
-        website_url: websiteUrl,
-        welcome_message: welcomeMessage,
-        fallback_message: fallbackMessage,
-        handoff_message: handoffMessage,
-        company_address: companyAddress,
-        pix_key_type: pixKeyType,
-        pix_key: pixKey,
-        pix_owner: pixOwner,
-        notify_new_bookings: notifyNewBookings,
-        notify_phone: notifyPhone,
-        play_audio_alerts: playAudioAlerts,
-        updated_at: new Date().toISOString(),
-      };
-
-      await StorageService.updateBotProfile(updated);
-      success('Configurações Salvas no Banco', 'Perfil, dados comerciais, PIX e notificações atualizados no banco de dados em tempo real.');
-    } catch (err: any) {
-      toastError('Erro ao salvar', err.message || 'Falha ao gravar configurações');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // Tab 2: Attendants Handlers
-  const handleOpenNewAttendantModal = () => {
-    setEditingAttendant(null);
-    setAttName('');
-    setAttEmail('');
-    setAttPhone('');
-    setAttPassword('123');
-    setAttRole('attendant');
-    setAttDepartment('Comercial & Vendas');
-    setAttAvatar('');
-    setIsAttendantModalOpen(true);
-  };
-
-  const handleOpenEditAttendantModal = (att: Attendant) => {
-    setEditingAttendant(att);
-    setAttName(att.name);
-    setAttEmail(att.email);
-    setAttPhone(att.phone || '');
-    setAttPassword(att.password || '123');
-    setAttRole(att.role || 'attendant');
-    setAttDepartment(att.department || 'Comercial & Vendas');
-    setAttAvatar(att.avatar_url || '');
-    setIsAttendantModalOpen(true);
-  };
-
-  const handleSaveAttendant = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!attName.trim() || !attEmail.trim()) {
-      toastError('Campos obrigatórios', 'Preencha o nome e o e-mail do atendente.');
-      return;
-    }
-
-    try {
-      const updated: Attendant = {
-        id: editingAttendant?.id || `att-${Date.now()}`,
-        name: attName.trim(),
-        email: attEmail.trim().toLowerCase(),
-        phone: attPhone.trim().replace(/\D/g, ''),
-        password: attPassword.trim() || '123',
-        role: attRole,
-        department: attDepartment,
-        avatar_url: attAvatar.trim(),
-        status: editingAttendant?.status || 'online',
-        metrics: editingAttendant?.metrics || {
-          chats_assigned: 0,
-          chats_resolved: 0,
-          messages_sent: 0,
-          avg_response_time_min: 0,
-          rating: 5.0,
-        },
-        created_at: editingAttendant?.created_at || new Date().toISOString(),
-      };
-
-      await StorageService.saveAttendant(updated);
-      const list = await StorageService.getAttendants();
-      setAttendants(list);
-      setIsAttendantModalOpen(false);
-      loadDbStats();
-      success('Atendente Salvo no Banco', `Perfil de "${updated.name}" persistido no banco de dados com sucesso.`);
-    } catch (err: any) {
-      toastError('Erro ao salvar atendente', err.message);
-    }
-  };
-
-  const handleDeleteAttendant = async (id: string, name: string) => {
-    if (!confirm(`Deseja realmente remover o perfil de "${name}" do banco de dados?`)) return;
-    try {
-      await StorageService.deleteAttendant(id);
-      const list = await StorageService.getAttendants();
-      setAttendants(list);
-      loadDbStats();
-      success('Atendente Removido do Banco', `O perfil de ${name} foi excluído do banco de dados.`);
-    } catch (err: any) {
-      toastError('Erro ao excluir', err.message);
-    }
-  };
-
-  // Tab 5: Database Credentials & Sync Handlers
-  const handleSaveDbCredentials = async () => {
-    setIsSavingDbConfig(true);
-    try {
-      await StorageService.updateSettings({
-        supabase_url: supabaseUrl.trim(),
-        supabase_anon_key: supabaseKey.trim(),
-      });
-      success('Banco de Dados Atualizado', 'Credenciais e configurações do banco persistidas com sucesso.');
-    } catch (err: any) {
-      toastError('Erro ao salvar credenciais', err.message);
-    } finally {
-      setIsSavingDbConfig(false);
-    }
-  };
-
-  const handleDownloadBackup = () => {
-    const targetUrl = `${backendUrl || 'https://pitoco.discloud.app'}/api/whatsapp/database/dump`;
-    window.open(targetUrl, '_blank');
-    success('Download de Backup Iniciado', 'O arquivo JSON com todo o banco de dados está sendo baixado.');
-  };
-
-  // Tab 6: Custom Variables Handlers
+  // Custom Variables Handlers
   const handleOpenNewVarModal = () => {
     setEditingVar(null);
     setVarNameInput('');
@@ -489,7 +483,6 @@ export const SettingsPage: React.FC = () => {
       const list = await StorageService.getCustomVariables();
       setCustomVariables(list);
       setIsVarModalOpen(false);
-      loadDbStats();
       success('Variável Salva no Banco', `Variável {{${cleanName}}} cadastrada e ativa nos fluxos.`);
     } catch (err: any) {
       toastError('Erro ao salvar variável', err.message);
@@ -502,7 +495,6 @@ export const SettingsPage: React.FC = () => {
       await StorageService.deleteCustomVariable(id);
       const list = await StorageService.getCustomVariables();
       setCustomVariables(list);
-      loadDbStats();
       success('Variável Excluída do Banco', `A variável ${name} foi removida do banco de dados.`);
     } catch (err: any) {
       toastError('Erro ao excluir variável', err.message);
@@ -516,48 +508,7 @@ export const SettingsPage: React.FC = () => {
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  // Tab 7: Security & Password Update
-  const handleUpdatePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newAdminPassword.length < 6) {
-      toastError('Senha muito curta', 'A nova senha deve ter no mínimo 6 caracteres.');
-      return;
-    }
-    if (newAdminPassword !== confirmAdminPassword) {
-      toastError('Senhas não coincidem', 'A confirmação de senha deve ser idêntica.');
-      return;
-    }
-
-    setIsSavingPassword(true);
-    try {
-      localStorage.setItem('7assistente_admin_pwd', newAdminPassword);
-      await StorageService.updateSettings({ admin_password: newAdminPassword });
-      await StorageService.updateAdminProfile({ password: newAdminPassword });
-      await StorageService.saveSystemUser({
-        id: 'user-ceo',
-        name: 'Malaca CEO (Diretoria Pitoco)',
-        phone: '81996138924',
-        password: newAdminPassword,
-        pin: '1234',
-        role: 'admin',
-        permissions: {
-          can_access_admin: true,
-          can_access_atendimento: true,
-          can_access_barbeiro: true,
-        },
-        status: 'active',
-        created_at: new Date().toISOString(),
-      });
-
-      setNewAdminPassword('');
-      setConfirmAdminPassword('');
-      success('Senha Salva no Banco de Dados', 'A nova senha foi gravada e sincronizada com segurança.');
-    } catch (err: any) {
-      toastError('Erro ao salvar senha no banco', err.message);
-    } finally {
-      setIsSavingPassword(false);
-    }
-  };
+  const currentGenderVars = getGenderVariables(gender);
 
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-200">
@@ -572,10 +523,10 @@ export const SettingsPage: React.FC = () => {
           <div>
             <h1 className="text-lg font-bold text-white flex items-center gap-2">
               Configurações da Plataforma
-              <Badge variant="brand" className="text-[10px] py-0 px-2">Banco de Dados Conectado</Badge>
+              <Badge variant="brand" className="text-[10px] py-0 px-2">Discloud & Banco Ativo</Badge>
             </h1>
             <p className="text-xs text-slate-400">
-              Todas as abas sincronizadas em tempo real com o banco de dados (Discloud & Supabase)
+              Gerencie a identidade do robô, dados comerciais, tema, variáveis e a conexão WhatsApp
             </p>
           </div>
         </div>
@@ -588,32 +539,8 @@ export const SettingsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Tabs Bar */}
+      {/* Tabs Bar: Reordenada com Conexão WhatsApp por ÚLTIMO */}
       <div className="flex items-center gap-1.5 p-1.5 bg-dark-900/80 rounded-2xl border border-white/5 overflow-x-auto">
-        <button
-          onClick={() => setActiveTab('whatsapp_qr')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
-            activeTab === 'whatsapp_qr'
-              ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
-              : 'text-slate-400 hover:text-white hover:bg-white/5'
-          }`}
-        >
-          <QrCode className="w-4 h-4" />
-          <span>Conexão WhatsApp</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('attendants')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
-            activeTab === 'attendants'
-              ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
-              : 'text-slate-400 hover:text-white hover:bg-white/5'
-          }`}
-        >
-          <Headphones className="w-4 h-4" />
-          <span>Equipe & Atendentes</span>
-        </button>
-
         <button
           onClick={() => setActiveTab('profile')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
@@ -639,21 +566,6 @@ export const SettingsPage: React.FC = () => {
         </button>
 
         <button
-          onClick={() => {
-            setActiveTab('database');
-            loadDbStats();
-          }}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
-            activeTab === 'database'
-              ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
-              : 'text-slate-400 hover:text-white hover:bg-white/5'
-          }`}
-        >
-          <Database className="w-4 h-4" />
-          <span>Banco de Dados & Nuvem</span>
-        </button>
-
-        <button
           onClick={() => setActiveTab('variables')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
             activeTab === 'variables'
@@ -663,18 +575,6 @@ export const SettingsPage: React.FC = () => {
         >
           <Code2 className="w-4 h-4" />
           <span>Variáveis Globais</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('security')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
-            activeTab === 'security'
-              ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
-              : 'text-slate-400 hover:text-white hover:bg-white/5'
-          }`}
-        >
-          <ShieldCheck className="w-4 h-4" />
-          <span>Segurança & Senha</span>
         </button>
 
         <button
@@ -688,372 +588,23 @@ export const SettingsPage: React.FC = () => {
           <Palette className="w-4 h-4" />
           <span>Tema & Aparência</span>
         </button>
+
+        {/* Conexão WhatsApp AGORA É A ÚLTIMA ABA */}
+        <button
+          onClick={() => setActiveTab('whatsapp_qr')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+            activeTab === 'whatsapp_qr'
+              ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <QrCode className="w-4 h-4" />
+          <span>Conexão WhatsApp</span>
+        </button>
       </div>
 
       {/* ========================================================================= */}
-      {/* TAB: THEME & APARÊNCIA */}
-      {/* ========================================================================= */}
-      {activeTab === 'theme' && (
-        <div className="space-y-6 animate-in fade-in">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between w-full">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center text-primary-400">
-                    <Palette className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <CardTitle>Tema & Personalização Visual do Painel</CardTitle>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      Configurações salvas individualmente para <strong className="text-white">@{currentUserIdentifier}</strong>
-                    </p>
-                  </div>
-                </div>
-
-                <Button
-                  variant="primary"
-                  onClick={openThemeModal}
-                  className="flex items-center gap-2 text-xs"
-                >
-                  <Palette className="w-4 h-4" />
-                  Abrir Configurador Completo
-                </Button>
-              </div>
-            </CardHeader>
-
-            {/* Quick overview of active theme settings */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-2">
-              <div className="bg-dark-950/60 p-4 rounded-xl border border-white/5">
-                <span className="text-[11px] font-semibold text-slate-400 block uppercase">Tema Atual</span>
-                <span className="text-base font-bold text-white mt-1 block">
-                  {THEME_OPTIONS.find(t => t.id === themeMode)?.name || themeMode}
-                </span>
-                <span className="text-xs text-slate-500 mt-0.5 block">
-                  {themeMode.startsWith('dark') ? '🌙 3 Opções Escuras' : '☀️ 2 Opções Claras'}
-                </span>
-              </div>
-
-              <div className="bg-dark-950/60 p-4 rounded-xl border border-white/5">
-                <span className="text-[11px] font-semibold text-slate-400 block uppercase">Cor de Destaque</span>
-                <div className="flex items-center gap-2 mt-1">
-                  <span 
-                    className="w-3.5 h-3.5 rounded-full shadow-sm"
-                    style={{ backgroundColor: ACCENT_OPTIONS.find(a => a.id === accentColor)?.hex }}
-                  />
-                  <span className="text-base font-bold text-white">
-                    {ACCENT_OPTIONS.find(a => a.id === accentColor)?.name || accentColor}
-                  </span>
-                </div>
-                <span className="text-xs text-slate-500 mt-0.5 block">Acentos, botões e badges</span>
-              </div>
-
-              <div className="bg-dark-950/60 p-4 rounded-xl border border-white/5">
-                <span className="text-[11px] font-semibold text-slate-400 block uppercase">Brilho</span>
-                <span className="text-base font-bold text-white mt-1 block font-mono">
-                  {brightness}%
-                </span>
-                <span className="text-xs text-slate-500 mt-0.5 block">
-                  {brightness === 100 ? 'Calibração normal' : brightness > 100 ? 'Mais iluminado' : 'Atenuado'}
-                </span>
-              </div>
-
-              <div className="bg-dark-950/60 p-4 rounded-xl border border-white/5">
-                <span className="text-[11px] font-semibold text-slate-400 block uppercase">Contraste</span>
-                <span className="text-base font-bold text-white mt-1 block font-mono">
-                  {contrast}%
-                </span>
-                <span className="text-xs text-slate-500 mt-0.5 block">
-                  {contrast === 100 ? 'Contraste balanceado' : contrast > 100 ? 'Alto contraste' : 'Suave'}
-                </span>
-              </div>
-            </div>
-
-            {/* Quick switcher buttons for all 5 themes */}
-            <div className="mt-6 pt-6 border-t border-white/5">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
-                Seleção Rápida de Tema (3 Escuros e 2 Claros)
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                {THEME_OPTIONS.map(opt => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => setThemeMode(opt.id)}
-                    className={`p-3 rounded-xl border text-left transition-all ${
-                      themeMode === opt.id
-                        ? 'border-white bg-white/10 ring-1 ring-white/30 shadow-md'
-                        : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/15'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-bold text-white">{opt.name}</span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-zinc-300">
-                        {opt.category === 'dark' ? '🌙' : '☀️'}
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-slate-400 line-clamp-2 leading-relaxed">
-                      {opt.description}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Quick accent color picker */}
-            <div className="mt-6 pt-6 border-t border-white/5">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
-                Paleta de Cores de Acento
-              </h4>
-              <div className="flex flex-wrap gap-2.5">
-                {ACCENT_OPTIONS.map(acc => (
-                  <button
-                    key={acc.id}
-                    type="button"
-                    onClick={() => setAccentColor(acc.id)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all ${
-                      accentColor === acc.id
-                        ? 'border-white bg-white/10 ring-2 ring-white/20'
-                        : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]'
-                    }`}
-                  >
-                    <span 
-                      className="w-3.5 h-3.5 rounded-full shadow-sm"
-                      style={{ backgroundColor: acc.hex }}
-                    />
-                    <span className="text-zinc-200">{acc.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 1: WHATSAPP QR CODE & DISCLOUD CONNECTION */}
-      {/* ========================================================================= */}
-      {activeTab === 'whatsapp_qr' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in">
-          <div className="lg:col-span-2 space-y-6">
-            <QRCodeView
-              value={rawQR || session.qrCode || ''}
-              qrDataUrl={qrDataUrl}
-              onRefresh={generateQRCode}
-              onRequestPairingCode={requestPairingCode}
-              isLoading={isConnecting}
-            />
-
-            {/* Backend URL Configuration */}
-            <Card className="p-6 rounded-3xl bg-dark-900/70 border-white/10 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <Server className="w-4 h-4 text-brand-400" />
-                    Servidor WhatsApp (Discloud / Baileys)
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    URL do serviço WebSocket e API REST onde o robô está hospedado e persistido no banco
-                  </p>
-                </div>
-                <Badge variant="brand" className="text-[10px]">Persistido no Banco</Badge>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Input
-                  value={customServerInput}
-                  onChange={(e) => setCustomServerInput(e.target.value)}
-                  placeholder="https://pitoco.discloud.app"
-                  className="font-mono text-xs flex-1"
-                />
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleTestBackend}
-                    disabled={isTestingServer}
-                    className="text-xs"
-                  >
-                    {isTestingServer ? 'Testando...' : 'Testar Conexão'}
-                  </Button>
-                  <Button
-                    variant="brand"
-                    size="sm"
-                    onClick={handleSaveBackendUrl}
-                    disabled={isTestingServer}
-                    leftIcon={<Save className="w-3.5 h-3.5" />}
-                    className="text-xs font-bold"
-                  >
-                    Salvar no Banco
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          <div className="space-y-4">
-            <Card className="p-5 rounded-3xl bg-dark-900/60 border-white/5 space-y-3">
-              <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                <Smartphone className="w-4 h-4 text-emerald-400" />
-                Dicas de Estabilidade
-              </h4>
-              <ul className="text-xs text-slate-300 space-y-2 leading-relaxed">
-                <li className="flex items-start gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                  Mantenha o celular com internet ativa para a sincronização inicial.
-                </li>
-                <li className="flex items-start gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                  A sessão é persistida em nuvem no Discloud com reconexão automática.
-                </li>
-                <li className="flex items-start gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                  Caso queira trocar de aparelho, clique em <strong>Desconectar</strong> para gerar um novo QR Code.
-                </li>
-              </ul>
-            </Card>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 2: ATTENDANTS & RELATIONSHIP TEAM (EQUIPE & PERFIS COM SENHA) */}
-      {/* ========================================================================= */}
-      {activeTab === 'attendants' && (
-        <div className="space-y-6 animate-in fade-in">
-          {/* Header Banner */}
-          <Card className="p-6 rounded-3xl bg-dark-900/70 border-white/10 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Headphones className="w-4 h-4 text-brand-400" />
-                  Perfis de Atendentes & Métricas Individuais
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Gerencie operadores com login e senha próprios, departamentos e métricas sincronizadas no banco de dados
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 flex-wrap">
-                <a
-                  href="/relacionamento"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 border border-purple-500/30 text-xs font-bold transition-all shadow-glow-primary"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  Abrir Portal (/relacionamento)
-                </a>
-
-                <Button
-                  size="sm"
-                  variant="primary"
-                  onClick={handleOpenNewAttendantModal}
-                  leftIcon={<UserPlus className="w-3.5 h-3.5" />}
-                  className="font-bold shadow-glow-brand"
-                >
-                  Novo Atendente
-                </Button>
-              </div>
-            </div>
-          </Card>
-
-          {/* Attendants Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {attendants.map((att) => (
-              <Card key={att.id} className="p-5 rounded-3xl bg-dark-900/80 border-white/5 hover:border-brand-500/30 transition-all space-y-4 relative group">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl overflow-hidden bg-brand-500/20 border border-brand-500/30 flex items-center justify-center font-bold text-sm text-brand-300 flex-shrink-0">
-                      {att.avatar_url ? (
-                        <img src={att.avatar_url} alt={att.name} className="w-full h-full object-cover" />
-                      ) : (
-                        att.name.substring(0, 2).toUpperCase()
-                      )}
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
-                        {att.name}
-                        {att.role === 'admin' && (
-                          <Badge variant="brand" className="text-[9px] py-0 px-1.5">Admin</Badge>
-                        )}
-                      </h4>
-                      <p className="text-xs text-slate-400">{att.department || 'Geral'}</p>
-                    </div>
-                  </div>
-
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    att.status === 'online' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
-                    att.status === 'busy' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
-                    'bg-slate-800 text-slate-400'
-                  }`}>
-                    {att.status === 'online' ? '🟢 Online' : att.status === 'busy' ? '🟡 Ocupado' : '⚪ Pausa'}
-                  </span>
-                </div>
-
-                {/* Details */}
-                <div className="p-3 bg-dark-950/80 rounded-2xl border border-white/5 space-y-1.5 text-xs text-slate-300">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400 flex items-center gap-1.5"><Mail className="w-3 h-3 text-brand-400" /> E-mail:</span>
-                    <span className="font-mono text-white text-[11px] truncate max-w-[140px]">{att.email}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400 flex items-center gap-1.5"><Phone className="w-3 h-3 text-emerald-400" /> WhatsApp:</span>
-                    <span className="font-mono text-white text-[11px]">{formatPhone(att.phone || '') || '—'}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400 flex items-center gap-1.5"><Lock className="w-3 h-3 text-amber-400" /> Senha:</span>
-                    <span className="font-mono text-slate-400 text-[11px]">•••••• ({att.password || '123'})</span>
-                  </div>
-                </div>
-
-                {/* Performance Metrics */}
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div className="bg-dark-950/60 p-2 rounded-xl border border-white/5">
-                    <p className="text-xs font-bold text-white">{att.metrics?.chats_assigned || 0}</p>
-                    <p className="text-[9px] text-slate-400">Assumidos</p>
-                  </div>
-                  <div className="bg-dark-950/60 p-2 rounded-xl border border-white/5">
-                    <p className="text-xs font-bold text-emerald-400">{att.metrics?.chats_resolved || 0}</p>
-                    <p className="text-[9px] text-slate-400">Resolvidos</p>
-                  </div>
-                  <div className="bg-dark-950/60 p-2 rounded-xl border border-white/5">
-                    <p className="text-xs font-bold text-amber-300 flex items-center justify-center gap-0.5">
-                      <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
-                      {att.metrics?.rating || 5.0}
-                    </p>
-                    <p className="text-[9px] text-slate-400">Avaliação</p>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/5">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleOpenEditAttendantModal(att)}
-                    leftIcon={<Edit3 className="w-3.5 h-3.5 text-brand-400" />}
-                    className="text-xs py-1 h-7"
-                  >
-                    Editar
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleDeleteAttendant(att.id, att.name)}
-                    leftIcon={<Trash2 className="w-3.5 h-3.5 text-rose-400" />}
-                    className="text-xs py-1 h-7 text-rose-400 hover:text-rose-300"
-                  >
-                    Excluir
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 3: BOT PROFILE & PERSONALITY */}
+      {/* TAB 1: BOT PROFILE & PERSONALITY */}
       {/* ========================================================================= */}
       {activeTab === 'profile' && (
         <form onSubmit={handleSaveProfile} className="space-y-6 animate-in fade-in">
@@ -1065,7 +616,7 @@ export const SettingsPage: React.FC = () => {
                   Identidade & Personalidade do Assistente
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Configure o nome, tom de voz e as saudações padrão salvas no banco de dados
+                  Configure o nome, avatar, tom de voz e artigos de tratamento salvos no banco de dados
                 </p>
               </div>
               <Badge variant="brand" className="text-[10px]">Persistido no Banco</Badge>
@@ -1077,7 +628,7 @@ export const SettingsPage: React.FC = () => {
                 <Input
                   value={botName}
                   onChange={(e) => setBotName(e.target.value)}
-                  placeholder="Ex: Pitoco Bot"
+                  placeholder="Ex: Pitoco Bot ou Sofia"
                   required
                 />
               </div>
@@ -1095,16 +646,19 @@ export const SettingsPage: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">Gênero da Persona</label>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">Gênero do Personagem / Bot</label>
                 <select
                   value={gender}
-                  onChange={(e) => setGender(e.target.value as BotGender)}
-                  className="w-full bg-dark-800 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                  onChange={(e) => handleGenderChange(e.target.value as BotGender)}
+                  className="w-full bg-dark-800 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none"
                 >
-                  <option value="male">Masculino (Ele)</option>
-                  <option value="female">Feminino (Ela)</option>
-                  <option value="neutral">Neutro / Institucional</option>
+                  <option value="female">Feminino (Ela / A assistente)</option>
+                  <option value="male">Masculino (Ele / O assistente)</option>
+                  <option value="neutral">Neutro / Institucional (O(a) assistente)</option>
                 </select>
+                <p className="text-[10px] text-slate-500 mt-1">
+                  Define automaticamente as variáveis globais de artigo, pronome e tratamento.
+                </p>
               </div>
 
               <div>
@@ -1112,7 +666,7 @@ export const SettingsPage: React.FC = () => {
                 <select
                   value={tone}
                   onChange={(e) => setTone(e.target.value as BotTone)}
-                  className="w-full bg-dark-800 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                  className="w-full bg-dark-800 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none"
                 >
                   <option value="Amigável e Acolhedor">Amigável e Acolhedor</option>
                   <option value="Profissional e Direto">Profissional e Direto</option>
@@ -1122,64 +676,198 @@ export const SettingsPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Avatar Selector */}
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-2">Avatar do Assistente</label>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-                {AVATAR_PRESETS.map((p, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setAvatarUrl(p.url)}
-                    className={`p-2 rounded-2xl border text-center transition-all flex flex-col items-center gap-1.5 ${
-                      avatarUrl === p.url
-                        ? 'border-brand-500 bg-brand-500/10 ring-2 ring-brand-500/30'
-                        : 'border-white/5 bg-dark-950/60 hover:border-white/20'
-                    }`}
-                  >
-                    <img src={p.url} alt={p.name} className="w-12 h-12 rounded-xl object-cover" />
-                    <span className="text-[10px] text-slate-300 font-medium truncate w-full">{p.name.split(' ')[0]}</span>
-                  </button>
-                ))}
+            {/* Caixa Informativa de Variáveis de Tratamento por Gênero */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-brand-950/40 via-indigo-950/30 to-dark-950/60 border border-brand-500/20 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold text-brand-300">
+                  <Sparkles className="w-4 h-4 text-brand-400" />
+                  <span>Variáveis Globais de Tratamento Ativas (Gênero: {gender === 'female' ? 'Feminino' : gender === 'male' ? 'Masculino' : 'Neutro'})</span>
+                </div>
+                <Badge variant="brand" className="text-[9px] py-0 px-2">Atualizado Automático</Badge>
+              </div>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Estas variáveis são atualizadas no banco de dados e podem ser inseridas em qualquer mensagem dos fluxos de atendimento:
+              </p>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                <div 
+                  onClick={() => handleCopy('{{artigo_assistente}}', 'artigo_assistente')}
+                  className="p-2.5 rounded-xl bg-dark-900/80 border border-white/5 hover:border-brand-500/40 cursor-pointer transition-all group"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-slate-500 block uppercase font-bold">Artigo</span>
+                    {copiedField === 'artigo_assistente' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-slate-500 group-hover:text-brand-300" />}
+                  </div>
+                  <div className="flex items-baseline gap-1.5 mt-1">
+                    <code className="text-xs font-mono font-bold text-brand-300">"{currentGenderVars.artigo}"</code>
+                    <span className="text-[10px] text-slate-400 font-mono">{'{{artigo_assistente}}'}</span>
+                  </div>
+                </div>
+
+                <div 
+                  onClick={() => handleCopy('{{pronome_assistente}}', 'pronome_assistente')}
+                  className="p-2.5 rounded-xl bg-dark-900/80 border border-white/5 hover:border-brand-500/40 cursor-pointer transition-all group"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-slate-500 block uppercase font-bold">Pronome</span>
+                    {copiedField === 'pronome_assistente' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-slate-500 group-hover:text-brand-300" />}
+                  </div>
+                  <div className="flex items-baseline gap-1.5 mt-1">
+                    <code className="text-xs font-mono font-bold text-indigo-300">"{currentGenderVars.pronome}"</code>
+                    <span className="text-[10px] text-slate-400 font-mono">{'{{pronome_assistente}}'}</span>
+                  </div>
+                </div>
+
+                <div 
+                  onClick={() => handleCopy('{{tratamento_assistente}}', 'tratamento_assistente')}
+                  className="p-2.5 rounded-xl bg-dark-900/80 border border-white/5 hover:border-brand-500/40 cursor-pointer transition-all group"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-slate-500 block uppercase font-bold">Tratamento</span>
+                    {copiedField === 'tratamento_assistente' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-slate-500 group-hover:text-brand-300" />}
+                  </div>
+                  <div className="flex items-baseline gap-1.5 mt-1">
+                    <code className="text-xs font-mono font-bold text-amber-300">"{currentGenderVars.tratamento}"</code>
+                    <span className="text-[10px] text-slate-400 font-mono">{'{{tratamento_assistente}}'}</span>
+                  </div>
+                </div>
+
+                <div 
+                  onClick={() => handleCopy('{{saudacao_assistente}}', 'saudacao_assistente')}
+                  className="p-2.5 rounded-xl bg-dark-900/80 border border-white/5 hover:border-brand-500/40 cursor-pointer transition-all group"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-slate-500 block uppercase font-bold">Saudação</span>
+                    {copiedField === 'saudacao_assistente' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-slate-500 group-hover:text-brand-300" />}
+                  </div>
+                  <div className="flex items-baseline gap-1.5 mt-1">
+                    <code className="text-xs font-mono font-bold text-emerald-300">"{currentGenderVars.saudacao}"</code>
+                    <span className="text-[10px] text-slate-400 font-mono">{'{{saudacao_assistente}}'}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Standard Bot Messages */}
-            <div className="space-y-4 pt-4 border-t border-white/5">
-              <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">
-                  Mensagem Padrão de Boas-Vindas ({'{{mensagem_boas_vindas}}'})
-                </label>
-                <Textarea
-                  rows={2}
-                  value={welcomeMessage}
-                  onChange={(e) => setWelcomeMessage(e.target.value)}
-                  placeholder="Mensagem de saudação enviada aos novos clientes..."
-                />
+            {/* Avatar Selector & Upload de Imagem */}
+            <div className="space-y-3 pt-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block">Avatar do Assistente</label>
+                  <p className="text-[11px] text-slate-500">Escolha um dos modelos abaixo ou faça upload de sua própria foto</p>
+                </div>
+
+                {/* Botão de Upload Customizado */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleAvatarFileUpload}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isUploadingAvatar}
+                    onClick={() => fileInputRef.current?.click()}
+                    leftIcon={<Upload className="w-3.5 h-3.5 text-brand-400" />}
+                    className="text-xs font-semibold"
+                  >
+                    {isUploadingAvatar ? 'Processando foto...' : 'Fazer Upload de Foto'}
+                  </Button>
+
+                  {avatarUrl && !AVATAR_PRESETS.some(p => p.url === avatarUrl) && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setAvatarUrl(AVATAR_PRESETS[0].url)}
+                      leftIcon={<X className="w-3.5 h-3.5 text-rose-400" />}
+                      className="text-xs text-rose-400 hover:text-rose-300"
+                    >
+                      Remover Foto
+                    </Button>
+                  )}
+                </div>
               </div>
 
-              <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">
-                  Mensagem de Transferência Humana
-                </label>
-                <Textarea
-                  rows={2}
-                  value={handoffMessage}
-                  onChange={(e) => setHandoffMessage(e.target.value)}
-                  placeholder="Mensagem enviada antes de transferir para um atendente..."
-                />
+              {/* Preview do Avatar Selecionado */}
+              <div className="flex items-center gap-4 p-3 bg-dark-950/70 rounded-2xl border border-white/5">
+                <div className="w-16 h-16 rounded-2xl overflow-hidden bg-brand-500/20 border-2 border-brand-500/40 p-0.5 shadow-lg shadow-brand-500/10 flex-shrink-0">
+                  <img
+                    src={avatarUrl || AVATAR_PRESETS[0].url}
+                    alt="Avatar Atual"
+                    className="w-full h-full object-cover rounded-[14px]"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = AVATAR_PRESETS[0].url;
+                    }}
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-white">Avatar Ativo no Robô</span>
+                    {!AVATAR_PRESETS.some(p => p.url === avatarUrl) ? (
+                      <Badge variant="brand" className="text-[9px] py-0 px-2 bg-emerald-500/20 text-emerald-300 border-emerald-500/30">
+                        Foto Personalizada
+                      </Badge>
+                    ) : (
+                      <Badge variant="brand" className="text-[9px] py-0 px-2">
+                        {AVATAR_PRESETS.find(p => p.url === avatarUrl)?.category || 'Preset'}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                    {AVATAR_PRESETS.find(p => p.url === avatarUrl)?.name || 'Imagem carregada por você'}
+                  </p>
+                </div>
               </div>
 
-              <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">
-                  Mensagem de Contingência / Fallback (Quando o robô não entender)
-                </label>
-                <Textarea
-                  rows={2}
-                  value={fallbackMessage}
-                  onChange={(e) => setFallbackMessage(e.target.value)}
-                  placeholder="Desculpe, não consegui compreender sua mensagem. Escolha uma das opções ou digite MENU para voltar ao início..."
-                />
+              {/* Grid de Presets Expandidos */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 pt-1">
+                {AVATAR_PRESETS.map((p, idx) => {
+                  const isSelected = avatarUrl === p.url;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setAvatarUrl(p.url)}
+                      className={`p-2.5 rounded-2xl border text-center transition-all flex flex-col items-center gap-1.5 relative group ${
+                        isSelected
+                          ? 'border-brand-500 bg-brand-500/10 ring-2 ring-brand-500/30 shadow-glow-brand'
+                          : 'border-white/5 bg-dark-950/60 hover:border-white/20 hover:bg-white/[0.02]'
+                      }`}
+                    >
+                      <div className="w-12 h-12 rounded-xl overflow-hidden bg-dark-900 border border-white/5 relative">
+                        <img src={p.url} alt={p.name} className="w-full h-full object-cover" />
+                        {isSelected && (
+                          <div className="absolute inset-0 bg-brand-500/20 flex items-center justify-center">
+                            <Check className="w-4 h-4 text-white drop-shadow-md" />
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-slate-300 font-medium truncate w-full text-center">
+                        {p.name.split(' ')[0]}
+                      </span>
+                      <span className="text-[8px] text-slate-500 uppercase font-semibold">
+                        {p.category}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Aviso Amigável: Mensagens Controladas via Studio de Fluxos */}
+            <div className="flex items-start gap-3 p-4 rounded-2xl bg-dark-950/80 border border-white/5 text-xs text-slate-400">
+              <Info className="w-4 h-4 text-brand-400 flex-shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <p className="font-semibold text-slate-300">
+                  Fluxos de Mensagens & Respostas Automatizadas
+                </p>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  As mensagens de boas-vindas, resposta, contingência e transbordo humano agora são controladas e editadas visualmente no <strong>Studio de Fluxos</strong>, oferecendo total liberdade e flexibilidade de automação.
+                </p>
               </div>
             </div>
 
@@ -1189,6 +877,7 @@ export const SettingsPage: React.FC = () => {
                 type="submit"
                 disabled={isSaving}
                 leftIcon={<Save className="w-4 h-4" />}
+                className="font-bold shadow-glow-brand"
               >
                 {isSaving ? 'Salvando no Banco...' : 'Salvar Alterações no Banco'}
               </Button>
@@ -1198,7 +887,7 @@ export const SettingsPage: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 4: COMPANY, PIX & NOTIFICATIONS */}
+      {/* TAB 2: COMPANY, PIX & NOTIFICATIONS */}
       {/* ========================================================================= */}
       {activeTab === 'company' && (
         <Card className="p-6 rounded-3xl bg-dark-900/70 border-white/10 space-y-6 animate-in fade-in">
@@ -1269,7 +958,7 @@ export const SettingsPage: React.FC = () => {
                 <select
                   value={pixKeyType}
                   onChange={(e) => setPixKeyType(e.target.value)}
-                  className="w-full bg-dark-800 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                  className="w-full bg-dark-800 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
                 >
                   <option value="telefone">Telefone (Celular)</option>
                   <option value="cnpj">CNPJ / CPF</option>
@@ -1355,6 +1044,7 @@ export const SettingsPage: React.FC = () => {
               onClick={handleSaveProfile}
               disabled={isSaving}
               leftIcon={<Save className="w-4 h-4" />}
+              className="font-bold shadow-glow-brand"
             >
               {isSaving ? 'Salvando no Banco...' : 'Salvar Dados Comerciais no Banco'}
             </Button>
@@ -1363,134 +1053,7 @@ export const SettingsPage: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 5: DATABASE & SUPABASE */}
-      {/* ========================================================================= */}
-      {activeTab === 'database' && (
-        <div className="space-y-6 animate-in fade-in">
-          {/* Live Statistics Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <div className="p-4 rounded-2xl bg-dark-900/80 border border-white/5 text-center">
-              <span className="text-[10px] text-slate-400 block font-semibold">Contatos Registrados</span>
-              <span className="text-xl font-bold text-white mt-1 block">{dbStats.contacts_count}</span>
-            </div>
-            <div className="p-4 rounded-2xl bg-dark-900/80 border border-white/5 text-center">
-              <span className="text-[10px] text-slate-400 block font-semibold">Agendamentos</span>
-              <span className="text-xl font-bold text-emerald-400 mt-1 block">{dbStats.appointments_count}</span>
-            </div>
-            <div className="p-4 rounded-2xl bg-dark-900/80 border border-white/5 text-center">
-              <span className="text-[10px] text-slate-400 block font-semibold">Fluxos Ativos</span>
-              <span className="text-xl font-bold text-brand-400 mt-1 block">{dbStats.flows_count}</span>
-            </div>
-            <div className="p-4 rounded-2xl bg-dark-900/80 border border-white/5 text-center">
-              <span className="text-[10px] text-slate-400 block font-semibold">Atendentes</span>
-              <span className="text-xl font-bold text-purple-400 mt-1 block">{dbStats.attendants_count}</span>
-            </div>
-            <div className="p-4 rounded-2xl bg-dark-900/80 border border-white/5 text-center">
-              <span className="text-[10px] text-slate-400 block font-semibold">Variáveis</span>
-              <span className="text-xl font-bold text-amber-400 mt-1 block">{dbStats.custom_variables_count}</span>
-            </div>
-            <div className="p-4 rounded-2xl bg-dark-900/80 border border-white/5 text-center">
-              <span className="text-[10px] text-slate-400 block font-semibold">Conversas</span>
-              <span className="text-xl font-bold text-sky-400 mt-1 block">{dbStats.conversations_count}</span>
-            </div>
-          </div>
-
-          <Card className="p-6 rounded-3xl bg-dark-900/70 border-white/10 space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Database className="w-4 h-4 text-brand-400" />
-                  Banco de Dados em Nuvem (Supabase & Discloud)
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Credenciais de conexão, políticas atômicas e sincronização total
-                </p>
-              </div>
-
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs font-mono font-bold">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                Nuvem Ativa
-              </div>
-            </div>
-
-            <div className="space-y-4 p-4 rounded-2xl bg-dark-950/80 border border-white/5">
-              <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">
-                  Host / URL do Banco de Dados (Supabase URL)
-                </label>
-                <Input
-                  value={supabaseUrl}
-                  onChange={(e) => setSupabaseUrl(e.target.value)}
-                  placeholder="https://sua-instancia.supabase.co"
-                  className="font-mono text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">
-                  Chave Pública Anon (JWT Anon Key)
-                </label>
-                <Input
-                  type="password"
-                  value={supabaseKey}
-                  onChange={(e) => setSupabaseKey(e.target.value)}
-                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI..."
-                  className="font-mono text-xs"
-                />
-              </div>
-
-              <div className="flex justify-end">
-                <Button
-                  size="sm"
-                  variant="primary"
-                  onClick={handleSaveDbCredentials}
-                  disabled={isSavingDbConfig}
-                  leftIcon={<Save className="w-3.5 h-3.5" />}
-                  className="text-xs"
-                >
-                  {isSavingDbConfig ? 'Salvando...' : 'Salvar Credenciais no Banco'}
-                </Button>
-              </div>
-            </div>
-
-            {/* Tables status grid */}
-            <div className="space-y-2">
-              <span className="text-xs font-semibold text-slate-300 block">Tabelas e Coleções Sincronizadas:</span>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
-                {['contacts', 'appointments', 'flows', 'flow_nodes', 'flow_edges', 'conversations'].map((tbl) => (
-                  <div key={tbl} className="p-2.5 rounded-xl bg-dark-950 border border-white/5 text-center">
-                    <span className="font-mono text-xs font-bold text-white block">{tbl}</span>
-                    <span className="text-[9px] text-emerald-400 flex items-center justify-center gap-1 mt-0.5">
-                      <CheckCheck className="w-3 h-3" /> OK
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Action Buttons & Real-Time Sync Indicator */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-white/5">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDownloadBackup}
-                leftIcon={<Download className="w-3.5 h-3.5 text-emerald-400" />}
-                className="w-full sm:w-auto text-xs font-semibold"
-              >
-                Baixar Backup Completo (JSON)
-              </Button>
-
-              <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Sincronização Automática com Supabase Ativa</span>
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 6: GLOBAL & CUSTOM VARIABLES */}
+      {/* TAB 3: GLOBAL & CUSTOM VARIABLES */}
       {/* ========================================================================= */}
       {activeTab === 'variables' && (
         <div className="space-y-6 animate-in fade-in">
@@ -1523,7 +1086,7 @@ export const SettingsPage: React.FC = () => {
                 <Code2 className="w-8 h-8 text-slate-600 mx-auto mb-2" />
                 <p className="text-xs text-slate-300 font-semibold">Nenhuma variável personalizada cadastrada</p>
                 <p className="text-[11px] text-slate-500 mt-1">
-                  Clique em &quot;Nova Variável&quot; para adicionar constantes como promoções, links ou avisos.
+                  Clique em "Nova Variável" para adicionar constantes como promoções, links ou avisos.
                 </p>
               </div>
             ) : (
@@ -1597,6 +1160,10 @@ export const SettingsPage: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
               {[
+                { code: '{{artigo_assistente}}', desc: `Artigo do assistente (${currentGenderVars.artigo})` },
+                { code: '{{pronome_assistente}}', desc: `Pronome do assistente (${currentGenderVars.pronome})` },
+                { code: '{{tratamento_assistente}}', desc: `Tratamento do assistente (${currentGenderVars.tratamento})` },
+                { code: '{{saudacao_assistente}}', desc: `Saudação de gênero (${currentGenderVars.saudacao})` },
                 { code: '{{nome_cliente}}', desc: 'Nome informado pelo cliente ou contato' },
                 { code: '{{telefone_cliente}}', desc: 'Número WhatsApp de quem está falando' },
                 { code: '{{bot_nome}}', desc: 'Nome do seu assistente configurado' },
@@ -1605,11 +1172,8 @@ export const SettingsPage: React.FC = () => {
                 { code: '{{suporte_telefone}}', desc: 'Telefone comercial de suporte' },
                 { code: '{{suporte_email}}', desc: 'E-mail oficial de contato' },
                 { code: '{{site_empresa}}', desc: 'Website oficial da empresa' },
-                { code: '{{data_agendamento}}', desc: 'Data do agendamento escolhida (YYYY-MM-DD)' },
-                { code: '{{data_formatada}}', desc: 'Data no padrão brasileiro (DD/MM/AAAA)' },
-                { code: '{{horario_agendamento}}', desc: 'Horário selecionado pelo cliente (HH:MM)' },
-                { code: '{{servico_selecionado}}', desc: 'Nome do serviço escolhido no catálogo' },
                 { code: '{{chave_pix}}', desc: 'Chave PIX configurada para pagamento' },
+                { code: '{{data_formatada}}', desc: 'Data no padrão brasileiro (DD/MM/AAAA)' },
                 { code: '{{ultima_mensagem}}', desc: 'Última mensagem digitada pelo cliente' },
               ].map((item, idx) => (
                 <button
@@ -1637,148 +1201,229 @@ export const SettingsPage: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 7: SECURITY & PASSWORD */}
+      {/* TAB 4: THEME & APARÊNCIA */}
       {/* ========================================================================= */}
-      {activeTab === 'security' && (
-        <Card className="p-6 rounded-3xl bg-dark-900/70 border-white/10 space-y-6 max-w-xl animate-in fade-in">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-brand-400" />
-                Segurança & Credenciais no Banco de Dados
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Altere a senha de acesso administrativo. Gravada e replicada no banco de dados
-              </p>
-            </div>
-            <Badge variant="brand" className="text-[10px]">Persistido no Banco</Badge>
-          </div>
+      {activeTab === 'theme' && (
+        <div className="space-y-6 animate-in fade-in">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center text-primary-400">
+                    <Palette className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <CardTitle>Tema & Personalização Visual do Painel</CardTitle>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Configurações salvas individualmente para <strong className="text-white">@{currentUserIdentifier}</strong>
+                    </p>
+                  </div>
+                </div>
 
-          <form onSubmit={handleUpdatePassword} className="space-y-4">
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">Nova Senha de Acesso *</label>
-              <Input
-                type="password"
-                value={newAdminPassword}
-                onChange={(e) => setNewAdminPassword(e.target.value)}
-                placeholder="Mínimo 6 caracteres"
-                required
-              />
+                <Button
+                  variant="primary"
+                  onClick={openThemeModal}
+                  className="flex items-center gap-2 text-xs"
+                >
+                  <Palette className="w-4 h-4" />
+                  Abrir Configurador Completo
+                </Button>
+              </div>
+            </CardHeader>
+
+            {/* Quick overview of active theme settings */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+              <div className="bg-dark-950/60 p-4 rounded-xl border border-white/5">
+                <span className="text-[11px] font-semibold text-slate-400 block uppercase">Tema Atual</span>
+                <span className="text-base font-bold text-white mt-1 block">
+                  {THEME_OPTIONS.find(t => t.id === themeMode)?.name || themeMode}
+                </span>
+                <span className="text-xs text-slate-500 mt-0.5 block">
+                  {themeMode.startsWith('dark') ? '🌙 Opção Escura' : '☀️ Opção Clara'}
+                </span>
+              </div>
+
+              <div className="bg-dark-950/60 p-4 rounded-xl border border-white/5">
+                <span className="text-[11px] font-semibold text-slate-400 block uppercase">Cor de Destaque</span>
+                <div className="flex items-center gap-2 mt-1">
+                  <span 
+                    className="w-3.5 h-3.5 rounded-full shadow-sm"
+                    style={{ backgroundColor: ACCENT_OPTIONS.find(a => a.id === accentColor)?.hex }}
+                  />
+                  <span className="text-base font-bold text-white">
+                    {ACCENT_OPTIONS.find(a => a.id === accentColor)?.name || accentColor}
+                  </span>
+                </div>
+                <span className="text-xs text-slate-500 mt-0.5 block">Acentos, botões e badges</span>
+              </div>
+
+              <div className="bg-dark-950/60 p-4 rounded-xl border border-white/5">
+                <span className="text-[11px] font-semibold text-slate-400 block uppercase">Brilho</span>
+                <span className="text-base font-bold text-white mt-1 block font-mono">
+                  {brightness}%
+                </span>
+                <span className="text-xs text-slate-500 mt-0.5 block">
+                  {brightness === 100 ? 'Calibração normal' : brightness > 100 ? 'Mais iluminado' : 'Atenuado'}
+                </span>
+              </div>
+
+              <div className="bg-dark-950/60 p-4 rounded-xl border border-white/5">
+                <span className="text-[11px] font-semibold text-slate-400 block uppercase">Contraste</span>
+                <span className="text-base font-bold text-white mt-1 block font-mono">
+                  {contrast}%
+                </span>
+                <span className="text-xs text-slate-500 mt-0.5 block">
+                  {contrast === 100 ? 'Contraste balanceado' : contrast > 100 ? 'Alto contraste' : 'Suave'}
+                </span>
+              </div>
             </div>
 
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">Confirmar Nova Senha *</label>
-              <Input
-                type="password"
-                value={confirmAdminPassword}
-                onChange={(e) => setConfirmAdminPassword(e.target.value)}
-                placeholder="Repita a nova senha"
-                required
-              />
+            {/* Quick switcher buttons */}
+            <div className="mt-6 pt-6 border-t border-white/5">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+                Seleção Rápida de Tema (3 Escuros e 2 Claros)
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                {THEME_OPTIONS.map(opt => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setThemeMode(opt.id)}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      themeMode === opt.id
+                        ? 'border-white bg-white/10 ring-1 ring-white/30 shadow-md'
+                        : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/15'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-bold text-white">{opt.name}</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-zinc-300">
+                        {opt.category === 'dark' ? '🌙' : '☀️'}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 line-clamp-2 leading-relaxed">
+                      {opt.description}
+                    </p>
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="p-3 bg-dark-950/80 rounded-xl border border-white/5 text-[11px] text-slate-400 leading-relaxed">
-              <span className="text-emerald-400 font-bold block mb-0.5">✓ Persistência em Nuvem:</span>
-              A nova senha será salva no banco de dados e sincronizada para todos os dispositivos e sessões conectadas.
+            {/* Quick accent color picker */}
+            <div className="mt-6 pt-6 border-t border-white/5">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+                Paleta de Cores de Acento
+              </h4>
+              <div className="flex flex-wrap gap-2.5">
+                {ACCENT_OPTIONS.map(acc => (
+                  <button
+                    key={acc.id}
+                    type="button"
+                    onClick={() => setAccentColor(acc.id)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all ${
+                      accentColor === acc.id
+                        ? 'border-white bg-white/10 ring-2 ring-white/20'
+                        : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]'
+                    }`}
+                  >
+                    <span 
+                      className="w-3.5 h-3.5 rounded-full shadow-sm"
+                      style={{ backgroundColor: acc.hex }}
+                    />
+                    <span className="text-zinc-200">{acc.name}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-
-            <div className="flex justify-end pt-2">
-              <Button
-                variant="brand"
-                type="submit"
-                disabled={isSavingPassword}
-                leftIcon={<Lock className="w-4 h-4" />}
-              >
-                {isSavingPassword ? 'Salvando no Banco...' : 'Salvar Nova Senha no Banco'}
-              </Button>
-            </div>
-          </form>
-        </Card>
+          </Card>
+        </div>
       )}
 
-      {/* Modal: Novo / Editar Atendente */}
-      <Modal
-        isOpen={isAttendantModalOpen}
-        onClose={() => setIsAttendantModalOpen(false)}
-        title={editingAttendant ? 'Editar Perfil de Atendente' : 'Novo Perfil de Atendente'}
-      >
-        <form onSubmit={handleSaveAttendant} className="space-y-4 text-xs">
-          <div>
-            <label className="text-[11px] font-bold text-slate-400 block mb-1">Nome Completo *</label>
-            <Input
-              value={attName}
-              onChange={(e) => setAttName(e.target.value)}
-              placeholder="Ex: Sofia Atendimento"
-              required
+      {/* ========================================================================= */}
+      {/* TAB 5: WHATSAPP QR CODE & DISCLOUD CONNECTION (ÚLTIMA ABA DA PÁGINA) */}
+      {/* ========================================================================= */}
+      {activeTab === 'whatsapp_qr' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in">
+          <div className="lg:col-span-2 space-y-6">
+            <QRCodeView
+              value={rawQR || session.qrCode || ''}
+              qrDataUrl={qrDataUrl}
+              onRefresh={generateQRCode}
+              onRequestPairingCode={requestPairingCode}
+              isLoading={isConnecting}
             />
+
+            {/* Backend URL Configuration */}
+            <Card className="p-6 rounded-3xl bg-dark-900/70 border-white/10 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Server className="w-4 h-4 text-brand-400" />
+                    Servidor WhatsApp (Discloud / Baileys)
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    URL do serviço WebSocket e API REST onde o robô está hospedado e persistido no banco
+                  </p>
+                </div>
+                <Badge variant="brand" className="text-[10px]">Persistido no Banco</Badge>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Input
+                  value={customServerInput}
+                  onChange={(e) => setCustomServerInput(e.target.value)}
+                  placeholder="https://pitoco.discloud.app"
+                  className="font-mono text-xs flex-1"
+                />
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleTestBackend}
+                    disabled={isTestingServer}
+                    className="text-xs"
+                  >
+                    {isTestingServer ? 'Testando...' : 'Testar Conexão'}
+                  </Button>
+                  <Button
+                    variant="brand"
+                    size="sm"
+                    onClick={handleSaveBackendUrl}
+                    disabled={isTestingServer}
+                    leftIcon={<Save className="w-3.5 h-3.5" />}
+                    className="text-xs font-bold shadow-glow-brand"
+                  >
+                    Salvar no Banco
+                  </Button>
+                </div>
+              </div>
+            </Card>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-[11px] font-bold text-slate-400 block mb-1">E-mail de Login *</label>
-              <Input
-                type="email"
-                value={attEmail}
-                onChange={(e) => setAttEmail(e.target.value)}
-                placeholder="sofia@pitoco.com.br"
-                required
-              />
-            </div>
-            <div>
-              <label className="text-[11px] font-bold text-slate-400 block mb-1">WhatsApp / Telefone</label>
-              <Input
-                value={attPhone}
-                onChange={(e) => setAttPhone(e.target.value)}
-                placeholder="81988887777"
-              />
-            </div>
+          <div className="space-y-4">
+            <Card className="p-5 rounded-3xl bg-dark-900/60 border-white/5 space-y-3">
+              <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                <Smartphone className="w-4 h-4 text-emerald-400" />
+                Dicas de Estabilidade
+              </h4>
+              <ul className="text-xs text-slate-300 space-y-2 leading-relaxed">
+                <li className="flex items-start gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  Mantenha o celular com internet ativa para a sincronização inicial.
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  A sessão é persistida em nuvem no Discloud com reconexão automática.
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  Caso queira trocar de aparelho, clique em <strong>Desconectar</strong> para gerar um novo QR Code.
+                </li>
+              </ul>
+            </Card>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-[11px] font-bold text-slate-400 block mb-1">Senha de Acesso *</label>
-              <Input
-                type="text"
-                value={attPassword}
-                onChange={(e) => setAttPassword(e.target.value)}
-                placeholder="Senha do atendente"
-                required
-              />
-            </div>
-            <div>
-              <label className="text-[11px] font-bold text-slate-400 block mb-1">Departamento / Setor</label>
-              <select
-                value={attDepartment}
-                onChange={(e) => setAttDepartment(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-white/10 text-white text-xs"
-              >
-                <option value="Comercial & Vendas">Comercial & Vendas</option>
-                <option value="Suporte & Recepção">Suporte & Recepção</option>
-                <option value="Agendamentos">Agendamentos</option>
-                <option value="Geral">Geral</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-[11px] font-bold text-slate-400 block mb-1">URL da Foto de Perfil (Opcional)</label>
-            <Input
-              value={attAvatar}
-              onChange={(e) => setAttAvatar(e.target.value)}
-              placeholder="https://exemplo.com/avatar.jpg"
-            />
-          </div>
-
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/5">
-            <Button size="sm" variant="ghost" type="button" onClick={() => setIsAttendantModalOpen(false)}>
-              Cancelar
-            </Button>
-            <Button size="sm" variant="primary" type="submit" leftIcon={<Save className="w-3.5 h-3.5" />}>
-              Salvar Atendente no Banco
-            </Button>
-          </div>
-        </form>
-      </Modal>
+        </div>
+      )}
 
       {/* Modal: Nova / Editar Variável Personalizada */}
       <Modal
