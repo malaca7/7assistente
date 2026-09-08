@@ -251,7 +251,7 @@
       ],
       "color": "#10b981",
       "created_at": "2026-09-08T21:41:27.921908+00:00",
-      "updated_at": "2026-09-08T22:20:51.095Z"
+      "updated_at": "2026-09-08T22:31:03.427Z"
     },
     {
       "id": "flow-1788903542304",
@@ -260,7 +260,7 @@
       "status": "draft",
       "is_active": false,
       "version": 2,
-      "node_count": 2,
+      "node_count": 4,
       "trigger_type": "Qualquer Mensagem Recebida",
       "store_id": null,
       "store_name": "Toda a Rede (Global)",
@@ -282,7 +282,7 @@
       ],
       "color": "#10b981",
       "created_at": "2026-09-08T21:39:07.018531+00:00",
-      "updated_at": "2026-09-08T21:41:21.089Z"
+      "updated_at": "2026-09-08T22:31:29.811Z"
     },
     {
       "id": "flow-pitoco-001",
@@ -297,7 +297,7 @@
       "node_count": 9,
       "steps": [],
       "created_at": "2026-09-08T20:00:48.042417+00:00",
-      "updated_at": "2026-09-08T22:23:31.704Z",
+      "updated_at": "2026-09-08T22:34:45.931Z",
       "color": "#10b981"
     }
   ],
@@ -815,8 +815,8 @@
         "flow_id": "flow-pitoco-001",
         "type": "shipping_calculator",
         "position": {
-          "x": 530,
-          "y": 1764
+          "x": 853,
+          "y": 1104
         },
         "data": {
           "label": "Calculadora de Frete & Entrega",
@@ -829,6 +829,10 @@
           "nodeType": "shipping_calculator",
           "description": "Oferece Motoboy Express (mesmo dia), Correios (SEDEX/PAC) ou Retirada Gr\u00e1tis em Loja.",
           "isConfigured": true
+        },
+        "measured": {
+          "width": 330,
+          "height": 318
         }
       },
       {
@@ -836,8 +840,8 @@
         "flow_id": "flow-pitoco-001",
         "type": "message",
         "position": {
-          "x": 315,
-          "y": 1230
+          "x": 638,
+          "y": 570
         },
         "data": {
           "label": "Boas-Vindas Pitoco de Gente",
@@ -847,6 +851,10 @@
           "nodeType": "message",
           "description": "Mensagem carinhosa de boas-vindas com o nome do cliente",
           "isConfigured": true
+        },
+        "measured": {
+          "width": 330,
+          "height": 213
         }
       },
       {
@@ -855,7 +863,7 @@
         "type": "check_contact",
         "position": {
           "x": 315,
-          "y": 300
+          "y": 330
         },
         "data": {
           "label": "Verificar Contato (Novo vs Salvo)",
@@ -863,6 +871,10 @@
           "nodeType": "check_contact",
           "description": "Bifurca o fluxo entre Primeiro Contato (1\u00aa Vez) e Contato Salvo (Recorrente).",
           "isConfigured": true
+        },
+        "measured": {
+          "width": 330,
+          "height": 247
         }
       },
       {
@@ -883,6 +895,10 @@
           "nodeType": "trigger",
           "description": "Dispara quando o cliente envia qualquer mensagem no WhatsApp",
           "isConfigured": true
+        },
+        "measured": {
+          "width": 330,
+          "height": 182
         }
       },
       {
@@ -891,7 +907,7 @@
         "type": "question",
         "position": {
           "x": 100,
-          "y": 540
+          "y": 570
         },
         "data": {
           "label": "Pergunta & Resposta",
@@ -903,28 +919,10 @@
           "nodeType": "question",
           "description": "Faz uma pergunta ao cliente e salva o texto digitado em uma vari\u00e1vel.",
           "isConfigured": true
-        }
-      },
-      {
-        "id": "node-update_contact-1788893708199",
-        "flow_id": "flow-pitoco-001",
-        "type": "update_contact",
-        "position": {
-          "x": 100,
-          "y": 770
         },
-        "data": {
-          "label": "Salvar / Vincular Dados",
-          "config": {
-            "tags": "Cliente Novo, Cliente",
-            "contactName": "",
-            "phoneVarName": "telefone_whatsapp",
-            "customFieldKey": "interesse_principal",
-            "customFieldValue": "servico_selecionado"
-          },
-          "nodeType": "update_contact",
-          "description": "Salva nome, foto oficial, tags e campos customizados direto no perfil do WhatsApp.",
-          "isConfigured": true
+        "measured": {
+          "width": 330,
+          "height": 165
         }
       },
       {
@@ -932,8 +930,8 @@
         "flow_id": "flow-pitoco-001",
         "type": "buttons",
         "position": {
-          "x": 315,
-          "y": 1480
+          "x": 638,
+          "y": 820
         },
         "data": {
           "label": "Menu Principal de Op\u00e7\u00f5es",
@@ -954,6 +952,10 @@
           "nodeType": "buttons",
           "description": "Op\u00e7\u00f5es r\u00e1pidas para agilizar o atendimento",
           "isConfigured": true
+        },
+        "measured": {
+          "width": 330,
+          "height": 248
         }
       },
       {
@@ -961,8 +963,8 @@
         "flow_id": "flow-pitoco-001",
         "type": "variable",
         "position": {
-          "x": 100,
-          "y": 1000
+          "x": 745,
+          "y": 100
         },
         "data": {
           "label": "Definir Vari\u00e1vel",
@@ -982,6 +984,10 @@
           "nodeType": "variable",
           "description": "Armazena valores, c\u00e1lculos, dados de contato ou datas em vari\u00e1veis.",
           "isConfigured": true
+        },
+        "measured": {
+          "width": 330,
+          "height": 131
         }
       },
       {
@@ -989,8 +995,8 @@
         "flow_id": "flow-pitoco-001",
         "type": "show_catalog",
         "position": {
-          "x": 100,
-          "y": 1764
+          "x": 423,
+          "y": 1104
         },
         "data": {
           "label": "Vitrine da Loja Virtual",
@@ -1002,6 +1008,32 @@
           "nodeType": "show_catalog",
           "description": "Envia vitrine de roupas de beb\u00ea e enxovais com categorias, fotos, tamanhos e valores.",
           "isConfigured": true
+        },
+        "measured": {
+          "width": 330,
+          "height": 238
+        }
+      },
+      {
+        "id": "node-update_contact-1788906881259",
+        "type": "update_contact",
+        "position": {
+          "x": 1175,
+          "y": 100
+        },
+        "data": {
+          "label": "Salvar / Vincular Dados",
+          "nodeType": "update_contact",
+          "description": "Salva nome (digitado ou vari\u00e1vel), WhatsApp, foto oficial do WhatsApp e campos do CRM no banco.",
+          "isConfigured": true,
+          "config": {
+            "contactName": "{{nome_cliente}}",
+            "phoneMode": "sender",
+            "phoneVarName": "telefone_whatsapp",
+            "saveProfilePicture": true,
+            "tags": "Cliente WhatsApp, Bot",
+            "updateActiveConversation": true
+          }
         }
       }
     ],
@@ -1091,6 +1123,90 @@
         "measured": {
           "width": 330,
           "height": 238
+        }
+      }
+    ],
+    "flow-1788903542304": [
+      {
+        "id": "node-trigger-1",
+        "type": "trigger",
+        "position": {
+          "x": 315,
+          "y": 100
+        },
+        "data": {
+          "label": "Mensagem Recebida",
+          "nodeType": "trigger",
+          "description": "Dispara quando o cliente manda qualquer mensagem no WhatsApp",
+          "isConfigured": true,
+          "config": {
+            "eventType": "any_message"
+          }
+        },
+        "measured": {
+          "width": 330,
+          "height": 172
+        }
+      },
+      {
+        "id": "node-welcome-2",
+        "type": "message",
+        "position": {
+          "x": 315,
+          "y": 300
+        },
+        "data": {
+          "label": "Boas-vindas Pitoco de Gente",
+          "nodeType": "message",
+          "description": "Envia a sauda\u00e7\u00e3o oficial com menu de 1 a 7",
+          "isConfigured": true,
+          "config": {
+            "message": "Ol\u00e1! Seja muito bem-vindo(a) \u00e0 Pitoco de Gente \u2014 Roupas de Beb\u00ea, Infantil e Enxovais! \ud83d\udc76\u2728"
+          }
+        },
+        "measured": {
+          "width": 330,
+          "height": 160
+        }
+      },
+      {
+        "id": "node-catalog-3",
+        "type": "show_catalog",
+        "position": {
+          "x": 100,
+          "y": 520
+        },
+        "data": {
+          "label": "Cat\u00e1logo Interativo",
+          "nodeType": "show_catalog",
+          "description": "Bodies 100% suedine, macac\u00f5es z\u00edper duplo, sa\u00eddas de maternidade e kits de ber\u00e7o",
+          "isConfigured": true,
+          "config": {}
+        },
+        "measured": {
+          "width": 330,
+          "height": 238
+        }
+      },
+      {
+        "id": "node-handoff-4",
+        "type": "human_handoff",
+        "position": {
+          "x": 530,
+          "y": 520
+        },
+        "data": {
+          "label": "Transbordo por Loja",
+          "nodeType": "human_handoff",
+          "description": "Cliente escolhe entre Matriz Centro, Shopping Boulevard ou E-commerce",
+          "isConfigured": true,
+          "config": {
+            "multiStore": true
+          }
+        },
+        "measured": {
+          "width": 330,
+          "height": 130
         }
       }
     ]
@@ -1427,21 +1543,16 @@
         "source": "node-buttons-pitoco",
         "target": "node-shipping_calculator-1788905161954",
         "sourceHandle": "btn_2",
-        "data": {}
+        "data": {},
+        "targetHandle": null
       },
       {
         "id": "edge-p2-p3",
         "flow_id": "flow-pitoco-001",
         "source": "node-welcome-pitoco",
         "target": "node-buttons-pitoco",
-        "data": {}
-      },
-      {
-        "id": "xy-edge__node-update_contact-1788893708199-node-variable-1788893776618",
-        "flow_id": "flow-pitoco-001",
-        "source": "node-update_contact-1788893708199",
-        "target": "node-variable-1788893776618",
-        "data": {}
+        "data": {},
+        "targetHandle": null
       },
       {
         "id": "xy-edge__node-check_contact-1788893686878is_new-node-question-1788893542405",
@@ -1449,14 +1560,16 @@
         "source": "node-check_contact-1788893686878",
         "target": "node-question-1788893542405",
         "sourceHandle": "is_new",
-        "data": {}
+        "data": {},
+        "targetHandle": null
       },
       {
         "id": "xy-edge__node-variable-1788893776618-node-welcome-pitoco",
         "flow_id": "flow-pitoco-001",
         "source": "node-variable-1788893776618",
         "target": "node-welcome-pitoco",
-        "data": {}
+        "data": {},
+        "targetHandle": null
       },
       {
         "id": "xy-edge__node-check_contact-1788893686878is_existing-node-welcome-pitoco",
@@ -1464,7 +1577,8 @@
         "source": "node-check_contact-1788893686878",
         "target": "node-welcome-pitoco",
         "sourceHandle": "is_existing",
-        "data": {}
+        "data": {},
+        "targetHandle": null
       },
       {
         "id": "xy-edge__node-buttons-pitocobtn_catalogo-node-show_catalog-1788902631459",
@@ -1472,21 +1586,16 @@
         "source": "node-buttons-pitoco",
         "target": "node-show_catalog-1788902631459",
         "sourceHandle": "btn_catalogo",
-        "data": {}
-      },
-      {
-        "id": "xy-edge__node-question-1788893542405-node-update_contact-1788893708199",
-        "flow_id": "flow-pitoco-001",
-        "source": "node-question-1788893542405",
-        "target": "node-update_contact-1788893708199",
-        "data": {}
+        "data": {},
+        "targetHandle": null
       },
       {
         "id": "xy-edge__node-trigger-pitoco-node-check_contact-1788893686878",
         "flow_id": "flow-pitoco-001",
         "source": "node-trigger-pitoco",
         "target": "node-check_contact-1788893686878",
-        "data": {}
+        "data": {},
+        "targetHandle": null
       }
     ],
     "flow-1788903683074": [
@@ -1512,6 +1621,27 @@
         "source": "node-welcome-2",
         "target": "node-handoff-4",
         "data": {},
+        "targetHandle": null
+      }
+    ],
+    "flow-1788903542304": [
+      {
+        "id": "edge-1-2",
+        "source": "node-trigger-1",
+        "target": "node-welcome-2",
+        "animated": true,
+        "targetHandle": null
+      },
+      {
+        "id": "edge-2-3",
+        "source": "node-welcome-2",
+        "target": "node-catalog-3",
+        "targetHandle": null
+      },
+      {
+        "id": "edge-2-4",
+        "source": "node-welcome-2",
+        "target": "node-handoff-4",
         "targetHandle": null
       }
     ]
@@ -1868,15 +1998,25 @@
   "systemUsers": [
     {
       "id": "user-talvane",
-      "name": "Malaca",
+      "name": "Rog\u00e9rio Malaquias",
       "username": "malaca",
       "password": "199425",
-      "role": "ceo",
+      "role": "admin",
       "store_id": null,
       "store_name": "Toda a Rede (Global)",
       "status": "active",
       "created_at": "2026-09-03T21:32:42.145Z",
-      "updated_at": "2026-09-08T18:47:43.839Z"
+      "updated_at": "2026-09-08T22:33:45.970Z",
+      "panels": [
+        "admin",
+        "gerente",
+        "atendimento"
+      ],
+      "allowed_panels": [
+        "admin",
+        "gerente",
+        "atendimento"
+      ]
     },
     {
       "id": "user-1788477817013",
@@ -1888,7 +2028,13 @@
       "store_name": "Toda a Rede (Global)",
       "status": "active",
       "created_at": "2026-09-03T23:23:37.718Z",
-      "updated_at": "2026-09-08T20:04:32.845Z"
+      "updated_at": "2026-09-08T22:33:26.838Z",
+      "panels": [
+        "atendimento"
+      ],
+      "allowed_panels": [
+        "atendimento"
+      ]
     }
   ],
   "attendants": [

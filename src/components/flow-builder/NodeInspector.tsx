@@ -36,7 +36,9 @@ import {
   BadgePercent,
   HeartHandshake,
   UserCheck,
-  Link2
+  Link2,
+  User,
+  Phone
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { VariableBadge } from './ui/VariableBadge';
