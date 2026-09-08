@@ -48,7 +48,8 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
         <Handle
           type="target"
           position={Position.Top}
-          className="w-4 h-4 !bg-sky-400 !border-2 !border-dark-950 shadow-md -top-2 hover:!scale-125 transition-transform left-1/2 -translate-x-1/2 cursor-crosshair z-20"
+          style={{ width: 22, height: 22 }}
+          className="!bg-sky-400 !border-2 !border-dark-950 ring-4 ring-sky-500/30 hover:ring-sky-400 hover:scale-110 shadow-lg -top-2.5 left-1/2 -translate-x-1/2 cursor-crosshair z-30 transition-all rounded-full"
           title="Entrada (Conectar fluxo aqui)"
         />
       )}
@@ -100,7 +101,8 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
         <Handle
           type="source"
           position={Position.Bottom}
-          className="w-4 h-4 !bg-primary-400 !border-2 !border-dark-950 shadow-md -bottom-2 hover:!scale-125 transition-transform left-1/2 -translate-x-1/2 cursor-crosshair z-20"
+          style={{ width: 22, height: 22 }}
+          className="!bg-emerald-400 !border-2 !border-dark-950 ring-4 ring-emerald-500/30 hover:ring-emerald-400 hover:scale-110 shadow-lg -bottom-2.5 left-1/2 -translate-x-1/2 cursor-crosshair z-30 transition-all rounded-full"
           title="Saída (Arraste para ligar ao próximo nó)"
         />
       )}
@@ -127,9 +129,10 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
                   id={out.id}
                   type="source"
                   position={Position.Bottom}
+                  style={{ width: 18, height: 18 }}
                   className={cn(
-                    'w-3.5 h-3.5 !border-2 !border-dark-950 shadow-md -bottom-2 hover:!scale-125 transition-transform left-1/2 -translate-x-1/2 cursor-crosshair z-20',
-                    out.color || '!bg-primary-400'
+                    '!border-2 !border-dark-950 ring-2 ring-white/20 hover:ring-primary-400 hover:scale-110 shadow-md -bottom-2 left-1/2 -translate-x-1/2 cursor-crosshair z-30 transition-all rounded-full',
+                    out.color || '!bg-emerald-400'
                   )}
                   title={`Saída: ${out.label} (Arraste para ligar)`}
                 />

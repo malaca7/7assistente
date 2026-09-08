@@ -1243,6 +1243,22 @@ export async function deleteFlowFromSupabase(flowId) {
 export async function syncFlowGraphToSupabase(flowId, nodes, edges) {
   if (!supabaseClient || !flowId) return;
   try {
+    const nodeIds = (nodes || []).map(n => n.id);
+    const edgeIds = (edges || []).map(e => e.id);
+
+    // Remove nós e arestas que foram excluídos pelo usuário no Studio
+    if (nodeIds.length > 0) {
+      await supabaseClient.from('flow_nodes').delete().eq('flow_id', flowId).not('id', 'in', `(${nodeIds.map(id => `"${id}"`).join(',')})`);
+    } else {
+      await supabaseClient.from('flow_nodes').delete().eq('flow_id', flowId);
+    }
+
+    if (edgeIds.length > 0) {
+      await supabaseClient.from('flow_edges').delete().eq('flow_id', flowId).not('id', 'in', `(${edgeIds.map(id => `"${id}"`).join(',')})`);
+    } else {
+      await supabaseClient.from('flow_edges').delete().eq('flow_id', flowId);
+    }
+
     if (Array.isArray(nodes) && nodes.length > 0) {
       const nodeRecords = nodes.map((n) => ({
         id: n.id,

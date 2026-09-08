@@ -183,9 +183,9 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
         store_id: flowStoreId === 'all' ? null : flowStoreId,
         store_name: storeName,
         is_active: flowActive,
-        status: flowActive ? 'published' : 'paused',
+        status: flowActive ? 'published' : 'draft',
         version: editingFlow ? (editingFlow.version + 1) : 1,
-        node_count: flowSteps.length,
+        node_count: editingFlow?.node_count && editingFlow.node_count > flowSteps.length ? editingFlow.node_count : flowSteps.length,
         steps: flowSteps,
         color: flowColor,
         created_at: editingFlow?.created_at,
@@ -558,7 +558,7 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
         isOpen={isFlowModalOpen}
         onClose={() => setIsFlowModalOpen(false)}
         title={editingFlow ? `Editar Fluxo: ${editingFlow.name}` : 'Criar Novo Fluxo de Atendimento'}
-        maxWidth="max-w-2xl"
+        maxWidth="2xl"
       >
         <form onSubmit={handleSaveFlow} className="space-y-4">
           <div>
@@ -785,7 +785,7 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-white/5">
+          <div className="sticky -bottom-5 sm:-bottom-6 bg-dark-900/95 backdrop-blur-md -mx-5 px-5 sm:-mx-6 sm:px-6 py-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 z-30">
             <div>
               {editingFlow && (
                 <Button
@@ -828,7 +828,7 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
         isOpen={Boolean(flowToDelete)}
         onClose={() => setFlowToDelete(null)}
         title="Confirmar Exclusão de Fluxo"
-        maxWidth="max-w-sm"
+        maxWidth="sm"
       >
         <div className="space-y-4">
           <p className="text-xs text-slate-300">

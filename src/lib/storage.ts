@@ -1137,7 +1137,7 @@ export const StorageService = {
       status: flow.status ?? existing?.status ?? (flow.is_active ? 'published' : 'draft'),
       is_active: flow.is_active !== undefined ? flow.is_active : (existing?.is_active ?? (flow.status === 'published')),
       version: flow.version ?? existing?.version ?? 1,
-      node_count: flow.steps ? flow.steps.length : (flow.node_count ?? existing?.node_count ?? 4),
+      node_count: flow.node_count ?? existing?.node_count ?? (flow.steps && flow.steps.length > 0 ? flow.steps.length : 4),
       trigger_type: flow.trigger_type ?? existing?.trigger_type ?? 'Qualquer Mensagem Recebida',
       store_id: flow.store_id !== undefined ? flow.store_id : (existing?.store_id ?? null),
       store_name: flow.store_name ?? existing?.store_name ?? (flow.store_id ? 'Filial Específica' : 'Toda a Rede'),

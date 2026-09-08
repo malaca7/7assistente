@@ -136,8 +136,8 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
         nodesDraggable={true}
         nodesConnectable={true}
         elementsSelectable={true}
-        connectionMode={ConnectionMode.Strict}
-        connectionRadius={45}
+        connectionMode={ConnectionMode.Loose}
+        connectionRadius={60}
         panOnDrag={true}
         zoomOnScroll={true}
         zoomOnPinch={true}
@@ -150,9 +150,9 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
             : ConnectionLineType.Bezier
         }
         connectionLineStyle={{
-          stroke: '#06b6d4',
+          stroke: '#38bdf8',
           strokeWidth: 3,
-          strokeDasharray: '6,6',
+          strokeDasharray: '6,4',
         }}
         defaultEdgeOptions={{
           type: edgeType,

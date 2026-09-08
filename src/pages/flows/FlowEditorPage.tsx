@@ -250,25 +250,41 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
   // Connect edges
   const onConnect = useCallback(
     (params: Connection) => {
-      const cleanParams: Connection = {
-        ...params,
-        targetHandle: null,
-      };
+      if (!params.source || !params.target || params.source === params.target) {
+        return;
+      }
+
       setEdges((eds) => {
-        const newEdges = addEdge(
-          {
-            ...cleanParams,
-            type: edgeType,
-            animated: true,
-            style: { stroke: '#06b6d4', strokeWidth: 2.5 },
-          },
-          eds
+        const alreadyExists = eds.some(
+          (e) =>
+            (e.source === params.source && e.target === params.target && (e.sourceHandle || null) === (params.sourceHandle || null)) ||
+            (e.source === params.target && e.target === params.source)
         );
+        if (alreadyExists) {
+          info('Conexão Existente', 'Esses nós já estão interligados.');
+          return eds;
+        }
+
+        const newEdge: Edge = {
+          id: `xy-edge__${params.source}${params.sourceHandle ? '-' + params.sourceHandle : ''}-${params.target}`,
+          source: params.source,
+          target: params.target,
+          sourceHandle: params.sourceHandle || null,
+          targetHandle: null,
+          type: edgeType,
+          animated: true,
+          style: { stroke: '#06b6d4', strokeWidth: 2.5 },
+        };
+
+        const newEdges = addEdge(newEdge, eds);
         pushHistory(nodes, newEdges);
         return newEdges;
       });
+
+      setIsDirty(true);
+      success('Ligação Criada', 'Nós conectados com sucesso no organograma.');
     },
-    [nodes, edgeType, setEdges, pushHistory]
+    [nodes, edgeType, setEdges, pushHistory, info, success]
   );
 
   // Node Click: handles both normal selection and Tap-to-Connect
@@ -1235,6 +1251,7 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
               onDeleteNode={handleDeleteSelectedNode}
               onDuplicateNode={handleDuplicateSelectedNode}
               onClose={() => setSelectedNode(null)}
+              onStartConnecting={handleStartConnecting}
               width={inspectorWidth}
               onWidthChange={setInspectorWidth}
             />
@@ -1447,6 +1464,10 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
                 onDeleteNode={handleDeleteSelectedNode}
                 onDuplicateNode={handleDuplicateSelectedNode}
                 onClose={() => setIsMobileInspectorOpen(false)}
+                onStartConnecting={(nd) => {
+                  setIsMobileInspectorOpen(false);
+                  handleStartConnecting(nd);
+                }}
                 width={600}
               />
             </div>

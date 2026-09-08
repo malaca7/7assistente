@@ -35,7 +35,8 @@ import {
   Package,
   BadgePercent,
   HeartHandshake,
-  UserCheck
+  UserCheck,
+  Link2
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { VariableBadge } from './ui/VariableBadge';
@@ -68,6 +69,7 @@ export interface NodeInspectorProps {
   onDeleteNode: (nodeId: string) => void;
   onDuplicateNode: (nodeId: string) => void;
   onClose: () => void;
+  onStartConnecting?: (node: FlowNode) => void;
   width?: number;
   onWidthChange?: (newWidth: number) => void;
 }
@@ -78,6 +80,7 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
   onDeleteNode,
   onDuplicateNode,
   onClose,
+  onStartConnecting,
   width = 360,
   onWidthChange,
 }) => {
@@ -263,6 +266,39 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
 
       {/* Body / Config fields */}
       <div className={cn("flex-1 overflow-y-auto", currentWidth < 280 ? "p-3 space-y-3.5" : "p-5 space-y-5")}>
+        {/* Ações Rápidas do Nó (Conectar com 1 clique, Duplicar, Excluir) */}
+        <div className="p-2.5 rounded-2xl bg-dark-950/80 border border-white/10 flex items-center justify-between gap-1.5 shadow-sm">
+          {onStartConnecting && (
+            <button
+              type="button"
+              onClick={() => onStartConnecting(node)}
+              className="flex-1 py-2 px-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 hover:from-cyan-500 hover:to-sky-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all"
+              title="Clique para ligar este nó a outro nó na tela (sem precisar arrastar)"
+            >
+              <Link2 className="w-3.5 h-3.5" />
+              <span>Ligar a Outro Nó</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => onDuplicateNode(node.id)}
+            className="p-2 rounded-xl bg-dark-800 hover:bg-dark-750 text-slate-300 hover:text-white border border-white/5 transition-all"
+            title="Duplicar Nó"
+          >
+            <Copy className="w-3.5 h-3.5" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onDeleteNode(node.id)}
+            className="p-2 rounded-xl bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 hover:text-rose-200 border border-rose-800/40 transition-all"
+            title="Excluir Nó"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+          </button>
+        </div>
+
         {/* Node Name */}
         <Input
           label="Título do Nó"

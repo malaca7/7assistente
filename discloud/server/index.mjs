@@ -1391,8 +1391,9 @@ app.post('/api/flows/:id/graph', (req, res) => {
       db.edges[id] = edges;
     }
 
+    let targetFlow = null;
     if (db.flows) {
-      const targetFlow = db.flows.find(f => f.id === id);
+      targetFlow = db.flows.find(f => f.id === id);
       if (targetFlow && Array.isArray(nodes)) {
         targetFlow.node_count = nodes.length;
         targetFlow.updated_at = new Date().toISOString();

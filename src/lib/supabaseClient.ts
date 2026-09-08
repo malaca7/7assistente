@@ -559,6 +559,7 @@ export async function getFlows(): Promise<Flow[]> {
         store_id: f.store_id || null,
         store_name: f.store_name || null,
         steps: Array.isArray(f.steps) ? f.steps : [],
+        color: f.color || '#10b981',
         created_at: f.created_at || new Date().toISOString(),
         updated_at: f.updated_at || new Date().toISOString(),
       })) as Flow[];
@@ -594,6 +595,7 @@ export async function saveFlow(flow: Partial<Flow>): Promise<Flow | null> {
       store_name: flow.store_name || null,
       node_count: flow.node_count || 0,
       steps: flow.steps || [],
+      color: flow.color || '#10b981',
       updated_at: new Date().toISOString(),
     };
 
@@ -652,6 +654,23 @@ export async function toggleFlowStatus(id: string, isActive: boolean): Promise<b
 
 export async function saveFlowGraph(flowId: string, nodes: FlowNode[], edges: FlowEdge[]): Promise<void> {
   try {
+    if (!flowId) return;
+    const nodeIds = (nodes || []).map(n => n.id);
+    const edgeIds = (edges || []).map(e => e.id);
+
+    // Remove nós e arestas deletados do fluxo
+    if (nodeIds.length > 0) {
+      await supabase.from('flow_nodes').delete().eq('flow_id', flowId).not('id', 'in', `(${nodeIds.map(id => `"${id}"`).join(',')})`);
+    } else {
+      await supabase.from('flow_nodes').delete().eq('flow_id', flowId);
+    }
+
+    if (edgeIds.length > 0) {
+      await supabase.from('flow_edges').delete().eq('flow_id', flowId).not('id', 'in', `(${edgeIds.map(id => `"${id}"`).join(',')})`);
+    } else {
+      await supabase.from('flow_edges').delete().eq('flow_id', flowId);
+    }
+
     if (Array.isArray(nodes) && nodes.length > 0) {
       const nodeRecords = nodes.map((n) => ({
         id: n.id,
