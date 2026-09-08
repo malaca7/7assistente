@@ -220,34 +220,7 @@ export async function syncToSupabase(dbOverride) {
     }
   }
 
-  // 7. Sincronizar Tickets de Suporte
-  if (Array.isArray(db.tickets) && db.tickets.length > 0) {
-    for (const t of db.tickets) {
-      try {
-        const { error } = await supabase.from('support_tickets').upsert({
-          id: t.id,
-          store_id: t.store_id || null,
-          store_name: t.store_name || null,
-          client_id: t.client_id || null,
-          client_name: t.client_name || null,
-          client_phone: t.client_phone || null,
-          protocol: t.protocol,
-          subject: t.subject || 'Dúvida Geral',
-          status: t.status || 'open',
-          priority: t.priority || 'normal',
-          attendant_name: t.attendant_name || null,
-          notes: t.notes || null,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'id' });
-        if (error) report.errors.push(`tickets: ${error.message}`);
-        else report.tickets++;
-      } catch (err) {
-        report.errors.push(`tickets: ${err.message}`);
-      }
-    }
-  }
-
-  // 8. Sincronizar Consultorias & Agendamentos
+  // 7. Sincronizar Consultorias & Agendamentos
   if (Array.isArray(db.appointments) && db.appointments.length > 0) {
     for (const a of db.appointments) {
       try {
@@ -260,23 +233,24 @@ export async function syncToSupabase(dbOverride) {
     }
   }
 
-  // 9. Sincronizar Usuários e Acessos
+  // 8. Sincronizar Usuários e Acessos
   if (Array.isArray(db.systemUsers) && db.systemUsers.length > 0) {
     for (const u of db.systemUsers) {
       try {
+        const cleanPhone = String(u.phone || u.username || `user-${u.id}`).replace(/\D/g, '') || '558199999999';
         const { error } = await supabase.from('system_users').upsert({
           id: u.id,
           store_id: u.store_id || null,
-          name: u.name,
-          phone: u.phone,
+          name: u.name || u.username || 'Usuário',
+          phone: cleanPhone,
           email: u.email || null,
-          password_hash: u.password_hash || '1234',
+          password_hash: u.password_hash || u.password || '123456',
           role: u.role || 'attendant',
           panels: u.panels || ['atendimento'],
           permissions: u.permissions || {},
           is_active: u.is_active ?? true,
           updated_at: new Date().toISOString()
-        }, { onConflict: 'phone' });
+        }, { onConflict: 'id' });
         if (error) report.errors.push(`system_users: ${error.message}`);
         else report.users++;
       } catch (err) {
