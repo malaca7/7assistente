@@ -11,6 +11,7 @@ import {
 } from '@xyflow/react';
 
 import { FlowCanvas } from '../../components/flow-builder/FlowCanvas';
+import { FlowVariablesModal } from '../../components/flow-builder/FlowVariablesModal';
 import { FlowToolbar } from '../../components/flow-builder/FlowToolbar';
 import { NodePalette, NodeDefinition, NODE_DEFINITIONS, CATEGORY_INFO } from '../../components/flow-builder/NodePalette';
 import { NodeInspector } from '../../components/flow-builder/NodeInspector';
@@ -58,6 +59,7 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
   const [isPaletteOpen, setIsPaletteOpen] = useState(true);
   const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
+  const [isVariablesModalOpen, setIsVariablesModalOpen] = useState(false);
   const [paletteWidth, setPaletteWidth] = useState(300);
   const [inspectorWidth, setInspectorWidth] = useState(380);
   const [isSaving, setIsSaving] = useState(false);
@@ -1191,6 +1193,7 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
         edgeType={edgeType}
         onChangeEdgeType={setEdgeType}
         onOpenShortcuts={() => setIsShortcutsModalOpen(true)}
+        onOpenVariables={() => setIsVariablesModalOpen(true)}
         onAutoLayout={handleAutoLayout}
       />
 
@@ -1776,6 +1779,13 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
           </div>
         </div>
       </Modal>
+
+      {/* Modal Popup de Variáveis do Sistema & Fluxo */}
+      <FlowVariablesModal
+        isOpen={isVariablesModalOpen}
+        onClose={() => setIsVariablesModalOpen(false)}
+        flowNodes={nodes as unknown as FlowNode[]}
+      />
     </div>
   );
 };

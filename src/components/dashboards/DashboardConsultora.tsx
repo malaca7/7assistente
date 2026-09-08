@@ -11,7 +11,8 @@ import {
   Search, 
   ExternalLink,
   Sparkles,
-  LifeBuoy
+  LifeBuoy,
+  Users
 } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -100,17 +101,17 @@ export const DashboardConsultora: React.FC<DashboardConsultoraProps> = ({
 
         <Card className="p-4 sm:p-5 bg-[#0c0c0e] border-white/10">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-zinc-400">Consultorias de Hoje</span>
+            <span className="text-xs font-semibold text-zinc-400">Clientes no CRM</span>
             <div className="p-2 rounded-xl bg-white/5 text-white border border-white/10">
-              <Calendar className="w-4 h-4" />
+              <Users className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3">
             <span className="text-xl sm:text-2xl font-black text-white block">
-              {consultations.length}
+              Fila Ativa
             </span>
             <span className="text-[10px] text-zinc-400 font-medium mt-1 block">
-              Agendamentos confirmados
+              Prontos para atendimento
             </span>
           </div>
         </Card>

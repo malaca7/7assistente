@@ -86,6 +86,7 @@ export interface Category {
 export interface Product {
   id: string;
   store_id?: string | null; // Global se nulo ou específico de loja
+  store_ids?: string[]; // Suporte a múltiplas lojas onde o produto está disponível
   category_id: string;
   category_name?: string;
   name: string;
@@ -337,6 +338,8 @@ export type NodeTypeEnum =
   | 'order_tracking'
   | 'promotional_coupon'
   | 'check_contact'
+  | 'client_lookup'
+  | 'client_upsert'
   | 'end_flow'
   // Backward compatibility alias
   | 'show_services'

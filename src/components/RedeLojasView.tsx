@@ -24,7 +24,7 @@ import {
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
-import { Store } from '../types';
+import { Store, SystemUser } from '../types';
 import { StorageService } from '../lib/storage';
 import { useToast } from '../contexts/ToastContext';
 
@@ -47,28 +47,39 @@ export const RedeLojasView: React.FC<RedeLojasViewProps> = ({ onSelectStore, onN
 
   // Form Fields
   const [formName, setFormName] = useState('');
+  const [systemUsers, setSystemUsers] = useState<SystemUser[]>([]);
   const [formSlug, setFormSlug] = useState('');
   const [formAddress, setFormAddress] = useState('');
   const [formPhone, setFormPhone] = useState('');
-  const [formWhatsapp, setFormWhatsapp] = useState('');
-  const [formHours, setFormHours] = useState('');
+  const [formHours, setFormHours] = useState('Seg a Sex: 08:00 às 18:00 | Sáb: 08:00 às 13:00');
   const [formCity, setFormCity] = useState('');
   const [formManager, setFormManager] = useState('');
   const [formActive, setFormActive] = useState(true);
 
+  const HOURS_PRESETS = [
+    { label: 'Comércio de Rua', value: 'Seg a Sex: 08:00 às 18:00 | Sáb: 08:00 às 13:00' },
+    { label: 'Comercial Padrão', value: 'Seg a Sáb: 09:00 às 19:00' },
+    { label: 'Shopping Center', value: 'Seg a Sáb: 10:00 às 22:00 | Dom: 12:00 às 21:00' },
+    { label: '24h Online', value: '24h Online / E-commerce' },
+  ];
+
   useEffect(() => {
-    async function loadStores() {
+    async function loadData() {
       setIsLoading(true);
       try {
-        const data = await StorageService.getStores();
-        setStores(data);
+        const [storesData, usersData] = await Promise.all([
+          StorageService.getStores(),
+          StorageService.getSystemUsers(),
+        ]);
+        setStores(storesData);
+        setSystemUsers(usersData);
       } catch (err) {
         console.error('Error loading stores:', err);
       } finally {
         setIsLoading(false);
       }
     }
-    loadStores();
+    loadData();
   }, []);
 
   const totalRevenue = stores.reduce((acc, s) => acc + (s.monthly_revenue || 0), 0);
@@ -98,8 +109,7 @@ export const RedeLojasView: React.FC<RedeLojasViewProps> = ({ onSelectStore, onN
     setFormSlug('');
     setFormAddress('');
     setFormPhone('8132211000');
-    setFormWhatsapp('81996138924');
-    setFormHours('08:30 às 18:30');
+    setFormHours('Seg a Sex: 08:00 às 18:00 | Sáb: 08:00 às 13:00');
     setFormCity('Recife - PE');
     setFormManager('');
     setFormActive(true);
@@ -113,8 +123,7 @@ export const RedeLojasView: React.FC<RedeLojasViewProps> = ({ onSelectStore, onN
     setFormSlug(store.slug);
     setFormAddress(store.address);
     setFormPhone(store.phone);
-    setFormWhatsapp(store.whatsapp_number);
-    setFormHours(store.business_hours || '08:30 às 18:30');
+    setFormHours(store.business_hours || 'Seg a Sex: 08:00 às 18:00 | Sáb: 08:00 às 13:00');
     setFormCity(store.city || 'Recife - PE');
     setFormManager(store.manager_name || '');
     setFormActive(store.is_active);
@@ -143,8 +152,8 @@ export const RedeLojasView: React.FC<RedeLojasViewProps> = ({ onSelectStore, onN
       slug: formSlug.trim() || formName.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
       address: formAddress.trim(),
       phone: formPhone.trim(),
-      whatsapp_number: formWhatsapp.trim() || formPhone.trim(),
-      business_hours: formHours.trim(),
+      whatsapp_number: editingStore?.whatsapp_number || '81996138924',
+      business_hours: formHours.trim() || 'Seg a Sex: 08:00 às 18:00 | Sáb: 08:00 às 13:00',
       city: formCity.trim(),
       manager_name: formManager.trim() || undefined,
       is_active: formActive,
@@ -392,7 +401,7 @@ export const RedeLojasView: React.FC<RedeLojasViewProps> = ({ onSelectStore, onN
           <div className="bg-dark-900 border border-white/10 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <StoreIcon className="w-5 h-5 text-pitoco-blue" />
+                <StoreIcon className="w-5 h-5 text-white" />
                 {editingStore ? 'Editar Filial / Canal' : 'Cadastrar Nova Filial'}
               </h3>
               <button
@@ -453,49 +462,63 @@ export const RedeLojasView: React.FC<RedeLojasViewProps> = ({ onSelectStore, onN
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">Telefone Fixo:</label>
+                  <label className="text-zinc-300 font-semibold block mb-1">Telefone Fixo / Contato:</label>
                   <input
                     type="text"
                     value={formPhone}
                     onChange={e => setFormPhone(e.target.value)}
                     placeholder="8132211000"
-                    className="w-full bg-dark-800 border border-white/10 rounded-xl p-2.5 text-white text-xs"
+                    className="w-full bg-[#18181b] border border-white/10 rounded-xl p-2.5 text-white text-xs focus:outline-none focus:border-white/30"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">WhatsApp da Filial:</label>
-                  <input
-                    type="text"
-                    value={formWhatsapp}
-                    onChange={e => setFormWhatsapp(e.target.value)}
-                    placeholder="81996138924"
-                    className="w-full bg-dark-800 border border-white/10 rounded-xl p-2.5 text-white text-xs"
-                    required
-                  />
+                  <label className="text-zinc-300 font-semibold block mb-1">Gerente da Filial:</label>
+                  <select
+                    value={formManager}
+                    onChange={e => setFormManager(e.target.value)}
+                    className="w-full bg-[#18181b] border border-white/10 rounded-xl p-2.5 text-white text-xs focus:outline-none focus:border-white/30"
+                  >
+                    <option value="">-- Sem Gerente Designado --</option>
+                    {formManager && !systemUsers.some(u => (u.name || u.username) === formManager) && (
+                      <option value={formManager}>{formManager}</option>
+                    )}
+                    {systemUsers.map(u => (
+                      <option key={u.id} value={u.name || u.username}>
+                        {u.name || u.username} ({u.role === 'admin' ? 'CEO / Admin' : u.role === 'manager' ? 'Gerente' : 'Consultora'})
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-slate-300 font-semibold block mb-1">Horário de Atendimento:</label>
-                  <input
-                    type="text"
-                    value={formHours}
-                    onChange={e => setFormHours(e.target.value)}
-                    placeholder="10:00 às 22:00"
-                    className="w-full bg-dark-800 border border-white/10 rounded-xl p-2.5 text-white text-xs"
-                  />
+              {/* Horário de Atendimento Profissional */}
+              <div className="space-y-1.5">
+                <label className="text-zinc-300 font-semibold block">Horário de Atendimento:</label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {HOURS_PRESETS.map((preset, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setFormHours(preset.value)}
+                      className={`text-[10px] px-2.5 py-1.5 rounded-lg border text-left truncate transition-all ${
+                        formHours === preset.value
+                          ? 'bg-white text-black font-bold border-white'
+                          : 'bg-[#18181b] text-zinc-400 border-white/10 hover:border-white/30 hover:text-white'
+                      }`}
+                      title={preset.value}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
                 </div>
-                <div>
-                  <label className="text-slate-300 font-semibold block mb-1">Gerente da Filial:</label>
-                  <input
-                    type="text"
-                    value={formManager}
-                    onChange={e => setFormManager(e.target.value)}
-                    placeholder="Nome da Gerente"
-                    className="w-full bg-dark-800 border border-white/10 rounded-xl p-2.5 text-white text-xs"
-                  />
-                </div>
+                <input
+                  type="text"
+                  value={formHours}
+                  onChange={e => setFormHours(e.target.value)}
+                  placeholder="Ex: Seg a Sex: 08:00 às 18:00 | Sáb: 08:00 às 13:00"
+                  className="w-full bg-[#18181b] border border-white/10 rounded-xl p-2.5 text-white text-xs focus:outline-none focus:border-white/30 font-mono"
+                  required
+                />
               </div>
 
               <div className="flex items-center gap-2 pt-2">
@@ -504,10 +527,10 @@ export const RedeLojasView: React.FC<RedeLojasViewProps> = ({ onSelectStore, onN
                   id="storeActiveCheck"
                   checked={formActive}
                   onChange={e => setFormActive(e.target.checked)}
-                  className="rounded bg-dark-800 border-white/10 text-pitoco-blue focus:ring-0"
+                  className="rounded bg-[#18181b] border-white/10 text-white focus:ring-0"
                 />
-                <label htmlFor="storeActiveCheck" className="text-slate-300 cursor-pointer">
-                  Filial ativa e disponível no bot WhatsApp
+                <label htmlFor="storeActiveCheck" className="text-zinc-300 cursor-pointer text-xs">
+                  Filial ativa e disponível no bot WhatsApp (número central da rede)
                 </label>
               </div>
 
@@ -516,13 +539,13 @@ export const RedeLojasView: React.FC<RedeLojasViewProps> = ({ onSelectStore, onN
                   type="button"
                   variant="outline"
                   onClick={() => setIsModalOpen(false)}
-                  className="text-xs text-slate-300"
+                  className="text-xs text-zinc-300 border-white/10 hover:bg-white/5"
                 >
                   Cancelar
                 </Button>
                 <Button
                   type="submit"
-                  className="bg-pitoco-blue text-slate-950 font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg"
+                  className="bg-white text-black hover:bg-zinc-200 font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg transition-all"
                 >
                   {editingStore ? 'Salvar Modificações' : 'Cadastrar Filial'}
                 </Button>

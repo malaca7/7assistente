@@ -18,7 +18,8 @@ import {
   Smartphone,
   List,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Braces
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
@@ -31,6 +32,7 @@ export interface FlowToolbarProps {
   onToggleStatus: () => void;
   onTestFlow?: () => void;
   onSwitchToMobileMode?: () => void;
+  onOpenVariables?: () => void;
   isSaving: boolean;
   canUndo?: boolean;
   canRedo?: boolean;
@@ -57,6 +59,7 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
   onToggleStatus,
   onTestFlow,
   onSwitchToMobileMode,
+  onOpenVariables,
   isSaving,
   canUndo,
   canRedo,
@@ -317,6 +320,19 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
             <Sparkles className="w-4 h-4 text-emerald-400 animate-pulse" />
             <span className="hidden sm:inline font-bold">Auto-Organizar</span>
             <span className="hidden xl:inline text-[9.5px] font-mono px-1 py-0.2 rounded bg-dark-900/80 text-emerald-400 border border-emerald-500/30">Alt+O</span>
+          </button>
+        )}
+
+        {/* Dicionário de Variáveis do Sistema & Fluxo */}
+        {onOpenVariables && (
+          <button
+            type="button"
+            onClick={onOpenVariables}
+            className="px-3 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-300 hover:text-purple-100 transition-all flex items-center gap-1.5 text-xs font-bold shadow-sm active:scale-95"
+            title="Abrir painel popup com todas as variáveis do sistema e deste fluxo"
+          >
+            <Braces className="w-4 h-4 text-purple-400" />
+            <span className="hidden sm:inline font-bold">Variáveis</span>
           </button>
         )}
 

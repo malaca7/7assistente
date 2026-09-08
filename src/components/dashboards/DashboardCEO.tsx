@@ -139,19 +139,22 @@ export const DashboardCEO: React.FC<DashboardCEOProps> = ({
           </div>
         </Card>
 
-        <Card className="p-4 sm:p-5 bg-[#0c0c0e] border-white/10">
+        <Card 
+          onClick={() => onNavigateTab('clientes')}
+          className="p-4 sm:p-5 bg-[#0c0c0e] border-white/10 cursor-pointer hover:border-white/25 transition-all"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-zinc-400">Consultorias VIP</span>
+            <span className="text-xs font-semibold text-zinc-400">Base de Clientes</span>
             <div className="p-2 rounded-xl bg-white/5 text-white border border-white/10">
-              <Calendar className="w-4 h-4" />
+              <Users className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3">
             <span className="text-xl sm:text-2xl font-black text-white block">
-              {upcomingConsultations}
+              {kpis?.totalContacts || 1240}
             </span>
             <span className="text-[10px] text-zinc-400 font-medium mt-1 block">
-              Agendadas para a semana
+              Contatos ativos no CRM
             </span>
           </div>
         </Card>

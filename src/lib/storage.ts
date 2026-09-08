@@ -539,6 +539,74 @@ export const StorageService = {
     return newMsg;
   },
 
+  async deleteMessage(convId: string, msgId: string): Promise<boolean> {
+    try {
+      await fetch(`${API_BASE}/api/conversations/${convId}/messages/${msgId}`, {
+        method: 'DELETE',
+      }).catch(() => {});
+    } catch {}
+
+    const msgs = getItem<Message[]>(`${STORAGE_KEYS.MESSAGES_PREFIX}${convId}`, []);
+    const filtered = msgs.filter(m => m.id !== msgId);
+    setItem(`${STORAGE_KEYS.MESSAGES_PREFIX}${convId}`, filtered);
+    return true;
+  },
+
+  async clearMessages(convId: string): Promise<boolean> {
+    setItem(`${STORAGE_KEYS.MESSAGES_PREFIX}${convId}`, []);
+    return true;
+  },
+
+  async deleteConversation(convId: string): Promise<boolean> {
+    try {
+      await fetch(`${API_BASE}/api/conversations/${convId}`, {
+        method: 'DELETE',
+      }).catch(() => {});
+    } catch {}
+
+    // Limpar localstorage
+    setItem(`${STORAGE_KEYS.MESSAGES_PREFIX}${convId}`, []);
+    const convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, sampleConversations);
+    const filtered = convs.filter(c => c.id !== convId);
+    setItem(STORAGE_KEYS.CONVERSATIONS, filtered);
+    return true;
+  },
+
+  async transferConversation(
+    convId: string, 
+    attendantId: string, 
+    attendantName: string, 
+    storeId?: string, 
+    storeName?: string
+  ): Promise<boolean> {
+    try {
+      await fetch(`${API_BASE}/api/conversations/${convId}/transfer`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          attendant_id: attendantId,
+          attendant_name: attendantName,
+          store_id: storeId,
+          store_name: storeName,
+        }),
+      }).catch(() => {});
+    } catch {}
+
+    const convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, sampleConversations);
+    const target = convs.find(c => c.id === convId);
+    if (target) {
+      target.assigned_to = attendantName;
+      target.assigned_attendant_id = attendantId;
+      target.assigned_attendant_name = attendantName;
+      if (storeId) target.store_id = storeId;
+      if (storeName) target.store_name = storeName;
+      target.status = 'waiting_human';
+      target.updated_at = new Date().toISOString();
+      setItem(STORAGE_KEYS.CONVERSATIONS, convs);
+    }
+    return true;
+  },
+
   // ==============================================================================
   // 5. CRM & CLIENTES
   // ==============================================================================
@@ -1689,16 +1757,6 @@ export const StorageService = {
     return updated;
   },
 
-  async deleteConversation(id: string): Promise<boolean> {
-    try {
-      await fetch(`${API_BASE}/api/conversations/${id}`, { method: 'DELETE' }).catch(() => {});
-    } catch {}
-    const list = await this.getConversations();
-    const filtered = list.filter(c => c.id !== id);
-    setItem(STORAGE_KEYS.CONVERSATIONS, filtered);
-    return true;
-  },
-
   async assignConversation(convId: string, attendantId: string): Promise<Conversation | null> {
     const attendants = this.getAttendants();
     const att = attendants.find(a => a.id === attendantId);
@@ -1728,32 +1786,6 @@ export const StorageService = {
     return null;
   },
 
-  async transferConversation(convId: string, storeId?: string, attendantId?: string): Promise<Conversation | null> {
-    try {
-      await fetch(`${API_BASE}/api/conversations/${convId}/transfer`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ store_id: storeId, attendant_id: attendantId }),
-      }).catch(() => {});
-    } catch {}
-
-    const convs = await this.getConversations();
-    const idx = convs.findIndex(c => c.id === convId);
-    if (idx >= 0) {
-      convs[idx] = {
-        ...convs[idx],
-        store_id: storeId || convs[idx].store_id,
-        assigned_attendant_id: attendantId || convs[idx].assigned_attendant_id,
-        status: 'waiting_human',
-        updated_at: new Date().toISOString(),
-      };
-      setItem(STORAGE_KEYS.CONVERSATIONS, convs);
-      return convs[idx];
-    }
-    return null;
-  },
-
-
   async sendMessage(convId: string, text: string, type: MessageType = 'text', mediaUrl?: string): Promise<Message> {
     return this.addMessage({
       conversation_id: convId,
@@ -1777,20 +1809,6 @@ export const StorageService = {
       status: 'delivered',
       created_at: new Date().toISOString(),
     });
-  },
-
-  async deleteMessage(convId: string, msgId: string): Promise<boolean> {
-    const key = `${STORAGE_KEYS.MESSAGES_PREFIX}${convId}`;
-    const msgs = getItem<Message[]>(key, []);
-    const filtered = msgs.filter(m => m.id !== msgId);
-    setItem(key, filtered);
-    return true;
-  },
-
-  async clearMessages(convId: string): Promise<boolean> {
-    const key = `${STORAGE_KEYS.MESSAGES_PREFIX}${convId}`;
-    setItem(key, []);
-    return true;
   },
 
   async duplicateFlow(flowId: string): Promise<Flow | null> {

@@ -11,6 +11,7 @@ import { WhatsappConnectView } from './components/WhatsappConnectView';
 import { SettingsPage } from './pages/settings/SettingsPage';
 import { LogsPage } from './pages/logs/LogsPage';
 import { UsersPage } from './pages/users/UsersPage';
+import { ClientsPage } from './pages/clients/ClientsPage';
 
 import { StorageService } from './lib/storage';
 
@@ -98,10 +99,10 @@ export const App: React.FC = () => {
     title = 'Tickets de Suporte & Protocolos';
     subtitle = 'Acompanhamento de solicitações e suporte a clientes';
     pageContent = <AdminPage onNavigate={navigate} activeTabProp="tickets" />;
-  } else if (currentPath === '/agendamentos' || currentPath === '/consultorias') {
-    title = 'Consultorias VIP de Enxoval';
-    subtitle = 'Agendamentos presenciais na loja e online via WhatsApp';
-    pageContent = <AdminPage onNavigate={navigate} activeTabProp="agendamentos" />;
+  } else if (currentPath === '/clientes' || currentPath === '/crm' || currentPath === '/agendamentos' || currentPath === '/consultorias') {
+    title = 'Gestão de Clientes & CRM';
+    subtitle = 'Cadastro, histórico, tags e gerenciamento de contatos da rede';
+    pageContent = <ClientsPage onNavigate={navigate} />;
   } else if (currentPath === '/atendimento' || currentPath === '/conversas') {
     title = 'Inbox de Atendimento Humano';
     subtitle = 'Atendimento em tempo real com direcionamento por loja e transbordo';

@@ -744,13 +744,13 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
                   </Button>
 
                   <Button
-                    variant="brand"
+                    variant="outline"
                     size="sm"
-                    onClick={() => handleOpenQuickApt(client)}
-                    className="text-xs px-2.5 bg-emerald-600 hover:bg-emerald-500"
-                    title="Novo Agendamento Rápido"
+                    onClick={() => onNavigate('/atendimento')}
+                    className="text-xs px-2.5 border-white/10 hover:bg-white/10 text-white"
+                    title="Abrir no Inbox WhatsApp"
                   >
-                    <CalendarPlus className="w-3.5 h-3.5" />
+                    <MessageSquare className="w-3.5 h-3.5" />
                   </Button>
 
                   <button
@@ -839,13 +839,13 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
                             Dossiê
                           </Button>
                           <Button
-                            variant="brand"
+                            variant="outline"
                             size="sm"
-                            onClick={() => handleOpenQuickApt(client)}
-                            className="h-8 px-2.5 bg-emerald-600 hover:bg-emerald-500"
-                            title="Agendar"
+                            onClick={() => onNavigate('/atendimento')}
+                            className="h-8 px-2.5 border-white/10 hover:bg-white/10 text-white"
+                            title="Abrir no Inbox WhatsApp"
                           >
-                            <CalendarPlus className="w-3.5 h-3.5" />
+                            <MessageSquare className="w-3.5 h-3.5" />
                           </Button>
                           <button
                             onClick={() => handleOpenEditClient(client)}
@@ -912,13 +912,13 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
                 </a>
 
                 <Button
-                  variant="brand"
+                  variant="outline"
                   size="sm"
-                  onClick={() => handleOpenQuickApt(selectedClientForDrawer)}
-                  leftIcon={<CalendarPlus className="w-4 h-4" />}
-                  className="bg-brand-600 text-xs"
+                  onClick={() => onNavigate('/atendimento')}
+                  leftIcon={<MessageSquare className="w-4 h-4" />}
+                  className="text-xs border-white/10 hover:bg-white/10 text-white"
                 >
-                  Novo Agendamento
+                  Abrir no Inbox
                 </Button>
               </div>
 

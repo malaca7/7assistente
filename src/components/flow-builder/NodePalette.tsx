@@ -420,6 +420,39 @@ export const NODE_DEFINITIONS: NodeDefinition[] = [
 
   // 4. CRM & Logic
   {
+    type: 'client_lookup',
+    label: 'Consultar Cliente (CRM)',
+    category: 'CRM & Logic',
+    description: 'Busca o cliente na base pelo número do WhatsApp e extrai nome, bebê, DPP e tags.',
+    icon: <UserCheck className="w-4 h-4" />,
+    iconBg: 'bg-emerald-600',
+    accentColor: 'border-emerald-500/40',
+    badge: 'CRM',
+    outputVars: ['cliente_encontrado', 'cliente_nome', 'cliente_telefone', 'cliente_bebe', 'cliente_dpp', 'cliente_tags'],
+    defaultConfig: {
+      phoneVar: 'telefone_whatsapp',
+    },
+  },
+  {
+    type: 'client_upsert',
+    label: 'Cadastrar / Atualizar Cliente',
+    category: 'CRM & Logic',
+    description: 'Registra ou atualiza o cliente no painel admin e Supabase com nome, bebê, tags e telefone.',
+    icon: <Users className="w-4 h-4" />,
+    iconBg: 'bg-indigo-600',
+    accentColor: 'border-indigo-500/40',
+    badge: 'Salvar',
+    outputVars: ['cliente_salvo', 'cliente_id'],
+    defaultConfig: {
+      nameField: '{{nome_cliente}}',
+      phoneField: '{{telefone_whatsapp}}',
+      babyNameField: '{{nome_bebe}}',
+      dueDateField: '{{data_parto}}',
+      tagsField: 'Cliente WhatsApp, Bot',
+      notesField: 'Cadastrado automaticamente pelo fluxo do bot',
+    },
+  },
+  {
     type: 'check_contact',
     label: 'Verificar Contato (Novo vs Salvo)',
     category: 'CRM & Logic',

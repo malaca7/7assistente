@@ -27,7 +27,9 @@ import {
   Truck,
   CreditCard,
   X,
-  RefreshCw
+  RefreshCw,
+  Upload,
+  Image as ImageIcon
 } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -74,7 +76,8 @@ export default function AdminPage({ onNavigate, activeTabProp }: AdminPageProps 
         bot_config: '/bot_config',
         atendimento: '/atendimento',
         tickets: '/tickets',
-        agendamentos: '/agendamentos',
+        clientes: '/clientes',
+        agendamentos: '/clientes',
         fluxos: '/fluxos',
         whatsapp: '/whatsapp',
         acessos: '/acessos',
@@ -107,6 +110,7 @@ export default function AdminPage({ onNavigate, activeTabProp }: AdminPageProps 
   const [prodSizes, setProdSizes] = useState<string[]>(['RN', 'P', 'M', 'G', 'GG']);
   const [prodFeatured, setProdFeatured] = useState(false);
   const [prodActive, setProdActive] = useState(true);
+  const [prodStores, setProdStores] = useState<string[]>([]);
 
   // Form Fields do Bot Config
   const [welcomeMsg, setWelcomeMsg] = useState('');
@@ -150,17 +154,58 @@ export default function AdminPage({ onNavigate, activeTabProp }: AdminPageProps 
     loadData();
   }, [selectedStoreId]);
 
+  const formatBRLInput = (val: string | number): string => {
+    const digits = String(val).replace(/\D/g, '');
+    if (!digits) return '';
+    const num = Number(digits) / 100;
+    return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
+  const parseBRLInput = (val: string): number => {
+    const digits = String(val).replace(/\D/g, '');
+    if (!digits) return 0;
+    return Number(digits) / 100;
+  };
+
+  const handleProductImageFile = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      warning('Por favor selecione um arquivo de imagem válido (PNG, JPG, WEBP).');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (uploadEvt) => {
+      setProdImageUrl(uploadEvt.target?.result as string);
+      success('Foto do produto adicionada com sucesso!');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleProductPaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        const file = items[i].getAsFile();
+        if (file) {
+          handleProductImageFile(file);
+          return;
+        }
+      }
+    }
+  };
+
   // Handler para abrir modal de criação
   const handleOpenCreateProduct = () => {
     setEditingProduct(null);
     setProdName('');
-    setProdPrice('49.90');
+    setProdPrice('R$ 49,90');
     setProdPromoPrice('');
     setProdDesc('Confeccionado com toque suave e antialérgico para a pele delicada do bebê.');
     setProdMaterial('Algodão Suedine 100% Pima');
     setProdStock('50');
     setProdImageUrl('');
     setProdSizes(['RN', 'P', 'M', 'G', 'GG']);
+    setProdStores(stores.map(s => s.id));
     setProdFeatured(false);
     setProdActive(true);
     setIsProductModalOpen(true);
@@ -170,13 +215,18 @@ export default function AdminPage({ onNavigate, activeTabProp }: AdminPageProps 
   const handleOpenEditProduct = (prod: Product) => {
     setEditingProduct(prod);
     setProdName(prod.name);
-    setProdPrice(String(prod.price));
-    setProdPromoPrice(prod.promotional_price ? String(prod.promotional_price) : '');
+    setProdPrice(formatBRLInput(Math.round(prod.price * 100)));
+    setProdPromoPrice(prod.promotional_price ? formatBRLInput(Math.round(prod.promotional_price * 100)) : '');
     setProdDesc(prod.description);
     setProdMaterial(prod.material || 'Algodão Suedine 100% Pima');
     setProdStock(String(prod.stock_quantity ?? 50));
     setProdImageUrl(prod.image_url || '');
     setProdSizes(prod.sizes || ['RN', 'P', 'M']);
+    setProdStores(
+      prod.store_ids && prod.store_ids.length > 0 
+        ? prod.store_ids 
+        : (prod.store_id ? [prod.store_id] : stores.map(s => s.id))
+    );
     setProdFeatured(Boolean(prod.is_featured));
     setProdActive(prod.is_active !== false);
     setIsProductModalOpen(true);
@@ -190,13 +240,15 @@ export default function AdminPage({ onNavigate, activeTabProp }: AdminPageProps 
     const payload: Partial<Product> = {
       id: editingProduct ? editingProduct.id : `prod-${Date.now()}`,
       name: prodName.trim(),
-      price: parseFloat(prodPrice) || 49.90,
-      promotional_price: prodPromoPrice ? parseFloat(prodPromoPrice) : undefined,
+      price: parseBRLInput(prodPrice) || 49.90,
+      promotional_price: prodPromoPrice ? parseBRLInput(prodPromoPrice) : undefined,
       description: prodDesc.trim(),
       material: prodMaterial.trim(),
       stock_quantity: parseInt(prodStock) || 50,
       image_url: prodImageUrl.trim() || undefined,
       sizes: prodSizes as any,
+      store_ids: prodStores.length > 0 ? prodStores : stores.map(s => s.id),
+      store_id: prodStores[0] || null,
       is_featured: prodFeatured,
       is_active: prodActive,
       category_name: 'Roupas & Enxovais',
@@ -689,30 +741,7 @@ export default function AdminPage({ onNavigate, activeTabProp }: AdminPageProps 
           </div>
         )}
 
-        {/* TAB 7: AGENDAMENTOS VIP */}
-        {activeTab === 'agendamentos' && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-pitoco-pink" />
-              Agendamentos de Consultoria VIP ({consultations.length})
-            </h2>
-            <div className="space-y-3">
-              {consultations.map(cons => (
-                <Card key={cons.id} className="p-4 bg-dark-900 border-white/10 flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-bold text-white">{cons.client_name}</h4>
-                    <p className="text-xs text-slate-400">
-                      Data: {cons.date} às {cons.time} | Loja: {cons.store_name} | Tipo: {cons.type === 'presencial' ? 'Presencial em Loja' : 'Online / Vídeo'}
-                    </p>
-                  </div>
-                  <Badge variant="default" className="text-xs bg-pitoco-pink/20 text-pitoco-pink border border-pitoco-pink/30">
-                    {cons.status.toUpperCase()}
-                  </Badge>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
+
 
         {/* TAB 8: FLUXOS */}
         {activeTab === 'fluxos' && (
@@ -731,114 +760,210 @@ export default function AdminPage({ onNavigate, activeTabProp }: AdminPageProps 
 
       {/* MODAL CRIAR / EDITAR PRODUTO */}
       {isProductModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-dark-900 border border-white/10 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+        <div 
+          onPaste={handleProductPaste}
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+        >
+          <div className="bg-dark-900 border border-white/10 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <ShoppingBag className="w-5 h-5 text-pitoco-blue" />
+                <ShoppingBag className="w-5 h-5 text-white" />
                 {editingProduct ? 'Editar Produto do Catálogo' : 'Novo Produto no Catálogo'}
               </h3>
               <button
                 onClick={() => setIsProductModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg"
+                className="text-zinc-400 hover:text-white p-1 rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveProduct} className="space-y-3 text-xs">
+            <form onSubmit={handleSaveProduct} className="space-y-3.5 text-xs">
               <div>
-                <label className="text-slate-300 font-semibold block mb-1">Nome do Produto:</label>
+                <label className="text-zinc-300 font-semibold block mb-1">Nome do Produto:</label>
                 <input
                   type="text"
                   value={prodName}
                   onChange={e => setProdName(e.target.value)}
                   placeholder="Ex: Macacão Canelado Zíper Duplo"
-                  className="w-full bg-dark-800 border border-white/10 rounded-xl p-2.5 text-white"
+                  className="w-full bg-[#18181b] border border-white/10 rounded-xl p-2.5 text-white focus:outline-none focus:border-white/30"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">Preço Normal (R$):</label>
+                  <label className="text-zinc-300 font-semibold block mb-1">Preço Normal (R$):</label>
                   <input
-                    type="number"
-                    step="0.01"
+                    type="text"
                     value={prodPrice}
-                    onChange={e => setProdPrice(e.target.value)}
-                    className="w-full bg-dark-800 border border-white/10 rounded-xl p-2.5 text-white"
+                    onChange={e => setProdPrice(formatBRLInput(e.target.value))}
+                    placeholder="R$ 0,00"
+                    className="w-full bg-[#18181b] border border-white/10 rounded-xl p-2.5 text-white font-mono focus:outline-none focus:border-white/30"
                     required
                   />
                 </div>
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">Preço Promocional (Opcional):</label>
+                  <label className="text-zinc-300 font-semibold block mb-1">Preço Promocional (Opcional):</label>
                   <input
-                    type="number"
-                    step="0.01"
+                    type="text"
                     value={prodPromoPrice}
-                    onChange={e => setProdPromoPrice(e.target.value)}
-                    placeholder="Ex: 39.90"
-                    className="w-full bg-dark-800 border border-white/10 rounded-xl p-2.5 text-white"
+                    onChange={e => setProdPromoPrice(formatBRLInput(e.target.value))}
+                    placeholder="R$ 0,00"
+                    className="w-full bg-[#18181b] border border-white/10 rounded-xl p-2.5 text-white font-mono focus:outline-none focus:border-white/30"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">Tecido / Material:</label>
+                  <label className="text-zinc-300 font-semibold block mb-1">Tecido / Material:</label>
                   <input
                     type="text"
                     value={prodMaterial}
                     onChange={e => setProdMaterial(e.target.value)}
                     placeholder="Ex: Algodão Suedine 100% Pima"
-                    className="w-full bg-dark-800 border border-white/10 rounded-xl p-2.5 text-white"
+                    className="w-full bg-[#18181b] border border-white/10 rounded-xl p-2.5 text-white focus:outline-none focus:border-white/30"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">Estoque Inicial:</label>
+                  <label className="text-zinc-300 font-semibold block mb-1">Estoque Inicial:</label>
                   <input
                     type="number"
                     value={prodStock}
                     onChange={e => setProdStock(e.target.value)}
-                    className="w-full bg-dark-800 border border-white/10 rounded-xl p-2.5 text-white"
+                    className="w-full bg-[#18181b] border border-white/10 rounded-xl p-2.5 text-white focus:outline-none focus:border-white/30"
                     required
                   />
                 </div>
               </div>
 
+              {/* Upload e Ctrl+V de Foto do Produto */}
               <div>
-                <label className="text-slate-300 font-semibold block mb-1">URL da Imagem / Foto do Produto:</label>
-                <input
-                  type="url"
-                  value={prodImageUrl}
-                  onChange={e => setProdImageUrl(e.target.value)}
-                  placeholder="https://images.unsplash.com/..."
-                  className="w-full bg-dark-800 border border-white/10 rounded-xl p-2.5 text-white"
-                />
+                <label className="text-zinc-300 font-semibold block mb-1">
+                  Foto do Produto (Upload ou Ctrl + V):
+                </label>
+                {prodImageUrl ? (
+                  <div className="relative rounded-2xl border border-white/10 p-3 bg-[#18181b] flex items-center gap-4">
+                    <img
+                      src={prodImageUrl}
+                      alt="Prévia do produto"
+                      className="w-20 h-20 object-cover rounded-xl border border-white/10 shadow"
+                    />
+                    <div className="flex-1 space-y-1">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        ✓ Imagem Carregada
+                      </span>
+                      <p className="text-[11px] text-zinc-400">
+                        Dica: Você pode arrastar outra foto ou colar direto com Ctrl + V.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setProdImageUrl('')}
+                      className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-rose-500/20 hover:text-rose-300 border border-white/10 text-zinc-300 text-xs transition-colors"
+                    >
+                      Trocar Foto
+                    </button>
+                  </div>
+                ) : (
+                  <label
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (e.dataTransfer.files?.[0]) handleProductImageFile(e.dataTransfer.files[0]);
+                    }}
+                    className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-white/15 hover:border-white/40 rounded-2xl bg-[#141416] cursor-pointer transition-all text-center group"
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) handleProductImageFile(e.target.files[0]);
+                      }}
+                      className="hidden"
+                    />
+                    <div className="w-12 h-12 rounded-2xl bg-[#1f1f23] flex items-center justify-center text-zinc-300 group-hover:text-white transition-colors mb-2">
+                      <Upload className="w-6 h-6" />
+                    </div>
+                    <span className="text-xs font-bold text-zinc-200">
+                      Clique para enviar foto ou arraste o arquivo aqui
+                    </span>
+                    <span className="text-[11px] text-zinc-400 mt-1 flex items-center gap-1.5 justify-center">
+                      <span>Ou simplesmente aperte</span>
+                      <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-[10px] font-mono text-zinc-300">Ctrl + V</kbd>
+                      <span>para colar imagem copiada</span>
+                    </span>
+                  </label>
+                )}
+              </div>
+
+              {/* Seleção Múltipla de Lojas da Rede */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-zinc-300 font-semibold block">
+                    Disponível nas Lojas da Rede ({prodStores.length} selecionadas):
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (prodStores.length === stores.length) setProdStores([]);
+                      else setProdStores(stores.map(s => s.id));
+                    }}
+                    className="text-[10px] text-zinc-400 hover:text-white underline"
+                  >
+                    {prodStores.length === stores.length ? 'Desmarcar Todas' : 'Selecionar Todas'}
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {stores.map(s => {
+                    const isChecked = prodStores.includes(s.id);
+                    return (
+                      <label
+                        key={s.id}
+                        className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${
+                          isChecked
+                            ? 'bg-zinc-800/80 border-white/20 text-white font-medium'
+                            : 'bg-[#18181b]/50 border-white/5 text-zinc-400 hover:border-white/10'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            if (isChecked) setProdStores(prodStores.filter(id => id !== s.id));
+                            else setProdStores([...prodStores, s.id]);
+                          }}
+                          className="rounded bg-[#27272a] border-white/20 text-white focus:ring-0"
+                        />
+                        <span className="truncate">{s.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
 
               <div>
-                <label className="text-slate-300 font-semibold block mb-1">Descrição Detalhada:</label>
+                <label className="text-zinc-300 font-semibold block mb-1">Descrição Detalhada:</label>
                 <textarea
-                  rows={3}
+                  rows={2}
                   value={prodDesc}
                   onChange={e => setProdDesc(e.target.value)}
                   placeholder="Detalhes para a mamãe sobre o produto..."
-                  className="w-full bg-dark-800 border border-white/10 rounded-xl p-2.5 text-white"
+                  className="w-full bg-[#18181b] border border-white/10 rounded-xl p-2.5 text-white focus:outline-none focus:border-white/30"
                 />
               </div>
 
-              <div className="flex items-center gap-6 pt-2">
+              <div className="flex items-center gap-6 pt-1">
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     id="prodFeaturedCheck"
                     checked={prodFeatured}
                     onChange={e => setProdFeatured(e.target.checked)}
-                    className="rounded bg-dark-800 border-white/10 text-pitoco-pink focus:ring-0"
+                    className="rounded bg-[#18181b] border-white/10 text-white focus:ring-0"
                   />
-                  <label htmlFor="prodFeaturedCheck" className="text-slate-300 cursor-pointer">
+                  <label htmlFor="prodFeaturedCheck" className="text-zinc-300 cursor-pointer">
                     Produto em Destaque
                   </label>
                 </div>
@@ -868,7 +993,7 @@ export default function AdminPage({ onNavigate, activeTabProp }: AdminPageProps 
                 </Button>
                 <Button
                   type="submit"
-                  className="bg-white text-black hover:bg-zinc-200 font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg"
+                  className="bg-white text-black hover:bg-zinc-200 font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg transition-all"
                 >
                   {editingProduct ? 'Salvar Alterações' : 'Cadastrar Produto'}
                 </Button>

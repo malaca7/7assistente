@@ -77,6 +77,7 @@ async function main() {
       'fila', 
       'tickets', 
       'conversas', 
+      'clientes',
       'dashboard'
     ];
 

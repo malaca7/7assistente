@@ -94,13 +94,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ],
     },
     {
-      title: 'Relacionamento VIP',
+      title: 'Clientes & Suporte',
       items: [
         {
-          id: 'agendamentos',
-          label: 'Consultorias VIP',
-          path: '/agendamentos',
-          icon: Calendar,
+          id: 'clientes',
+          label: 'Gestão de Clientes',
+          path: '/clientes',
+          icon: Users,
           roles: ['ceo', 'admin', 'manager', 'attendant'],
         },
         {

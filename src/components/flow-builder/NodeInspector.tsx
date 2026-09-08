@@ -1405,6 +1405,156 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
           </div>
         )}
 
+        {/* Client Lookup (Consultar Cliente CRM) */}
+        {nodeType === 'client_lookup' && (
+          <div className="space-y-4">
+            <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-200 space-y-1">
+              <span className="font-bold flex items-center gap-1.5 text-emerald-300">
+                <UserCheck className="w-3.5 h-3.5" />
+                Consulta de Cliente no CRM:
+              </span>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Busca o cliente na base pelo número de telefone do WhatsApp. Se encontrado, carrega todas as informações (nome, bebê, data prevista, tags) nas variáveis da conversa.
+              </p>
+            </div>
+
+            <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-2.5">
+              <span className="text-xs font-semibold text-emerald-400 block">
+                Saídas de Ramificação no Fluxo:
+              </span>
+              <div className="flex items-center gap-2 text-xs text-slate-200">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                <span><strong>Encontrado (Verde):</strong> Cliente já possui cadastro na base</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-slate-200">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                <span><strong>Não Encontrado (Amarelo):</strong> Primeiro contato ou sem cadastro</span>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-emerald-400">
+                  Variáveis Carregadas Automaticamente:
+                </span>
+                <span className="text-[10px] text-emerald-400 font-mono">1-Clique Copiar</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                <VariableBadge name="cliente_encontrado" />
+                <VariableBadge name="cliente_nome" />
+                <VariableBadge name="cliente_telefone" />
+                <VariableBadge name="cliente_email" />
+                <VariableBadge name="cliente_bebe" />
+                <VariableBadge name="cliente_dpp" />
+                <VariableBadge name="cliente_tags" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Client Upsert (Cadastrar / Atualizar Cliente) */}
+        {nodeType === 'client_upsert' && (
+          <div className="space-y-4">
+            <div className="p-3 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 text-xs text-indigo-200 space-y-1">
+              <span className="font-bold flex items-center gap-1.5 text-indigo-300">
+                <Users className="w-3.5 h-3.5" />
+                Cadastrar / Atualizar Cliente no CRM:
+              </span>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Salva ou atualiza os dados do cliente diretamente no banco de dados e Supabase. Você pode usar variáveis coletadas no fluxo como <code>{'{{nome_cliente}}'}</code>.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Nome do Cliente (ou variável):
+                </label>
+                <Input
+                  value={config.nameField ?? '{{nome_cliente}}'}
+                  onChange={(e) => updateConfigKey('nameField', e.target.value)}
+                  placeholder="Ex: {{nome_cliente}} ou Maria Silva"
+                  className="text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Telefone WhatsApp:
+                </label>
+                <Input
+                  value={config.phoneField ?? '{{telefone_whatsapp}}'}
+                  onChange={(e) => updateConfigKey('phoneField', e.target.value)}
+                  placeholder="Ex: {{telefone_whatsapp}}"
+                  className="text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Nome do Bebê:
+                  </label>
+                  <Input
+                    value={config.babyNameField ?? '{{nome_bebe}}'}
+                    onChange={(e) => updateConfigKey('babyNameField', e.target.value)}
+                    placeholder="Ex: {{nome_bebe}}"
+                    className="text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Data Parto (DPP):
+                  </label>
+                  <Input
+                    value={config.dueDateField ?? '{{data_parto}}'}
+                    onChange={(e) => updateConfigKey('dueDateField', e.target.value)}
+                    placeholder="Ex: {{data_parto}}"
+                    className="text-xs"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Tags (separadas por vírgula):
+                </label>
+                <Input
+                  value={config.tagsField ?? 'Cliente WhatsApp, Bot'}
+                  onChange={(e) => updateConfigKey('tagsField', e.target.value)}
+                  placeholder="Ex: Cliente WhatsApp, Enxoval"
+                  className="text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Notas / Observações:
+                </label>
+                <Input
+                  value={config.notesField ?? 'Cadastrado automaticamente pelo bot'}
+                  onChange={(e) => updateConfigKey('notesField', e.target.value)}
+                  placeholder="Anotações do cliente..."
+                  className="text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-indigo-400">
+                  Variáveis de Retorno:
+                </span>
+                <span className="text-[10px] text-emerald-400 font-mono">1-Clique Copiar</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                <VariableBadge name="cliente_salvo" />
+                <VariableBadge name="cliente_id" />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 12. Check Contact (Primeiro Contato vs Contato Salvo) */}
         {nodeType === 'check_contact' && (
           <div className="space-y-4">
