@@ -1099,20 +1099,11 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
       edges as unknown as FlowEdge[]
     );
 
-    // 2. If publishing, pause any other active flow
-    if (newStatus === 'published') {
-      const allFlows = await StorageService.getFlows();
-      for (const f of allFlows) {
-        if (f.id !== flow.id && f.status === 'published') {
-          await StorageService.saveFlow({ ...f, status: 'paused' });
-        }
-      }
-    }
-
-    // 3. Save flow status
+    // 2. Save flow status
     const updated = await StorageService.saveFlow({
       ...flow,
       status: newStatus,
+      is_active: newStatus === 'published',
       node_count: nodes.length,
       updated_at: new Date().toISOString(),
     });

@@ -187,8 +187,8 @@ async function startWhatsApp() {
                             String(c?.phone || c?.contact_phone || '').replace(/\D/g, '') === clientPhone
                           );
 
-        if (convCheck && (convCheck.status === 'human' || convCheck.assigned_to || convCheck.assigned_attendant_name)) {
-          console.log(`🛡️ [Atendimento Humano Ativo] Cliente ${clientPhone} está sendo atendido por "${convCheck.assigned_to || convCheck.assigned_attendant_name}". Robô pausado.`);
+        if (convCheck && (convCheck.status === 'human' || convCheck.status === 'waiting_human')) {
+          console.log(`🛡️ [Atendimento Humano Ativo] Cliente ${clientPhone} está em atendimento humano ("${convCheck.assigned_to || convCheck.assigned_attendant_name || 'Atendente'}"). Robô pausado.`);
           continue;
         }
 
@@ -206,26 +206,11 @@ async function startWhatsApp() {
               }
             }
           } else {
-            console.log(`ℹ️ [Flow Execution] Nenhum nó do fluxo respondeu, utilizando fallback padrão do painel`);
-            const db = loadDb();
-            const fallbackReply = await processAdminBotMessage(text, clientPhone, clientName, db);
-            saveDb(db);
-            if (fallbackReply) {
-              await sendBotReply(remoteJid, fallbackReply, msg);
-            }
+            console.log(`ℹ️ [Flow Execution] Nenhum nó restante respondeu para ${clientPhone}.`);
           }
         } catch (botErr) {
           console.error(`❌ [Bot Engine Error] Erro ao processar mensagem para ${clientPhone}:`, botErr);
-          try {
-            const db = loadDb();
-            const fallbackReply = await processAdminBotMessage(text, clientPhone, clientName, db);
-            saveDb(db);
-            if (fallbackReply) {
-              await sendBotReply(remoteJid, fallbackReply, msg);
-            }
-          } catch (e2) {
-            await sendBotReply(remoteJid, `Olá, *${clientName}*! Recebemos sua mensagem na *Pitoco de Gente*. Como podemos te ajudar? Digite *menu* para ver opções!`, msg);
-          }
+          await sendBotReply(remoteJid, `Olá, *${clientName}*! Recebemos sua mensagem na *Pitoco de Gente*. Como podemos te ajudar?`, msg);
         }
       }
     });
@@ -1372,14 +1357,7 @@ app.post('/api/flows', (req, res) => {
       return res.status(400).json({ error: 'Dados do fluxo inválidos ou id ausente' });
     }
 
-    const isPublishing = flowData.status === 'published' || flowData.is_active === true;
-    if (isPublishing) {
-      db.flows.forEach(f => {
-        if (f.id !== flowData.id) {
-          f.status = 'draft';
-          f.is_active = false;
-        }
-      });
+    if (flowData.status === 'published' || flowData.is_active === true) {
       flowData.status = 'published';
       flowData.is_active = true;
     }
@@ -1395,6 +1373,63 @@ app.post('/api/flows', (req, res) => {
     syncFlowToSupabase(flowData);
     console.log(`[Flows API] 💾 Fluxo salvo e sincronizado com Supabase: "${flowData.name}" (${flowData.id}) - Status: ${flowData.status}`);
     res.json({ success: true, flow: flowData });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Endpoint de sincronização forçada com Supabase em nuvem
+app.post('/api/flows/sync-database', async (req, res) => {
+  try {
+    const db = loadDb();
+    if (supabaseServer) {
+      const [flowsRes, nodesRes, edgesRes] = await Promise.all([
+        supabaseServer.from('flows').select('*'),
+        supabaseServer.from('flow_nodes').select('*'),
+        supabaseServer.from('flow_edges').select('*'),
+      ]);
+
+      if (Array.isArray(flowsRes.data) && flowsRes.data.length > 0) {
+        db.flows = flowsRes.data;
+      }
+      if (Array.isArray(nodesRes.data)) {
+        if (!db.nodes) db.nodes = {};
+        for (const n of nodesRes.data) {
+          if (!db.nodes[n.flow_id]) db.nodes[n.flow_id] = [];
+          const idx = db.nodes[n.flow_id].findIndex(x => x.id === n.id);
+          const mappedNode = {
+            id: n.id,
+            flow_id: n.flow_id,
+            type: n.type,
+            position: n.position || { x: 0, y: 0 },
+            data: n.data || { label: n.label, nodeType: n.type, config: {} },
+          };
+          if (idx >= 0) db.nodes[n.flow_id][idx] = mappedNode;
+          else db.nodes[n.flow_id].push(mappedNode);
+        }
+      }
+      if (Array.isArray(edgesRes.data)) {
+        if (!db.edges) db.edges = {};
+        for (const e of edgesRes.data) {
+          if (!db.edges[e.flow_id]) db.edges[e.flow_id] = [];
+          const idx = db.edges[e.flow_id].findIndex(x => x.id === e.id);
+          const mappedEdge = {
+            id: e.id,
+            flow_id: e.flow_id,
+            source: e.source || e.source_node_id,
+            target: e.target || e.target_node_id,
+            sourceHandle: e.source_handle || e.sourceHandle,
+            targetHandle: e.target_handle || e.targetHandle,
+            data: e.data || {},
+          };
+          if (idx >= 0) db.edges[e.flow_id][idx] = mappedEdge;
+          else db.edges[e.flow_id].push(mappedEdge);
+        }
+      }
+      saveDb(db);
+      console.log(`[Flows Sync] 🔄 Sincronizado com Supabase: ${db.flows?.length || 0} fluxos atualizados.`);
+    }
+    res.json({ success: true, flowsCount: db.flows?.length || 0 });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

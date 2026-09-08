@@ -1297,7 +1297,7 @@ export async function syncFlowGraphToSupabase(flowId, nodes, edges) {
 }
 
 // Function to fetch latest active flow, nodes, and edges dynamically with Supabase priority
-export async function getActiveFlowAndGraph(db, preferredFlowId = null) {
+export async function getActiveFlowAndGraph(db, preferredFlowId = null, incomingText = '') {
   let activeFlows = [];
 
   // 1. Consultar diretamente os fluxos com status ATIVO no Supabase
@@ -1393,6 +1393,15 @@ export async function getActiveFlowAndGraph(db, preferredFlowId = null) {
     edges = db.edges[flowId];
   }
 
+  // Garantir que se o gatilho inicial estiver com keywords legadas de teste (ex: "mlc"), trate como any_message
+  const triggerNode = nodes.find(n => (n.data?.nodeType || n.type) === 'trigger');
+  if (triggerNode && triggerNode.data?.config) {
+    if (triggerNode.data.config.keywords === 'mlc' || triggerNode.data.config.keywords === 'testedevmlc') {
+      triggerNode.data.config.eventType = 'any_message';
+      triggerNode.data.config.keywords = '';
+    }
+  }
+
   console.log(`[FlowRunner] 🚀 Rodando fluxo ATIVO do Supabase: "${candidateFlow.name}" (${flowId}) com ${nodes.length} nós e ${edges.length} conexões.`);
   return { publishedFlow: candidateFlow, nodes, edges };
 }
@@ -1415,8 +1424,8 @@ export async function executePublishedFlow(senderJid, messageText, pushName, rea
     String(c?.phone || c?.contact_phone || '').replace(/\D/g, '') === cleanPhone
   );
 
-  if (currentConv && (currentConv.status === 'human' || currentConv.assigned_to || currentConv.assigned_attendant_name)) {
-    console.log(`🛡️ [FlowRunner] Conversa ${cleanPhone} está em Atendimento Humano ("${currentConv.assigned_to || currentConv.assigned_attendant_name}"). O fluxo do robô não responderá.`);
+  if (currentConv && (currentConv.status === 'human' || currentConv.status === 'waiting_human')) {
+    console.log(`🛡️ [FlowRunner] Conversa ${cleanPhone} está em Atendimento Humano ("${currentConv.assigned_to || currentConv.assigned_attendant_name || 'Atendente'}"). O fluxo do robô não responderá.`);
     return [];
   }
 
@@ -1424,7 +1433,7 @@ export async function executePublishedFlow(senderJid, messageText, pushName, rea
   const existingSession = db.sessions?.[cleanPhone] || db.sessions?.[rawId];
 
   // Dynamically resolve published flow, nodes, and edges
-  const { publishedFlow, nodes, edges } = await getActiveFlowAndGraph(db, existingSession?.flowId);
+  const { publishedFlow, nodes, edges } = await getActiveFlowAndGraph(db, existingSession?.flowId, cleanInput);
 
   if (!publishedFlow) {
     const defaultReply = `Olá, *${senderName}*! Recebi sua mensagem: "${cleanInput}".\n\nNo momento, não há nenhum fluxo ativo publicado no painel administrativo.`;
@@ -1518,12 +1527,20 @@ function parseCustomDateString(input) {
     cleanInput.toLowerCase() === 'boa tarde' ||
     cleanInput.toLowerCase() === 'boa noite';
 
+  const prevNode = session.currentNodeId ? nodes.find((n) => n.id === session.currentNodeId) : null;
+  const prevType = prevNode?.data?.nodeType || prevNode?.type;
+  const hasOutgoingEdges = prevNode ? edges.some((e) => e.source === prevNode.id) : false;
+
   const isWaitingForInput = Boolean(
     session.waitingForVar ||
-    (session.currentNodeId && nodes.some((n) => n.id === session.currentNodeId && (n.type === 'question' || n.data?.nodeType === 'question')))
+    (prevNode && (prevType === 'question' || prevType === 'buttons' || prevType === 'ask_date' || prevType === 'select_date'))
   );
 
-  const isReset = isExplicitReset || (!isWaitingForInput && (isGreeting || !session.currentNodeId));
+  // Se o nó anterior era terminal (sem saídas) e não está aguardando input do usuário,
+  // qualquer nova mensagem do cliente reinicia o fluxo a partir do gatilho!
+  const isTerminalNode = Boolean(prevNode && !hasOutgoingEdges && !isWaitingForInput);
+
+  const isReset = isExplicitReset || isTerminalNode || (!isWaitingForInput && (isGreeting || !session.currentNodeId));
 
   let currentNode = null;
 

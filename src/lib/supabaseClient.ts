@@ -563,29 +563,48 @@ export function subscribeToConversations(onUpdate: (conv: Conversation) => void)
 // ==========================================
 export async function getFlows(): Promise<Flow[]> {
   try {
-    const { data, error } = await supabase
-      .from('flows')
-      .select('*');
+    const [flowsRes, nodesRes] = await Promise.all([
+      supabase.from('flows').select('*'),
+      supabase.from('flow_nodes').select('id, flow_id'),
+    ]);
 
-    if (error) throw error;
+    if (flowsRes.error) throw flowsRes.error;
+    const data = flowsRes.data;
+
+    // Mapear contagem real de nós por fluxo a partir da tabela flow_nodes
+    const realNodeCounts = new Map<string, number>();
+    if (nodesRes.data && Array.isArray(nodesRes.data)) {
+      for (const node of nodesRes.data) {
+        if (node.flow_id) {
+          realNodeCounts.set(node.flow_id, (realNodeCounts.get(node.flow_id) || 0) + 1);
+        }
+      }
+    }
+
     if (data && Array.isArray(data)) {
-      const mapped = data.map((f: any) => ({
-        id: f.id,
-        name: f.name || 'Fluxo',
-        description: f.description || '',
-        status: f.status || (f.is_active ? 'published' : 'draft'),
-        is_active: f.is_active ?? (f.status === 'published'),
-        version: f.version || 1,
-        node_count: f.node_count || 0,
-        trigger_type: f.trigger_type || 'keyword',
-        store_id: f.store_id || null,
-        store_name: f.store_name || null,
-        steps: Array.isArray(f.steps) ? f.steps : [],
-        color: f.color || '#10b981',
-        order_index: typeof f.order_index === 'number' ? f.order_index : undefined,
-        created_at: f.created_at || new Date().toISOString(),
-        updated_at: f.updated_at || new Date().toISOString(),
-      })) as Flow[];
+      const mapped = data.map((f: any) => {
+        const actualNodeCount = realNodeCounts.has(f.id)
+          ? realNodeCounts.get(f.id)!
+          : (typeof f.node_count === 'number' && f.node_count > 0 ? f.node_count : (Array.isArray(f.steps) ? f.steps.length : 0));
+
+        return {
+          id: f.id,
+          name: f.name || 'Fluxo',
+          description: f.description || '',
+          status: f.status || (f.is_active ? 'published' : 'draft'),
+          is_active: f.is_active ?? (f.status === 'published'),
+          version: f.version || 1,
+          node_count: actualNodeCount,
+          trigger_type: f.trigger_type || 'Qualquer Mensagem Recebida',
+          store_id: f.store_id || null,
+          store_name: f.store_name || null,
+          steps: Array.isArray(f.steps) ? f.steps : [],
+          color: f.color || '#10b981',
+          order_index: typeof f.order_index === 'number' ? f.order_index : undefined,
+          created_at: f.created_at || new Date().toISOString(),
+          updated_at: f.updated_at || new Date().toISOString(),
+        };
+      }) as Flow[];
 
       // Ordenar por order_index estável (preserva ordem dos cards independente de atualizações de texto)
       return mapped.sort((a, b) => {
@@ -713,6 +732,12 @@ export async function saveFlowGraph(flowId: string, nodes: FlowNode[], edges: Fl
       }));
       await supabase.from('flow_edges').upsert(edgeRecords, { onConflict: 'id' });
     }
+
+    // Sincronizar contagem exata de nós diretamente no registro do fluxo
+    await supabase.from('flows').update({
+      node_count: Array.isArray(nodes) ? nodes.length : 0,
+      updated_at: new Date().toISOString(),
+    }).eq('id', flowId);
   } catch (err) {
     console.warn('[Supabase] saveFlowGraph warning:', err);
   }

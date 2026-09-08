@@ -154,45 +154,61 @@ export const FlowListPage: React.FC<FlowListPageProps> = ({ onNavigate }) => {
         updated_at: new Date().toISOString(),
       };
 
-      // Create template initial nodes if chosen
-      if (selectedTemplate === 'sales') {
-        const initialNodes = [
-          {
-            id: `node-trigger-${Date.now()}`,
-            type: 'trigger',
-            position: { x: 430, y: 80 },
-            data: { label: 'Gatilho Inicial', nodeType: 'trigger', isConfigured: true, config: { eventType: 'any_message' } }
-          },
-          {
-            id: `node-msg-${Date.now()}`,
-            type: 'message',
-            position: { x: 430, y: 380 },
-            data: { label: 'Boas-Vindas', nodeType: 'message', isConfigured: true, config: { text: 'Olá! Seja muito bem-vindo(a) à {{empresa}}. Me chamo {{bot_nome}}!' } }
-          },
-          {
-            id: `node-btn-${Date.now()}`,
-            type: 'buttons',
-            position: { x: 430, y: 730 },
-            data: {
-              label: 'Menu Comercial',
-              nodeType: 'buttons',
-              isConfigured: true,
-              config: {
-                bodyText: 'Como posso te ajudar hoje?',
-                buttons: [
-                  { id: 'btn_1', title: 'Conhecer Planos' },
-                  { id: 'btn_2', title: 'Falar com Especialista' }
-                ]
-              }
+      // Create template initial nodes if chosen or blank
+      const initialNodes = selectedTemplate === 'sales' ? [
+        {
+          id: `node-trigger-${Date.now()}`,
+          type: 'trigger',
+          position: { x: 430, y: 80 },
+          data: { label: 'Gatilho Inicial', nodeType: 'trigger', isConfigured: true, config: { eventType: 'any_message' } }
+        },
+        {
+          id: `node-msg-${Date.now()}`,
+          type: 'message',
+          position: { x: 430, y: 380 },
+          data: { label: 'Boas-Vindas', nodeType: 'message', isConfigured: true, config: { text: 'Olá! Seja muito bem-vindo(a) à {{empresa}}. Me chamo {{bot_nome}}!' } }
+        },
+        {
+          id: `node-btn-${Date.now()}`,
+          type: 'buttons',
+          position: { x: 430, y: 730 },
+          data: {
+            label: 'Menu Comercial',
+            nodeType: 'buttons',
+            isConfigured: true,
+            config: {
+              bodyText: 'Como posso te ajudar hoje?',
+              buttons: [
+                { id: 'btn_1', title: 'Conhecer Planos' },
+                { id: 'btn_2', title: 'Falar com Especialista' }
+              ]
             }
           }
-        ];
-        const initialEdges = [
-          { id: `edge-1`, source: initialNodes[0].id, target: initialNodes[1].id, animated: true },
-          { id: `edge-2`, source: initialNodes[1].id, target: initialNodes[2].id, animated: true }
-        ];
-        await StorageService.saveFlowGraph(newFlowId, initialNodes as any, initialEdges as any);
-      }
+        }
+      ] : [
+        {
+          id: `node-trigger-${Date.now()}`,
+          type: 'trigger',
+          position: { x: 430, y: 80 },
+          data: { label: 'Gatilho Inicial', nodeType: 'trigger', isConfigured: true, config: { eventType: 'any_message' } }
+        },
+        {
+          id: `node-msg-${Date.now()}`,
+          type: 'message',
+          position: { x: 430, y: 380 },
+          data: { label: 'Boas-Vindas', nodeType: 'message', isConfigured: true, config: { text: 'Olá! Seja muito bem-vindo(a) à {{empresa}}!' } }
+        }
+      ];
+
+      const initialEdges = selectedTemplate === 'sales' ? [
+        { id: `edge-1`, source: initialNodes[0].id, target: initialNodes[1].id, animated: true },
+        { id: `edge-2`, source: initialNodes[1].id, target: initialNodes[2].id, animated: true }
+      ] : [
+        { id: `edge-1`, source: initialNodes[0].id, target: initialNodes[1].id, animated: true }
+      ];
+
+      await StorageService.saveFlowGraph(newFlowId, initialNodes as any, initialEdges as any);
+      newFlow.node_count = initialNodes.length;
 
       await StorageService.saveFlow(newFlow);
       success('Fluxo Criado', `O fluxo "${newFlow.name}" foi criado com sucesso.`);
@@ -538,9 +554,9 @@ export const FlowListPage: React.FC<FlowListPageProps> = ({ onNavigate }) => {
               {/* Bottom: Info Bar & Open Studio Button */}
               <div className="space-y-3 pt-3 border-t border-white/5">
                 <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
-                  <span className="flex items-center gap-1">
+                  <span className="flex items-center gap-1 font-bold text-brand-400">
                     <Layers className="w-3.5 h-3.5 text-brand-400" />
-                    {flow.node_count || 3} funções no fluxo
+                    {typeof flow.node_count === 'number' && flow.node_count > 0 ? flow.node_count : 2} Funções (Nós)
                   </span>
                   <span>v{flow.version || 1}</span>
                 </div>

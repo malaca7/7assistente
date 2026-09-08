@@ -25,7 +25,9 @@ import {
   ArrowRight,
   HelpCircle,
   Clock,
-  Palette
+  Palette,
+  RefreshCw,
+  GripVertical
 } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
@@ -34,7 +36,7 @@ import { Modal } from './ui/Modal';
 import { useToast } from '../contexts/ToastContext';
 import { FlowEditorPage } from '../pages/flows/FlowEditorPage';
 import { StorageService } from '../lib/storage';
-import { Flow, FlowStep, NodeTypeEnum, Store } from '../types';
+import { Flow, FlowStep, NodeTypeEnum, Store, FlowNode, FlowEdge } from '../types';
 
 export const FLOW_COLORS = [
   { id: 'emerald', hex: '#10b981', label: 'Verde Pitoco' },
@@ -74,8 +76,10 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
   const [flowColor, setFlowColor] = useState<string>('#10b981');
   const [isSavingFlow, setIsSavingFlow] = useState(false);
 
-  // Modal de Confirmação de Exclusão
-  const [flowToDelete, setFlowToDelete] = useState<Flow | null>(null);
+  // Drag and Drop State para reordenação dos cards
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Carregar dados com suporte a atualização silenciosa em tempo real
   const loadData = useCallback(async (silent = false) => {
@@ -85,7 +89,29 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
         StorageService.getFlows(),
         StorageService.getStores(),
       ]);
-      setFlows(flowsData);
+
+      // Preservar ordem estável salva (localStorage ou order_index estável)
+      let savedOrder: string[] = [];
+      try {
+        const raw = localStorage.getItem('pitoco_flows_order');
+        if (raw) savedOrder = JSON.parse(raw);
+      } catch {}
+
+      const sorted = [...flowsData].sort((a, b) => {
+        if (savedOrder.length > 0) {
+          const idxA = savedOrder.indexOf(a.id);
+          const idxB = savedOrder.indexOf(b.id);
+          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+          if (idxA !== -1) return -1;
+          if (idxB !== -1) return 1;
+        }
+        const oA = typeof a.order_index === 'number' ? a.order_index : 9999;
+        const oB = typeof b.order_index === 'number' ? b.order_index : 9999;
+        if (oA !== oB) return oA - oB;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+
+      setFlows(sorted);
       setStores(storesData);
     } catch (err) {
       console.error('Erro ao sincronizar fluxos em tempo real:', err);
@@ -93,6 +119,82 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
       if (!silent) setIsLoading(false);
     }
   }, []);
+
+  // Sincronizar diretamente com o banco de dados
+  const handleSyncDatabase = async () => {
+    setIsSyncing(true);
+    try {
+      const refreshedFlows = await StorageService.syncWithDatabase();
+      
+      let savedOrder: string[] = [];
+      try {
+        const raw = localStorage.getItem('pitoco_flows_order');
+        if (raw) savedOrder = JSON.parse(raw);
+      } catch {}
+
+      const sorted = [...refreshedFlows].sort((a, b) => {
+        if (savedOrder.length > 0) {
+          const idxA = savedOrder.indexOf(a.id);
+          const idxB = savedOrder.indexOf(b.id);
+          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+          if (idxA !== -1) return -1;
+          if (idxB !== -1) return 1;
+        }
+        const oA = typeof a.order_index === 'number' ? a.order_index : 9999;
+        const oB = typeof b.order_index === 'number' ? b.order_index : 9999;
+        if (oA !== oB) return oA - oB;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+
+      setFlows(sorted);
+      success('Banco Sincronizado!', 'Todos os fluxos e nós foram sincronizados com o banco de dados e robô.');
+    } catch (err: any) {
+      toastError('Erro ao sincronizar', err.message || 'Falha ao sincronizar com o banco.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Drag & Drop Handlers
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(index));
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const updated = [...flows];
+    const [movedFlow] = updated.splice(draggedIndex, 1);
+    updated.splice(targetIndex, 0, movedFlow);
+
+    const withOrder = updated.map((f, idx) => ({ ...f, order_index: idx }));
+    setFlows(withOrder);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+
+    await StorageService.saveFlowsOrder(withOrder);
+    success('Ordem Atualizada!', 'A nova ordem dos cards de fluxos foi gravada com sucesso.');
+  };
 
   useEffect(() => {
     loadData(false);
@@ -174,9 +276,56 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
     try {
       const assignedStore = stores.find(s => s.id === flowStoreId);
       const storeName = flowStoreId === 'all' ? 'Toda a Rede (Global)' : assignedStore?.name;
+      const newFlowId = editingFlow?.id || `flow-${Date.now()}`;
+
+      // Se for criação de novo fluxo, inicializar nós iniciais no Studio imediatamente
+      if (!editingFlow) {
+        const initialNodes: FlowNode[] = [
+          {
+            id: `node-trigger-${Date.now()}`,
+            type: 'trigger',
+            position: { x: 320, y: 100 },
+            data: {
+              label: 'Gatilho Inicial',
+              nodeType: 'trigger',
+              description: 'Dispara quando o cliente envia qualquer mensagem no WhatsApp',
+              isConfigured: true,
+              config: {
+                eventType: flowTrigger.toLowerCase().includes('palavra') ? 'keyword' : 'any_message',
+                keywords: '',
+                matchType: 'contains',
+              },
+            },
+          },
+          {
+            id: `node-message-${Date.now() + 1}`,
+            type: 'message',
+            position: { x: 320, y: 320 },
+            data: {
+              label: 'Boas-Vindas',
+              nodeType: 'message',
+              description: 'Mensagem de recepção do cliente',
+              isConfigured: true,
+              config: {
+                text: '👶✨ Olá! Seja muito bem-vindo(a) à {{empresa}}!\nComo podemos te ajudar hoje?',
+                previewUrl: false,
+              },
+            },
+          },
+        ];
+        const initialEdges: FlowEdge[] = [
+          {
+            id: `edge-${Date.now()}`,
+            source: initialNodes[0].id,
+            target: initialNodes[1].id,
+            animated: true,
+          },
+        ];
+        await StorageService.saveFlowGraph(newFlowId, initialNodes, initialEdges);
+      }
 
       const flowPayload: Partial<Flow> = {
-        id: editingFlow?.id,
+        id: newFlowId,
         name: flowName.trim(),
         description: flowDescription.trim(),
         trigger_type: flowTrigger,
@@ -185,19 +334,19 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
         is_active: flowActive,
         status: flowActive ? 'published' : 'draft',
         version: editingFlow ? (editingFlow.version + 1) : 1,
-        node_count: editingFlow?.node_count && editingFlow.node_count > flowSteps.length ? editingFlow.node_count : flowSteps.length,
+        node_count: editingFlow ? (editingFlow.node_count || 2) : 2,
         steps: flowSteps,
         color: flowColor,
-        created_at: editingFlow?.created_at,
+        created_at: editingFlow?.created_at || new Date().toISOString(),
       };
 
       const saved = await StorageService.saveFlow(flowPayload);
       success(
         editingFlow ? 'Fluxo Atualizado!' : 'Novo Fluxo Criado!',
-        `O fluxo "${saved.name}" foi salvo e sincronizado.`
+        `O fluxo "${saved.name}" foi salvo e sincronizado com sucesso.`
       );
       setIsFlowModalOpen(false);
-      loadData();
+      await loadData();
     } catch (err: any) {
       toastError('Erro ao salvar fluxo', err.message);
     } finally {
@@ -351,10 +500,17 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            Sincronizado em Tempo Real
-          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleSyncDatabase}
+            disabled={isSyncing}
+            className="border-white/10 hover:border-pitoco-blue/50 text-slate-200 hover:text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-2 bg-dark-800/80 hover:bg-dark-800 transition-all shadow-sm"
+            title="Sincronizar todos os fluxos e nós diretamente com o banco de dados e servidor"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-pitoco-blue ${isSyncing ? 'animate-spin' : ''}`} />
+            {isSyncing ? 'Sincronizando...' : 'Sincronizar Banco'}
+          </Button>
 
           <Button
             size="sm"
@@ -385,15 +541,26 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
         </span>
       </div>
 
-      {/* Lista Principal de Fluxos */}
+      {/* Lista Principal de Fluxos com Suporte a Drag & Drop */}
       <div className="w-full space-y-4">
-        {filteredFlows.map((flow) => {
+        {filteredFlows.map((flow, index) => {
           const currentFlowColor = flow.color || '#10b981';
+          const isBeingDragged = draggedIndex === index;
+          const isDragOver = dragOverIndex === index;
 
           return (
             <Card 
               key={flow.id} 
+              draggable
+              onDragStart={(e) => handleDragStart(e, index)}
+              onDragOver={(e) => handleDragOver(e, index)}
+              onDragEnd={handleDragEnd}
+              onDrop={(e) => handleDrop(e, index)}
               className={`p-5 bg-dark-900 border transition-all relative overflow-hidden ${
+                isBeingDragged ? 'opacity-40 scale-[0.98] ring-2 ring-pitoco-blue' : ''
+              } ${
+                isDragOver ? 'border-pitoco-blue ring-2 ring-pitoco-blue/50 shadow-xl' : ''
+              } ${
                 flow.is_active 
                   ? 'border-white/10 hover:border-white/25 shadow-md' 
                   : 'border-white/5 opacity-70 bg-dark-950/50'
@@ -402,9 +569,22 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
                 borderLeft: `4px solid ${currentFlowColor}`,
               }}
             >
+              {/* Linha indicadora de drop acima */}
+              {isDragOver && (
+                <div className="absolute top-0 left-0 right-0 h-1 bg-pitoco-blue animate-pulse z-10" />
+              )}
+
               {/* Cabeçalho do Card */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
                 <div className="flex items-center gap-3">
+                  {/* Alça Drag & Drop (Arrastar para reordenar) */}
+                  <div 
+                    className="cursor-grab active:cursor-grabbing p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/5 transition-all"
+                    title="Segure e arraste para alterar a ordem deste fluxo"
+                  >
+                    <GripVertical className="w-4 h-4" />
+                  </div>
+
                   <div 
                     className="p-2.5 rounded-xl border transition-all shadow-sm"
                     style={{
@@ -449,7 +629,7 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
                 </div>
               </div>
 
-              {/* Metadados: Gatilho, Loja Vinculada, Quantidade de Passos */}
+              {/* Metadados: Gatilho, Loja Vinculada, Quantidade Exata de Funções/Nós */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 my-3 py-2 text-xs bg-dark-950/40 rounded-xl p-3 border border-white/5">
                 <div className="flex items-center gap-2">
                   <Clock className="w-3.5 h-3.5 text-pitoco-blue" />
@@ -471,7 +651,9 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
                   <Layers className="w-3.5 h-3.5 text-pitoco-pink" />
                   <div>
                     <span className="text-[10px] text-slate-500 block uppercase font-semibold">Estrutura</span>
-                    <span className="text-slate-200 font-medium">{flow.steps?.length || flow.node_count || 4} Nós / Passos</span>
+                    <span className="text-slate-200 font-bold text-brand-400">
+                      {typeof flow.node_count === 'number' && flow.node_count > 0 ? flow.node_count : (flow.steps?.length || 0)} Funções (Nós)
+                    </span>
                   </div>
                 </div>
               </div>

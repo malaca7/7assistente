@@ -1142,17 +1142,19 @@ export const StorageService = {
 
   async saveFlow(flow: Partial<Flow>): Promise<Flow> {
     const flows = await this.getFlows();
-    const existingIndex = flows.findIndex(f => f.id === flow.id);
+    const targetId = (flow.id && String(flow.id).trim()) || `flow-${Date.now()}`;
+    const existingIndex = flows.findIndex(f => f.id === targetId || f.id === flow.id);
     const existing = existingIndex >= 0 ? flows[existingIndex] : null;
     const updatedFlow: Flow = {
       ...(existing || {}),
-      id: flow.id || existing?.id || `flow-${Date.now()}`,
+      ...flow,
+      id: targetId,
       name: flow.name ?? existing?.name ?? 'Novo Fluxo de Atendimento',
       description: flow.description ?? existing?.description ?? '',
       status: flow.status ?? existing?.status ?? (flow.is_active ? 'published' : 'draft'),
       is_active: flow.is_active !== undefined ? flow.is_active : (existing?.is_active ?? (flow.status === 'published')),
       version: flow.version ?? existing?.version ?? 1,
-      node_count: flow.node_count ?? existing?.node_count ?? (flow.steps && flow.steps.length > 0 ? flow.steps.length : 4),
+      node_count: typeof flow.node_count === 'number' && flow.node_count > 0 ? flow.node_count : (existing?.node_count ?? (flow.steps && flow.steps.length > 0 ? flow.steps.length : 2)),
       trigger_type: flow.trigger_type ?? existing?.trigger_type ?? 'Qualquer Mensagem Recebida',
       store_id: flow.store_id !== undefined ? flow.store_id : (existing?.store_id ?? null),
       store_name: flow.store_name ?? existing?.store_name ?? (flow.store_id ? 'Filial Específica' : 'Toda a Rede'),
@@ -1161,7 +1163,6 @@ export const StorageService = {
       order_index: flow.order_index ?? existing?.order_index ?? (existingIndex >= 0 ? existingIndex : flows.length),
       created_at: flow.created_at || existing?.created_at || new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      ...flow,
     };
 
     if (existingIndex >= 0) {
@@ -1340,6 +1341,17 @@ export const StorageService = {
       this.saveFlowEdges(flowId, edges),
     ]);
 
+    // Atualizar node_count no cache local de fluxos
+    try {
+      let flows = getItem<Flow[]>(STORAGE_KEYS.FLOWS, sampleFlows);
+      const flowIdx = flows.findIndex(f => f.id === flowId);
+      if (flowIdx >= 0) {
+        flows[flowIdx].node_count = Array.isArray(nodes) ? nodes.length : 0;
+        flows[flowIdx].updated_at = new Date().toISOString();
+        setItem(STORAGE_KEYS.FLOWS, flows);
+      }
+    } catch {}
+
     // 2. Sincronizar em tempo real com o backend do bot WhatsApp (persistente no servidor)
     try {
       await fetch(`${API_BASE}/api/flows/${flowId}/graph`, {
@@ -1359,6 +1371,31 @@ export const StorageService = {
         console.warn('[StorageService] Falha ao sincronizar grafo com Supabase:', e);
       }
     }
+  },
+
+  async syncWithDatabase(): Promise<Flow[]> {
+    // 1. Sincronizar backend com Supabase
+    try {
+      await fetch(`${API_BASE}/api/flows/sync-database`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch {}
+
+    // 2. Buscar fluxos atualizados diretamente do Supabase
+    if (SupabaseService.isSupabaseReady) {
+      try {
+        const cloudFlows = await SupabaseService.getFlows();
+        if (Array.isArray(cloudFlows) && cloudFlows.length > 0) {
+          setItem(STORAGE_KEYS.FLOWS, cloudFlows);
+          return cloudFlows;
+        }
+      } catch (e) {
+        console.warn('[StorageService] Falha ao consultar fluxos no Supabase durante sync:', e);
+      }
+    }
+
+    return this.getFlows();
   },
 
   // ==============================================================================
