@@ -42,6 +42,8 @@ import {
   PromotionalCouponNode,
 } from './nodes/AdvancedNodes';
 
+import { useFlowConnection } from './FlowConnectionContext';
+
 export interface FlowCanvasProps {
   nodes: Node[];
   edges: Edge[];
@@ -71,6 +73,8 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
   onEdgeClick,
   onEdgeDoubleClick,
 }) => {
+  const connCtx = useFlowConnection();
+
   const nodeTypes: NodeTypes = useMemo(
     () => ({
       trigger: TriggerNode,
@@ -90,7 +94,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
       end_flow: EndFlowNode,
       finish_flow: EndFlowNode,
       end: EndFlowNode,
-      // Nós de Loja Virtual & Atendimento Pitoco de Gente
+      // Funções de Loja Virtual & Atendimento Pitoco de Gente
       store_selector: StoreSelectorNode,
       show_catalog: ShowCatalogNode,
       select_product: SelectProductNode,
@@ -106,12 +110,43 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
     []
   );
 
+  const handlePaneClick = () => {
+    if (connCtx?.isConnecting) {
+      connCtx.cancelConnecting();
+    }
+    if (onPaneClick) {
+      onPaneClick();
+    }
+  };
+
   return (
     <div
-      className="w-full h-full relative bg-dark-950"
+      className="w-full h-full relative bg-dark-950 select-none"
       onDrop={onDrop}
       onDragOver={onDragOver}
     >
+      {/* Banner Flutuante de Modo de Conexão Ativo */}
+      {connCtx?.connectingSource && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-dark-900/95 border border-cyan-500/60 shadow-2xl shadow-cyan-950/80 rounded-full px-5 py-2.5 backdrop-blur-md animate-bounce">
+          <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
+          <div className="text-xs font-semibold text-white flex items-center gap-1.5">
+            <span>Ligando:</span>
+            <span className="text-cyan-300 font-bold bg-cyan-950/60 px-2 py-0.5 rounded-md border border-cyan-500/30">
+              {connCtx.connectingSource.nodeLabel}
+              {connCtx.connectingSource.branchLabel ? ` (${connCtx.connectingSource.branchLabel})` : ''}
+            </span>
+            <span className="text-slate-300">➔ Clique no Card de destino ou no ponto azul</span>
+          </div>
+          <button
+            type="button"
+            onClick={connCtx.cancelConnecting}
+            className="ml-2 px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-xs font-bold text-slate-200 transition-all hover:scale-105"
+          >
+            Cancelar (Esc)
+          </button>
+        </div>
+      )}
+
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -120,7 +155,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeClick={onNodeClick}
-        onPaneClick={onPaneClick}
+        onPaneClick={handlePaneClick}
         onEdgeClick={onEdgeClick}
         onEdgeDoubleClick={onEdgeDoubleClick}
         deleteKeyCode="Delete"

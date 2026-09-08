@@ -340,21 +340,44 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
   // Transbordo: Devolver para o Robô
   const handleTransferToBot = async () => {
     if (!activeConv) return;
-    await StorageService.updateConversationStatus(activeConv.id, 'bot');
-    setActiveConv(prev => prev ? { ...prev, status: 'bot', assigned_to: null } : null);
-    setConversations(prev => prev.map(c => c.id === activeConv.id ? { ...c, status: 'bot', assigned_to: null } : c));
+    await StorageService.updateConversationStatus(activeConv.id, 'bot', activeConv.store_id || undefined, null);
+    const updated: Conversation = { 
+      ...activeConv, 
+      status: 'bot', 
+      assigned_to: null, 
+      assigned_attendant_name: null, 
+      assigned_attendant_id: null,
+      updated_at: new Date().toISOString() 
+    };
+    setActiveConv(updated);
+    setConversations(prev => prev.map(c => c.id === activeConv.id ? updated : c));
     info('Conversa transferida de volta para o Robô Pitoco');
   };
 
-  // Atribuir para mim (Consultora/Atendente)
-  const handleAssumeConversation = async () => {
-    if (!activeConv) return;
-    const authorName = user?.name || 'Sofia Consultora VIP';
-    await StorageService.updateConversationStatus(activeConv.id, 'human', activeConv.store_id || undefined);
-    await StorageService.assignAttendant(activeConv.id, authorName);
-    setActiveConv(prev => prev ? { ...prev, status: 'human', assigned_to: authorName } : null);
-    setConversations(prev => prev.map(c => c.id === activeConv.id ? { ...c, status: 'human', assigned_to: authorName } : c));
-    success('Você assumiu este atendimento humano!', `Loja: ${activeConv.store_name || 'Rede Pitoco'}`);
+  // Atribuir para mim (Consultora/Atendente/Gerente/Admin)
+  const handleAssumeConversation = async (targetConv?: Conversation) => {
+    const conv = targetConv || activeConv;
+    if (!conv) return;
+    const authorName = user?.name || (isCEO ? 'Malaca CEO' : isAdmin ? 'Administrador Geral' : isManager ? 'Gerente' : 'Sofia Consultora VIP');
+    const authorId = user?.id || `user-${user?.username || 'attendant'}`;
+
+    await StorageService.updateConversationStatus(conv.id, 'human', conv.store_id || undefined, authorName);
+    await StorageService.assignAttendant(conv.id, authorName, authorId);
+
+    const updated: Conversation = { 
+      ...conv, 
+      status: 'human', 
+      assigned_to: authorName, 
+      assigned_attendant_name: authorName,
+      assigned_attendant_id: authorId,
+      updated_at: new Date().toISOString()
+    };
+
+    if (!activeConv || activeConv.id === conv.id) {
+      setActiveConv(updated);
+    }
+    setConversations(prev => prev.map(c => c.id === conv.id ? updated : c));
+    success('Você assumiu este atendimento humano!', `Operador responsável: ${authorName}`);
   };
 
   // 1. Apagar Mensagem Individual (Restrito a Admin/Gerente)
@@ -833,13 +856,33 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                       {conv.last_message || 'Início da conversa'}
                     </p>
 
-                    <div className="flex items-center justify-between mt-2 pt-1 border-t border-white/[0.03] text-[10px] text-slate-500">
-                      <span className="text-pitoco-blue font-medium truncate max-w-[130px]">
-                        📍 {conv.store_name || 'Rede Geral'}
-                      </span>
-                      <span className="text-slate-400 truncate max-w-[100px]">
-                        🏷️ {conv.sector || 'Vendas'}
-                      </span>
+                    <div className="flex items-center justify-between mt-2 pt-1 border-t border-white/[0.03] text-[10px] text-slate-500 gap-1">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-pitoco-blue font-medium truncate max-w-[100px]" title={conv.store_name || 'Rede Geral'}>
+                          📍 {conv.store_name ? conv.store_name.replace('Loja ', '') : 'Rede'}
+                        </span>
+                        {conv.assigned_to && (
+                          <span className="text-emerald-400 font-medium truncate max-w-[80px]" title={`Atribuído a ${conv.assigned_to}`}>
+                            👤 {conv.assigned_to.split(' ')[0]}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Botão Rápido de Assumir para conversas aguardando ou não atribuídas a mim */}
+                      {!isDeleted && conv.assigned_to !== (user?.name || (isCEO ? 'Malaca CEO' : isAdmin ? 'Administrador Geral' : isManager ? 'Gerente' : 'Sofia Consultora VIP')) && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAssumeConversation(conv);
+                          }}
+                          className="px-2 py-0.5 rounded text-[9.5px] font-bold bg-emerald-500/15 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 transition-all shrink-0 flex items-center gap-1 hover:scale-105 active:scale-95"
+                          title="Assumir este cliente com 1 clique"
+                        >
+                          <UserCheck className="w-2.5 h-2.5" />
+                          Assumir
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -924,26 +967,48 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                         Catálogo
                       </Button>
 
-                      {activeConv.status === 'human' ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={handleTransferToBot}
-                          className="text-xs border-white/10 hover:bg-white/5 text-slate-300 h-8 px-2.5"
-                          title="Devolver controle para o Robô Pitoco"
-                        >
-                          <Bot className="w-3.5 h-3.5 mr-1 text-zinc-300" />
-                          Robô
-                        </Button>
+                      {/* Botão Assumir Atendimento ou Status de Atribuído */}
+                      {activeConv.status === 'human' && activeConv.assigned_to === (user?.name || (isCEO ? 'Malaca CEO' : isAdmin ? 'Administrador Geral' : isManager ? 'Gerente' : 'Sofia Consultora VIP')) ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+                            Assumido por você
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleTransferToBot}
+                            className="text-xs border-white/10 hover:bg-white/5 text-slate-300 h-8 px-2.5"
+                            title="Devolver controle para o Robô Pitoco"
+                          >
+                            <Bot className="w-3.5 h-3.5 mr-1 text-zinc-300" />
+                            Robô
+                          </Button>
+                        </div>
                       ) : (
-                        <Button
-                          size="sm"
-                          onClick={handleAssumeConversation}
-                          className="text-xs bg-white text-black font-semibold hover:bg-zinc-200 h-8 px-2.5"
-                        >
-                          <UserCheck className="w-3.5 h-3.5 mr-1" />
-                          Assumir
-                        </Button>
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            size="sm"
+                            onClick={() => handleAssumeConversation()}
+                            className="text-xs bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold h-8 px-3 shadow-md shadow-emerald-950/40 transition-all hover:scale-105"
+                            title={activeConv.assigned_to ? `Atualmente com ${activeConv.assigned_to}. Clique para assumir você mesmo.` : 'Assumir atendimento deste cliente'}
+                          >
+                            <UserCheck className="w-3.5 h-3.5 mr-1.5" />
+                            {activeConv.assigned_to ? `Assumir (De: ${activeConv.assigned_to.split(' ')[0]})` : 'Assumir Atendimento'}
+                          </Button>
+                          {activeConv.status === 'human' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={handleTransferToBot}
+                              className="text-xs border-white/10 hover:bg-white/5 text-slate-300 h-8 px-2.5"
+                              title="Devolver controle para o Robô Pitoco"
+                            >
+                              <Bot className="w-3.5 h-3.5 mr-1 text-zinc-300" />
+                              Robô
+                            </Button>
+                          )}
+                        </div>
                       )}
 
                       {/* Transferir para outro Atendente */}

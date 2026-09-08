@@ -430,26 +430,52 @@ export const StorageService = {
   async updateConversationStatus(
     id: string, 
     status: Conversation['status'], 
-    storeId?: string
+    storeId?: string,
+    assignedTo?: string | null
   ): Promise<void> {
+    try {
+      await fetch(`${API_BASE}/api/conversations/${encodeURIComponent(id)}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, store_id: storeId, assigned_to: assignedTo }),
+        signal: AbortSignal.timeout(4000),
+      }).catch(() => {});
+    } catch {}
+
     if (SupabaseService.isSupabaseReady) {
-      await SupabaseService.updateConversationStatus(id, status, storeId);
+      await SupabaseService.updateConversationStatus(id, status, storeId, assignedTo);
     }
     const convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, []);
     const target = convs.find(c => c.id === id);
     if (target) {
       target.status = status;
       if (storeId) target.store_id = storeId;
+      if (assignedTo !== undefined) target.assigned_to = assignedTo;
       target.updated_at = new Date().toISOString();
       setItem(STORAGE_KEYS.CONVERSATIONS, convs);
     }
   },
 
-  async assignAttendant(conversationId: string, attendantName: string): Promise<void> {
+  async assignAttendant(conversationId: string, attendantName: string, attendantId?: string): Promise<void> {
+    try {
+      await fetch(`${API_BASE}/api/conversations/${encodeURIComponent(conversationId)}/assign`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ attendant_name: attendantName, attendant_id: attendantId }),
+        signal: AbortSignal.timeout(4000),
+      }).catch(() => {});
+    } catch {}
+
+    if (SupabaseService.isSupabaseReady) {
+      await SupabaseService.assignConversationAttendant(conversationId, attendantName, attendantId);
+    }
+
     const convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, []);
     const target = convs.find(c => c.id === conversationId);
     if (target) {
       target.assigned_to = attendantName;
+      target.assigned_attendant_name = attendantName;
+      if (attendantId) target.assigned_attendant_id = attendantId;
       target.status = 'human';
       target.updated_at = new Date().toISOString();
       setItem(STORAGE_KEYS.CONVERSATIONS, convs);

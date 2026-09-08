@@ -609,13 +609,13 @@ export const NodePalette: React.FC<NodePaletteProps> = ({
         <button
           onClick={onToggleOpen}
           className="h-full w-9 bg-dark-900 border-r border-white/10 hover:bg-dark-850 flex flex-col items-center justify-center gap-3 text-slate-400 hover:text-white transition-colors group shadow-2xl"
-          title="Abrir Adicionar Nós"
+          title="Abrir Funções de Fluxo"
         >
           <div className="p-1 rounded-lg bg-primary-600/20 text-primary-400 border border-primary-500/30 group-hover:scale-110 transition-transform">
             <Plus className="w-4 h-4" />
           </div>
           <span className="[writing-mode:vertical-rl] text-xs font-bold tracking-wider text-slate-400 group-hover:text-slate-200">
-            Adicionar Nós
+            Funções de Fluxo
           </span>
           <ChevronRight className="w-4 h-4 text-primary-400" />
         </button>
@@ -632,11 +632,11 @@ export const NodePalette: React.FC<NodePaletteProps> = ({
                 <div className="w-5 h-5 rounded-lg bg-primary-600/25 text-primary-400 border border-primary-500/40 flex items-center justify-center shadow-sm flex-shrink-0">
                   <Plus className="w-3 h-3" />
                 </div>
-                <span className="truncate">{width < 210 ? 'Nós' : 'Paleta de Nós'}</span>
+                <span className="truncate">{width < 210 ? 'Funções' : 'Funções de Fluxo'}</span>
               </h3>
               
               <div className="flex items-center gap-1 flex-shrink-0">
-                {/* Botões de Densidade dos Nós (Mini, Normal, Amplo - Fixos e Persistentes) */}
+                {/* Botões de Densidade das Funções (Mini, Normal, Amplo) */}
                 <div className="flex items-center bg-dark-850 p-0.5 rounded-lg border border-white/10 text-[9.5px]">
                   <button
                     type="button"
@@ -645,7 +645,7 @@ export const NodePalette: React.FC<NodePaletteProps> = ({
                       "px-1.5 py-0.5 rounded transition-all font-bold",
                       densityMode === 'mini' ? "bg-white text-black shadow-xs" : "text-slate-400 hover:text-white"
                     )}
-                    title="Exibição Mini (compacta, ideal para visualizar muitos nós)"
+                    title="Exibição Mini (compacta, ideal para visualizar muitas funções)"
                   >
                     Mini
                   </button>
@@ -676,7 +676,7 @@ export const NodePalette: React.FC<NodePaletteProps> = ({
                 <button
                   onClick={onToggleOpen}
                   className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                  title="Recolher painel de nós"
+                  title="Recolher painel de funções"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -688,7 +688,7 @@ export const NodePalette: React.FC<NodePaletteProps> = ({
               <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400 pointer-events-none" />
               <input
                 type="text"
-                placeholder="Buscar nó por nome ou função..."
+                placeholder="Buscar função por nome ou tipo..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full bg-dark-950/90 border border-white/10 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
@@ -825,7 +825,7 @@ export const NodePalette: React.FC<NodePaletteProps> = ({
 
             {filtered.length === 0 && (
               <div className="p-6 text-center text-slate-500 text-xs">
-                Nenhum nó encontrado para "<strong>{searchTerm}</strong>".
+                Nenhuma função encontrada para "<strong>{searchTerm}</strong>".
               </div>
             )}
           </div>

@@ -191,7 +191,7 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
                 >
                   <div>
                     <p className="font-bold">A Cada Alteração (Tempo Real)</p>
-                    <p className="text-[10px] text-slate-400">Salva instantaneamente ao mover ou editar nós</p>
+                    <p className="text-[10px] text-slate-400">Salva instantaneamente ao mover ou editar funções</p>
                   </div>
                   {autoSaveMode === 'instant' && <Check className="w-4 h-4 text-brand-400 flex-shrink-0" />}
                 </button>
@@ -208,10 +208,12 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
                   }`}
                 >
                   <div>
-                    <p className="font-bold">Por Intervalo (A cada 30s)</p>
-                    <p className="text-[10px] text-slate-400">Salva periodicamente no segundo plano</p>
+                    <p className="font-bold">A cada 30 segundos</p>
+                    <p className="text-[10px] text-slate-400">Salva em lote periodicamente</p>
                   </div>
-                  {autoSaveMode === 'interval' && <Check className="w-4 h-4 text-brand-400 flex-shrink-0" />}
+                  {autoSaveMode === 'interval' && autoSaveIntervalSec === 30 && (
+                    <Check className="w-4 h-4 text-brand-400 flex-shrink-0" />
+                  )}
                 </button>
 
                 <button
@@ -226,8 +228,8 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
                   }`}
                 >
                   <div>
-                    <p className="font-bold">Apenas Manual (Ctrl + S)</p>
-                    <p className="text-[10px] text-slate-400">Salva apenas quando você clicar em Salvar</p>
+                    <p className="font-bold">Apenas Manual</p>
+                    <p className="text-[10px] text-slate-400">Salva somente quando clicar no botão Salvar</p>
                   </div>
                   {autoSaveMode === 'manual' && <Check className="w-4 h-4 text-brand-400 flex-shrink-0" />}
                 </button>
@@ -236,7 +238,7 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
           )}
         </div>
 
-        {/* Validation badge */}
+        {/* Validation Status Pill */}
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-dark-850 border border-slate-800 text-xs">
           {isValid ? (
             <>
@@ -250,7 +252,7 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
           ) : (
             <>
               <AlertCircle className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-              <span className="text-amber-300">{validationError || 'Atenção nos nós'}</span>
+              <span className="text-amber-300">{validationError || 'Atenção nas funções'}</span>
             </>
           )}
         </div>
@@ -284,7 +286,7 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
             type="button"
             onClick={onAutoLayout}
             className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600/30 to-teal-600/30 hover:from-emerald-500/40 hover:to-teal-500/40 border border-emerald-500/40 text-emerald-300 hover:text-white transition-all flex items-center gap-1.5 text-xs font-bold shadow-sm active:scale-95"
-            title="Auto-Organizar nós de cima para baixo (Atalho: Alt+O)"
+            title="Auto-Organizar funções de cima para baixo (Atalho: Alt+O)"
           >
             <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
             <span className="hidden sm:inline">Auto-Organizar</span>

@@ -223,16 +223,16 @@
   ],
   "flows": [
     {
-      "id": "flow-pitoco-001",
-      "name": "Atendimento Principal",
+      "id": "flow-1788903683074",
+      "name": "Atendimento ao cliente Principal",
       "description": "Atendimento ao cliente principal",
       "status": "published",
-      "version": 5,
       "is_active": true,
+      "version": 2,
+      "node_count": 4,
       "trigger_type": "Qualquer Mensagem Recebida",
       "store_id": null,
       "store_name": "Toda a Rede (Global)",
-      "node_count": 8,
       "steps": [
         {
           "id": "step-1",
@@ -249,8 +249,56 @@
           "description": "Apresenta\u00e7\u00e3o do menu"
         }
       ],
+      "color": "#10b981",
+      "created_at": "2026-09-08T21:41:27.921908+00:00",
+      "updated_at": "2026-09-08T21:43:04.467Z"
+    },
+    {
+      "id": "flow-1788903542304",
+      "name": "AAAA",
+      "description": "Atendimento ao cliente principal",
+      "status": "draft",
+      "is_active": false,
+      "version": 2,
+      "node_count": 2,
+      "trigger_type": "Qualquer Mensagem Recebida",
+      "store_id": null,
+      "store_name": "Toda a Rede (Global)",
+      "steps": [
+        {
+          "id": "step-1",
+          "type": "trigger",
+          "title": "Gatilho Inicial",
+          "category": "In\u00edcio",
+          "description": "Disparo do fluxo"
+        },
+        {
+          "id": "step-2",
+          "type": "message",
+          "title": "Mensagem de Atendimento",
+          "category": "Atendimento",
+          "description": "Apresenta\u00e7\u00e3o do menu"
+        }
+      ],
+      "color": "#10b981",
+      "created_at": "2026-09-08T21:39:07.018531+00:00",
+      "updated_at": "2026-09-08T21:41:21.089Z"
+    },
+    {
+      "id": "flow-pitoco-001",
+      "name": "teste",
+      "description": "teste",
+      "status": "draft",
+      "version": 6,
+      "is_active": false,
+      "trigger_type": "Qualquer Mensagem Recebida",
+      "store_id": null,
+      "store_name": "Toda a Rede (Global)",
+      "node_count": 2,
+      "steps": [],
       "created_at": "2026-09-08T20:00:48.042417+00:00",
-      "updated_at": "2026-09-08T21:28:46.884Z"
+      "updated_at": "2026-09-08T21:41:05.957Z",
+      "color": "#10b981"
     }
   ],
   "nodes": {
@@ -763,76 +811,19 @@
     ],
     "flow-pitoco-001": [
       {
-        "id": "node-buttons-pitoco",
-        "flow_id": "flow-pitoco-001",
-        "type": "buttons",
-        "position": {
-          "x": 315,
-          "y": 1480
-        },
-        "data": {
-          "label": "Menu Principal de Op\u00e7\u00f5es",
-          "config": {
-            "buttons": [
-              {
-                "id": "btn_catalogo",
-                "title": "Vitrine da Loja"
-              },
-              {
-                "id": "btn_2",
-                "title": "Calcular Frete"
-              }
-            ],
-            "bodyText": "Como podemos te ajudar hoje? Selecione uma das op\u00e7\u00f5es abaixo:",
-            "footerText": "Pitoco de Gente \u2022 Atendimento Oficial"
-          },
-          "nodeType": "buttons",
-          "description": "Op\u00e7\u00f5es r\u00e1pidas para agilizar o atendimento",
-          "isConfigured": true
-        },
-        "measured": {
-          "width": 330,
-          "height": 248
-        },
-        "selected": false
-      },
-      {
-        "id": "node-question-1788893542405",
-        "flow_id": "flow-pitoco-001",
-        "type": "question",
-        "position": {
-          "x": 100,
-          "y": 540
-        },
-        "data": {
-          "label": "Pergunta & Resposta",
-          "config": {
-            "expectedType": "text",
-            "questionText": "Por favor, informe seu *Nome*:",
-            "variableName": "nome_clientenovo"
-          },
-          "nodeType": "question",
-          "description": "Faz uma pergunta ao cliente e salva o texto digitado em uma vari\u00e1vel.",
-          "isConfigured": true
-        },
-        "measured": {
-          "width": 330,
-          "height": 165
-        }
-      },
-      {
         "id": "node-trigger-pitoco",
         "flow_id": "flow-pitoco-001",
         "type": "trigger",
         "position": {
-          "x": 315,
+          "x": 100,
           "y": 100
         },
         "data": {
           "label": "Gatilho Inicial",
           "config": {
-            "eventType": "any_message",
-            "matchType": "contains"
+            "eventType": "keyword",
+            "matchType": "contains",
+            "keywords": "mlc"
           },
           "nodeType": "trigger",
           "description": "Dispara quando o cliente envia qualquer mensagem no WhatsApp",
@@ -840,133 +831,105 @@
         },
         "measured": {
           "width": 330,
-          "height": 172
-        }
+          "height": 182
+        },
+        "selected": false
       },
       {
-        "id": "node-welcome-pitoco",
-        "flow_id": "flow-pitoco-001",
+        "id": "node-message-1788903597491",
         "type": "message",
         "position": {
-          "x": 315,
-          "y": 1230
+          "x": 100,
+          "y": 300
         },
         "data": {
-          "label": "Boas-Vindas Pitoco de Gente",
-          "config": {
-            "text": "\ud83d\udc76\u2728 Ol\u00e1 *{{nome_cliente}}*! Seja muito bem-vindo(a) \u00e0 *{{empresa}}*!\n\nMe chamo *{{bot_nome}}*, e sou assistente virtual. \u00c9 um prazer atender voc\u00ea..."
-          },
+          "label": "Enviar Mensagem",
           "nodeType": "message",
-          "description": "Mensagem carinhosa de boas-vindas com o nome do cliente",
-          "isConfigured": true
+          "description": "Envia texto formatado no WhatsApp com vari\u00e1veis din\u00e2micas (ex: {{nome_cliente}}).",
+          "isConfigured": true,
+          "config": {
+            "text": "\u2705 Oi, sou o *{{bot_nome}}* e seu teste funcionou perfeitamente!",
+            "previewUrl": false
+          }
         },
         "measured": {
           "width": 330,
-          "height": 213
+          "height": 178
+        },
+        "selected": true
+      }
+    ],
+    "flow-1788903683074": [
+      {
+        "id": "node-trigger-1",
+        "flow_id": "flow-1788903683074",
+        "type": "trigger",
+        "position": {
+          "x": 315,
+          "y": 100
+        },
+        "data": {
+          "label": "Mensagem Recebida",
+          "config": {
+            "eventType": "any_message"
+          },
+          "nodeType": "trigger",
+          "description": "Dispara quando o cliente manda qualquer mensagem no WhatsApp",
+          "isConfigured": true
         }
       },
       {
-        "id": "node-check_contact-1788893686878",
-        "flow_id": "flow-pitoco-001",
-        "type": "check_contact",
+        "id": "node-welcome-2",
+        "flow_id": "flow-1788903683074",
+        "type": "message",
         "position": {
           "x": 315,
           "y": 300
         },
         "data": {
-          "label": "Verificar Contato (Novo vs Salvo)",
-          "config": {},
-          "nodeType": "check_contact",
-          "description": "Bifurca o fluxo entre Primeiro Contato (1\u00aa Vez) e Contato Salvo (Recorrente).",
-          "isConfigured": true
-        },
-        "measured": {
-          "width": 330,
-          "height": 247
-        }
-      },
-      {
-        "id": "node-update_contact-1788893708199",
-        "flow_id": "flow-pitoco-001",
-        "type": "update_contact",
-        "position": {
-          "x": 100,
-          "y": 770
-        },
-        "data": {
-          "label": "Salvar / Vincular Dados",
+          "label": "Boas-vindas Pitoco de Gente",
           "config": {
-            "tags": "Cliente Novo, Cliente",
-            "contactName": "nome_clientenovo",
-            "phoneVarName": "telefone_whatsapp",
-            "customFieldKey": "interesse_principal",
-            "customFieldValue": "servico_selecionado"
+            "text": "Bem vindo a *{{empresa}}*.",
+            "message": "Ol\u00e1! Seja muito bem-vindo(a) \u00e0 Pitoco de Gente \u2014 Roupas de Beb\u00ea, Infantil e Enxovais! \ud83d\udc76\u2728"
           },
-          "nodeType": "update_contact",
-          "description": "Salva nome, foto oficial, tags e campos customizados direto no perfil do WhatsApp.",
+          "nodeType": "message",
+          "description": "Envia a sauda\u00e7\u00e3o oficial com menu de 1 a 7",
           "isConfigured": true
-        },
-        "measured": {
-          "width": 330,
-          "height": 182
         }
       },
       {
-        "id": "node-variable-1788893776618",
-        "flow_id": "flow-pitoco-001",
-        "type": "variable",
-        "position": {
-          "x": 100,
-          "y": 1000
-        },
-        "data": {
-          "label": "Definir Vari\u00e1vel",
-          "config": {
-            "varName": "nome_cliente",
-            "varValue": "nome_clientenovo",
-            "operation": "copy_var",
-            "assignments": [
-              {
-                "value": "nome_clientenovo",
-                "varName": "nome_cliente",
-                "operation": "copy_var",
-                "sourceVar": "nome_clientenovo"
-              }
-            ]
-          },
-          "nodeType": "variable",
-          "description": "Armazena valores, c\u00e1lculos, dados de contato ou datas em vari\u00e1veis.",
-          "isConfigured": true
-        },
-        "measured": {
-          "width": 330,
-          "height": 131
-        }
-      },
-      {
-        "id": "node-show_catalog-1788902631459",
+        "id": "node-catalog-3",
+        "flow_id": "flow-1788903683074",
         "type": "show_catalog",
         "position": {
           "x": 100,
-          "y": 1764
+          "y": 520
         },
         "data": {
-          "label": "Vitrine da Loja Virtual",
+          "label": "Cat\u00e1logo Interativo",
+          "config": {},
           "nodeType": "show_catalog",
-          "description": "Envia vitrine de roupas de beb\u00ea e enxovais com categorias, fotos, tamanhos e valores.",
-          "isConfigured": true,
+          "description": "Bodies 100% suedine, macac\u00f5es z\u00edper duplo, sa\u00eddas de maternidade e kits de ber\u00e7o",
+          "isConfigured": true
+        }
+      },
+      {
+        "id": "node-handoff-4",
+        "flow_id": "flow-1788903683074",
+        "type": "human_handoff",
+        "position": {
+          "x": 530,
+          "y": 520
+        },
+        "data": {
+          "label": "Transbordo por Loja",
           "config": {
-            "categoryFilter": "all",
-            "headerText": "\ud83c\udf7c *PITOCO DE GENTE \u2014 Moda Beb\u00ea & Enxovais*\nConfira nossos destaques mais amados:",
-            "footerText": "Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!"
-          }
-        },
-        "measured": {
-          "width": 330,
-          "height": 238
-        },
-        "selected": false,
-        "dragging": false
+            "multiStore": true
+          },
+          "nodeType": "human_handoff",
+          "description": "Cliente escolhe entre Matriz Centro, Shopping Boulevard ou E-commerce",
+          "isConfigured": true
+        }
       }
     ]
   },
@@ -1297,64 +1260,6 @@
     ],
     "flow-pitoco-001": [
       {
-        "id": "xy-edge__node-check_contact-1788893686878is_new-node-question-1788893542405",
-        "flow_id": "flow-pitoco-001",
-        "source": "node-check_contact-1788893686878",
-        "target": "node-question-1788893542405",
-        "sourceHandle": "is_new",
-        "data": {},
-        "targetHandle": null
-      },
-      {
-        "id": "xy-edge__node-update_contact-1788893708199-node-variable-1788893776618",
-        "flow_id": "flow-pitoco-001",
-        "source": "node-update_contact-1788893708199",
-        "target": "node-variable-1788893776618",
-        "data": {},
-        "targetHandle": null
-      },
-      {
-        "id": "xy-edge__node-variable-1788893776618-node-welcome-pitoco",
-        "flow_id": "flow-pitoco-001",
-        "source": "node-variable-1788893776618",
-        "target": "node-welcome-pitoco",
-        "data": {},
-        "targetHandle": null
-      },
-      {
-        "id": "xy-edge__node-check_contact-1788893686878is_existing-node-welcome-pitoco",
-        "flow_id": "flow-pitoco-001",
-        "source": "node-check_contact-1788893686878",
-        "target": "node-welcome-pitoco",
-        "sourceHandle": "is_existing",
-        "data": {},
-        "targetHandle": null
-      },
-      {
-        "id": "edge-p2-p3",
-        "flow_id": "flow-pitoco-001",
-        "source": "node-welcome-pitoco",
-        "target": "node-buttons-pitoco",
-        "data": {},
-        "targetHandle": null
-      },
-      {
-        "id": "xy-edge__node-question-1788893542405-node-update_contact-1788893708199",
-        "flow_id": "flow-pitoco-001",
-        "source": "node-question-1788893542405",
-        "target": "node-update_contact-1788893708199",
-        "data": {},
-        "targetHandle": null
-      },
-      {
-        "id": "xy-edge__node-trigger-pitoco-node-check_contact-1788893686878",
-        "flow_id": "flow-pitoco-001",
-        "source": "node-trigger-pitoco",
-        "target": "node-check_contact-1788893686878",
-        "data": {},
-        "targetHandle": null
-      },
-      {
         "type": "smoothstep",
         "animated": true,
         "style": {
@@ -1365,11 +1270,32 @@
           "offset": 35,
           "borderRadius": 20
         },
-        "source": "node-buttons-pitoco",
-        "sourceHandle": "btn_catalogo",
-        "target": "node-show_catalog-1788902631459",
-        "id": "xy-edge__node-buttons-pitocobtn_catalogo-node-show_catalog-1788902631459",
-        "targetHandle": null
+        "source": "node-trigger-pitoco",
+        "target": "node-message-1788903597491",
+        "id": "xy-edge__node-trigger-pitoco-node-message-1788903597491"
+      }
+    ],
+    "flow-1788903683074": [
+      {
+        "id": "edge-1-2",
+        "flow_id": "flow-1788903683074",
+        "source": "node-trigger-1",
+        "target": "node-welcome-2",
+        "data": {}
+      },
+      {
+        "id": "edge-2-3",
+        "flow_id": "flow-1788903683074",
+        "source": "node-welcome-2",
+        "target": "node-catalog-3",
+        "data": {}
+      },
+      {
+        "id": "edge-2-4",
+        "flow_id": "flow-1788903683074",
+        "source": "node-welcome-2",
+        "target": "node-handoff-4",
+        "data": {}
       }
     ]
   },
@@ -1377,29 +1303,29 @@
     "558196138924": {
       "id": "contact-558196138924",
       "phone": "558196138924",
-      "name": "Malaquias",
-      "status": "active",
+      "name": "rogerio mlc",
+      "whatsapp_pushname": "rogerio mlc",
+      "status": "lead",
       "tags": [
-        "Cliente"
+        "Lead"
       ],
-      "is_registered": true,
-      "created_at": "2026-09-08T21:11:54.686Z",
-      "updated_at": "2026-09-08T21:11:54.784Z",
-      "custom_fields": {
-        "nome_clientenovo": "Malaquias"
-      }
+      "is_registered": false,
+      "metadata": {},
+      "created_at": "2026-09-08T21:43:25.037Z",
+      "updated_at": "2026-09-08T21:43:25.047Z"
     }
   },
   "conversations": {
     "conv-558196138924": {
       "id": "conv-558196138924",
-      "contact_name": "Malaquias",
+      "contact_name": "rogerio mlc",
       "contact_phone": "558196138924",
       "phone": "168650497613858",
-      "last_message": "Malaquias",
-      "last_message_at": "2026-09-08T21:11:54.120Z",
+      "last_message": "\ud83c\udf7c *Vitrine Pitoco de Gente \u2014 Moda Beb\u00ea & Enxovais*\n\nConhe\u00e7a nossas pe\u00e7as mais amadas pelas mam\u00e3es:\n\n*1\ufe0f\u20e3 Body Suedine 100% Algod\u00e3o*\n   \ud83d\udcb0 R$ 49,90 \u2022 \ud83d\udc76 RN a GG (Cores Lisas & Estampadas)\n\n*2\ufe0f\u20e3 Macac\u00e3o Confort Z\u00edper Duplo*\n   \ud83d\udcb0 R$ 89,90 \u2022 \ud83d\udc76 RN ao 3 Anos (Prote\u00e7\u00e3o no Queixo)\n\n*3\ufe0f\u20e3 Sa\u00edda Maternidade Tricot Luxo (5 Pe\u00e7as)*\n   \ud83d\udcb0 R$ 199,90 \u2022 \ud83d\udc76 RN e P (Macac\u00e3o + Manta + Body + Faixinha)\n\n*4\ufe0f\u20e3 Kit de Ber\u00e7o 9 Pe\u00e7as 200 Fios*\n   \ud83d\udcb0 R$ 389,00 \u2022 \ud83d\udecf\ufe0f Padr\u00e3o Americano (100% Algod\u00e3o Hipoalerg\u00eanico)\n\n_\u2728 Trabalhamos do RN ao 3 anos. Pe\u00e7as 100% algod\u00e3o suedine e tricot antial\u00e9rgico._",
+      "last_message_at": "2026-09-08T21:43:25.037Z",
       "status": "active",
       "store_name": "Pitoco de Gente",
+      "updated_at": "2026-09-08T21:43:25.037Z",
       "contact_id": "contact-558196138924"
     },
     "conv-168650497613858": {
@@ -1407,8 +1333,8 @@
       "contact_name": "Pitoco Bot",
       "contact_phone": "168650497613858",
       "phone": "168650497613858",
-      "last_message": "Op\u00e7\u00e3o inv\u00e1lida. Digite um n\u00famero de *1 a 7*:\n\n\ud83d\udc76\u2728 *PITOCO DE GENTE \u2014 Roupas de Beb\u00ea & Enxovais*\nOl\u00e1, *rogerio mlc*! Bem-vindo(a) \u00e0 nossa loja oficial! Como podemos te ajudar hoje?\n\nDigite o n\u00famero da op\u00e7\u00e3o desejada:\n\n1\ufe0f\u20e3 *Ver Cat\u00e1logo de Produtos* (Bodies, Macac\u00f5es, Sa\u00eddas, Ber\u00e7o)\n2\ufe0f\u20e3 *Guia de Medidas* (RN ao 3 anos com peso e altura)\n3\ufe0f\u20e3 *Checklist da Mala de Maternidade*\n4\ufe0f\u20e3 *Consultoria VIP de Enxoval* (Agendamento personalizado)\n5\ufe0f\u20e3 *C\u00e1lculo de Frete & Formas de Entrega* (Motoboy/Correios/Retirada)\n6\ufe0f\u20e3 *Pagamento via PIX* (Chave & QR Code Copia e Cola)\n7\ufe0f\u20e3 *Falar com Atendente Humana* (Escolha sua loja f\u00edsica ou online)\n\n_Responda apenas com o n\u00famero de 1 a 7._",
-      "last_message_at": "2026-09-08T21:11:54.890Z",
+      "last_message": "\ud83c\udf7c *Vitrine Pitoco de Gente \u2014 Moda Beb\u00ea & Enxovais*\n\nConhe\u00e7a nossas pe\u00e7as mais amadas pelas mam\u00e3es:\n\n*1\ufe0f\u20e3 Body Suedine 100% Algod\u00e3o*\n   \ud83d\udcb0 R$ 49,90 \u2022 \ud83d\udc76 RN a GG (Cores Lisas & Estampadas)\n\n*2\ufe0f\u20e3 Macac\u00e3o Confort Z\u00edper Duplo*\n   \ud83d\udcb0 R$ 89,90 \u2022 \ud83d\udc76 RN ao 3 Anos (Prote\u00e7\u00e3o no Queixo)\n\n*3\ufe0f\u20e3 Sa\u00edda Maternidade Tricot Luxo (5 Pe\u00e7as)*\n   \ud83d\udcb0 R$ 199,90 \u2022 \ud83d\udc76 RN e P (Macac\u00e3o + Manta + Body + Faixinha)\n\n*4\ufe0f\u20e3 Kit de Ber\u00e7o 9 Pe\u00e7as 200 Fios*\n   \ud83d\udcb0 R$ 389,00 \u2022 \ud83d\udecf\ufe0f Padr\u00e3o Americano (100% Algod\u00e3o Hipoalerg\u00eanico)\n\n_\u2728 Trabalhamos do RN ao 3 anos. Pe\u00e7as 100% algod\u00e3o suedine e tricot antial\u00e9rgico._",
+      "last_message_at": "2026-09-08T21:43:25.103Z",
       "status": "active",
       "store_name": "Pitoco de Gente"
     }
@@ -1416,22 +1342,31 @@
   "messages": {
     "conv-558196138924": [
       {
-        "id": "msg-1788901900395-yqgms",
+        "id": "msg-1788903795797-9ci7x",
         "conversation_id": "conv-558196138924",
         "direction": "outbound",
-        "content": "Por favor, informe seu *Nome*:",
+        "content": "\ud83c\udf7c *Vitrine Pitoco de Gente \u2014 Moda Beb\u00ea & Enxovais*\n\nConhe\u00e7a nossas pe\u00e7as mais amadas pelas mam\u00e3es:\n\n*1\ufe0f\u20e3 Body Suedine 100% Algod\u00e3o*\n   \ud83d\udcb0 R$ 49,90 \u2022 \ud83d\udc76 RN a GG (Cores Lisas & Estampadas)\n\n*2\ufe0f\u20e3 Macac\u00e3o Confort Z\u00edper Duplo*\n   \ud83d\udcb0 R$ 89,90 \u2022 \ud83d\udc76 RN ao 3 Anos (Prote\u00e7\u00e3o no Queixo)\n\n*3\ufe0f\u20e3 Sa\u00edda Maternidade Tricot Luxo (5 Pe\u00e7as)*\n   \ud83d\udcb0 R$ 199,90 \u2022 \ud83d\udc76 RN e P (Macac\u00e3o + Manta + Body + Faixinha)\n\n*4\ufe0f\u20e3 Kit de Ber\u00e7o 9 Pe\u00e7as 200 Fios*\n   \ud83d\udcb0 R$ 389,00 \u2022 \ud83d\udecf\ufe0f Padr\u00e3o Americano (100% Algod\u00e3o Hipoalerg\u00eanico)\n\n_\u2728 Trabalhamos do RN ao 3 anos. Pe\u00e7as 100% algod\u00e3o suedine e tricot antial\u00e9rgico._",
         "sender": "bot",
         "author_name": "Pitoco Bot",
-        "created_at": "2026-09-08T21:11:40.395Z"
+        "created_at": "2026-09-08T21:43:15.797Z"
       },
       {
-        "id": "msg-1788901914120-m1rsn",
+        "id": "msg-1788903804346-awfkj",
         "conversation_id": "conv-558196138924",
         "direction": "inbound",
-        "content": "Malaquias",
+        "content": "2",
         "sender": "user",
         "author_name": "rogerio mlc",
-        "created_at": "2026-09-08T21:11:54.120Z"
+        "created_at": "2026-09-08T21:43:24.346Z"
+      },
+      {
+        "id": "msg-1788903805037-qyxwq",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "\ud83c\udf7c *Vitrine Pitoco de Gente \u2014 Moda Beb\u00ea & Enxovais*\n\nConhe\u00e7a nossas pe\u00e7as mais amadas pelas mam\u00e3es:\n\n*1\ufe0f\u20e3 Body Suedine 100% Algod\u00e3o*\n   \ud83d\udcb0 R$ 49,90 \u2022 \ud83d\udc76 RN a GG (Cores Lisas & Estampadas)\n\n*2\ufe0f\u20e3 Macac\u00e3o Confort Z\u00edper Duplo*\n   \ud83d\udcb0 R$ 89,90 \u2022 \ud83d\udc76 RN ao 3 Anos (Prote\u00e7\u00e3o no Queixo)\n\n*3\ufe0f\u20e3 Sa\u00edda Maternidade Tricot Luxo (5 Pe\u00e7as)*\n   \ud83d\udcb0 R$ 199,90 \u2022 \ud83d\udc76 RN e P (Macac\u00e3o + Manta + Body + Faixinha)\n\n*4\ufe0f\u20e3 Kit de Ber\u00e7o 9 Pe\u00e7as 200 Fios*\n   \ud83d\udcb0 R$ 389,00 \u2022 \ud83d\udecf\ufe0f Padr\u00e3o Americano (100% Algod\u00e3o Hipoalerg\u00eanico)\n\n_\u2728 Trabalhamos do RN ao 3 anos. Pe\u00e7as 100% algod\u00e3o suedine e tricot antial\u00e9rgico._",
+        "status": "delivered",
+        "created_at": "2026-09-08T21:43:25.037Z"
       }
     ],
     "conv-5581999991234": [
@@ -1613,13 +1548,13 @@
     ],
     "conv-168650497613858": [
       {
-        "id": "msg-1788901914890-udyqo",
+        "id": "msg-1788903805103-up8iq",
         "conversation_id": "conv-168650497613858",
         "direction": "outbound",
-        "content": "Op\u00e7\u00e3o inv\u00e1lida. Digite um n\u00famero de *1 a 7*:\n\n\ud83d\udc76\u2728 *PITOCO DE GENTE \u2014 Roupas de Beb\u00ea & Enxovais*\nOl\u00e1, *rogerio mlc*! Bem-vindo(a) \u00e0 nossa loja oficial! Como podemos te ajudar hoje?\n\nDigite o n\u00famero da op\u00e7\u00e3o desejada:\n\n1\ufe0f\u20e3 *Ver Cat\u00e1logo de Produtos* (Bodies, Macac\u00f5es, Sa\u00eddas, Ber\u00e7o)\n2\ufe0f\u20e3 *Guia de Medidas* (RN ao 3 anos com peso e altura)\n3\ufe0f\u20e3 *Checklist da Mala de Maternidade*\n4\ufe0f\u20e3 *Consultoria VIP de Enxoval* (Agendamento personalizado)\n5\ufe0f\u20e3 *C\u00e1lculo de Frete & Formas de Entrega* (Motoboy/Correios/Retirada)\n6\ufe0f\u20e3 *Pagamento via PIX* (Chave & QR Code Copia e Cola)\n7\ufe0f\u20e3 *Falar com Atendente Humana* (Escolha sua loja f\u00edsica ou online)\n\n_Responda apenas com o n\u00famero de 1 a 7._",
+        "content": "\ud83c\udf7c *Vitrine Pitoco de Gente \u2014 Moda Beb\u00ea & Enxovais*\n\nConhe\u00e7a nossas pe\u00e7as mais amadas pelas mam\u00e3es:\n\n*1\ufe0f\u20e3 Body Suedine 100% Algod\u00e3o*\n   \ud83d\udcb0 R$ 49,90 \u2022 \ud83d\udc76 RN a GG (Cores Lisas & Estampadas)\n\n*2\ufe0f\u20e3 Macac\u00e3o Confort Z\u00edper Duplo*\n   \ud83d\udcb0 R$ 89,90 \u2022 \ud83d\udc76 RN ao 3 Anos (Prote\u00e7\u00e3o no Queixo)\n\n*3\ufe0f\u20e3 Sa\u00edda Maternidade Tricot Luxo (5 Pe\u00e7as)*\n   \ud83d\udcb0 R$ 199,90 \u2022 \ud83d\udc76 RN e P (Macac\u00e3o + Manta + Body + Faixinha)\n\n*4\ufe0f\u20e3 Kit de Ber\u00e7o 9 Pe\u00e7as 200 Fios*\n   \ud83d\udcb0 R$ 389,00 \u2022 \ud83d\udecf\ufe0f Padr\u00e3o Americano (100% Algod\u00e3o Hipoalerg\u00eanico)\n\n_\u2728 Trabalhamos do RN ao 3 anos. Pe\u00e7as 100% algod\u00e3o suedine e tricot antial\u00e9rgico._",
         "sender": "bot",
         "author_name": "Pitoco Bot",
-        "created_at": "2026-09-08T21:11:54.890Z"
+        "created_at": "2026-09-08T21:43:25.103Z"
       }
     ]
   },
@@ -2135,24 +2070,16 @@
     "168650497613858": {
       "step": "MAIN_MENU",
       "userName": "rogerio mlc",
-      "flowId": "flow-pitoco-001",
-      "currentNodeId": "node-question-1788893542405",
+      "flowId": "flow-1788903683074",
+      "currentNodeId": "node-catalog-3",
       "variables": {
         "whatsapp_pushname": "rogerio mlc",
         "telefone_cliente": "168650497613858",
         "telefone_whatsapp": "168650497613858",
-        "ultima_mensagem": "Malaquias",
-        "nome_cliente": "Malaquias",
-        "is_primeiro_contato": true,
-        "is_novo_contato": true,
-        "tipo_cliente": "novo",
-        "nome_clientenovo": "Malaquias",
-        "{{nome_clientenovo}}": "Malaquias",
-        "resposta_usuario": "Malaquias",
-        "cliente_nome": "Malaquias",
-        "nome": "Malaquias"
-      },
-      "waitingForVar": null
+        "ultima_mensagem": "2",
+        "nome_cliente": "",
+        "catalogo_produtos": "\ud83c\udf7c *Vitrine Pitoco de Gente \u2014 Moda Beb\u00ea & Enxovais*\n\nConhe\u00e7a nossas pe\u00e7as mais amadas pelas mam\u00e3es:\n\n*1\ufe0f\u20e3 Body Suedine 100% Algod\u00e3o*\n   \ud83d\udcb0 R$ 49,90 \u2022 \ud83d\udc76 RN a GG (Cores Lisas & Estampadas)\n\n*2\ufe0f\u20e3 Macac\u00e3o Confort Z\u00edper Duplo*\n   \ud83d\udcb0 R$ 89,90 \u2022 \ud83d\udc76 RN ao 3 Anos (Prote\u00e7\u00e3o no Queixo)\n\n*3\ufe0f\u20e3 Sa\u00edda Maternidade Tricot Luxo (5 Pe\u00e7as)*\n   \ud83d\udcb0 R$ 199,90 \u2022 \ud83d\udc76 RN e P (Macac\u00e3o + Manta + Body + Faixinha)\n\n*4\ufe0f\u20e3 Kit de Ber\u00e7o 9 Pe\u00e7as 200 Fios*\n   \ud83d\udcb0 R$ 389,00 \u2022 \ud83d\udecf\ufe0f Padr\u00e3o Americano (100% Algod\u00e3o Hipoalerg\u00eanico)\n\n_\u2728 Trabalhamos do RN ao 3 anos. Pe\u00e7as 100% algod\u00e3o suedine e tricot antial\u00e9rgico._"
+      }
     }
   },
   "rolePermissions": {}

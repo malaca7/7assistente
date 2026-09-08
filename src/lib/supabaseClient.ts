@@ -352,6 +352,27 @@ export function subscribeToMessages(conversationId: string, onMessage: (msg: Mes
   };
 }
 
+export async function assignConversationAttendant(
+  id: string,
+  attendantName: string,
+  attendantId?: string
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('conversations')
+      .update({
+        assigned_to: attendantName,
+        status: 'human',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+    return !error;
+  } catch (err) {
+    console.warn('[Supabase] assignConversationAttendant error:', err);
+    return false;
+  }
+}
+
 // ==========================================
 // 6. SUPPORT TICKETS
 // ==========================================
@@ -492,7 +513,8 @@ export async function getConversations(storeId?: string): Promise<Conversation[]
 export async function updateConversationStatus(
   id: string, 
   status: Conversation['status'], 
-  storeId?: string
+  storeId?: string,
+  assignedTo?: string | null
 ): Promise<boolean> {
   try {
     const updates: any = {
@@ -500,6 +522,7 @@ export async function updateConversationStatus(
       updated_at: new Date().toISOString(),
     };
     if (storeId) updates.store_id = storeId;
+    if (assignedTo !== undefined) updates.assigned_to = assignedTo;
 
     const { error } = await supabase
       .from('conversations')

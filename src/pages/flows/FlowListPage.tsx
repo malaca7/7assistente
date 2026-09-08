@@ -446,7 +446,7 @@ export const FlowListPage: React.FC<FlowListPageProps> = ({ onNavigate }) => {
                 <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
                   <span className="flex items-center gap-1">
                     <Layers className="w-3.5 h-3.5 text-brand-400" />
-                    {flow.node_count || 3} nós no fluxo
+                    {flow.node_count || 3} funções no fluxo
                   </span>
                   <span>v{flow.version || 1}</span>
                 </div>
@@ -574,7 +574,7 @@ export const FlowListPage: React.FC<FlowListPageProps> = ({ onNavigate }) => {
         isOpen={Boolean(flowToDelete)}
         onClose={() => setFlowToDelete(null)}
         title="Excluir Fluxo de Automação"
-        subtitle="Esta ação removerá todos os nós e conexões deste fluxo"
+        subtitle="Esta ação removerá todas as funções e conexões deste fluxo"
       >
         <div className="space-y-4">
           <p className="text-xs text-slate-300 leading-relaxed">

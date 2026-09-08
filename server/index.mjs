@@ -907,21 +907,127 @@ app.delete('/api/conversations/:id', (req, res) => {
   }
 });
 
-app.patch('/api/conversations/:id/assign', (req, res) => {
+app.patch('/api/conversations/:id/assign', async (req, res) => {
   try {
     const db = loadDb();
+    if (!db.conversations) db.conversations = {};
     const id = req.params.id;
-    if (!db.conversations || !db.conversations[id]) {
-      return res.status(404).json({ error: 'Conversa não encontrada' });
+    const cleanId = String(id).replace(/\D/g, '');
+
+    let convKey = Object.keys(db.conversations).find(k => 
+      k === id || 
+      db.conversations[k]?.id === id || 
+      db.conversations[k]?.phone === id || 
+      db.conversations[k]?.contact_phone === id ||
+      (cleanId && (
+        String(db.conversations[k]?.phone || '').replace(/\D/g, '') === cleanId ||
+        String(db.conversations[k]?.contact_phone || '').replace(/\D/g, '') === cleanId ||
+        String(k).replace(/\D/g, '') === cleanId
+      ))
+    );
+
+    if (!convKey) {
+      convKey = id.startsWith('conv-') ? id : `conv-${id}`;
+      db.conversations[convKey] = {
+        id: convKey,
+        phone: cleanId || id,
+        contact_phone: cleanId || id,
+        contact_name: 'Cliente WhatsApp',
+        status: 'human',
+        created_at: new Date().toISOString(),
+      };
     }
+
     const { attendant_id, attendant_name } = req.body;
-    db.conversations[id].assigned_to = attendant_name;
-    db.conversations[id].assigned_attendant_id = attendant_id;
-    db.conversations[id].assigned_attendant_name = attendant_name;
-    db.conversations[id].status = 'human';
-    db.conversations[id].updated_at = new Date().toISOString();
+    const finalAttendant = attendant_name || 'Atendente Pitoco';
+    db.conversations[convKey].assigned_to = finalAttendant;
+    db.conversations[convKey].assigned_attendant_id = attendant_id || null;
+    db.conversations[convKey].assigned_attendant_name = finalAttendant;
+    db.conversations[convKey].status = 'human';
+    db.conversations[convKey].updated_at = new Date().toISOString();
     saveDb(db);
-    res.json({ success: true, conversation: db.conversations[id] });
+
+    if (supabaseServer) {
+      const convObj = db.conversations[convKey];
+      await supabaseServer.from('conversations').upsert({
+        id: convObj.id || convKey,
+        phone: convObj.phone || convObj.contact_phone || cleanId || '558199999999',
+        client_name: convObj.contact_name || 'Cliente WhatsApp',
+        assigned_to: finalAttendant,
+        status: 'human',
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'id' }).catch((err) => {
+        console.warn('[Server] Falha ao upsert conversation no Supabase:', err.message);
+      });
+    }
+
+    console.log(`[Conversations API] 👤 Conversa "${convKey}" assumida por: ${finalAttendant}`);
+    res.json({ success: true, conversation: db.conversations[convKey] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/conversations/:id/status', async (req, res) => {
+  try {
+    const db = loadDb();
+    if (!db.conversations) db.conversations = {};
+    const id = req.params.id;
+    const cleanId = String(id).replace(/\D/g, '');
+
+    let convKey = Object.keys(db.conversations).find(k => 
+      k === id || 
+      db.conversations[k]?.id === id || 
+      db.conversations[k]?.phone === id || 
+      db.conversations[k]?.contact_phone === id ||
+      (cleanId && (
+        String(db.conversations[k]?.phone || '').replace(/\D/g, '') === cleanId ||
+        String(db.conversations[k]?.contact_phone || '').replace(/\D/g, '') === cleanId ||
+        String(k).replace(/\D/g, '') === cleanId
+      ))
+    );
+
+    if (!convKey) {
+      convKey = id.startsWith('conv-') ? id : `conv-${id}`;
+      db.conversations[convKey] = {
+        id: convKey,
+        phone: cleanId || id,
+        contact_phone: cleanId || id,
+        contact_name: 'Cliente WhatsApp',
+        status: req.body.status || 'human',
+        created_at: new Date().toISOString(),
+      };
+    }
+
+    const { status, store_id, assigned_to } = req.body;
+    if (status) db.conversations[convKey].status = status;
+    if (store_id) db.conversations[convKey].store_id = store_id;
+    if (assigned_to !== undefined) {
+      db.conversations[convKey].assigned_to = assigned_to;
+      if (!assigned_to) {
+        db.conversations[convKey].assigned_attendant_id = null;
+        db.conversations[convKey].assigned_attendant_name = null;
+      }
+    }
+    db.conversations[convKey].updated_at = new Date().toISOString();
+    saveDb(db);
+
+    if (supabaseServer) {
+      const convObj = db.conversations[convKey];
+      await supabaseServer.from('conversations').upsert({
+        id: convObj.id || convKey,
+        phone: convObj.phone || convObj.contact_phone || cleanId || '558199999999',
+        client_name: convObj.contact_name || 'Cliente WhatsApp',
+        status: db.conversations[convKey].status,
+        assigned_to: db.conversations[convKey].assigned_to || null,
+        ...(store_id ? { store_id } : {}),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' }).catch((err) => {
+        console.warn('[Server] Falha ao upsert status no Supabase:', err.message);
+      });
+    }
+
+    res.json({ success: true, conversation: db.conversations[convKey] });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -1,7 +1,8 @@
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
-import { CheckCircle2, AlertCircle } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Link2 } from 'lucide-react';
+import { useFlowConnection } from '../FlowConnectionContext';
 
 export interface BaseNodeProps {
   id: string;
@@ -19,6 +20,7 @@ export interface BaseNodeProps {
 }
 
 export const BaseNode: React.FC<BaseNodeProps> = ({
+  id,
   selected,
   title,
   subtitle,
@@ -31,15 +33,37 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
   children,
   customOutputs,
 }) => {
+  const connCtx = useFlowConnection();
+  const isConnecting = connCtx?.isConnecting ?? false;
+  const isSource = connCtx?.connectingSource?.nodeId === id;
+  const isEligibleTarget = isConnecting && !isSource && hasInput;
+
   return (
     <div
+      onClick={(e) => {
+        if (isEligibleTarget && connCtx) {
+          e.stopPropagation();
+          connCtx.completeConnecting(id, null);
+        }
+      }}
       className={cn(
         'w-[310px] sm:w-[330px] rounded-2xl bg-gradient-to-b from-dark-900/95 to-dark-950/95 backdrop-blur-xl border transition-all duration-200 shadow-2xl relative select-none group/node',
-        selected
+        isSource
+          ? 'ring-4 ring-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.5)] border-emerald-400 scale-[1.01]'
+          : isEligibleTarget
+          ? 'ring-2 ring-cyan-400 shadow-[0_0_25px_rgba(6,182,212,0.45)] animate-pulse border-cyan-400/80 cursor-pointer hover:scale-[1.02]'
+          : selected
           ? 'border-primary-400 ring-2 ring-primary-500/40 shadow-glow-primary scale-[1.01]'
           : 'border-white/10 hover:border-white/25 hover:shadow-cyan-950/30'
       )}
     >
+      {/* Target Banner quando este card for elegível para receber ligação */}
+      {isEligibleTarget && (
+        <div className="absolute -top-7 left-1/2 -translate-x-1/2 z-50 pointer-events-none whitespace-nowrap bg-cyan-500 text-dark-950 text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-lg shadow-cyan-500/30 flex items-center gap-1 animate-bounce">
+          <span>👉 Clique aqui para conectar!</span>
+        </div>
+      )}
+
       {/* Top Accent Strip */}
       <div className={cn('h-1.5 w-full rounded-t-2xl', accentColor)} />
 
@@ -48,9 +72,20 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
         <Handle
           type="target"
           position={Position.Top}
-          style={{ width: 22, height: 22 }}
-          className="!bg-sky-400 !border-2 !border-dark-950 ring-4 ring-sky-500/30 hover:ring-sky-400 hover:scale-110 shadow-lg -top-2.5 left-1/2 -translate-x-1/2 cursor-crosshair z-30 transition-all rounded-full"
-          title="Entrada (Conectar fluxo aqui)"
+          style={{ width: isEligibleTarget ? 28 : 22, height: isEligibleTarget ? 28 : 22 }}
+          className={cn(
+            '!border-2 !border-dark-950 shadow-lg -top-3 left-1/2 -translate-x-1/2 cursor-crosshair z-30 transition-all rounded-full',
+            isEligibleTarget
+              ? '!bg-cyan-300 ring-8 ring-cyan-400/70 animate-pulse scale-125 !cursor-pointer'
+              : '!bg-sky-400 ring-4 ring-sky-500/30 hover:ring-sky-400 hover:scale-110'
+          )}
+          onClick={(e) => {
+            if (isEligibleTarget && connCtx) {
+              e.stopPropagation();
+              connCtx.completeConnecting(id, null);
+            }
+          }}
+          title={isEligibleTarget ? '👉 Clique aqui para ligar a este Card de Funções!' : 'Entrada (Ponto de conexão desta função)'}
         />
       )}
 
@@ -71,8 +106,33 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
           </div>
         </div>
 
-        {/* Configuration status indicator */}
-        <div className="flex items-center">
+        {/* Configuration status indicator & Quick Connect Action */}
+        <div className="flex items-center gap-1.5">
+          {hasOutput && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (connCtx) {
+                  if (isSource) {
+                    connCtx.cancelConnecting();
+                  } else {
+                    connCtx.startConnecting(id, null, title, 'Saída Principal');
+                  }
+                }
+              }}
+              className={cn(
+                'p-1.5 rounded-lg border transition-all',
+                isSource
+                  ? 'bg-emerald-500 text-dark-950 border-emerald-400 shadow-md font-bold'
+                  : 'bg-white/5 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 border-white/10 hover:border-cyan-500/40'
+              )}
+              title="Ligar este Card de Funções a outro (clique aqui e depois no destino)"
+            >
+              <Link2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+
           {isConfigured ? (
             <span 
               title="Configurado e pronto" 
@@ -102,8 +162,23 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
           type="source"
           position={Position.Bottom}
           style={{ width: 22, height: 22 }}
-          className="!bg-emerald-400 !border-2 !border-dark-950 ring-4 ring-emerald-500/30 hover:ring-emerald-400 hover:scale-110 shadow-lg -bottom-2.5 left-1/2 -translate-x-1/2 cursor-crosshair z-30 transition-all rounded-full"
-          title="Saída (Arraste para ligar ao próximo nó)"
+          className={cn(
+            '!border-2 !border-dark-950 shadow-lg -bottom-2.5 left-1/2 -translate-x-1/2 cursor-crosshair z-30 transition-all rounded-full',
+            isSource
+              ? '!bg-emerald-300 ring-8 ring-emerald-400/80 scale-125'
+              : '!bg-emerald-400 ring-4 ring-emerald-500/30 hover:ring-emerald-400 hover:scale-110'
+          )}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (connCtx) {
+              if (isSource) {
+                connCtx.cancelConnecting();
+              } else {
+                connCtx.startConnecting(id, null, title, 'Saída Principal');
+              }
+            }
+          }}
+          title="Saída (Clique para ligar ou arraste até outro Card de Funções)"
         />
       )}
 
@@ -114,34 +189,56 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
             'grid gap-1.5',
             customOutputs.length === 2 ? 'grid-cols-2' : customOutputs.length === 3 ? 'grid-cols-3' : 'grid-cols-1'
           )}>
-            {customOutputs.map((out, index) => (
-              <div 
-                key={out.id} 
-                className="relative flex flex-col items-center justify-center py-1.5 px-2 rounded-xl bg-dark-900/90 border border-white/10 hover:border-white/25 transition-all text-center group/btn"
-              >
-                <span className="text-[10px] font-semibold text-slate-200 truncate w-full px-0.5">
-                  {out.label}
-                </span>
-                <span className="text-[8.5px] text-slate-500 font-mono">
-                  Saída #{index + 1}
-                </span>
-                <Handle
-                  id={out.id}
-                  type="source"
-                  position={Position.Bottom}
-                  style={{ width: 18, height: 18 }}
+            {customOutputs.map((out, index) => {
+              const isThisBranchSource = isSource && connCtx?.connectingSource?.handleId === out.id;
+              return (
+                <div 
+                  key={out.id} 
                   className={cn(
-                    '!border-2 !border-dark-950 ring-2 ring-white/20 hover:ring-primary-400 hover:scale-110 shadow-md -bottom-2 left-1/2 -translate-x-1/2 cursor-crosshair z-30 transition-all rounded-full',
-                    out.color || '!bg-emerald-400'
+                    'relative flex flex-col items-center justify-center py-1.5 px-2 rounded-xl border transition-all text-center group/btn',
+                    isThisBranchSource
+                      ? 'bg-emerald-950/60 border-emerald-400 ring-2 ring-emerald-500/50'
+                      : 'bg-dark-900/90 border-white/10 hover:border-white/25'
                   )}
-                  title={`Saída: ${out.label} (Arraste para ligar)`}
-                />
-              </div>
-            ))}
+                >
+                  <span className="text-[10px] font-semibold text-slate-200 truncate w-full px-0.5">
+                    {out.label}
+                  </span>
+                  <span className="text-[8.5px] text-slate-500 font-mono">
+                    Saída #{index + 1}
+                  </span>
+                  <Handle
+                    id={out.id}
+                    type="source"
+                    position={Position.Bottom}
+                    style={{ width: isThisBranchSource ? 22 : 18, height: isThisBranchSource ? 22 : 18 }}
+                    className={cn(
+                      '!border-2 !border-dark-950 shadow-md -bottom-2 left-1/2 -translate-x-1/2 cursor-crosshair z-30 transition-all rounded-full',
+                      isThisBranchSource
+                        ? '!bg-emerald-300 ring-4 ring-emerald-400 scale-125'
+                        : 'ring-2 ring-white/20 hover:ring-primary-400 hover:scale-110',
+                      out.color || '!bg-emerald-400'
+                    )}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (connCtx) {
+                        if (isThisBranchSource) {
+                          connCtx.cancelConnecting();
+                        } else {
+                          connCtx.startConnecting(id, out.id, title, out.label);
+                        }
+                      }
+                    }}
+                    title={`Saída: ${out.label} (Clique para ligar ou arraste)`}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
     </div>
   );
 };
+
 

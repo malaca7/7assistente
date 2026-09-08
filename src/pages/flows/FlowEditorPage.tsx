@@ -11,6 +11,7 @@ import {
 } from '@xyflow/react';
 
 import { FlowCanvas } from '../../components/flow-builder/FlowCanvas';
+import { FlowConnectionProvider } from '../../components/flow-builder/FlowConnectionContext';
 import { FlowVariablesModal } from '../../components/flow-builder/FlowVariablesModal';
 import { FlowToolbar } from '../../components/flow-builder/FlowToolbar';
 import { NodePalette, NodeDefinition, NODE_DEFINITIONS, CATEGORY_INFO } from '../../components/flow-builder/NodePalette';
@@ -261,7 +262,7 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
             (e.source === params.target && e.target === params.source)
         );
         if (alreadyExists) {
-          info('Conexão Existente', 'Esses nós já estão interligados.');
+          info('Conexão Existente', 'Essas funções já estão interligadas.');
           return eds;
         }
 
@@ -282,9 +283,22 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
       });
 
       setIsDirty(true);
-      success('Ligação Criada', 'Nós conectados com sucesso no organograma.');
+      success('Ligação Criada', 'Funções conectadas com sucesso no organograma.');
     },
     [nodes, edgeType, setEdges, pushHistory, info, success]
+  );
+
+  // Callback para conexões disparadas via FlowConnectionContext
+  const handleConnectFromProvider = useCallback(
+    (sourceNodeId: string, sourceHandleId: string | null, targetNodeId: string, targetHandleId: string | null) => {
+      onConnect({
+        source: sourceNodeId,
+        sourceHandle: sourceHandleId,
+        target: targetNodeId,
+        targetHandle: targetHandleId,
+      });
+    },
+    [onConnect]
   );
 
   // Node Click: handles both normal selection and Tap-to-Connect
@@ -295,7 +309,7 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
       // 1. If in Tap-to-Connect Mode: Connect source to clicked target node!
       if (connectingSource) {
         if (connectingSource.node.id === node.id) {
-          warning('Conexão Inválida', 'Você não pode ligar um nó nele mesmo.');
+          warning('Conexão Inválida', 'Você não pode ligar uma função nela mesma.');
           return;
         }
 
@@ -393,7 +407,7 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
     }
 
     setConnectingSource({ node, handleId: handleId || null, handleLabel });
-    info('Modo Conexão Ativo', `Toque no nó de destino para ligar "${node.data.label}".`);
+    info('Modo Conexão Ativo', `Toque na função de destino para ligar "${node.data.label}".`);
   };
 
   // Spawn node helper function
@@ -419,7 +433,7 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
       setSelectedNode(newNode as unknown as FlowNode);
       setSelectedEdge(null);
       setIsMobilePaletteOpen(false);
-      success('Nó Adicionado', `Nó "${def.label}" inserido no fluxo.`);
+      success('Função Adicionada', `Card de Função "${def.label}" inserido no fluxo.`);
     },
     [nodes, edges, setNodes, pushHistory, success]
   );
@@ -1172,7 +1186,7 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
                   🔗 Modo Conectar: <span className="text-cyan-300">{connectingSource.node.data?.label}</span>
                   {connectingSource.handleLabel && <span className="text-brand-300 ml-1">({connectingSource.handleLabel})</span>}
                 </p>
-                <p className="text-[10px] text-slate-400">Toque no nó de destino na tela para ligar os dois nós</p>
+                <p className="text-[10px] text-slate-400">Toque no Card de destino na tela para ligar as duas funções</p>
               </div>
             </div>
             <button
@@ -1199,7 +1213,7 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
         onUndo={handleUndo}
         onRedo={handleRedo}
         isValid={isValid}
-        validationError={!isValid ? 'Adicione nós para iniciar o fluxo' : null}
+        validationError={!isValid ? 'Adicione funções para iniciar o fluxo' : null}
         isConnectedWhatsApp={isConnected}
         autoSaveMode={autoSaveMode}
         autoSaveIntervalSec={autoSaveIntervalSec}
@@ -1224,39 +1238,42 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
           onWidthChange={setPaletteWidth}
         />
 
-        {/* Center: ReactFlow Canvas */}
-        <div className="flex-1 h-full relative">
-          <FlowCanvas
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={handleCustomNodesChange}
-            onEdgesChange={handleCustomEdgesChange}
-            onConnect={onConnect}
-            onNodeClick={onNodeClick}
-            onPaneClick={onPaneClick}
-            onEdgeClick={onEdgeClick}
-            onEdgeDoubleClick={onEdgeDoubleClick}
-            edgeType={edgeType}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-          />
-        </div>
-
-        {/* Right: Node Inspector (Desktop Sidebar) */}
-        {selectedNode && (
-          <div className="hidden md:block">
-            <NodeInspector
-              node={selectedNode}
-              onUpdateConfig={handleUpdateConfig}
-              onDeleteNode={handleDeleteSelectedNode}
-              onDuplicateNode={handleDuplicateSelectedNode}
-              onClose={() => setSelectedNode(null)}
-              onStartConnecting={handleStartConnecting}
-              width={inspectorWidth}
-              onWidthChange={setInspectorWidth}
+        {/* Workspace envolto no FlowConnectionProvider para conexão de clique duplo e alta acessibilidade */}
+        <FlowConnectionProvider onConnectRequest={handleConnectFromProvider}>
+          {/* Center: ReactFlow Canvas */}
+          <div className="flex-1 h-full relative">
+            <FlowCanvas
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={handleCustomNodesChange}
+              onEdgesChange={handleCustomEdgesChange}
+              onConnect={onConnect}
+              onNodeClick={onNodeClick}
+              onPaneClick={onPaneClick}
+              onEdgeClick={onEdgeClick}
+              onEdgeDoubleClick={onEdgeDoubleClick}
+              edgeType={edgeType}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
             />
           </div>
-        )}
+
+          {/* Right: Node Inspector (Desktop Sidebar) */}
+          {selectedNode && (
+            <div className="hidden md:block">
+              <NodeInspector
+                node={selectedNode}
+                onUpdateConfig={handleUpdateConfig}
+                onDeleteNode={handleDeleteSelectedNode}
+                onDuplicateNode={handleDuplicateSelectedNode}
+                onClose={() => setSelectedNode(null)}
+                onStartConnecting={handleStartConnecting}
+                width={inspectorWidth}
+                onWidthChange={setInspectorWidth}
+              />
+            </div>
+          )}
+        </FlowConnectionProvider>
       </div>
 
       {/* 📱 Mobile Floating Quick Action Bar (When a Node is Selected) */}
@@ -1342,7 +1359,7 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
         </div>
       )}
 
-      {/* 📱 Mobile Floating Action Button (+ Adicionar Nó) */}
+      {/* 📱 Mobile Floating Action Button (+ Adicionar Função) */}
       <div className="md:hidden fixed bottom-4 right-4 z-30">
         {!selectedNode && (
           <button
@@ -1350,7 +1367,7 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
             className="px-4 py-3.5 rounded-2xl bg-gradient-to-r from-brand-500 to-primary-600 text-white font-bold text-xs flex items-center gap-2 shadow-2xl shadow-brand-500/40 border border-white/20 active:scale-95 transition-all"
           >
             <Plus className="w-4 h-4" />
-            <span>Adicionar Nó</span>
+            <span>Adicionar Função</span>
           </button>
         )}
       </div>
@@ -1359,8 +1376,8 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
       <Modal
         isOpen={isMobilePaletteOpen}
         onClose={() => setIsMobilePaletteOpen(false)}
-        title="Catálogo de Nós do Fluxo"
-        subtitle="Toque em qualquer nó para adicionar no organograma visual"
+        title="Catálogo de Funções de Fluxo"
+        subtitle="Toque em qualquer função para adicionar no organograma visual"
         maxWidth="lg"
       >
         <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
@@ -1762,16 +1779,16 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
         <div className="space-y-4 text-xs">
           <div className="grid grid-cols-1 gap-2.5">
             {[
-              { desc: 'Auto-Organizar Nós de Cima para Baixo', keys: ['Alt', 'O'] },
+              { desc: 'Auto-Organizar Funções de Cima para Baixo', keys: ['Alt', 'O'] },
               { desc: 'Salvar Fluxo Manualmente', keys: ['Ctrl', 'S'] },
               { desc: 'Desfazer última alteração', keys: ['Ctrl', 'Z'] },
               { desc: 'Refazer alteração', keys: ['Ctrl', 'Y'] },
-              { desc: 'Duplicar nó selecionado', keys: ['Ctrl', 'D'] },
-              { desc: 'Excluir nó selecionado OU ligação selecionada', keys: ['Delete', 'ou', 'Backspace'] },
+              { desc: 'Duplicar função selecionada', keys: ['Ctrl', 'D'] },
+              { desc: 'Excluir função selecionada OU ligação', keys: ['Delete', 'ou', 'Backspace'] },
               { desc: 'Excluir linha de ligação instantaneamente', keys: ['Clique Duplo', 'na Linha'] },
-              { desc: 'Adicionar nó no centro da tela', keys: ['Clique', 'no Nó'] },
-              { desc: 'Adicionar nó em posição exata', keys: ['Arrastar', 'para a Tela'] },
-              { desc: 'Desmarcar seleção de nós ou linhas', keys: ['Esc'] },
+              { desc: 'Adicionar função no centro da tela', keys: ['Clique', 'na Função'] },
+              { desc: 'Adicionar função em posição exata', keys: ['Arrastar', 'para a Tela'] },
+              { desc: 'Desmarcar seleção de funções ou linhas', keys: ['Esc'] },
               { desc: 'Abrir este menu de atalhos', keys: ['F1', 'ou', '?'] },
             ].map((sc, i) => (
               <div
