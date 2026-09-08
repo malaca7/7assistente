@@ -536,19 +536,104 @@ export const StorageService = {
     return true;
   },
 
+  // Mover para Lixeira (ao invés de apagar definitivamente)
   async deleteConversation(convId: string): Promise<boolean> {
+    const convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, []);
+    const target = convs.find(c => c.id === convId);
+    if (target) {
+      target.is_deleted = true;
+      target.deleted_at = new Date().toISOString();
+      setItem(STORAGE_KEYS.CONVERSATIONS, convs);
+    }
+    return true;
+  },
+
+  // Restaurar da Lixeira
+  async restoreConversation(convId: string): Promise<boolean> {
+    const convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, []);
+    const target = convs.find(c => c.id === convId);
+    if (target) {
+      target.is_deleted = false;
+      delete target.deleted_at;
+      setItem(STORAGE_KEYS.CONVERSATIONS, convs);
+    }
+    return true;
+  },
+
+  // Exclusão Permanente (Esvaziar da Lixeira)
+  async purgeConversation(convId: string): Promise<boolean> {
     try {
       await fetch(`${API_BASE}/api/conversations/${convId}`, {
         method: 'DELETE',
       }).catch(() => {});
     } catch {}
 
-    // Limpar localstorage
     setItem(`${STORAGE_KEYS.MESSAGES_PREFIX}${convId}`, []);
     const convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, []);
     const filtered = convs.filter(c => c.id !== convId);
     setItem(STORAGE_KEYS.CONVERSATIONS, filtered);
     return true;
+  },
+
+  // Atualizar Setor de Atendimento da Conversa
+  async updateConversationSector(convId: string, sector: string): Promise<boolean> {
+    const convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, []);
+    const target = convs.find(c => c.id === convId);
+    if (target) {
+      target.sector = sector;
+      target.updated_at = new Date().toISOString();
+      setItem(STORAGE_KEYS.CONVERSATIONS, convs);
+    }
+    return true;
+  },
+
+  // Adicionar Nota à Conversa (com visibilidade: 'all' ou 'admin_only')
+  async addConversationNote(
+    convId: string, 
+    text: string, 
+    author: string, 
+    visibility: 'all' | 'admin_only' = 'all'
+  ): Promise<void> {
+    const convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, []);
+    const target = convs.find(c => c.id === convId);
+    if (target) {
+      if (!Array.isArray(target.internal_notes)) target.internal_notes = [];
+      target.internal_notes.push({
+        id: `note-${Date.now()}`,
+        text: text.trim(),
+        author: author || 'Equipe',
+        created_at: new Date().toISOString(),
+        visibility,
+      });
+      target.updated_at = new Date().toISOString();
+      setItem(STORAGE_KEYS.CONVERSATIONS, convs);
+    }
+  },
+
+  // Remover Nota da Conversa
+  async deleteConversationNote(convId: string, noteId: string): Promise<void> {
+    const convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, []);
+    const target = convs.find(c => c.id === convId);
+    if (target && Array.isArray(target.internal_notes)) {
+      target.internal_notes = target.internal_notes.filter(n => n.id !== noteId);
+      setItem(STORAGE_KEYS.CONVERSATIONS, convs);
+    }
+  },
+
+  // Gerenciamento de Setores da Loja/Atendimento
+  getSectors(): string[] {
+    const DEFAULT_SECTORS = [
+      'Vendas & Enxoval',
+      'Suporte & Dúvidas',
+      'Financeiro & PIX',
+      'Trocas & Devoluções',
+      'Expedição & Retirada'
+    ];
+    return getItem<string[]>('pitoco_chat_sectors', DEFAULT_SECTORS);
+  },
+
+  saveSectors(sectors: string[]): void {
+    setItem('pitoco_chat_sectors', sectors);
   },
 
   async transferConversation(
@@ -1288,7 +1373,9 @@ export const StorageService = {
       name: user.name || rawUsername,
       username: rawUsername,
       password: rawPassword || (existingIndex >= 0 ? users[existingIndex].password : '123456'),
-      role: user.role || 'attendant',
+      role: user.role || (user.panels?.includes('admin') ? 'admin' : user.panels?.includes('gerente') ? 'manager' : 'attendant'),
+      panels: user.panels || (existingIndex >= 0 && users[existingIndex].panels ? users[existingIndex].panels : ['atendimento']),
+      allowed_panels: user.allowed_panels || (user.panels as any) || ['atendimento'],
       store_id: user.store_id || null,
       store_name: user.store_name || (user.store_id ? 'Filial Vinculada' : 'Toda a Rede (Global)'),
       status: user.status || 'active',
@@ -1353,11 +1440,11 @@ export const StorageService = {
   // ==============================================================================
   // 11. AUTH & SESSÃO (USUÁRIO APENAS LETRAS / SENHA APENAS NÚMEROS)
   // ==============================================================================
-  getSession(): { authenticated: boolean; username: string; phone?: string; role?: string; allowed_panels?: string[]; name?: string; store_id?: string | null; store_name?: string } | null {
+  getSession(): { authenticated: boolean; username: string; phone?: string; role?: string; panels?: PanelId[]; allowed_panels?: string[]; name?: string; store_id?: string | null; store_name?: string } | null {
     return getItem(STORAGE_KEYS.AUTH_TOKEN, null);
   },
 
-  setSession(session: { authenticated: boolean; username: string; phone?: string; role?: string; allowed_panels?: string[]; name?: string; store_id?: string | null; store_name?: string } | null): void {
+  setSession(session: { authenticated: boolean; username: string; phone?: string; role?: string; panels?: PanelId[]; allowed_panels?: string[]; name?: string; store_id?: string | null; store_name?: string } | null): void {
     if (session) setItem(STORAGE_KEYS.AUTH_TOKEN, session);
     else if (typeof window !== 'undefined') localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
   },
@@ -1410,12 +1497,21 @@ export const StorageService = {
       }
 
       if (matched.password === cleanPass) {
+        const userPanels: PanelId[] = matched.panels || (
+          matched.role === 'ceo' || matched.role === 'admin' 
+            ? ['admin', 'gerente', 'atendimento'] 
+            : matched.role === 'manager' 
+            ? ['gerente'] 
+            : ['atendimento']
+        );
+
         const profile: AdminProfile = {
           id: matched.id,
           username: matched.username,
           name: matched.name,
-          role: matched.role || 'attendant',
-          allowed_panels: matched.allowed_panels || [],
+          role: matched.role || (userPanels.includes('admin') ? 'admin' : userPanels.includes('gerente') ? 'manager' : 'attendant'),
+          panels: userPanels,
+          allowed_panels: matched.allowed_panels || userPanels,
           store_id: matched.store_id || null,
           store_name: matched.store_name,
           created_at: matched.created_at,
@@ -1432,7 +1528,7 @@ export const StorageService = {
     }
 
     // 4. Credenciais padrão de emergência / Demonstração
-    const ALL_PANELS = ['dashboard', 'atendimento', 'produtos', 'lojas', 'clientes', 'tickets', 'fluxos', 'whatsapp', 'bot_config', 'acessos', 'configuracoes', 'logs'];
+    const ALL_PANELS = ['dashboard', 'atendimento', 'produtos', 'lojas', 'clientes', 'fluxos', 'whatsapp', 'bot_config', 'acessos', 'configuracoes', 'logs'];
 
     // CEO: ceo / 123456
     if ((cleanUser === 'ceo' || cleanUser === 'malaca') && (cleanPass === '123456' || cleanPass === '199425')) {
@@ -1441,6 +1537,7 @@ export const StorageService = {
         username: cleanUser,
         name: 'Malaca CEO',
         role: 'ceo',
+        panels: ['admin', 'gerente', 'atendimento'],
         allowed_panels: ALL_PANELS,
         store_id: null,
         store_name: 'Toda a Rede (Global)',
@@ -1456,8 +1553,10 @@ export const StorageService = {
       const profile: AdminProfile = {
         id: 'admin-master',
         username: 'admin',
-        name: 'Administrador do Sistema',
+        name: 'Administrador Geral',
         role: 'admin',
+        panels: ['admin', 'gerente', 'atendimento'],
+        allowed_panels: ALL_PANELS,
         store_id: null,
         store_name: 'Toda a Rede (Global)',
         created_at: new Date().toISOString(),
@@ -1474,6 +1573,8 @@ export const StorageService = {
         username: 'gerente',
         name: 'Juliana Paes (Gerente Matriz)',
         role: 'manager',
+        panels: ['gerente'],
+        allowed_panels: ['dashboard', 'atendimento', 'produtos', 'lojas', 'clientes'],
         store_id: 'store-001',
         store_name: 'Loja Matriz — Centro',
         created_at: new Date().toISOString(),
@@ -1483,13 +1584,15 @@ export const StorageService = {
       return { success: true, user: profile };
     }
 
-    // Consultora: consultora / 123456
-    if ((cleanUser === 'consultora' || cleanUser === 'sofia') && (cleanPass === '123456' || cleanPass === '1234')) {
+    // Atendente / Consultora: atendente ou consultora / 123456
+    if ((cleanUser === 'atendente' || cleanUser === 'consultora' || cleanUser === 'sofia') && (cleanPass === '123456' || cleanPass === '1234')) {
       const profile: AdminProfile = {
         id: 'user-att-1',
         username: cleanUser,
         name: 'Sofia Alencar (Consultora VIP)',
         role: 'attendant',
+        panels: ['atendimento'],
+        allowed_panels: ['atendimento', 'produtos', 'clientes'],
         store_id: 'store-001',
         store_name: 'Loja Matriz — Centro',
         created_at: new Date().toISOString(),

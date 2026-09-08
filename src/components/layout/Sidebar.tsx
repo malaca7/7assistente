@@ -94,20 +94,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ],
     },
     {
-      title: 'Clientes & Suporte',
+      title: 'Clientes & CRM',
       items: [
         {
           id: 'clientes',
           label: 'Gestão de Clientes',
           path: '/clientes',
           icon: Users,
-          roles: ['ceo', 'admin', 'manager', 'attendant'],
-        },
-        {
-          id: 'tickets',
-          label: 'Tickets de Suporte',
-          path: '/tickets',
-          icon: LifeBuoy,
           roles: ['ceo', 'admin', 'manager', 'attendant'],
         },
       ],
@@ -280,28 +273,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        {/* User Role Profile Badge */}
+        {/* User Profile Card */}
         {!collapsed && user && (
           <div className="p-3 mx-3 my-2 rounded-xl bg-[#141416] border border-white/5 flex items-center justify-between">
             <div className="overflow-hidden">
               <span className="text-xs font-bold text-white block truncate">
-                {user.name}
+                {user.name || user.username}
               </span>
-              <span className="text-[10px] text-zinc-400 flex items-center gap-1.5 mt-0.5">
+              <span className="text-[10px] text-zinc-400 flex items-center gap-1.5 mt-0.5 font-mono">
                 <span className={cn(
                   'w-1.5 h-1.5 rounded-full',
-                  isCEO ? 'bg-amber-400' : isManager ? 'bg-emerald-400' : 'bg-pink-400'
+                  currentPath.startsWith('/admin') ? 'bg-amber-400' : currentPath.startsWith('/gerente') ? 'bg-emerald-400' : 'bg-pink-400'
                 )} />
-                {isCEO ? 'Diretor CEO' : isManager ? 'Gerente da Filial' : 'Consultora VIP'}
+                @{user.username || 'acesso'}
               </span>
             </div>
             <span className={cn(
               'text-[9px] font-bold uppercase px-2 py-0.5 rounded-full font-mono shrink-0',
-              isCEO ? 'bg-amber-400/10 text-amber-300 border border-amber-400/20' :
-              isManager ? 'bg-emerald-400/10 text-emerald-300 border border-emerald-400/20' :
+              currentPath.startsWith('/admin') ? 'bg-amber-400/10 text-amber-300 border border-amber-400/20' :
+              currentPath.startsWith('/gerente') ? 'bg-emerald-400/10 text-emerald-300 border border-emerald-400/20' :
               'bg-pink-400/10 text-pink-300 border border-pink-400/20'
             )}>
-              {user.role}
+              {currentPath.startsWith('/admin') ? 'Admin' : currentPath.startsWith('/gerente') ? 'Gestão' : 'Atendimento'}
             </span>
           </div>
         )}

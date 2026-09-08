@@ -5,15 +5,19 @@ import { StorageService } from '../lib/storage';
 interface AuthContextType {
   user: AdminProfile | null;
   role: SystemRole;
+  panels: string[];
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (username: string, numericPassword: string) => Promise<{ success: boolean; error?: string }>;
+  login: (username: string, numericPassword: string) => Promise<{ success: boolean; error?: string; targetPath?: string }>;
   loginWithPhone: (phoneOrUsername: string, pinOrPass: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateProfile: (profile: Partial<AdminProfile>) => Promise<void>;
   isCEO: boolean;
   isManager: boolean;
   isAttendant: boolean;
+  hasAdminAccess: boolean;
+  hasManagerAccess: boolean;
+  hasAttendantAccess: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,10 +32,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const session = StorageService.getSession();
         if (session && session.authenticated && (session.username || session.phone)) {
           const profile = await StorageService.getAdminProfile();
+          const userPanels = session.panels || profile.panels || (
+            profile.role === 'ceo' || profile.role === 'admin' 
+              ? ['admin', 'gerente', 'atendimento'] 
+              : profile.role === 'manager' 
+              ? ['gerente'] 
+              : ['atendimento']
+          );
           setUser({
             ...profile,
             role: (session.role as SystemRole) || profile.role || 'ceo',
-            allowed_panels: session.allowed_panels || profile.allowed_panels,
+            panels: userPanels,
+            allowed_panels: session.allowed_panels || profile.allowed_panels || userPanels,
           });
         } else {
           setUser(null);
@@ -73,17 +85,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const check = await StorageService.verifyUserAccess(cleanUser, cleanPass);
       if (check.success && check.user) {
+        const userPanels = check.user.panels || (
+          check.user.role === 'ceo' || check.user.role === 'admin' 
+            ? ['admin', 'gerente', 'atendimento'] 
+            : check.user.role === 'manager' 
+            ? ['gerente'] 
+            : ['atendimento']
+        );
+
+        let targetPath = '/atendimento';
+        if (userPanels.includes('admin')) targetPath = '/admin';
+        else if (userPanels.includes('gerente')) targetPath = '/gerente';
+
         setUser(check.user);
         StorageService.setSession({ 
           authenticated: true, 
           username: check.user.username || cleanUser,
           role: check.user.role,
-          allowed_panels: check.user.allowed_panels || [],
+          panels: userPanels,
+          allowed_panels: check.user.allowed_panels || userPanels,
           name: check.user.name,
           store_id: check.user.store_id || null,
           store_name: check.user.store_name,
         });
-        return { success: true };
+        return { success: true, targetPath };
       }
 
       return { 
@@ -115,16 +140,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(updated);
   };
 
-  const role: SystemRole = user?.role || 'ceo';
-  const isCEO = role === 'ceo' || role === 'admin';
-  const isManager = role === 'manager';
-  const isAttendant = role === 'attendant';
+  const panels = user?.panels || (user?.role === 'ceo' || user?.role === 'admin' ? ['admin', 'gerente', 'atendimento'] : user?.role === 'manager' ? ['gerente'] : ['atendimento']);
+  const hasAdminAccess = panels.includes('admin') || user?.role === 'ceo' || user?.role === 'admin';
+  const hasManagerAccess = panels.includes('gerente') || hasAdminAccess;
+  const hasAttendantAccess = panels.includes('atendimento') || hasAdminAccess || hasManagerAccess;
+
+  const role: SystemRole = user?.role || (hasAdminAccess ? 'admin' : hasManagerAccess ? 'manager' : 'attendant');
+  const isCEO = hasAdminAccess;
+  const isManager = hasManagerAccess;
+  const isAttendant = hasAttendantAccess;
 
   return (
     <AuthContext.Provider
       value={{
         user,
         role,
+        panels,
         isAuthenticated: Boolean(user),
         isLoading,
         login,
@@ -134,6 +165,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isCEO,
         isManager,
         isAttendant,
+        hasAdminAccess,
+        hasManagerAccess,
+        hasAttendantAccess,
       }}
     >
       {children}

@@ -63,9 +63,11 @@ async function main() {
     // Criar diretórios físicos para cada rota SPA para eliminar erro 404 no GitHub Pages
     const routes = [
       'admin', 
+      'gerente',
+      'gestao',
+      'atendimento', 
       'login', 
       'ceo', 
-      'atendimento', 
       'lojas', 
       'fluxos', 
       'acessos',
@@ -75,7 +77,6 @@ async function main() {
       'enxoval', 
       'medidas', 
       'fila', 
-      'tickets', 
       'conversas', 
       'clientes',
       'dashboard'

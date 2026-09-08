@@ -1,6 +1,7 @@
 // Types for Pitoco de Gente — Roupas de Bebê, Infantil e Enxovais
 
 export type SystemRole = 'ceo' | 'manager' | 'attendant' | 'admin';
+export type PanelId = 'admin' | 'gerente' | 'atendimento';
 
 export interface AdminProfile {
   id: string;
@@ -9,9 +10,10 @@ export interface AdminProfile {
   name: string;
   email?: string;
   password?: string; // EXCLUSIVAMENTE NÚMEROS: ^[0-9]+$
-  role: SystemRole;
-  allowed_panels?: string[]; // IDs dos painéis que o usuário pode acessar
-  store_id?: string | null; // null = Rede inteira (CEO)
+  role?: SystemRole;
+  panels?: PanelId[]; // Painéis autorizados: 'admin' | 'gerente' | 'atendimento'
+  allowed_panels?: string[]; // Compatibilidade com listas granulares
+  store_id?: string | null; // null = Rede inteira
   store_name?: string;
   avatar_url?: string;
   created_at: string;
@@ -24,6 +26,7 @@ export interface SystemAccessUser {
   username: string; // EXCLUSIVAMENTE LETRAS: ^[a-zA-Z]+$
   password?: string; // EXCLUSIVAMENTE NÚMEROS: ^[0-9]+$
   role?: SystemRole;
+  panels?: PanelId[]; // Painéis aos quais o usuário tem acesso: 'admin' | 'gerente' | 'atendimento'
   allowed_panels?: string[]; // IDs dos painéis permitidos para este acesso
   store_id?: string | null; // null = Toda a Rede
   store_name?: string;
@@ -497,12 +500,15 @@ export interface Conversation {
   started_at: string;
   last_message_at: string;
   unread_count?: number;
-  last_message?: string;
+  sector?: string; // Setor de atendimento ('Vendas & Enxoval', 'Suporte & Dúvidas', etc.)
+  is_deleted?: boolean; // Lixeira de conversas
+  deleted_at?: string; // Timestamp de envio para a lixeira
   internal_notes?: Array<{
     id: string;
     text: string;
     author: string;
     created_at: string;
+    visibility?: 'all' | 'admin_only'; // 'all' = todos do atendimento; 'admin_only' = apenas admin
   }>;
   created_at: string;
   updated_at: string;

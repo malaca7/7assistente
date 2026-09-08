@@ -12,6 +12,7 @@ import { SettingsPage } from './pages/settings/SettingsPage';
 import { LogsPage } from './pages/logs/LogsPage';
 import { UsersPage } from './pages/users/UsersPage';
 import { ClientsPage } from './pages/clients/ClientsPage';
+import { ManagerPortalPage } from './pages/manager/ManagerPortalPage';
 
 import { StorageService } from './lib/storage';
 
@@ -23,7 +24,17 @@ const normalizePath = (rawPath: string) => {
 };
 
 export const App: React.FC = () => {
-  const { isAuthenticated, isLoading, isCEO, isManager, isAttendant } = useAuth();
+  const { 
+    isAuthenticated, 
+    isLoading, 
+    isCEO, 
+    isManager, 
+    isAttendant, 
+    hasAdminAccess, 
+    hasManagerAccess, 
+    hasAttendantAccess 
+  } = useAuth();
+
   const [currentPath, setCurrentPath] = useState<string>(() => {
     return normalizePath(window.location.pathname || '/');
   });
@@ -67,7 +78,8 @@ export const App: React.FC = () => {
   // 3. Login direto
   if (currentPath === '/login') {
     if (isAuthenticated) {
-      navigate('/admin');
+      const defaultTarget = hasAdminAccess ? '/admin' : hasManagerAccess ? '/gerente' : '/atendimento';
+      navigate(defaultTarget);
     } else {
       return <LoginPage />;
     }
@@ -78,15 +90,38 @@ export const App: React.FC = () => {
     return <LoginPage />;
   }
 
-  // 5. Roteamento Interno Protegido — Todas as telas envoltas no AdminLayout (Barra Lateral Resizable)
+  // 5. Restrições estritas de Acesso por Perfil/Painel Autorizado
+  // Se o usuário tem apenas acesso a atendimento e tenta acessar rotas administrativas/gestão
+  if (!hasAdminAccess && !hasManagerAccess && hasAttendantAccess) {
+    const allowedAttendantPaths = ['/atendimento', '/conversas', '/catalogo', '/produtos', '/clientes', '/crm'];
+    if (!allowedAttendantPaths.includes(currentPath)) {
+      navigate('/atendimento');
+      return null;
+    }
+  }
+
+  // Se o usuário tem apenas acesso à gerência e tenta acessar rotas restritas de admin master
+  if (!hasAdminAccess && hasManagerAccess) {
+    const forbiddenForManager = ['/admin', '/bot_config', '/robo', '/fluxos', '/acessos', '/usuarios', '/configuracoes', '/logs'];
+    if (forbiddenForManager.includes(currentPath)) {
+      navigate('/gerente');
+      return null;
+    }
+  }
+
+  // 6. Roteamento Interno Protegido — Todas as telas envoltas no AdminLayout
   let title = 'Painel Administrativo';
   let subtitle = 'Gestão centralizada da rede Pitoco de Gente';
   let pageContent = <AdminPage onNavigate={navigate} activeTabProp="dashboard" />;
 
   if (currentPath === '/admin' || currentPath === '/dashboard') {
-    title = isCEO ? 'Painel Executivo CEO' : isManager ? 'Painel de Gestão da Filial' : 'Painel de Atendimento VIP';
-    subtitle = isCEO ? 'Métricas consolidadas da rede, robô e faturamento' : isManager ? 'Operação de loja, consultorias e estoque' : 'Conversas ativas, fila e catálogo rápido';
+    title = isCEO ? 'Painel Executivo CEO' : 'Painel Administrador Geral';
+    subtitle = isCEO ? 'Métricas consolidadas da rede, robô e faturamento' : 'Controle global de módulos, produtos e atendimentos';
     pageContent = <AdminPage onNavigate={navigate} activeTabProp="dashboard" />;
+  } else if (currentPath === '/gerente' || currentPath === '/gestao') {
+    title = 'Painel de Gestão da Filial';
+    subtitle = 'Supervisão executiva, vendas da loja e fila de atendimento';
+    pageContent = <ManagerPortalPage onNavigate={navigate} />;
   } else if (currentPath === '/catalogo' || currentPath === '/produtos') {
     title = 'Catálogo de Produtos & Estoque';
     subtitle = 'Gerenciamento completo de peças, tamanhos e preços';
@@ -95,18 +130,19 @@ export const App: React.FC = () => {
     title = 'Parâmetros do Robô & PIX';
     subtitle = 'Chave PIX, fretes e mensagens automáticas do WhatsApp';
     pageContent = <AdminPage onNavigate={navigate} activeTabProp="bot_config" />;
-  } else if (currentPath === '/tickets') {
-    title = 'Tickets de Suporte & Protocolos';
-    subtitle = 'Acompanhamento de solicitações e suporte a clientes';
-    pageContent = <AdminPage onNavigate={navigate} activeTabProp="tickets" />;
   } else if (currentPath === '/clientes' || currentPath === '/crm' || currentPath === '/agendamentos' || currentPath === '/consultorias') {
     title = 'Gestão de Clientes & CRM';
     subtitle = 'Cadastro, histórico, tags e gerenciamento de contatos da rede';
     pageContent = <ClientsPage onNavigate={navigate} />;
   } else if (currentPath === '/atendimento' || currentPath === '/conversas') {
-    title = 'Inbox de Atendimento Humano';
-    subtitle = 'Atendimento em tempo real com direcionamento por loja e transbordo';
-    pageContent = <AtendimentoHumanoInbox onNavigate={navigate} />;
+    title = isAttendant ? 'Central de Atendimento Operacional' : 'Inbox de Atendimento Humano';
+    subtitle = 'Atendimento em tempo real com direcionamento por loja e envio de catálogo';
+    pageContent = (
+      <AtendimentoHumanoInbox 
+        portalMode={hasAdminAccess ? 'admin' : hasManagerAccess ? 'gerente' : 'atendimento'} 
+        onNavigate={navigate} 
+      />
+    );
   } else if (currentPath === '/lojas' || currentPath === '/rede') {
     title = 'Rede de Lojas';
     subtitle = 'Gestão centralizada das unidades Centro, Shopping Boulevard e E-commerce';
@@ -121,7 +157,7 @@ export const App: React.FC = () => {
     pageContent = <WhatsappConnectView />;
   } else if (currentPath === '/acessos' || currentPath === '/usuarios') {
     title = 'Gestão de Acessos & Usuários';
-    subtitle = 'Controle de credenciais: CEO, Gerentes e Consultoras';
+    subtitle = 'Controle de painéis autorizados: Admin, Gerente e Atendimento';
     pageContent = <UsersPage />;
   } else if (currentPath === '/logs') {
     title = 'Logs & Auditoria';

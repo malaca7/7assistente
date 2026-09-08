@@ -189,7 +189,7 @@ export const initialAccessUsers: SystemAccessUser[] = [
     name: 'Malaca CEO',
     username: 'ceo', // APENAS LETRAS
     password: '123456', // APENAS NÚMEROS
-    role: 'ceo',
+    panels: ['admin', 'gerente', 'atendimento'],
     store_id: null,
     store_name: 'Toda a Rede (Global)',
     status: 'active',
@@ -201,7 +201,7 @@ export const initialAccessUsers: SystemAccessUser[] = [
     name: 'Administrador Geral',
     username: 'admin', // APENAS LETRAS
     password: '123456', // APENAS NÚMEROS
-    role: 'admin',
+    panels: ['admin', 'gerente', 'atendimento'],
     store_id: null,
     store_name: 'Toda a Rede (Global)',
     status: 'active',
@@ -213,7 +213,7 @@ export const initialAccessUsers: SystemAccessUser[] = [
     name: 'Juliana Paes (Gerente Matriz)',
     username: 'gerente', // APENAS LETRAS
     password: '123456', // APENAS NÚMEROS
-    role: 'manager',
+    panels: ['gerente'],
     store_id: 'store-001',
     store_name: 'Loja Matriz — Centro',
     status: 'active',
@@ -223,9 +223,9 @@ export const initialAccessUsers: SystemAccessUser[] = [
   {
     id: 'user-att-1',
     name: 'Sofia Alencar (Consultora VIP)',
-    username: 'consultora', // APENAS LETRAS
+    username: 'atendente', // APENAS LETRAS
     password: '123456', // APENAS NÚMEROS
-    role: 'attendant',
+    panels: ['atendimento'],
     store_id: 'store-001',
     store_name: 'Loja Matriz — Centro',
     status: 'active',
@@ -235,9 +235,9 @@ export const initialAccessUsers: SystemAccessUser[] = [
   {
     id: 'user-att-2',
     name: 'Camila Lima (Consultora Boulevard)',
-    username: 'especialista', // APENAS LETRAS
+    username: 'consultora', // APENAS LETRAS
     password: '123456', // APENAS NÚMEROS
-    role: 'attendant',
+    panels: ['atendimento'],
     store_id: 'store-002',
     store_name: 'Loja Shopping Boulevard',
     status: 'active',

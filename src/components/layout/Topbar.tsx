@@ -75,14 +75,68 @@ export const Topbar: React.FC<TopbarProps> = ({
           </div>
         )}
 
-        {/* User Role Pill */}
+        {/* User Info & Portal Pill */}
         <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-white/10">
-          <span className="text-xs font-bold text-zinc-300">
-            {user?.name}
-          </span>
-          <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-white/10 text-white font-semibold border border-white/15">
-            {user?.role || 'admin'}
-          </span>
+          <div className="text-right">
+            <span className="text-xs font-bold text-white block leading-tight">
+              {user?.name || user?.username || 'Usuário'}
+            </span>
+            <span className="text-[10px] text-zinc-400 font-mono">
+              @{user?.username || 'acesso'}
+            </span>
+          </div>
+
+          {/* Seletor rápido de painéis se o usuário tiver mais de 1 painel liberado */}
+          {user?.panels && user.panels.length > 1 ? (
+            <div className="flex items-center gap-1 bg-[#141416] p-1 rounded-xl border border-white/10">
+              {user.panels.includes('admin') && (
+                <button
+                  type="button"
+                  onClick={() => onNavigate('/admin')}
+                  title="Ir para Painel Administrador"
+                  className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
+                    window.location.pathname.startsWith('/admin')
+                      ? 'bg-white text-black shadow-sm'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  Admin
+                </button>
+              )}
+              {user.panels.includes('gerente') && (
+                <button
+                  type="button"
+                  onClick={() => onNavigate('/gerente')}
+                  title="Ir para Painel Gestão"
+                  className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
+                    window.location.pathname.startsWith('/gerente')
+                      ? 'bg-white text-black shadow-sm'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  Gestão
+                </button>
+              )}
+              {user.panels.includes('atendimento') && (
+                <button
+                  type="button"
+                  onClick={() => onNavigate('/atendimento')}
+                  title="Ir para Painel Atendimento"
+                  className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
+                    window.location.pathname.startsWith('/atendimento')
+                      ? 'bg-white text-black shadow-sm'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  Atendimento
+                </button>
+              )}
+            </div>
+          ) : (
+            <span className="text-[10px] uppercase font-bold px-2.5 py-1 rounded-full bg-white/10 text-white border border-white/15">
+              {user?.panels?.[0] === 'admin' ? '🛡️ Admin' : user?.panels?.[0] === 'gerente' ? '📊 Gestão' : '💬 Atendimento'}
+            </span>
+          )}
         </div>
       </div>
     </header>

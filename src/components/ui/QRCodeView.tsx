@@ -115,6 +115,52 @@ export const QRCodeView: React.FC<QRCodeViewProps> = ({
     setTimeout(() => setCodeCopied(false), 2000);
   };
 
+  const isConnected = Boolean(whatsAppCtx?.isConnected || whatsAppCtx?.session?.status === 'connected');
+
+  if (isConnected) {
+    return (
+      <div className="flex flex-col items-center justify-center p-6 sm:p-8 space-y-5 text-center bg-gradient-to-b from-dark-900 to-dark-950 rounded-3xl border border-emerald-500/30 shadow-2xl">
+        <div className="w-16 h-16 rounded-3xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10">
+          <ShieldCheck className="w-9 h-9" />
+        </div>
+
+        <div className="space-y-1.5 max-w-sm">
+          <div className="flex items-center justify-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+            <h3 className="text-base font-bold text-white tracking-tight">
+              WhatsApp Conectado e Operando
+            </h3>
+          </div>
+          <p className="text-xs text-slate-400">
+            A sessão do WhatsApp está ativa. Todas as mensagens e fluxos do robô estão operando normalmente.
+          </p>
+          {whatsAppCtx?.session?.phone && (
+            <div className="pt-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono font-bold">
+                📱 {whatsAppCtx.session.phone}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="pt-3 w-full max-w-xs">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={async () => {
+              if (window.confirm('Deseja realmente desconectar esta sessão do WhatsApp? O robô deixará de responder até nova conexão.')) {
+                await whatsAppCtx?.disconnect?.();
+              }
+            }}
+            className="w-full border-rose-500/30 text-rose-400 hover:bg-rose-500/15 hover:border-rose-500/50 text-xs font-bold py-2.5 rounded-xl transition-all"
+          >
+            Desconectar Sessão WhatsApp
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center justify-center p-4 sm:p-6 space-y-6">
       {/* Mode Switcher: QR Code vs Código de Pareamento */}

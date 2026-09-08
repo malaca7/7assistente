@@ -49,7 +49,7 @@ import { useToast } from '../../contexts/ToastContext';
 
 export interface AdminPageProps {
   onNavigate?: (path: string) => void;
-  activeTabProp?: 'dashboard' | 'lojas' | 'produtos' | 'bot_config' | 'atendimento' | 'tickets' | 'agendamentos' | 'fluxos' | 'whatsapp' | 'acessos';
+  activeTabProp?: 'dashboard' | 'lojas' | 'produtos' | 'bot_config' | 'atendimento' | 'agendamentos' | 'fluxos' | 'whatsapp' | 'acessos';
 }
 
 export default function AdminPage({ onNavigate, activeTabProp }: AdminPageProps = {}) {
@@ -57,7 +57,7 @@ export default function AdminPage({ onNavigate, activeTabProp }: AdminPageProps 
   const { success, info, warning } = useToast();
 
   const [activeTab, setActiveTab] = useState<
-    'dashboard' | 'lojas' | 'produtos' | 'bot_config' | 'atendimento' | 'tickets' | 'agendamentos' | 'fluxos' | 'whatsapp' | 'acessos'
+    'dashboard' | 'lojas' | 'produtos' | 'bot_config' | 'atendimento' | 'agendamentos' | 'fluxos' | 'whatsapp' | 'acessos'
   >(activeTabProp || 'dashboard');
 
   useEffect(() => {
@@ -75,7 +75,6 @@ export default function AdminPage({ onNavigate, activeTabProp }: AdminPageProps 
         produtos: '/catalogo',
         bot_config: '/bot_config',
         atendimento: '/atendimento',
-        tickets: '/tickets',
         clientes: '/clientes',
         agendamentos: '/clientes',
         fluxos: '/fluxos',
@@ -308,15 +307,6 @@ export default function AdminPage({ onNavigate, activeTabProp }: AdminPageProps 
     }
   };
 
-  // Alterar Status do Ticket
-  const handleUpdateTicketStatus = async (ticket: SupportTicket, newStatus: SupportTicket['status']) => {
-    const updated = await StorageService.saveSupportTicket({
-      ...ticket,
-      status: newStatus,
-    });
-    setTickets(prev => prev.map(t => t.id === ticket.id ? updated : t));
-    success(`Ticket ${ticket.protocol} alterado para "${newStatus}"`);
-  };
 
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -667,78 +657,9 @@ export default function AdminPage({ onNavigate, activeTabProp }: AdminPageProps 
           </div>
         )}
 
-        {/* TAB 5: ATENDIMENTO HUMANO INBOX */}
+        {/* TAB 5: ATENDIMENTO HUMANO INBOX (ADMIN) */}
         {activeTab === 'atendimento' && (
-          <AtendimentoHumanoInbox initialStoreId={selectedStoreId} />
-        )}
-
-        {/* TAB 6: TICKETS DE ATENDIMENTO COM AÇÕES CEO */}
-        {activeTab === 'tickets' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                  <LifeBuoy className="w-5 h-5 text-pitoco-blue" />
-                  Tickets de Atendimento por Loja ({tickets.length})
-                </h2>
-                <p className="text-xs text-slate-400">
-                  Gerencie chamados de clientes e transbordos humanos vindos do WhatsApp.
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {tickets.length === 0 ? (
-                <Card className="p-8 text-center text-slate-400 text-xs bg-dark-900 border-white/5">
-                  Nenhum ticket pendente no momento. Todos os atendimentos estão em dia!
-                </Card>
-              ) : (
-                tickets.map(ticket => (
-                  <Card key={ticket.id} className="p-4 bg-dark-900 border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono font-bold text-pitoco-blue">{ticket.protocol}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase ${
-                          ticket.status === 'open' 
-                            ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                            : ticket.status === 'in_progress'
-                            ? 'bg-pitoco-blue/20 text-pitoco-blue border border-pitoco-blue/30'
-                            : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                        }`}>
-                          {ticket.status}
-                        </span>
-                        <span className="text-[11px] text-slate-400">{ticket.store_name || 'Loja'}</span>
-                      </div>
-                      <h4 className="text-sm font-semibold text-white mt-1">{ticket.subject}</h4>
-                      <p className="text-xs text-slate-400 mt-0.5">Cliente: {ticket.client_name} ({ticket.client_phone || 'WhatsApp'})</p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {ticket.status !== 'in_progress' && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleUpdateTicketStatus(ticket, 'in_progress')}
-                          className="text-xs border-pitoco-blue/30 text-pitoco-blue hover:bg-pitoco-blue/10"
-                        >
-                          Atender
-                        </Button>
-                      )}
-                      {ticket.status !== 'resolved' && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleUpdateTicketStatus(ticket, 'resolved')}
-                          className="text-xs bg-emerald-500 text-slate-950 font-bold"
-                        >
-                          Resolver
-                        </Button>
-                      )}
-                    </div>
-                  </Card>
-                ))
-              )}
-            </div>
-          </div>
+          <AtendimentoHumanoInbox portalMode="admin" initialStoreId={selectedStoreId} />
         )}
 
 

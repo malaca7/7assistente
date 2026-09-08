@@ -42,26 +42,47 @@ import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 
 export interface PanelDefinition {
-  id: string;
+  id: 'admin' | 'gerente' | 'atendimento';
   label: string;
+  path: string;
   desc: string;
   category: string;
   icon: any;
+  color: string;
+  badge: string;
 }
 
 export const SYSTEM_PANELS: PanelDefinition[] = [
-  { id: 'dashboard', label: 'Dashboard & Visão Geral', desc: 'Métricas executivas, faturamento e resumo da rede', category: 'Gestão', icon: LayoutDashboard },
-  { id: 'atendimento', label: 'Inbox WhatsApp (Ao Vivo)', desc: 'Atendimento humano em tempo real, conversas e transbordo', category: 'Operação', icon: MessageSquareText },
-  { id: 'produtos', label: 'Catálogo & Estoque', desc: 'Gerenciamento de roupas, peças, tamanhos e preços', category: 'Operação', icon: ShoppingBag },
-  { id: 'lojas', label: 'Rede de Lojas & Filiais', desc: 'Gerenciamento de lojas físicas e canais', category: 'Operação', icon: Building2 },
-  { id: 'clientes', label: 'Gestão de Clientes (CRM)', desc: 'Cadastro, histórico e gerenciamento de clientes', category: 'Clientes', icon: Users },
-  { id: 'tickets', label: 'Tickets de Suporte', desc: 'Protocolos de atendimento e suporte ao cliente', category: 'Clientes', icon: LifeBuoy },
-  { id: 'fluxos', label: 'Studio de Fluxos & Robô', desc: 'Construção visual de automações e árvores de nós', category: 'Automação', icon: GitFork },
-  { id: 'whatsapp', label: 'Conexão WhatsApp (QR)', desc: 'Gerenciamento de sessão Baileys e QR Code', category: 'Automação', icon: QrCode },
-  { id: 'bot_config', label: 'Parâmetros do Robô & PIX', desc: 'Configuração de chaves PIX, fretes e mensagens', category: 'Automação', icon: Bot },
-  { id: 'acessos', label: 'Gestão de Acessos', desc: 'Criação e edição de acessos e permissões de painéis', category: 'Sistema', icon: Key },
-  { id: 'configuracoes', label: 'Configurações & Banco', desc: 'Dados da empresa e sincronização Supabase', category: 'Sistema', icon: SettingsIcon },
-  { id: 'logs', label: 'Logs & Auditoria', desc: 'Histórico de eventos do sistema e auditoria técnica', category: 'Sistema', icon: Sparkles },
+  { 
+    id: 'admin', 
+    label: 'Painel Administrador (/admin)', 
+    path: '/admin',
+    desc: 'Acesso total: Studio de Fluxos, automações do robô WhatsApp, chaves PIX, configurações gerais, banco de dados, gestão de acessos e atendimento avançado (lixeira, apagar mensagem individual, notas confidenciais de admin e gerenciamento de setores).', 
+    category: 'Diretoria & Sistema', 
+    icon: ShieldCheck,
+    color: 'from-amber-500/20 to-amber-600/5 text-amber-300 border-amber-500/40',
+    badge: 'Acesso Total'
+  },
+  { 
+    id: 'gerente', 
+    label: 'Painel Gestão (/gerente)', 
+    path: '/gerente',
+    desc: 'Visão executiva de loja e rede: dashboard de vendas, faturamento, supervisão de conversas da equipe, acompanhamento de catálogo e clientes.', 
+    category: 'Gerência & Supervisão', 
+    icon: LayoutDashboard,
+    color: 'from-emerald-500/20 to-emerald-600/5 text-emerald-300 border-emerald-500/40',
+    badge: 'Supervisão'
+  },
+  { 
+    id: 'atendimento', 
+    label: 'Painel Atendimento (/atendimento)', 
+    path: '/atendimento',
+    desc: 'Inbox WhatsApp em tempo real: envio de catálogo de produtos com foto e detalhes direto no chat, troca de setor e auto-assumir ao responder. Sem botões de exclusão ou edição.', 
+    category: 'Vendas & Operação', 
+    icon: MessageSquareText,
+    color: 'from-pink-500/20 to-pink-600/5 text-pink-300 border-pink-500/40',
+    badge: 'Operação Direta'
+  },
 ];
 
 export const AccessManagementView: React.FC = () => {
@@ -141,13 +162,13 @@ export const AccessManagementView: React.FC = () => {
   };
 
   // Presets rápidos
-  const handleSetPreset = (presetType: 'atendimento' | 'operacao' | 'total') => {
+  const handleSetPreset = (presetType: 'atendimento' | 'gerente' | 'total') => {
     if (presetType === 'atendimento') {
-      setSelectedPanels(['atendimento', 'produtos', 'clientes']);
-    } else if (presetType === 'operacao') {
-      setSelectedPanels(['dashboard', 'atendimento', 'produtos', 'lojas', 'clientes', 'tickets']);
+      setSelectedPanels(['atendimento']);
+    } else if (presetType === 'gerente') {
+      setSelectedPanels(['gerente', 'atendimento']);
     } else if (presetType === 'total') {
-      setSelectedPanels(SYSTEM_PANELS.map(p => p.id));
+      setSelectedPanels(['admin', 'gerente', 'atendimento']);
     }
   };
 
@@ -157,7 +178,7 @@ export const AccessManagementView: React.FC = () => {
     setName('');
     setUsername('');
     setPassword('123456');
-    setSelectedPanels(['atendimento', 'produtos', 'clientes']); // default útil
+    setSelectedPanels(['atendimento']); // default útil
     setStoreId('all');
     setStatus('active');
     setIsModalOpen(true);
@@ -170,15 +191,18 @@ export const AccessManagementView: React.FC = () => {
     setUsername(u.username);
     setPassword(u.password || '');
 
-    // Se o usuário tiver allowed_panels definidos, carrega eles; caso contrário infere pelos legados
-    if (Array.isArray(u.allowed_panels) && u.allowed_panels.length > 0) {
-      setSelectedPanels(u.allowed_panels);
+    // Se o usuário tiver panels ou allowed_panels definidos, carrega eles; caso contrário infere pelos legados
+    if (Array.isArray(u.panels) && u.panels.length > 0) {
+      setSelectedPanels(u.panels);
+    } else if (Array.isArray(u.allowed_panels) && u.allowed_panels.length > 0) {
+      const valid = u.allowed_panels.filter(p => ['admin', 'gerente', 'atendimento'].includes(p));
+      setSelectedPanels(valid.length > 0 ? valid : ['atendimento']);
     } else if (u.role === 'ceo' || u.role === 'admin') {
-      setSelectedPanels(SYSTEM_PANELS.map(p => p.id));
+      setSelectedPanels(['admin', 'gerente', 'atendimento']);
     } else if (u.role === 'manager') {
-      setSelectedPanels(['dashboard', 'atendimento', 'produtos', 'lojas', 'clientes', 'tickets']);
+      setSelectedPanels(['gerente']);
     } else {
-      setSelectedPanels(['atendimento', 'produtos', 'clientes']);
+      setSelectedPanels(['atendimento']);
     }
 
     setStoreId(u.store_id || 'all');
@@ -236,10 +260,9 @@ export const AccessManagementView: React.FC = () => {
       const assignedStore = stores.find(s => s.id === storeId);
       const storeName = storeId === 'all' ? 'Toda a Rede (Global)' : assignedStore?.name;
 
-      // Papel derivado para compatibilidade legada com APIs
-      const derivedRole: SystemRole = selectedPanels.includes('acessos') || selectedPanels.includes('fluxos') || selectedPanels.includes('configuracoes')
+      const derivedRole: SystemRole = selectedPanels.includes('admin')
         ? 'admin'
-        : selectedPanels.includes('lojas') || selectedPanels.includes('dashboard')
+        : selectedPanels.includes('gerente')
           ? 'manager'
           : 'attendant';
 
@@ -249,6 +272,7 @@ export const AccessManagementView: React.FC = () => {
         username: cleanUser,
         password: cleanPass,
         role: derivedRole,
+        panels: selectedPanels as any,
         allowed_panels: selectedPanels,
         store_id: storeId === 'all' ? null : storeId,
         store_name: storeName,
@@ -327,20 +351,20 @@ export const AccessManagementView: React.FC = () => {
         u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         u.username.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const userPanels = Array.isArray(u.allowed_panels) && u.allowed_panels.length > 0
-        ? u.allowed_panels
+      const userPanels: string[] = Array.isArray(u.panels) && u.panels.length > 0
+        ? u.panels
+        : Array.isArray(u.allowed_panels) && u.allowed_panels.length > 0
+        ? u.allowed_panels.filter(p => ['admin', 'gerente', 'atendimento'].includes(p))
         : u.role === 'ceo' || u.role === 'admin'
-          ? SYSTEM_PANELS.map(p => p.id)
+          ? ['admin', 'gerente', 'atendimento']
           : u.role === 'manager'
-            ? ['dashboard', 'atendimento', 'produtos', 'lojas', 'clientes', 'tickets']
-            : ['atendimento', 'produtos', 'clientes'];
+            ? ['gerente']
+            : ['atendimento'];
 
       const matchPanel = 
         selectedPanelFilter === 'all' 
           ? true 
-          : selectedPanelFilter === 'total'
-            ? userPanels.length === SYSTEM_PANELS.length
-            : userPanels.includes(selectedPanelFilter);
+          : userPanels.includes(selectedPanelFilter);
 
       const matchStore = 
         selectedStoreFilter === 'all' 
@@ -357,12 +381,9 @@ export const AccessManagementView: React.FC = () => {
   const stats = useMemo(() => {
     const total = users.length;
     const activeCount = users.filter(u => u.status === 'active').length;
-    const fullAccessCount = users.filter(u => {
-      const count = u.allowed_panels?.length || (u.role === 'ceo' || u.role === 'admin' ? 12 : 0);
-      return count >= 12;
-    }).length;
-    const customAccessCount = total - fullAccessCount;
-    return { total, activeCount, fullAccessCount, customAccessCount };
+    const adminCount = users.filter(u => (u.panels || u.allowed_panels || []).includes('admin') || u.role === 'ceo' || u.role === 'admin').length;
+    const attendantCount = users.filter(u => (u.panels || u.allowed_panels || []).includes('atendimento') || u.role === 'attendant').length;
+    return { total, activeCount, adminCount, attendantCount };
   }, [users]);
 
   // Helper para obter o label de um painel
@@ -382,14 +403,14 @@ export const AccessManagementView: React.FC = () => {
               Gestão de Acessos & Painéis
             </span>
             <span className="text-xs text-slate-400">
-              Controle por Painéis Permitidos
+              Controle sem Cargos Fixos
             </span>
           </div>
           <h2 className="text-xl font-bold text-white">
-            Usuários e Permissões por Painel
+            Usuários e Painéis Permitidos
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Defina exatamente quais painéis cada usuário pode visualizar e operar. Usuário apenas com <strong className="text-white font-bold">letras</strong> [a-z] e senha apenas com <strong className="text-white font-bold">números</strong> [0-9].
+            Defina exatamente quais painéis cada usuário pode acessar (<strong className="text-white">Admin /admin</strong>, <strong className="text-white">Gestão /gerente</strong> ou <strong className="text-white">Atendimento /atendimento</strong>). Usuário apenas com letras [a-z] e senha apenas com números [0-9].
           </p>
         </div>
 
@@ -437,34 +458,34 @@ export const AccessManagementView: React.FC = () => {
 
         <Card className="p-4 bg-dark-900 border-white/5">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400 font-medium">Acesso Total</span>
+            <span className="text-xs text-slate-400 font-medium">Com Acesso Admin</span>
             <Crown className="w-4 h-4 text-amber-400" />
           </div>
-          <div className="text-2xl font-bold text-amber-400 mt-1">{stats.fullAccessCount}</div>
-          <span className="text-[10px] text-slate-500">Todos os 12 painéis</span>
+          <div className="text-2xl font-bold text-amber-400 mt-1">{stats.adminCount}</div>
+          <span className="text-[10px] text-slate-500">Painel /admin</span>
         </Card>
 
         <Card className="p-4 bg-dark-900 border-white/5">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400 font-medium">Acessos Personalizados</span>
-            <Layers className="w-4 h-4 text-zinc-300" />
+            <span className="text-xs text-slate-400 font-medium">Com Atendimento</span>
+            <MessageSquareText className="w-4 h-4 text-pink-400" />
           </div>
-          <div className="text-2xl font-bold text-white mt-1">{stats.customAccessCount}</div>
-          <span className="text-[10px] text-slate-500">Painéis selecionados</span>
+          <div className="text-2xl font-bold text-pink-400 mt-1">{stats.attendantCount}</div>
+          <span className="text-[10px] text-slate-500">Painel /atendimento</span>
         </Card>
       </div>
 
       {/* Barra de Busca e Filtros */}
-      <Card className="p-4 bg-dark-900 border-white/10 space-y-3">
-        <div className="flex flex-col md:flex-row gap-3">
+      <Card className="p-4 bg-dark-900 border-white/5 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="relative flex-1">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Buscar colaborador por nome ou usuário @..."
+              placeholder="Buscar por nome ou @usuario..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-dark-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-white/30"
+              className="w-full pl-9 pr-3 py-2 bg-dark-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-white/30 transition-colors"
             />
           </div>
 
@@ -476,13 +497,9 @@ export const AccessManagementView: React.FC = () => {
               className="px-3 py-2 bg-dark-800 border border-white/10 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-white/30 transition-colors"
             >
               <option value="all">Todos os Painéis</option>
-              <option value="total">⭐ Acesso Total (Todos)</option>
-              <option value="atendimento">Inbox WhatsApp</option>
-              <option value="produtos">Catálogo & Estoque</option>
-              <option value="clientes">Gestão de Clientes</option>
-              <option value="lojas">Rede de Lojas</option>
-              <option value="fluxos">Studio de Fluxos</option>
-              <option value="whatsapp">Conexão WhatsApp</option>
+              <option value="admin">🛡️ Painel Admin (/admin)</option>
+              <option value="gerente">📊 Painel Gestão (/gerente)</option>
+              <option value="atendimento">💬 Painel Atendimento (/atendimento)</option>
             </select>
 
             {/* Filtro por Loja */}
@@ -504,17 +521,15 @@ export const AccessManagementView: React.FC = () => {
       {/* Lista de Usuários */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredUsers.map((user) => {
-          const userPanels = Array.isArray(user.allowed_panels) && user.allowed_panels.length > 0
-            ? user.allowed_panels
+          const userPanels: string[] = Array.isArray(user.panels) && user.panels.length > 0
+            ? user.panels
+            : Array.isArray(user.allowed_panels) && user.allowed_panels.length > 0
+            ? user.allowed_panels.filter(p => ['admin', 'gerente', 'atendimento'].includes(p))
             : user.role === 'ceo' || user.role === 'admin'
-              ? SYSTEM_PANELS.map(p => p.id)
+              ? ['admin', 'gerente', 'atendimento']
               : user.role === 'manager'
-                ? ['dashboard', 'atendimento', 'produtos', 'lojas', 'clientes', 'tickets']
-                : ['atendimento', 'produtos', 'clientes'];
-
-          const isFullAccess = userPanels.length >= SYSTEM_PANELS.length;
-          const displayPanels = userPanels.slice(0, 4);
-          const remainingCount = userPanels.length - displayPanels.length;
+                ? ['gerente']
+                : ['atendimento'];
 
           return (
             <Card 
@@ -539,7 +554,6 @@ export const AccessManagementView: React.FC = () => {
                       <span className="font-mono text-xs font-bold text-white bg-white/10 px-2 py-0.5 rounded border border-white/15">
                         @{user.username}
                       </span>
-                      <span className="text-[10px] text-slate-500">• letras [a-z]</span>
                     </div>
                   </div>
                 </div>
@@ -560,29 +574,31 @@ export const AccessManagementView: React.FC = () => {
                 </button>
               </div>
 
-              {/* Dados do Perfil */}
+              {/* Dados do Perfil e Painéis */}
               <div className="space-y-2.5 py-3 border-y border-white/5 my-3">
-                {/* Painéis Permitidos */}
                 <div className="space-y-1.5 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400 font-medium">Painéis com Acesso:</span>
-                    <span className="text-[11px] font-bold text-white font-mono">
-                      {isFullAccess ? '⭐ Todos (12)' : `${userPanels.length} painel(is)`}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {displayPanels.map((pId) => (
-                      <span
-                        key={pId}
-                        className="px-2 py-0.5 rounded text-[10px] bg-white/10 text-zinc-200 border border-white/10 font-medium"
-                      >
-                        {getPanelLabel(pId)}
+                  <span className="text-slate-400 font-medium block">Painéis Permitidos:</span>
+                  <div className="flex flex-col gap-1.5">
+                    {userPanels.includes('admin') && (
+                      <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1.5">
+                        <ShieldCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        🛡️ Painel Admin (/admin)
                       </span>
-                    ))}
-                    {remainingCount > 0 && (
-                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-white/5 text-slate-400 border border-white/5">
-                        +{remainingCount}
+                    )}
+                    {userPanels.includes('gerente') && (
+                      <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+                        <LayoutDashboard className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        📊 Painel Gestão (/gerente)
                       </span>
+                    )}
+                    {userPanels.includes('atendimento') && (
+                      <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-pink-500/15 text-pink-300 border border-pink-500/30 flex items-center gap-1.5">
+                        <MessageSquareText className="w-3.5 h-3.5 text-pink-400 shrink-0" />
+                        💬 Painel Atendimento (/atendimento)
+                      </span>
+                    )}
+                    {userPanels.length === 0 && (
+                      <span className="text-xs text-rose-400 italic">Nenhum painel liberado</span>
                     )}
                   </div>
                 </div>
@@ -777,27 +793,27 @@ export const AccessManagementView: React.FC = () => {
                   onClick={() => handleSetPreset('atendimento')}
                   className="px-2 py-0.5 text-[10px] font-medium rounded-md bg-white/5 text-slate-300 hover:text-white hover:bg-white/10 border border-white/10 transition-colors"
                 >
-                  Atendimento & CRM
+                  Atendimento
                 </button>
                 <button
                   type="button"
-                  onClick={handleSelectAllPanels}
+                  onClick={() => handleSetPreset('gerente')}
+                  className="px-2 py-0.5 text-[10px] font-medium rounded-md bg-white/5 text-slate-300 hover:text-white hover:bg-white/10 border border-white/10 transition-colors"
+                >
+                  Gestão
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSetPreset('total')}
                   className="px-2 py-0.5 text-[10px] font-semibold rounded-md bg-white/10 text-white hover:bg-white/20 border border-white/15 transition-colors"
                 >
-                  Marcar Todos
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDeselectAllPanels}
-                  className="px-2 py-0.5 text-[10px] font-medium rounded-md bg-white/5 text-slate-400 hover:text-white border border-white/5 transition-colors"
-                >
-                  Desmarcar
+                  Todos os Painéis
                 </button>
               </div>
             </div>
 
-            {/* Grid dos 12 Painéis com Checkbox */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
+            {/* Cards dos 3 Painéis do Sistema */}
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
               {SYSTEM_PANELS.map((panel) => {
                 const isChecked = selectedPanels.includes(panel.id);
                 const IconComponent = panel.icon;
@@ -805,9 +821,9 @@ export const AccessManagementView: React.FC = () => {
                   <div
                     key={panel.id}
                     onClick={() => handleTogglePanel(panel.id)}
-                    className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all flex items-start gap-2.5 select-none ${
+                    className={`p-3 rounded-2xl border text-left cursor-pointer transition-all flex items-start gap-3 select-none ${
                       isChecked
-                        ? 'bg-white/10 border-white/30 text-white shadow-sm'
+                        ? 'bg-white/10 border-white/30 text-white shadow-md'
                         : 'bg-dark-850 border-white/5 text-slate-400 hover:border-white/15'
                     }`}
                   >
@@ -815,19 +831,19 @@ export const AccessManagementView: React.FC = () => {
                       type="checkbox"
                       checked={isChecked}
                       onChange={() => {}} // tratado no onClick do container
-                      className="mt-0.5 rounded border-white/20 bg-dark-900 text-white focus:ring-0 cursor-pointer"
+                      className="mt-1 rounded border-white/20 bg-dark-900 text-white focus:ring-0 cursor-pointer w-4 h-4"
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-1">
-                        <span className={`text-xs font-bold truncate flex items-center gap-1.5 ${isChecked ? 'text-white' : 'text-slate-300'}`}>
-                          <IconComponent className="w-3.5 h-3.5 shrink-0 text-zinc-300" />
-                          <span className="truncate">{panel.label}</span>
+                        <span className={`text-xs font-bold flex items-center gap-1.5 ${isChecked ? 'text-white' : 'text-slate-200'}`}>
+                          <IconComponent className="w-4 h-4 shrink-0 text-white" />
+                          <span>{panel.label}</span>
                         </span>
-                        <span className="text-[9px] uppercase px-1 rounded bg-white/5 text-slate-400 border border-white/5 shrink-0">
-                          {panel.category}
+                        <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-white/10 text-white border border-white/15 shrink-0">
+                          {panel.badge}
                         </span>
                       </div>
-                      <p className="text-[10px] text-slate-400 leading-tight mt-1 line-clamp-1">
+                      <p className="text-[11px] text-slate-400 leading-relaxed mt-1">
                         {panel.desc}
                       </p>
                     </div>

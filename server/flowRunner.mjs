@@ -1248,7 +1248,7 @@ export async function syncFlowGraphToSupabase(flowId, nodes, edges) {
         id: n.id,
         flow_id: flowId,
         type: n.type || 'message',
-        label: n.data?.label || (n as any).label || 'Nó',
+        label: n.data?.label || n.label || 'Nó',
         data: n.data || {},
         position: n.position || { x: 0, y: 0 },
         updated_at: new Date().toISOString(),
