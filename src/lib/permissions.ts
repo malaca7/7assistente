@@ -222,9 +222,9 @@ export const DEFAULT_ROLE_CONFIGS: Record<string, RoleConfig> = {
     name: 'Consultora VIP / Atendimento',
     badgeLabel: 'CONSULTORA',
     description: 'Acesso ao chat em tempo real do WhatsApp e consultorias VIP de enxoval.',
-    color: 'blue',
-    bgLight: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-    borderColor: 'border-blue-500/40',
+    color: 'zinc',
+    bgLight: 'bg-zinc-800/70 text-zinc-200 border-zinc-700/60',
+    borderColor: 'border-zinc-700/60',
     permissions: {
       can_access_admin: false,
       can_access_atendimento: true,

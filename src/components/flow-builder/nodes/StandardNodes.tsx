@@ -180,8 +180,8 @@ export const QuestionNode: React.FC<NodeProps> = ({ id, selected, data }) => {
       title={nodeData.label || 'Fazer Pergunta'}
       subtitle="Coleta de Resposta"
       icon={<HelpCircle className="w-4 h-4" />}
-      iconBg="bg-gradient-to-tr from-blue-600 to-cyan-500"
-      accentColor="bg-blue-500"
+      iconBg="bg-zinc-800 border border-zinc-700"
+      accentColor="bg-zinc-500"
       hasInput={true}
       hasOutput={true}
       isConfigured={Boolean(config.questionText)}

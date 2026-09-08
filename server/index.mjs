@@ -32,6 +32,7 @@ import {
   getDatabaseStats
 } from './flowRunner.mjs';
 import { processAdminBotMessage } from './botEngine.mjs';
+import { syncToSupabase } from './syncSupabase.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -46,7 +47,7 @@ if (!fs.existsSync(AUTH_FOLDER)) {
 const PORT = process.env.PORT || 8080;
 const HOST = '0.0.0.0';
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://cbeiguyvoepbcafmxduy.supabase.co';
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiZWlndXl2b2VwYmNhZm14ZHV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzU5NzcsImV4cCI6MjEwNDMxMTk3N30.1XpWL6ns9NlPh4sQ3M8-OJTnKCPH-jf89iFspmBrKxM';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiZWlndXl2b2VwYmNhZm14ZHV5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4ODczNTk3NywiZXhwIjoyMTA0MzExOTc3fQ.sbB-6Fx4uR61oDin8djrdbpmNSPs2Z8hGdYSoVhIHvw';
 
 const supabaseServer = (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY)
   ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -1664,6 +1665,15 @@ app.post('/api/db/sync', (req, res) => {
     res.json({ success: true, message: 'Sincronização concluída com sucesso', stats: getDatabaseStats() });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/db/supabase-sync', async (req, res) => {
+  try {
+    const report = await syncToSupabase();
+    res.json({ success: true, message: 'Sincronização Supabase executada', report });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

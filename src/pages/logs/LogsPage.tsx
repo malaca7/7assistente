@@ -156,7 +156,7 @@ export const LogsPage: React.FC = () => {
       case 'appointment_status':
         return <Scissors className="w-4 h-4 text-brand-400" />;
       case 'message_inbound':
-        return <ArrowDownLeft className="w-4 h-4 text-blue-400" />;
+        return <ArrowDownLeft className="w-4 h-4 text-zinc-300" />;
       case 'message_outbound':
         return <ArrowUpRight className="w-4 h-4 text-purple-400" />;
       case 'bot_flow':
@@ -183,7 +183,7 @@ export const LogsPage: React.FC = () => {
         );
       case 'message_inbound':
         return (
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-800 text-zinc-200 border border-zinc-700">
             Cliente → WhatsApp
           </span>
         );
@@ -234,9 +234,9 @@ export const LogsPage: React.FC = () => {
         <Card className="p-5 rounded-2xl bg-dark-900/70 border-white/10 space-y-1">
           <div className="flex items-center justify-between text-xs text-slate-400">
             <span>Mensagens no WhatsApp</span>
-            <MessageSquare className="w-4 h-4 text-blue-400" />
+            <MessageSquare className="w-4 h-4 text-zinc-300" />
           </div>
-          <p className="text-2xl font-black text-blue-400">{stats.messages}</p>
+          <p className="text-2xl font-black text-zinc-100">{stats.messages}</p>
           <p className="text-xs text-slate-400">Entradas e saídas</p>
         </Card>
 

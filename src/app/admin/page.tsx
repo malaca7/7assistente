@@ -37,18 +37,51 @@ import { AtendimentoHumanoInbox } from '../../components/AtendimentoHumanoInbox'
 import { WhatsappConnectView } from '../../components/WhatsappConnectView';
 import { FlowBuilderView } from '../../components/FlowBuilderView';
 import { AccessManagementView } from '../../components/AccessManagementView';
+import { DashboardCEO } from '../../components/dashboards/DashboardCEO';
+import { DashboardGerente } from '../../components/dashboards/DashboardGerente';
+import { DashboardConsultora } from '../../components/dashboards/DashboardConsultora';
 import { StorageService } from '../../lib/storage';
 import { Product, Store, SupportTicket, VIPConsultation, DashboardKPIs, BotConfig } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 
-export default function AdminPage() {
-  const { user, isCEO, logout } = useAuth();
+export interface AdminPageProps {
+  onNavigate?: (path: string) => void;
+  activeTabProp?: 'dashboard' | 'lojas' | 'produtos' | 'bot_config' | 'atendimento' | 'tickets' | 'agendamentos' | 'fluxos' | 'whatsapp' | 'acessos';
+}
+
+export default function AdminPage({ onNavigate, activeTabProp }: AdminPageProps = {}) {
+  const { user, isCEO, isManager, isAttendant, logout } = useAuth();
   const { success, info, warning } = useToast();
 
   const [activeTab, setActiveTab] = useState<
     'dashboard' | 'lojas' | 'produtos' | 'bot_config' | 'atendimento' | 'tickets' | 'agendamentos' | 'fluxos' | 'whatsapp' | 'acessos'
-  >('dashboard');
+  >(activeTabProp || 'dashboard');
+
+  useEffect(() => {
+    if (activeTabProp) {
+      setActiveTab(activeTabProp);
+    }
+  }, [activeTabProp]);
+
+  const handleTabChange = (tab: any) => {
+    setActiveTab(tab);
+    if (onNavigate) {
+      const pathMap: Record<string, string> = {
+        dashboard: '/admin',
+        lojas: '/lojas',
+        produtos: '/catalogo',
+        bot_config: '/bot_config',
+        atendimento: '/atendimento',
+        tickets: '/tickets',
+        agendamentos: '/agendamentos',
+        fluxos: '/fluxos',
+        whatsapp: '/whatsapp',
+        acessos: '/acessos',
+      };
+      if (pathMap[tab]) onNavigate(pathMap[tab]);
+    }
+  };
 
   const [kpis, setKpis] = useState<DashboardKPIs | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -239,153 +272,41 @@ export default function AdminPage() {
   );
 
   return (
-    <div className="min-h-screen bg-dark-950 text-slate-200 flex flex-col">
-      {/* Top Navbar */}
-      <header className="h-16 border-b border-white/10 bg-dark-900 px-6 flex items-center justify-between sticky top-0 z-40">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 shadow-md bg-dark-800/60 flex items-center justify-center p-0.5">
-            <img src="/logo.png" alt="Logo Pitoco" className="w-full h-full object-contain" />
-          </div>
-          <div>
-            <h1 className="text-base font-bold text-white flex items-center gap-2">
-              Pitoco de Gente
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-pitoco-blue/20 text-pitoco-blue font-semibold border border-pitoco-blue/30">
-                {isCEO ? 'PAINEL REDE CEO' : 'GESTÃO DE FILIAL'}
-              </span>
-            </h1>
-            <p className="text-[11px] text-slate-400">
-              Gestão Centralizada da Plataforma & Robô WhatsApp
-            </p>
-          </div>
-        </div>
-
-        {/* Links Rápidos de Navegação */}
-        <div className="hidden lg:flex items-center gap-1 bg-dark-800 p-1 rounded-xl border border-white/5 text-xs">
-          {[
-            { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
-            { id: 'lojas', label: 'Rede de Lojas', icon: Building2 },
-            { id: 'produtos', label: 'Catálogo', icon: ShoppingBag },
-            { id: 'bot_config', label: 'Robô & PIX', icon: Bot },
-            { id: 'atendimento', label: 'Inbox WhatsApp', icon: MessageSquare },
-            { id: 'tickets', label: 'Tickets', icon: LifeBuoy },
-            { id: 'agendamentos', label: 'Consultoria VIP', icon: Calendar },
-            { id: 'fluxos', label: 'Fluxos Bot', icon: GitFork },
-            { id: 'whatsapp', label: 'Conexão QR', icon: QrCode },
-            { id: 'acessos', label: 'Acessos', icon: Users },
-          ].map(tab => {
-            const IconC = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-all ${
-                  isActive
-                    ? 'bg-pitoco-blue text-slate-950 shadow-md'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <IconC className="w-3.5 h-3.5" />
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="text-right hidden sm:block">
-            <span className="text-xs font-bold text-white block">
-              {user?.name || 'Malaca CEO'}
-            </span>
-            <span className="text-[10px] text-slate-400 block">
-              {user?.role === 'ceo' ? 'Diretor Geral' : 'Gerente'}
-            </span>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={logout}
-            className="text-xs border-white/10 hover:bg-white/5 text-slate-300"
-          >
-            <LogOut className="w-3.5 h-3.5 mr-1" />
-            Sair
-          </Button>
-        </div>
-      </header>
-
-      {/* Main Content Area */}
-      <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
-        {/* TAB 1: DASHBOARD */}
-        {activeTab === 'dashboard' && (
-          <div className="space-y-6">
-            <RedeLojasView
-              onSelectStore={store => setSelectedStoreId(store ? store.id : null)}
+    <div className="w-full text-zinc-100">
+      {/* TAB 1: DASHBOARD (SEPARADO POR PAPEL RBAC: CEO, GERENTE, CONSULTORA) */}
+      {activeTab === 'dashboard' && (
+        <>
+          {isCEO && (
+            <DashboardCEO
+              kpis={kpis}
+              stores={stores}
+              products={products}
+              tickets={tickets}
+              consultations={consultations}
+              onNavigateTab={handleTabChange}
+              onSelectStore={setSelectedStoreId}
             />
-
-            {/* Ações Rápidas do Dashboard */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 pt-4">
-              <Card 
-                onClick={() => setActiveTab('produtos')}
-                className="p-5 bg-dark-900 border-white/10 hover:border-pitoco-pink cursor-pointer transition-all flex items-center gap-4"
-              >
-                <div className="p-3.5 rounded-xl bg-pitoco-pink/20 text-pitoco-pink border border-pitoco-pink/30">
-                  <ShoppingBag className="w-6 h-6" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-white">Catálogo de Produtos</h4>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    {products.length} itens (Criar, Editar e Apagar)
-                  </p>
-                </div>
-              </Card>
-
-              <Card 
-                onClick={() => setActiveTab('bot_config')}
-                className="p-5 bg-dark-900 border-white/10 hover:border-pitoco-blue cursor-pointer transition-all flex items-center gap-4"
-              >
-                <div className="p-3.5 rounded-xl bg-pitoco-blue/20 text-pitoco-blue border border-pitoco-blue/30">
-                  <Bot className="w-6 h-6" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-white">Configurações do Robô</h4>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Chave PIX, Frete & Mensagens
-                  </p>
-                </div>
-              </Card>
-
-              <Card 
-                onClick={() => setActiveTab('atendimento')}
-                className="p-5 bg-dark-900 border-white/10 hover:border-amber-400 cursor-pointer transition-all flex items-center gap-4"
-              >
-                <div className="p-3.5 rounded-xl bg-amber-400/20 text-amber-400 border border-amber-400/30">
-                  <MessageSquare className="w-6 h-6" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-white">Inbox Humano</h4>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    {kpis?.waitingHuman || 0} conversas aguardando
-                  </p>
-                </div>
-              </Card>
-
-              <Card 
-                onClick={() => setActiveTab('whatsapp')}
-                className="p-5 bg-dark-900 border-white/10 hover:border-emerald-500 cursor-pointer transition-all flex items-center gap-4"
-              >
-                <div className="p-3.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  <QrCode className="w-6 h-6" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-white">Status WhatsApp Baileys</h4>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    QR Code & Status Discloud
-                  </p>
-                </div>
-              </Card>
-            </div>
-          </div>
-        )}
+          )}
+          {isManager && (
+            <DashboardGerente
+              stores={stores}
+              products={products}
+              tickets={tickets}
+              consultations={consultations}
+              onNavigateTab={handleTabChange}
+              selectedStoreId={selectedStoreId}
+              onSelectStore={setSelectedStoreId}
+            />
+          )}
+          {isAttendant && (
+            <DashboardConsultora
+              products={products}
+              consultations={consultations}
+              onNavigateTab={handleTabChange}
+            />
+          )}
+        </>
+      )}
 
         {/* TAB 2: REDE DE LOJAS */}
         {activeTab === 'lojas' && (
@@ -807,7 +728,6 @@ export default function AdminPage() {
         {activeTab === 'acessos' && (
           <AccessManagementView />
         )}
-      </main>
 
       {/* MODAL CRIAR / EDITAR PRODUTO */}
       {isProductModalOpen && (
@@ -929,9 +849,9 @@ export default function AdminPage() {
                     id="prodActiveCheck"
                     checked={prodActive}
                     onChange={e => setProdActive(e.target.checked)}
-                    className="rounded bg-dark-800 border-white/10 text-pitoco-blue focus:ring-0"
+                    className="rounded bg-[#18181b] border-white/10 text-emerald-400 focus:ring-0"
                   />
-                  <label htmlFor="prodActiveCheck" className="text-slate-300 cursor-pointer">
+                  <label htmlFor="prodActiveCheck" className="text-zinc-300 cursor-pointer">
                     Produto Ativo no Catálogo
                   </label>
                 </div>
@@ -942,13 +862,13 @@ export default function AdminPage() {
                   type="button"
                   variant="outline"
                   onClick={() => setIsProductModalOpen(false)}
-                  className="text-xs text-slate-300"
+                  className="text-xs text-zinc-300 border-white/10 hover:bg-white/5"
                 >
                   Cancelar
                 </Button>
                 <Button
                   type="submit"
-                  className="bg-pitoco-blue text-slate-950 font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg"
+                  className="bg-white text-black hover:bg-zinc-200 font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg"
                 >
                   {editingProduct ? 'Salvar Alterações' : 'Cadastrar Produto'}
                 </Button>

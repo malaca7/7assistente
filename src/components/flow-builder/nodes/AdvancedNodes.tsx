@@ -114,15 +114,15 @@ export const HttpRequestNode: React.FC<NodeProps> = ({ id, selected, data }) => 
       title={nodeData.label || 'Requisição HTTP / API'}
       subtitle="Integração externa"
       icon={<Globe className="w-4 h-4" />}
-      iconBg="bg-blue-500"
-      accentColor="bg-blue-500"
+      iconBg="bg-zinc-800 border border-zinc-700"
+      accentColor="bg-zinc-500"
       hasInput={true}
       hasOutput={true}
       isConfigured={Boolean(config.url)}
     >
       <div className="space-y-1">
         <div className="flex items-center gap-2">
-          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-950 text-blue-300 border border-blue-800">
+          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-zinc-900 text-zinc-200 border border-zinc-700">
             {config.method || 'POST'}
           </span>
           <span className="text-[11px] text-slate-400 truncate flex-1 font-mono">
@@ -861,7 +861,7 @@ export const ShippingCalculatorNode: React.FC<NodeProps> = ({ id, selected, data
 
   const outputs = [
     { id: 'shipping_motoboy', label: '1. Motoboy Express (Recife)', color: '!bg-amber-400' },
-    { id: 'shipping_correios', label: '2. Correios SEDEX / PAC', color: '!bg-blue-400' },
+    { id: 'shipping_correios', label: '2. Correios SEDEX / PAC', color: '!bg-zinc-400' },
     { id: 'shipping_pickup', label: '3. Retirada Grátis em Loja', color: '!bg-emerald-400' },
   ];
 
@@ -871,17 +871,17 @@ export const ShippingCalculatorNode: React.FC<NodeProps> = ({ id, selected, data
       selected={selected}
       title={nodeData.label || 'Calculadora de Frete & Entrega'}
       subtitle="Motoboy, Correios ou Retirada"
-      icon={<Truck className="w-4 h-4 text-blue-300" />}
-      iconBg="bg-gradient-to-tr from-blue-600 to-indigo-500"
-      accentColor="bg-blue-500"
+      icon={<Truck className="w-4 h-4 text-zinc-100" />}
+      iconBg="bg-zinc-800 border border-zinc-700"
+      accentColor="bg-zinc-500"
       hasInput={true}
       hasOutput={false}
       customOutputs={outputs}
       isConfigured={true}
     >
-      <div className="space-y-2 p-2.5 rounded-xl bg-dark-950/90 border border-blue-500/20 text-[11px]">
+      <div className="space-y-2 p-2.5 rounded-xl bg-dark-950/90 border border-zinc-800 text-[11px]">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-300 border border-blue-500/30">
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-200 border border-zinc-700">
             🚚 Logística & Prazo
           </span>
           <span className="text-[10px] text-slate-400 font-mono">3 Saídas</span>
@@ -890,7 +890,7 @@ export const ShippingCalculatorNode: React.FC<NodeProps> = ({ id, selected, data
           Apresenta opções com taxa fixa (Motoboy R$ 15 / Correios R$ 24,90 / Grátis acima de R$ 250).
         </p>
         <div className="border-t border-white/5 pt-1.5 space-y-1">
-          <span className="text-[10px] font-semibold text-blue-400 block">Variáveis Gravadas:</span>
+          <span className="text-[10px] font-semibold text-zinc-300 block">Variáveis Gravadas:</span>
           <div className="flex items-center gap-1.5 flex-wrap">
             <VariableBadge name="tipo_frete" />
             <VariableBadge name="valor_frete" />
@@ -1001,8 +1001,8 @@ export const MeasureGuideNode: React.FC<NodeProps> = ({ id, selected, data }) =>
       title={nodeData.label || 'Guia de Medidas (RN a 3 Anos)'}
       subtitle="Tabela de peso, altura e idade"
       icon={<Ruler className="w-4 h-4 text-cyan-300" />}
-      iconBg="bg-gradient-to-tr from-cyan-600 to-blue-500"
-      accentColor="bg-cyan-500"
+      iconBg="bg-zinc-800 border border-zinc-700"
+      accentColor="bg-zinc-500"
       hasInput={true}
       hasOutput={true}
       isConfigured={true}

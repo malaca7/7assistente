@@ -9,13 +9,13 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Pitoco de Gente Brand Colors
+        // Pitoco de Gente Brand Colors (Deep Dark & Neutral - Sem tons azuis)
         pitoco: {
           blue: {
-            DEFAULT: '#38BDF8', // Azul Bebê
-            light: '#BAE6FD',
-            lighter: '#E0F2FE',
-            dark: '#0284C7',
+            DEFAULT: '#f4f4f5', // Substituído azul por branco/zinco neutro
+            light: '#ffffff',
+            lighter: '#ffffff',
+            dark: '#18181b',
           },
           pink: {
             DEFAULT: '#F472B6', // Rosa Bebê / Seco
@@ -33,37 +33,37 @@ export default {
           lavender: '#EDE9FE',
         },
         brand: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8', // Azul Bebê Primário
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
-          950: '#082f49',
+          50: '#fafafa',
+          100: '#f4f4f5',
+          200: '#e4e4e7',
+          300: '#d4d4d8',
+          400: '#a1a1aa',
+          500: '#71717a',
+          600: '#52525b',
+          700: '#3f3f46',
+          800: '#27272a',
+          900: '#18181b',
+          950: '#09090b',
         },
         primary: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#38bdf8', // Pitoco Baby Blue
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
-          950: '#082f49',
+          50: '#fafafa',
+          100: '#f4f4f5',
+          200: '#e4e4e7',
+          300: '#d4d4d8',
+          400: '#a1a1aa',
+          500: '#f4f4f5',
+          600: '#52525b',
+          700: '#3f3f46',
+          800: '#27272a',
+          900: '#18181b',
+          950: '#09090b',
         },
         pinkBrand: {
           50: '#fdf2f8',
           100: '#fce7f3',
           200: '#fbcfe8',
           300: '#f9a8d4',
-          400: '#f472b6', // Pitoco Pink
+          400: '#f472b6',
           500: '#ec4899',
           600: '#db2777',
           700: '#be185d',
@@ -74,18 +74,18 @@ export default {
           200: '#a7f3d0',
           300: '#6ee7b7',
           400: '#34d399',
-          500: '#10b981', // Pitoco Mint
+          500: '#10b981',
           600: '#059669',
         },
         dark: {
-          950: '#030712', // Obsidian Slate
-          900: '#0b1329', // Deep Midnight Blue
-          850: '#0f172a', // Navy Dark
-          800: '#1e293b', // Dark Card
-          750: '#283548', // Dark Hover
-          700: '#334155', // Subtle Border
-          600: '#475569',
-          500: '#64748b',
+          950: '#000000', // Preto absoluto (sem azul)
+          900: '#09090b', // Preto carvão profundo
+          850: '#111113', // Superfície escura
+          800: '#18181b', // Cartão escuro zinc
+          750: '#202024', // Hover escuro
+          700: '#27272a', // Borda sutil
+          600: '#3f3f46',
+          500: '#71717a',
         }
       },
       fontFamily: {
@@ -93,10 +93,10 @@ export default {
         display: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
-        'glow-primary': '0 4px 20px -2px rgba(56, 189, 248, 0.4)',
-        'glow-pink': '0 4px 20px -2px rgba(244, 114, 182, 0.4)',
-        'glow-mint': '0 4px 20px -2px rgba(16, 185, 129, 0.4)',
-        'card-dark': '0 4px 20px -2px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.06)',
+        'glow-primary': '0 4px 20px -2px rgba(255, 255, 255, 0.08)',
+        'glow-pink': '0 4px 20px -2px rgba(244, 114, 182, 0.3)',
+        'glow-mint': '0 4px 20px -2px rgba(16, 185, 129, 0.3)',
+        'card-dark': '0 4px 20px -2px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.06)',
       },
       animation: {
         'pulse-subtle': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',

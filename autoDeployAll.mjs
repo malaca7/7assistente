@@ -38,16 +38,22 @@ async function main() {
     }
 
     const officialLogoPath = path.resolve(__dirname, 'public', 'logo.png');
-    if (fs.existsSync(officialLogoPath)) {
+    const novaLogoPath = path.resolve(__dirname, 'public', 'logopitoconova.png');
+    const logoSource = fs.existsSync(novaLogoPath) ? novaLogoPath : officialLogoPath;
+    if (fs.existsSync(logoSource)) {
       const logoTargets = [
         path.join(distDir, 'logo.png'),
         path.join(distDir, 'logo.jpg'),
+        path.join(distDir, 'logopitoconova.png'),
         path.resolve(__dirname, 'logo.png'),
         path.resolve(__dirname, 'logo.jpg'),
+        path.resolve(__dirname, 'logopitoconova.png'),
+        path.resolve(__dirname, 'public', 'logo.png'),
         path.resolve(__dirname, 'public', 'logo.jpg'),
+        path.resolve(__dirname, 'public', 'logopitoconova.png'),
       ];
       for (const target of logoTargets) {
-        fs.copyFileSync(officialLogoPath, target);
+        fs.copyFileSync(logoSource, target);
       }
       console.log('✅ Logo oficial transparente replicada para todas as rotas estáticas.');
     }

@@ -628,7 +628,7 @@ export const MobileFlowBuilder: React.FC<MobileFlowBuilderProps> = ({
                           </select>
                         </div>
                         <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1">
+                          <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1">
                             📦 Correios PAC/SEDEX:
                           </span>
                           <select

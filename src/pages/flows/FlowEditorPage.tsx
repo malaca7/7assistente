@@ -1574,10 +1574,10 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
                     setBranchSelectorNode(null);
                     handleStartConnecting(node, 'shipping_correios', 'Correios PAC/SEDEX');
                   }}
-                  className="w-full p-3 rounded-2xl bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 text-blue-300 font-bold text-xs flex items-center justify-between text-left transition-all"
+                  className="w-full p-3 rounded-2xl bg-zinc-800 hover:bg-zinc-700/80 border border-zinc-700 text-zinc-200 font-bold text-xs flex items-center justify-between text-left transition-all"
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="w-3 h-3 rounded-full bg-blue-400" />
+                    <span className="w-3 h-3 rounded-full bg-zinc-400" />
                     <span>📦 2. Correios PAC / SEDEX (Brasil)</span>
                   </div>
                   <ChevronRight className="w-4 h-4" />

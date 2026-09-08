@@ -225,8 +225,8 @@ export const NODE_DEFINITIONS: NodeDefinition[] = [
     category: 'Ecommerce',
     description: 'Oferece Motoboy Express (mesmo dia), Correios (SEDEX/PAC) ou Retirada Grátis em Loja.',
     icon: <Truck className="w-4 h-4" />,
-    iconBg: 'bg-blue-600',
-    accentColor: 'border-blue-500/40',
+    iconBg: 'bg-zinc-800 border border-zinc-700',
+    accentColor: 'border-zinc-700',
     badge: 'Logística',
     outputVars: ['tipo_frete', 'valor_frete', 'prazo_entrega'],
     defaultConfig: {
@@ -542,8 +542,8 @@ export const NODE_DEFINITIONS: NodeDefinition[] = [
     category: 'Integrations',
     description: 'Dispara requisições GET ou POST para APIs, CRMs ou Webhooks externos.',
     icon: <Globe className="w-4 h-4" />,
-    iconBg: 'bg-blue-600',
-    accentColor: 'border-blue-500/40',
+    iconBg: 'bg-zinc-800 border border-zinc-700',
+    accentColor: 'border-zinc-700',
     defaultConfig: { method: 'POST', url: 'https://api.exemplo.com/v1', headers: {}, body: '{}' },
   },
   {

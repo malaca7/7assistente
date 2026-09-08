@@ -2,12 +2,8 @@
 
 import React, { useState } from 'react';
 import { 
-  Building2, 
-  ShieldCheck, 
   Lock, 
-  Phone, 
   ArrowRight, 
-  Sparkles, 
   Store, 
   Users, 
   Heart,
@@ -30,24 +26,23 @@ export default function LoginPage() {
     e.preventDefault();
     if (!username || !password) return;
 
-    // Validações
     if (!/^[a-zA-Z]+$/.test(username)) {
-      toastError('Usuário Inválido', 'O usuário deve conter apenas letras (sem números, espaços ou símbolos).');
+      toastError('Usuário Inválido', 'O usuário deve conter apenas letras (sem números ou símbolos).');
       return;
     }
     if (!/^[0-9]+$/.test(password)) {
-      toastError('Senha Inválida', 'A senha deve conter apenas números (sem letras ou símbolos).');
+      toastError('Senha Inválida', 'A senha deve conter apenas números.');
       return;
     }
 
     const res = await login(username, password);
     if (res.success) {
-      success('Login realizado com sucesso!', 'Redirecionando para o painel administrativo...');
+      success('Bem-vindo(a)!', 'Acessando o painel de controle...');
       if (typeof window !== 'undefined') {
         window.location.href = '/admin';
       }
     } else {
-      toastError('Erro no Login', res.error || 'Credenciais inválidas');
+      toastError('Erro de Acesso', res.error || 'Credenciais não conferem');
     }
   };
 
@@ -66,101 +61,90 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-dark-950 flex flex-col justify-center items-center p-4 relative overflow-hidden">
-      {/* Background Decorative Blur */}
-      <div className="absolute top-1/4 -left-20 w-80 h-80 bg-pitoco-blue/15 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-pitoco-pink/15 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-black flex flex-col justify-center items-center p-4 sm:p-6 relative overflow-hidden select-none">
+      {/* Subtle Background Glows (Neutral Deep Carbon, No Blue) */}
+      <div className="absolute top-1/4 -left-20 w-96 h-96 bg-white/[0.02] rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-white/[0.02] rounded-full blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-md relative z-10 space-y-6">
-        {/* Brand Header */}
-        <div className="text-center space-y-3">
-          <div className="w-24 h-24 mx-auto rounded-2xl overflow-hidden border-2 border-pitoco-blue/40 shadow-glow-primary p-1 bg-dark-900/60 flex items-center justify-center">
-            <img 
-              src="/logo.png" 
-              alt="Logo Pitoco de Gente" 
-              className="w-full h-full object-contain" 
-            />
-          </div>
-          <div>
-            <h1 className="text-2xl font-black text-white tracking-tight flex items-center justify-center gap-2">
-              Pitoco de Gente
-            </h1>
-            <p className="text-xs text-slate-400 mt-1">
-              Roupas de Bebê, Infantil e Enxovais • Portal Administrativo
-            </p>
-          </div>
+        {/* Brand Header: Logo Grande e Sem Borda */}
+        <div className="text-center">
+          <img 
+            src="https://pitoco.malaca.com.br/logopitoconova.png" 
+            onError={(e) => {
+              // Fallback gracioso local
+              e.currentTarget.src = '/logopitoconova.png';
+            }}
+            alt="Pitoco de Gente" 
+            className="w-56 sm:w-64 max-w-[88%] h-auto mx-auto object-contain drop-shadow-2xl transition-transform hover:scale-[1.02] duration-300" 
+          />
         </div>
 
         {/* Login Card */}
-        <Card className="p-6 md:p-8 bg-dark-900 border-white/10 shadow-2xl">
+        <Card className="p-6 sm:p-8 bg-[#0c0c0e] border border-white/10 rounded-2xl shadow-2xl backdrop-blur-xl">
           {/* Seletor Rápido de Papéis para Demonstração e Testes */}
-          <div className="mb-6 pb-4 border-b border-white/5">
-            <span className="text-[11px] font-semibold text-slate-400 block mb-2 text-center uppercase tracking-wider">
-              Selecione o Perfil de Acesso:
+          <div className="mb-6 pb-4 border-b border-white/[0.08]">
+            <span className="text-[10px] font-semibold text-zinc-400 block mb-2.5 text-center uppercase tracking-widest">
+              Perfil de Acesso:
             </span>
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => setRoleCredentials('ceo')}
-                className={`p-2 rounded-xl text-center border transition-all ${
+                className={`p-2.5 rounded-xl text-center border transition-all ${
                   selectedRoleHint === 'ceo'
-                    ? 'border-pitoco-blue bg-pitoco-blue/15 text-pitoco-blue shadow-sm'
-                    : 'border-white/5 bg-dark-800 text-slate-400 hover:text-white'
+                    ? 'border-white bg-white/10 text-white font-semibold shadow-md'
+                    : 'border-white/5 bg-[#141416] text-zinc-400 hover:text-white hover:bg-[#1a1a1e]'
                 }`}
               >
-                <Crown className="w-4 h-4 mx-auto mb-1 text-pitoco-blue" />
-                <span className="text-[10px] font-bold block">CEO</span>
-                <span className="text-[8px] text-slate-500 block">@ceo</span>
+                <Crown className="w-4 h-4 mx-auto mb-1 text-amber-400" />
+                <span className="text-[11px] font-bold block">CEO</span>
+                <span className="text-[8px] text-zinc-500 block">@ceo</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setRoleCredentials('manager')}
-                className={`p-2 rounded-xl text-center border transition-all ${
+                className={`p-2.5 rounded-xl text-center border transition-all ${
                   selectedRoleHint === 'manager'
-                    ? 'border-emerald-500 bg-emerald-500/15 text-emerald-400 shadow-sm'
-                    : 'border-white/5 bg-dark-800 text-slate-400 hover:text-white'
+                    ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400 font-semibold shadow-md'
+                    : 'border-white/5 bg-[#141416] text-zinc-400 hover:text-white hover:bg-[#1a1a1e]'
                 }`}
               >
                 <Store className="w-4 h-4 mx-auto mb-1 text-emerald-400" />
-                <span className="text-[10px] font-bold block">Gerente</span>
-                <span className="text-[8px] text-slate-500 block">@gerente</span>
+                <span className="text-[11px] font-bold block">Gerente</span>
+                <span className="text-[8px] text-zinc-500 block">@gerente</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setRoleCredentials('attendant')}
-                className={`p-2 rounded-xl text-center border transition-all ${
+                className={`p-2.5 rounded-xl text-center border transition-all ${
                   selectedRoleHint === 'attendant'
-                    ? 'border-pitoco-pink bg-pitoco-pink/15 text-pitoco-pink shadow-sm'
-                    : 'border-white/5 bg-dark-800 text-slate-400 hover:text-white'
+                    ? 'border-pink-500 bg-pink-500/10 text-pink-400 font-semibold shadow-md'
+                    : 'border-white/5 bg-[#141416] text-zinc-400 hover:text-white hover:bg-[#1a1a1e]'
                 }`}
               >
-                <Heart className="w-4 h-4 mx-auto mb-1 text-pitoco-pink" />
-                <span className="text-[10px] font-bold block">Consultora</span>
-                <span className="text-[8px] text-slate-500 block">@consultora</span>
+                <Heart className="w-4 h-4 mx-auto mb-1 text-pink-400" />
+                <span className="text-[11px] font-bold block">Consultora</span>
+                <span className="text-[8px] text-zinc-500 block">@consultora</span>
               </button>
             </div>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-slate-300">
-                  Nome de Usuário:
-                </label>
-                <span className="text-[10px] text-pitoco-blue font-medium bg-pitoco-blue/10 px-2 py-0.5 rounded-full border border-pitoco-blue/20">
-                  Apenas Letras [a-z]
-                </span>
-              </div>
+              <label className="text-xs font-medium text-zinc-300 block mb-1.5">
+                Usuário
+              </label>
               <div className="relative">
-                <Users className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Users className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={username}
                   onChange={e => setUsername(e.target.value.replace(/[^a-zA-Z]/g, '').toLowerCase())}
-                  placeholder="ex: ceo, gerente, consultora"
-                  className="w-full pl-9 pr-3 py-2.5 bg-dark-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-pitoco-blue transition-colors font-mono"
+                  placeholder="Seu usuário"
+                  className="w-full pl-10 pr-3.5 py-3 bg-[#141416] border border-white/10 rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition-colors"
                   required
                   autoCapitalize="none"
                   autoCorrect="off"
@@ -169,24 +153,19 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-slate-300">
-                  Senha de Acesso:
-                </label>
-                <span className="text-[10px] text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                  Apenas Números [0-9]
-                </span>
-              </div>
+              <label className="text-xs font-medium text-zinc-300 block mb-1.5">
+                Senha
+              </label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Lock className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="password"
                   value={password}
                   inputMode="numeric"
                   pattern="[0-9]*"
                   onChange={e => setPassword(e.target.value.replace(/\D/g, ''))}
-                  placeholder="ex: 123456"
-                  className="w-full pl-9 pr-3 py-2.5 bg-dark-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-pitoco-blue transition-colors font-mono tracking-widest"
+                  placeholder="Sua senha numérica"
+                  className="w-full pl-10 pr-3.5 py-3 bg-[#141416] border border-white/10 rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition-colors tracking-widest font-mono"
                   required
                 />
               </div>
@@ -195,7 +174,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-pitoco-blue hover:bg-pitoco-blue/90 text-slate-950 font-bold text-xs py-3 rounded-xl transition-all shadow-glow-primary flex items-center justify-center gap-2 mt-2"
+              className="w-full bg-white hover:bg-zinc-200 text-black font-bold text-sm py-3.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 mt-2"
             >
               {isLoading ? (
                 <span>Autenticando...</span>
@@ -207,13 +186,6 @@ export default function LoginPage() {
               )}
             </Button>
           </form>
-
-          <div className="mt-6 pt-4 border-t border-white/5 text-center">
-            <span className="text-[11px] text-slate-500 flex items-center justify-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              Acesso seguro com permissões RBAC no Supabase
-            </span>
-          </div>
         </Card>
       </div>
     </div>

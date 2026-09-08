@@ -60,3 +60,11 @@ export function getLocalDateStr(d = new Date()): string {
   return `${year}-${month}-${day}`;
 }
 
+export function formatCurrency(val: number): string {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(val || 0);
+}
+
+

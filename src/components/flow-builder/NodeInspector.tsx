@@ -1709,8 +1709,8 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
         {/* 18. Shipping Calculator Node */}
         {nodeType === 'shipping_calculator' && (
           <div className="space-y-4">
-            <div className="p-3 rounded-2xl bg-blue-950/40 border border-blue-500/30 text-xs text-blue-200 space-y-1">
-              <span className="font-bold flex items-center gap-1.5 text-blue-300">
+            <div className="p-3 rounded-2xl bg-dark-900 border border-zinc-700/60 text-xs text-zinc-200 space-y-1">
+              <span className="font-bold flex items-center gap-1.5 text-zinc-100">
                 <Truck className="w-4 h-4" />
                 Calculadora de Frete & Entrega (3 Saídas)
               </span>
