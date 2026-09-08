@@ -170,11 +170,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
   ];
 
-  // Filtrar de acordo com o papel atual
+  // Filtrar de acordo com os painéis marcados para o usuário (ou pelo papel de fallback)
+  const allowedPanels = user?.allowed_panels;
   const currentRole = user?.role || 'ceo';
   const filteredGroups = allNavigationGroups.map(group => ({
     ...group,
-    items: group.items.filter(item => item.roles.includes(currentRole)),
+    items: group.items.filter(item => {
+      if (Array.isArray(allowedPanels) && allowedPanels.length > 0) {
+        return allowedPanels.includes(item.id);
+      }
+      return item.roles.includes(currentRole);
+    }),
   })).filter(group => group.items.length > 0);
 
   const handleItemClick = (path: string) => {
@@ -215,10 +221,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className="flex items-center gap-3 cursor-pointer overflow-hidden group"
             >
               <img 
-                src="https://pitoco.malaca.com.br/logopitoconova.png" 
-                onError={(e) => { e.currentTarget.src = '/logopitoconova.png'; }}
+                src="https://pitoco.malaca.com.br/logo.png" 
+                onError={(e) => { e.currentTarget.src = '/logo.png'; }}
                 alt="Pitoco de Gente" 
-                className="h-9 w-auto object-contain transition-transform group-hover:scale-105" 
+                className="h-10 w-auto object-contain transition-transform group-hover:scale-105" 
               />
               <div className="leading-tight overflow-hidden">
                 <span className="text-xs font-bold text-white tracking-tight block truncate">
@@ -236,10 +242,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               title="Pitoco de Gente"
             >
               <img 
-                src="https://pitoco.malaca.com.br/logopitoconova.png" 
-                onError={(e) => { e.currentTarget.src = '/logopitoconova.png'; }}
+                src="https://pitoco.malaca.com.br/logo.png" 
+                onError={(e) => { e.currentTarget.src = '/logo.png'; }}
                 alt="Pitoco" 
-                className="w-8 h-8 object-contain" 
+                className="w-9 h-9 object-contain" 
               />
             </div>
           )}

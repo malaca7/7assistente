@@ -251,7 +251,7 @@ export const defaultBotProfile: BotProfile = {
   company_name: 'Pitoco de Gente',
   gender: 'neutral',
   tone: 'friendly',
-  avatar_url: '/logo.png',
+  avatar_url: 'https://pitoco.malaca.com.br/logo.png',
   company_segment: 'Moda Bebê, Infantil e Enxovais',
   support_email: 'contato@pitocodegente.com.br',
   support_phone: '81996138924',

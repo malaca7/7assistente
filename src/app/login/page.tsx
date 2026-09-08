@@ -70,10 +70,10 @@ export default function LoginPage() {
         {/* Brand Header: Logo Grande e Sem Borda */}
         <div className="text-center">
           <img 
-            src="https://pitoco.malaca.com.br/logopitoconova.png" 
+            src="https://pitoco.malaca.com.br/logo.png" 
             onError={(e) => {
               // Fallback gracioso local
-              e.currentTarget.src = '/logopitoconova.png';
+              e.currentTarget.src = '/logo.png';
             }}
             alt="Pitoco de Gente" 
             className="w-56 sm:w-64 max-w-[88%] h-auto mx-auto object-contain drop-shadow-2xl transition-transform hover:scale-[1.02] duration-300" 

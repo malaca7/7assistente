@@ -31,6 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser({
             ...profile,
             role: (session.role as SystemRole) || profile.role || 'ceo',
+            allowed_panels: session.allowed_panels || profile.allowed_panels,
           });
         } else {
           setUser(null);
@@ -77,6 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           authenticated: true, 
           username: check.user.username || cleanUser,
           role: check.user.role,
+          allowed_panels: check.user.allowed_panels || [],
           name: check.user.name,
           store_id: check.user.store_id || null,
           store_name: check.user.store_name,

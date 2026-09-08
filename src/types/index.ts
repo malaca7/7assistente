@@ -10,6 +10,7 @@ export interface AdminProfile {
   email?: string;
   password?: string; // EXCLUSIVAMENTE NÚMEROS: ^[0-9]+$
   role: SystemRole;
+  allowed_panels?: string[]; // IDs dos painéis que o usuário pode acessar
   store_id?: string | null; // null = Rede inteira (CEO)
   store_name?: string;
   avatar_url?: string;
@@ -22,7 +23,8 @@ export interface SystemAccessUser {
   name: string;
   username: string; // EXCLUSIVAMENTE LETRAS: ^[a-zA-Z]+$
   password?: string; // EXCLUSIVAMENTE NÚMEROS: ^[0-9]+$
-  role: SystemRole;
+  role?: SystemRole;
+  allowed_panels?: string[]; // IDs dos painéis permitidos para este acesso
   store_id?: string | null; // null = Toda a Rede
   store_name?: string;
   status: 'active' | 'inactive';
@@ -400,10 +402,11 @@ export interface SystemUser {
   email?: string;
   password?: string;
   pin?: string;
-  role: SystemRole;
+  role?: SystemRole;
+  allowed_panels?: string[];
   store_id?: string | null; // null = CEO (all stores)
   store_name?: string;
-  permissions: UserPermissions;
+  permissions?: UserPermissions;
   status: 'active' | 'inactive';
   created_at: string;
   updated_at?: string;

@@ -1842,6 +1842,129 @@ function parseCustomDateString(input) {
       break;
     }
 
+    // 4.1 Client Lookup Node (Consultar Cliente CRM no Bot)
+    else if (nodeType === 'client_lookup') {
+      const lookupPhoneVar = config.phoneVar || 'telefone_whatsapp';
+      const targetPhone = String(session.variables[lookupPhoneVar] || cleanPhone).replace(/\D/g, '');
+      const contactInfo = await findRegisteredContact(targetPhone, senderName, db);
+      const isFound = contactInfo.isRegistered;
+      const contact = contactInfo.contact;
+
+      session.variables['cliente_encontrado'] = isFound;
+      session.variables['is_primeiro_contato'] = !isFound;
+      session.variables['tipo_cliente'] = isFound ? 'recorrente' : 'novo';
+      session.variables['telefone_whatsapp'] = targetPhone || cleanPhone;
+
+      if (isFound && contact) {
+        session.variables['cliente_nome'] = contact.name || senderName;
+        session.variables['nome_cliente'] = contact.name || senderName;
+        session.variables['cliente_telefone'] = contact.phone || targetPhone;
+        session.variables['cliente_email'] = contact.email || '';
+        session.variables['cliente_bebe'] = contact.baby_name || contact.custom_fields?.baby_name || '';
+        session.variables['cliente_dpp'] = contact.due_date || contact.custom_fields?.due_date || '';
+        session.variables['cliente_tags'] = (contact.tags || []).join(', ');
+        if (contact.custom_fields) {
+          Object.assign(session.variables, contact.custom_fields);
+        }
+      }
+
+      console.log(`[FlowRunner] 🔍 [Client Lookup] Busca por ${targetPhone}: ${isFound ? `✅ Localizado: "${contact?.name}"` : '❌ Não encontrado na base'}`);
+
+      const targetHandle = isFound ? 'found' : 'not_found';
+      let branchEdge = edges.find((e) => e.source === currentNode.id && (e.sourceHandle === targetHandle || (isFound ? e.sourceHandle === 'is_existing' : e.sourceHandle === 'is_new')));
+      if (!branchEdge) {
+        branchEdge = edges.find((e) => e.source === currentNode.id && (isFound ? e.sourceHandle?.includes('found') || e.sourceHandle?.includes('exist') : e.sourceHandle?.includes('not') || e.sourceHandle?.includes('new')));
+      }
+      if (!branchEdge) {
+        const nodeEdges = edges.filter((e) => e.source === currentNode.id);
+        branchEdge = isFound ? nodeEdges[0] : (nodeEdges[1] || nodeEdges[0]);
+      }
+
+      if (branchEdge) {
+        currentNode = nodes.find((n) => n.id === branchEdge.target);
+        if (currentNode) {
+          session.currentNodeId = currentNode.id;
+          continue;
+        }
+      }
+      break;
+    }
+
+    // 4.2 Client Upsert Node (Cadastrar / Atualizar Cliente CRM no Bot)
+    else if (nodeType === 'client_upsert' || nodeType === 'update_contact') {
+      const rawName = replaceVars(config.nameField || session.variables['nome_cliente'] || session.variables['cliente_nome'] || senderName, session.variables, botProfile);
+      const rawPhone = replaceVars(config.phoneField || session.variables['telefone_whatsapp'] || cleanPhone, session.variables, botProfile);
+      const targetPhone = String(rawPhone || cleanPhone).replace(/\D/g, '');
+      const babyName = replaceVars(config.babyNameField || session.variables['nome_bebe'] || session.variables['baby_name'] || '', session.variables, botProfile);
+      const dueDate = replaceVars(config.dueDateField || session.variables['data_parto'] || session.variables['due_date'] || '', session.variables, botProfile);
+      const rawTags = config.tagsField || 'Cliente WhatsApp, Bot';
+      const tagsList = typeof rawTags === 'string' ? rawTags.split(',').map((t) => t.trim()).filter(Boolean) : (rawTags || []);
+      const notes = replaceVars(config.notesField || 'Cadastrado automaticamente pelo fluxo do bot', session.variables, botProfile);
+
+      if (!db.contacts) db.contacts = [];
+      let existingIndex = db.contacts.findIndex((c) => {
+        const p = String(c.phone || '').replace(/\D/g, '');
+        return p === targetPhone || p.endsWith(targetPhone) || targetPhone.endsWith(p);
+      });
+
+      let savedContact = null;
+      if (existingIndex >= 0) {
+        db.contacts[existingIndex] = {
+          ...db.contacts[existingIndex],
+          name: rawName || db.contacts[existingIndex].name,
+          phone: targetPhone,
+          baby_name: babyName || db.contacts[existingIndex].baby_name,
+          due_date: dueDate || db.contacts[existingIndex].due_date,
+          tags: Array.from(new Set([...(db.contacts[existingIndex].tags || []), ...tagsList])),
+          notes: notes || db.contacts[existingIndex].notes,
+          last_interaction: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        savedContact = db.contacts[existingIndex];
+      } else {
+        savedContact = {
+          id: `contact-${targetPhone || Date.now()}`,
+          name: rawName || 'Cliente WhatsApp',
+          phone: targetPhone,
+          baby_name: babyName,
+          due_date: dueDate,
+          tags: tagsList,
+          status: 'active',
+          notes: notes,
+          total_orders: 0,
+          created_at: new Date().toISOString(),
+          last_interaction: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        db.contacts.push(savedContact);
+      }
+
+      await syncContactToSupabase(savedContact);
+      try {
+        fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2), 'utf-8');
+      } catch (err) {}
+
+      session.variables['cliente_salvo'] = true;
+      session.variables['cliente_id'] = savedContact.id;
+      session.variables['cliente_nome'] = savedContact.name;
+      session.variables['nome_cliente'] = savedContact.name;
+      session.variables['cliente_telefone'] = savedContact.phone;
+      if (savedContact.baby_name) session.variables['cliente_bebe'] = savedContact.baby_name;
+      if (savedContact.due_date) session.variables['cliente_dpp'] = savedContact.due_date;
+
+      console.log(`[FlowRunner] 💾 [Client Upsert] Cliente salvo com sucesso: ${savedContact.name} (${savedContact.phone})`);
+
+      const outgoing = edges.find((e) => e.source === currentNode.id);
+      if (outgoing) {
+        currentNode = nodes.find((n) => n.id === outgoing.target);
+        if (currentNode) {
+          session.currentNodeId = currentNode.id;
+          continue;
+        }
+      }
+      break;
+    }
+
     // 4. Check Contact Node (Primeiro Contato vs Contato Salvo / Recorrente)
     else if (nodeType === 'check_contact') {
       const contactInfo = await findRegisteredContact(cleanPhone, senderName, db);

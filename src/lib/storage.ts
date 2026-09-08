@@ -1285,11 +1285,11 @@ export const StorageService = {
   // ==============================================================================
   // 11. AUTH & SESSÃO (USUÁRIO APENAS LETRAS / SENHA APENAS NÚMEROS)
   // ==============================================================================
-  getSession(): { authenticated: boolean; username: string; phone?: string; role?: string; name?: string; store_id?: string | null; store_name?: string } | null {
+  getSession(): { authenticated: boolean; username: string; phone?: string; role?: string; allowed_panels?: string[]; name?: string; store_id?: string | null; store_name?: string } | null {
     return getItem(STORAGE_KEYS.AUTH_TOKEN, null);
   },
 
-  setSession(session: { authenticated: boolean; username: string; phone?: string; role?: string; name?: string; store_id?: string | null; store_name?: string } | null): void {
+  setSession(session: { authenticated: boolean; username: string; phone?: string; role?: string; allowed_panels?: string[]; name?: string; store_id?: string | null; store_name?: string } | null): void {
     if (session) setItem(STORAGE_KEYS.AUTH_TOKEN, session);
     else if (typeof window !== 'undefined') localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
   },
@@ -1346,7 +1346,8 @@ export const StorageService = {
           id: matched.id,
           username: matched.username,
           name: matched.name,
-          role: matched.role,
+          role: matched.role || 'attendant',
+          allowed_panels: matched.allowed_panels || [],
           store_id: matched.store_id || null,
           store_name: matched.store_name,
           created_at: matched.created_at,
@@ -1363,6 +1364,8 @@ export const StorageService = {
     }
 
     // 4. Credenciais padrão de emergência / Demonstração
+    const ALL_PANELS = ['dashboard', 'atendimento', 'produtos', 'lojas', 'clientes', 'tickets', 'fluxos', 'whatsapp', 'bot_config', 'acessos', 'configuracoes', 'logs'];
+
     // CEO: ceo / 123456
     if ((cleanUser === 'ceo' || cleanUser === 'malaca') && (cleanPass === '123456' || cleanPass === '199425')) {
       const profile: AdminProfile = {
@@ -1370,6 +1373,7 @@ export const StorageService = {
         username: cleanUser,
         name: 'Malaca CEO',
         role: 'ceo',
+        allowed_panels: ALL_PANELS,
         store_id: null,
         store_name: 'Toda a Rede (Global)',
         created_at: new Date().toISOString(),

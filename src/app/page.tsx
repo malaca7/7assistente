@@ -95,7 +95,12 @@ export default function StorefrontPage() {
       <header className="h-20 border-b border-white/10 bg-dark-900/80 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-40">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl overflow-hidden border border-white/10 shadow-glow-primary p-0.5 bg-dark-900/60 flex items-center justify-center">
-            <img src="/logo.png" alt="Logo Pitoco de Gente" className="w-full h-full object-contain" />
+            <img 
+              src="https://pitoco.malaca.com.br/logo.png" 
+              onError={(e) => { e.currentTarget.src = '/logo.png'; }}
+              alt="Logo Pitoco de Gente" 
+              className="w-full h-full object-contain" 
+            />
           </div>
           <div>
             <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-2">

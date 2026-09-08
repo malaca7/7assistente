@@ -212,27 +212,13 @@
       "status": "published",
       "is_active": true,
       "version": 3,
-      "node_count": 5,
+      "node_count": 8,
       "trigger_type": "Qualquer Mensagem Recebida",
       "store_id": null,
       "store_name": "Toda a Rede",
       "created_at": "2026-09-01T10:00:00.000Z",
-      "updated_at": "2026-09-08T18:35:13.214Z",
+      "updated_at": "2026-09-08T18:55:20.157Z",
       "steps": []
-    },
-    {
-      "id": "flow-pitoco-002",
-      "name": "Consultoria VIP de Enxoval & Agendamento",
-      "description": "Capta\u00e7\u00e3o e reserva de consultoria personalizada para mam\u00e3es e gestantes com especialista em enxoval.",
-      "status": "draft",
-      "is_active": false,
-      "version": 2,
-      "node_count": 4,
-      "trigger_type": "Palavra-chave / Menu 2",
-      "store_id": null,
-      "store_name": "Toda a Rede",
-      "created_at": "2026-09-02T10:00:00.000Z",
-      "updated_at": "2026-09-07T18:10:11.471Z"
     },
     {
       "id": "flow-pitoco-003",
@@ -800,7 +786,7 @@
         "type": "message",
         "position": {
           "x": 530,
-          "y": 300
+          "y": 530
         },
         "data": {
           "label": "Boas-Vindas Pitoco de Gente",
@@ -815,14 +801,14 @@
           "width": 330,
           "height": 213
         },
-        "selected": true
+        "selected": false
       },
       {
         "id": "node-buttons-pitoco",
         "type": "buttons",
         "position": {
           "x": 530,
-          "y": 550
+          "y": 780
         },
         "data": {
           "label": "Menu Principal de Op\u00e7\u00f5es",
@@ -858,7 +844,7 @@
         "type": "show_services",
         "position": {
           "x": 100,
-          "y": 866
+          "y": 1096
         },
         "data": {
           "label": "Exibir Cat\u00e1logo de Produtos",
@@ -873,14 +859,16 @@
         "measured": {
           "width": 330,
           "height": 174
-        }
+        },
+        "selected": false,
+        "dragging": false
       },
       {
         "id": "node-handoff-pitoco",
         "type": "human_handoff",
         "position": {
           "x": 530,
-          "y": 866
+          "y": 1096
         },
         "data": {
           "label": "Falar com Consultora",
@@ -894,7 +882,82 @@
         "measured": {
           "width": 330,
           "height": 130
-        }
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-question-1788893542405",
+        "type": "question",
+        "position": {
+          "x": 0,
+          "y": 585
+        },
+        "data": {
+          "label": "Pergunta & Resposta",
+          "nodeType": "question",
+          "description": "Faz uma pergunta ao cliente e salva o texto digitado em uma vari\u00e1vel.",
+          "isConfigured": true,
+          "config": {
+            "questionText": "Por favor, informe seu *Nome*:",
+            "expectedType": "text",
+            "variableName": "nome_cliente"
+          }
+        },
+        "measured": {
+          "width": 330,
+          "height": 165
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-check_contact-1788893686878",
+        "type": "check_contact",
+        "position": {
+          "x": 135,
+          "y": 285
+        },
+        "data": {
+          "label": "Verificar Contato (Novo vs Salvo)",
+          "nodeType": "check_contact",
+          "description": "Bifurca o fluxo entre Primeiro Contato (1\u00aa Vez) e Contato Salvo (Recorrente).",
+          "isConfigured": true,
+          "config": {}
+        },
+        "measured": {
+          "width": 330,
+          "height": 273
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-update_contact-1788893708199",
+        "type": "update_contact",
+        "position": {
+          "x": 0,
+          "y": 795
+        },
+        "data": {
+          "label": "Salvar / Vincular Dados",
+          "nodeType": "update_contact",
+          "description": "Salva nome, foto oficial, tags e campos customizados direto no perfil do WhatsApp.",
+          "isConfigured": true,
+          "config": {
+            "phoneVarName": "telefone_whatsapp",
+            "contactName": "nome_cliente",
+            "tags": "Lead WhatsApp",
+            "customFieldKey": "interesse_principal",
+            "customFieldValue": "servico_selecionado"
+          }
+        },
+        "measured": {
+          "width": 330,
+          "height": 182
+        },
+        "selected": true,
+        "dragging": false
       }
     ]
   },
@@ -1225,13 +1288,6 @@
     ],
     "flow-pitoco-001": [
       {
-        "id": "edge-p1-p2",
-        "source": "node-trigger-pitoco",
-        "target": "node-welcome-pitoco",
-        "animated": true,
-        "targetHandle": null
-      },
-      {
         "id": "edge-p2-p3",
         "source": "node-welcome-pitoco",
         "target": "node-buttons-pitoco",
@@ -1251,6 +1307,51 @@
         "target": "node-handoff-pitoco",
         "sourceHandle": "btn_atendente",
         "targetHandle": null
+      },
+      {
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        },
+        "pathOptions": {
+          "offset": 35,
+          "borderRadius": 20
+        },
+        "source": "node-trigger-pitoco",
+        "target": "node-question-1788893542405",
+        "id": "xy-edge__node-trigger-pitoco-node-question-1788893542405"
+      },
+      {
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        },
+        "pathOptions": {
+          "offset": 35,
+          "borderRadius": 20
+        },
+        "source": "node-question-1788893542405",
+        "target": "node-update_contact-1788893708199",
+        "id": "xy-edge__node-question-1788893542405-node-update_contact-1788893708199"
+      },
+      {
+        "type": "smoothstep",
+        "animated": true,
+        "style": {
+          "stroke": "#06b6d4",
+          "strokeWidth": 2.5
+        },
+        "pathOptions": {
+          "offset": 35,
+          "borderRadius": 20
+        },
+        "source": "node-update_contact-1788893708199",
+        "target": "node-welcome-pitoco",
+        "id": "xy-edge__node-update_contact-1788893708199-node-welcome-pitoco"
       }
     ]
   },
@@ -2145,7 +2246,7 @@
       "store_name": "Toda a Rede (Global)",
       "status": "active",
       "created_at": "2026-09-03T21:32:42.145Z",
-      "updated_at": "2026-09-08T12:28:29.436Z"
+      "updated_at": "2026-09-08T18:47:43.839Z"
     },
     {
       "id": "user-1788477817013",
@@ -2212,29 +2313,29 @@
     }
   ],
   "botProfile": {
-    "name": "Pitoco Bot",
+    "name": "Victoria",
     "company_name": "Pitoco de Gente",
-    "gender": "male",
+    "gender": "female",
     "tone": "Amig\u00e1vel e Profissional",
-    "avatar_url": "",
+    "avatar_url": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&auto=format&fit=crop&q=80",
     "company_segment": "Barbearia e Est\u00e9tica Masculina",
     "support_email": "contato@pitocodegente.com.br",
-    "support_phone": "81996138924",
+    "support_phone": "81987300915",
     "business_hours": "08:00 \u00e0s 19:00",
-    "website_url": "https://talvane.malaca.com.br",
+    "website_url": "https://pitoco.malaca.com.br",
     "welcome_message": "\ud83d\udc76\u2728 *PITOCO DE GENTE \u2014 Roupas de Beb\u00ea & Enxovais*\nOl\u00e1, *{clientName}*! Bem-vindo(a) \u00e0 nossa loja oficial! Como podemos te ajudar hoje?",
-    "company_address": "",
+    "company_address": "R. Vig. Jo\u00e3o Batista, 93 - Centro, Cabo de Santo Agostinho - PE, 54505-470",
     "pix_key": "financeiro@pitocodegente.com.br",
     "pix_owner": "Pitoco de Gente Artigos Infantis LTDA",
     "shipping_motoboy": 15,
     "shipping_correios": 24.9,
     "free_shipping_min": 250,
     "id": "default",
-    "updated_at": "2026-09-03T16:56:59.719Z",
+    "updated_at": "2026-09-08T18:47:31.884Z",
     "handoff_message": "Vou transferir seu atendimento para um de nossos profissionais. Por favor, aguarde um instante!",
     "pix_key_type": "telefone",
     "notify_new_bookings": true,
-    "notify_phone": "81996138924",
+    "notify_phone": "81987300915",
     "play_audio_alerts": true,
     "custom_variables": [],
     "bot_nome": "Pitoco Bot",
@@ -2251,19 +2352,38 @@
     "whatsapp_business_account_id": "209876543210987",
     "webhook_verify_token": "7assistente_meta_webhook_token_2026",
     "bot_profile": {
-      "name": "Pitoco Bot",
+      "name": "Victoria",
       "company_name": "Pitoco de Gente",
-      "gender": "male",
+      "gender": "female",
       "tone": "Amig\u00e1vel e Profissional",
-      "avatar_url": "",
+      "avatar_url": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&auto=format&fit=crop&q=80",
       "company_segment": "Barbearia e Est\u00e9tica Masculina",
-      "support_email": "contato@talvanebarber.com.br",
-      "support_phone": "81996138924",
+      "support_email": "contato@pitocodegente.com.br",
+      "support_phone": "81987300915",
       "business_hours": "08:00 \u00e0s 19:00",
-      "website_url": "https://talvane.malaca.com.br",
-      "welcome_message": "Ol\u00e1! Seja bem-vindo \u00e0 Pitoco de Gente. Como podemos te ajudar hoje?",
+      "website_url": "https://pitoco.malaca.com.br",
+      "welcome_message": "\ud83d\udc76\u2728 *PITOCO DE GENTE \u2014 Roupas de Beb\u00ea & Enxovais*\nOl\u00e1, *{clientName}*! Bem-vindo(a) \u00e0 nossa loja oficial! Como podemos te ajudar hoje?",
+      "company_address": "R. Vig. Jo\u00e3o Batista, 93 - Centro, Cabo de Santo Agostinho - PE, 54505-470",
+      "pix_key": "financeiro@pitocodegente.com.br",
+      "pix_owner": "Pitoco de Gente Artigos Infantis LTDA",
+      "shipping_motoboy": 15,
+      "shipping_correios": 24.9,
+      "free_shipping_min": 250,
       "id": "default",
-      "updated_at": "2026-09-03T16:56:59.719Z"
+      "updated_at": "2026-09-08T18:47:31.884Z",
+      "handoff_message": "Vou transferir seu atendimento para um de nossos profissionais. Por favor, aguarde um instante!",
+      "pix_key_type": "telefone",
+      "notify_new_bookings": true,
+      "notify_phone": "81987300915",
+      "play_audio_alerts": true,
+      "custom_variables": [],
+      "bot_nome": "Pitoco Bot",
+      "empresa": "Pitoco de Gente",
+      "pix_name": "Pitoco de Gente Artigos Infantis LTDA",
+      "shipping_motoboy_price": 15,
+      "shipping_correios_price": 24.9,
+      "free_shipping_threshold": 250,
+      "is_active": true
     },
     "whatsapp_session": {
       "status": "disconnected",
@@ -2271,7 +2391,7 @@
       "name": ""
     },
     "created_at": "2026-09-03T16:43:07.297Z",
-    "updated_at": "2026-09-03T18:19:57.748Z",
+    "updated_at": "2026-09-08T18:47:36.906Z",
     "whatsapp_access_token_encrypted": "EAAO...7assistente_token_secret_vault",
     "backend_url": "https://talvane.discloud.app",
     "custom_variables": []

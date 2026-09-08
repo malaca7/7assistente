@@ -71,7 +71,7 @@ const AVATAR_PRESETS = [
   {
     gender: 'female',
     name: 'Sofia (Consultora VIP)',
-    url: '/logo.png',
+    url: 'https://pitoco.malaca.com.br/logo.png',
   },
   {
     gender: 'male',
