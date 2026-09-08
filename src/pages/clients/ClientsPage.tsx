@@ -65,6 +65,7 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Contact | null>(null);
   const [clientToDelete, setClientToDelete] = useState<Contact | null>(null);
+  const [isDeleteAllModalOpen, setIsDeleteAllModalOpen] = useState(false);
 
   // Quick Appointment Modal for specific client
   const [isQuickAptModalOpen, setIsQuickAptModalOpen] = useState(false);
@@ -117,7 +118,12 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
 
     // 3. Sincronização quando o banco ou localStorage for atualizado
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === '7assistente_contacts' || e.key === '7assistente_appointments') {
+      if (
+        e.key === 'pitoco_contacts' ||
+        e.key === '7assistente_contacts' ||
+        e.key === 'pitoco_appointments' ||
+        e.key === '7assistente_appointments'
+      ) {
         loadData(true);
       }
     };
@@ -361,6 +367,21 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
     }
   };
 
+  // Delete All Clients
+  const handleConfirmDeleteAllClients = async () => {
+    setIsDeleteAllModalOpen(false);
+    setClients([]);
+    setSelectedClientForDrawer(null);
+    try {
+      await StorageService.deleteAllContacts();
+      success('Base de Clientes Limpa', 'Todos os clientes foram excluídos com sucesso.');
+      await loadData(false);
+    } catch (err: any) {
+      toastError('Erro ao excluir todos os clientes', err.message);
+      loadData(false);
+    }
+  };
+
   // Open Quick Appointment Modal for Client
   const handleOpenQuickApt = (client: Contact) => {
     setQuickAptClient(client);
@@ -484,6 +505,17 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
         </div>
 
         <div className="flex items-center gap-2">
+          {clients.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsDeleteAllModalOpen(true)}
+              leftIcon={<Trash2 className="w-4 h-4 text-rose-400" />}
+              className="text-xs border-rose-500/20 text-rose-300 hover:bg-rose-500/10 hover:border-rose-500/40"
+            >
+              Excluir Todos
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -1237,6 +1269,32 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
             </Button>
             <Button variant="danger" onClick={handleConfirmDeleteClient}>
               Confirmar Exclusão
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* MODAL: Confirmar Exclusão em Massa de Todos os Clientes */}
+      <Modal
+        isOpen={isDeleteAllModalOpen}
+        onClose={() => setIsDeleteAllModalOpen(false)}
+        title="Excluir TODOS os Clientes?"
+        subtitle="Esta ação removerá todos os clientes da base e do banco de dados"
+        maxWidth="sm"
+      >
+        <div className="space-y-4 pt-2">
+          <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-300 flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+            <span>
+              Atenção: Essa ação irá excluir definitivamente todos os <strong>{clients.length}</strong> clientes cadastrados. A lista ficará completamente limpa e nenhum dado fictício será inserido.
+            </span>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setIsDeleteAllModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button variant="danger" onClick={handleConfirmDeleteAllClients}>
+              Excluir Todos
             </Button>
           </div>
         </div>

@@ -420,55 +420,8 @@ export const defaultCustomVariables = [
   { id: 'var-4', name: 'frete_gratis_valor', key: 'frete_gratis_valor', value: '250.00', description: 'Valor mínimo frete grátis' },
 ];
 
-export const sampleContacts = [
-  {
-    id: 'client-81991234567',
-    phone: '81991234567',
-    name: 'Mariana Silva (Mamãe do Theo)',
-    email: 'mariana.silva@gmail.com',
-    store_id: 'store-001',
-    store_name: 'Loja Matriz — Centro',
-    address: 'Rua das Flores, 45 - Boa Viagem, Recife - PE',
-    baby_name: 'Theo',
-    due_date: '2026-11-15',
-    status: 'active',
-    total_orders: 3,
-    total_spent: 680.00,
-    tags: ['Enxoval Completo', 'VIP', 'Matriz'],
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }
-];
+export const sampleContacts = [];
 
-export const sampleConversations = [
-  {
-    id: 'conv-81991234567',
-    contact_id: 'client-81991234567',
-    contact_name: 'Mariana Silva (Mamãe do Theo)',
-    contact_phone: '81991234567',
-    store_id: 'store-001',
-    store_name: 'Loja Matriz — Centro',
-    status: 'waiting_human',
-    last_message: 'Olá! Queria confirmar se a Saída Maternidade Tricot Realeza está disponível para retirada na Matriz?',
-    unread_count: 1,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }
-];
+export const sampleConversations = [];
 
-export const initialTickets = [
-  {
-    id: 'tkt-1',
-    store_id: 'store-001',
-    store_name: 'Loja Matriz — Centro',
-    client_id: 'client-81991234567',
-    client_name: 'Mariana Silva (Mamãe do Theo)',
-    client_phone: '81991234567',
-    protocol: 'PTC-849102',
-    subject: 'Solicitação de retirada de Saída Maternidade',
-    status: 'open',
-    priority: 'high',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }
-];
+export const initialTickets = [];

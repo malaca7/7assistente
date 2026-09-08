@@ -333,17 +333,11 @@ export function loadDb() {
   if (!result.tickets || result.tickets.length === 0) {
     result.tickets = [...initialTickets];
   }
-  if (!result.contacts || Object.keys(result.contacts).length === 0) {
+  if (!result.contacts) {
     result.contacts = {};
-    for (const c of sampleContacts) {
-      result.contacts[c.phone] = c;
-    }
   }
-  if (!result.conversations || Object.keys(result.conversations).length === 0) {
+  if (!result.conversations) {
     result.conversations = {};
-    for (const conv of sampleConversations) {
-      result.conversations[conv.id] = conv;
-    }
   }
 
   migrateLidContacts(result);

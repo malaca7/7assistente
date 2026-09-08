@@ -234,7 +234,7 @@
       "store_id": null,
       "store_name": "Toda a Rede",
       "created_at": "2026-09-01T10:00:00.000Z",
-      "updated_at": "2026-09-08T19:34:35.011Z",
+      "updated_at": "2026-09-08T19:46:16.792Z",
       "steps": []
     },
     {
@@ -1460,36 +1460,50 @@
     ]
   },
   "contacts": {
-    "81991234567": {
-      "id": "client-81991234567",
-      "phone": "81991234567",
-      "name": "Mariana Silva (Mam\u00e3e do Theo)",
-      "email": "mariana.silva@gmail.com",
-      "store_id": "store-001",
-      "store_name": "Loja Matriz \u2014 Centro",
-      "address": "Rua das Flores, 45 - Boa Viagem, Recife - PE",
-      "baby_name": "Theo",
-      "due_date": "2026-11-15",
+    "00000000000": {
+      "id": "contact-00000000000",
+      "phone": "00000000000",
+      "name": "teste",
+      "email": null,
+      "store_id": null,
+      "store_name": null,
+      "baby_name": null,
+      "due_date": null,
       "status": "active",
-      "total_orders": 3,
-      "total_spent": 680,
       "tags": [
-        "Enxoval Completo",
-        "VIP",
-        "Matriz"
+        "Cliente",
+        "WhatsApp"
       ],
-      "created_at": "2026-09-08T19:28:34.199Z",
-      "updated_at": "2026-09-08T19:28:34.199Z"
+      "total_orders": 0,
+      "total_spent": 0,
+      "created_at": "2026-09-08T19:50:34.737Z",
+      "updated_at": "2026-09-08T19:50:34.737Z",
+      "metadata": {}
+    },
+    "558196138924": {
+      "id": "contact-558196138924",
+      "phone": "558196138924",
+      "name": "Malaquias",
+      "status": "active",
+      "tags": [
+        "Cliente"
+      ],
+      "is_registered": true,
+      "created_at": "2026-09-08T19:51:36.292Z",
+      "updated_at": "2026-09-08T19:51:36.311Z",
+      "custom_fields": {
+        "nome_clientenovo": "Malaquias"
+      }
     }
   },
   "conversations": {
     "conv-558196138924": {
       "id": "conv-558196138924",
-      "contact_name": "Oi",
+      "contact_name": "Malaquias",
       "contact_phone": "558196138924",
       "phone": "168650497613858",
-      "last_message": "Oi",
-      "last_message_at": "2026-09-08T19:29:23.869Z",
+      "last_message": "Malaquias",
+      "last_message_at": "2026-09-08T19:51:34.350Z",
       "status": "active",
       "store_name": "Pitoco de Gente",
       "contact_id": "contact-558196138924"
@@ -1499,8 +1513,8 @@
       "contact_name": "Pitoco Bot",
       "contact_phone": "168650497613858",
       "phone": "168650497613858",
-      "last_message": "\ud83d\udc76\u2728 *PITOCO DE GENTE \u2014 Roupas de Beb\u00ea & Enxovais*\nOl\u00e1, *rogerio mlc*! Bem-vindo(a) \u00e0 nossa loja oficial! Como podemos te ajudar hoje?\n\nDigite o n\u00famero da op\u00e7\u00e3o desejada:\n\n1\ufe0f\u20e3 *Ver Cat\u00e1logo de Produtos* (Bodies, Macac\u00f5es, Sa\u00eddas, Ber\u00e7o)\n2\ufe0f\u20e3 *Guia de Medidas* (RN ao 3 anos com peso e altura)\n3\ufe0f\u20e3 *Checklist da Mala de Maternidade*\n4\ufe0f\u20e3 *Consultoria VIP de Enxoval* (Agendamento personalizado)\n5\ufe0f\u20e3 *C\u00e1lculo de Frete & Formas de Entrega* (Motoboy/Correios/Retirada)\n6\ufe0f\u20e3 *Pagamento via PIX* (Chave & QR Code Copia e Cola)\n7\ufe0f\u20e3 *Falar com Atendente Humana* (Escolha sua loja f\u00edsica ou online)\n\n_Responda apenas com o n\u00famero de 1 a 7._",
-      "last_message_at": "2026-09-08T19:29:25.099Z",
+      "last_message": "Op\u00e7\u00e3o inv\u00e1lida. Digite um n\u00famero de *1 a 7*:\n\n\ud83d\udc76\u2728 *PITOCO DE GENTE \u2014 Roupas de Beb\u00ea & Enxovais*\nOl\u00e1, *rogerio mlc*! Bem-vindo(a) \u00e0 nossa loja oficial! Como podemos te ajudar hoje?\n\nDigite o n\u00famero da op\u00e7\u00e3o desejada:\n\n1\ufe0f\u20e3 *Ver Cat\u00e1logo de Produtos* (Bodies, Macac\u00f5es, Sa\u00eddas, Ber\u00e7o)\n2\ufe0f\u20e3 *Guia de Medidas* (RN ao 3 anos com peso e altura)\n3\ufe0f\u20e3 *Checklist da Mala de Maternidade*\n4\ufe0f\u20e3 *Consultoria VIP de Enxoval* (Agendamento personalizado)\n5\ufe0f\u20e3 *C\u00e1lculo de Frete & Formas de Entrega* (Motoboy/Correios/Retirada)\n6\ufe0f\u20e3 *Pagamento via PIX* (Chave & QR Code Copia e Cola)\n7\ufe0f\u20e3 *Falar com Atendente Humana* (Escolha sua loja f\u00edsica ou online)\n\n_Responda apenas com o n\u00famero de 1 a 7._",
+      "last_message_at": "2026-09-08T19:51:36.485Z",
       "status": "active",
       "store_name": "Pitoco de Gente"
     }
@@ -1508,22 +1522,22 @@
   "messages": {
     "conv-558196138924": [
       {
-        "id": "msg-1788895625787-s4z19",
+        "id": "msg-1788897088901-t6n8v",
         "conversation_id": "conv-558196138924",
         "direction": "outbound",
-        "content": "\ud83d\udc76\u2728 *PITOCO DE GENTE \u2014 Roupas de Beb\u00ea & Enxovais*\nOl\u00e1, *rogerio mlc*! Bem-vindo(a) \u00e0 nossa loja oficial! Como podemos te ajudar hoje?\n\nDigite o n\u00famero da op\u00e7\u00e3o desejada:\n\n1\ufe0f\u20e3 *Ver Cat\u00e1logo de Produtos* (Bodies, Macac\u00f5es, Sa\u00eddas, Ber\u00e7o)\n2\ufe0f\u20e3 *Guia de Medidas* (RN ao 3 anos com peso e altura)\n3\ufe0f\u20e3 *Checklist da Mala de Maternidade*\n4\ufe0f\u20e3 *Consultoria VIP de Enxoval* (Agendamento personalizado)\n5\ufe0f\u20e3 *C\u00e1lculo de Frete & Formas de Entrega* (Motoboy/Correios/Retirada)\n6\ufe0f\u20e3 *Pagamento via PIX* (Chave & QR Code Copia e Cola)\n7\ufe0f\u20e3 *Falar com Atendente Humana* (Escolha sua loja f\u00edsica ou online)\n\n_Responda apenas com o n\u00famero de 1 a 7._",
+        "content": "Por favor, informe seu *Nome*:",
         "sender": "bot",
         "author_name": "Pitoco Bot",
-        "created_at": "2026-09-08T19:27:05.787Z"
+        "created_at": "2026-09-08T19:51:28.901Z"
       },
       {
-        "id": "msg-1788895763869-xu65t",
+        "id": "msg-1788897094350-or7r2",
         "conversation_id": "conv-558196138924",
         "direction": "inbound",
-        "content": "Oi",
+        "content": "Malaquias",
         "sender": "user",
         "author_name": "rogerio mlc",
-        "created_at": "2026-09-08T19:29:23.869Z"
+        "created_at": "2026-09-08T19:51:34.350Z"
       }
     ],
     "conv-5581999991234": [
@@ -1705,32 +1719,17 @@
     ],
     "conv-168650497613858": [
       {
-        "id": "msg-1788895765099-o4blf",
+        "id": "msg-1788897096485-x7rx5",
         "conversation_id": "conv-168650497613858",
         "direction": "outbound",
-        "content": "\ud83d\udc76\u2728 *PITOCO DE GENTE \u2014 Roupas de Beb\u00ea & Enxovais*\nOl\u00e1, *rogerio mlc*! Bem-vindo(a) \u00e0 nossa loja oficial! Como podemos te ajudar hoje?\n\nDigite o n\u00famero da op\u00e7\u00e3o desejada:\n\n1\ufe0f\u20e3 *Ver Cat\u00e1logo de Produtos* (Bodies, Macac\u00f5es, Sa\u00eddas, Ber\u00e7o)\n2\ufe0f\u20e3 *Guia de Medidas* (RN ao 3 anos com peso e altura)\n3\ufe0f\u20e3 *Checklist da Mala de Maternidade*\n4\ufe0f\u20e3 *Consultoria VIP de Enxoval* (Agendamento personalizado)\n5\ufe0f\u20e3 *C\u00e1lculo de Frete & Formas de Entrega* (Motoboy/Correios/Retirada)\n6\ufe0f\u20e3 *Pagamento via PIX* (Chave & QR Code Copia e Cola)\n7\ufe0f\u20e3 *Falar com Atendente Humana* (Escolha sua loja f\u00edsica ou online)\n\n_Responda apenas com o n\u00famero de 1 a 7._",
+        "content": "Op\u00e7\u00e3o inv\u00e1lida. Digite um n\u00famero de *1 a 7*:\n\n\ud83d\udc76\u2728 *PITOCO DE GENTE \u2014 Roupas de Beb\u00ea & Enxovais*\nOl\u00e1, *rogerio mlc*! Bem-vindo(a) \u00e0 nossa loja oficial! Como podemos te ajudar hoje?\n\nDigite o n\u00famero da op\u00e7\u00e3o desejada:\n\n1\ufe0f\u20e3 *Ver Cat\u00e1logo de Produtos* (Bodies, Macac\u00f5es, Sa\u00eddas, Ber\u00e7o)\n2\ufe0f\u20e3 *Guia de Medidas* (RN ao 3 anos com peso e altura)\n3\ufe0f\u20e3 *Checklist da Mala de Maternidade*\n4\ufe0f\u20e3 *Consultoria VIP de Enxoval* (Agendamento personalizado)\n5\ufe0f\u20e3 *C\u00e1lculo de Frete & Formas de Entrega* (Motoboy/Correios/Retirada)\n6\ufe0f\u20e3 *Pagamento via PIX* (Chave & QR Code Copia e Cola)\n7\ufe0f\u20e3 *Falar com Atendente Humana* (Escolha sua loja f\u00edsica ou online)\n\n_Responda apenas com o n\u00famero de 1 a 7._",
         "sender": "bot",
         "author_name": "Pitoco Bot",
-        "created_at": "2026-09-08T19:29:25.099Z"
+        "created_at": "2026-09-08T19:51:36.485Z"
       }
     ]
   },
-  "tickets": [
-    {
-      "id": "tkt-1",
-      "store_id": "store-001",
-      "store_name": "Loja Matriz \u2014 Centro",
-      "client_id": "client-81991234567",
-      "client_name": "Mariana Silva (Mam\u00e3e do Theo)",
-      "client_phone": "81991234567",
-      "protocol": "PTC-849102",
-      "subject": "Solicita\u00e7\u00e3o de retirada de Sa\u00edda Maternidade",
-      "status": "open",
-      "priority": "high",
-      "created_at": "2026-09-07T22:04:29.143Z",
-      "updated_at": "2026-09-07T22:04:29.143Z"
-    }
-  ],
+  "tickets": [],
   "appointments": [
     {
       "id": "apt-1788468016809",
@@ -1837,7 +1836,7 @@
       "store_name": "Toda a Rede (Global)",
       "status": "active",
       "created_at": "2026-09-03T23:23:37.718Z",
-      "updated_at": "2026-09-08T19:16:42.556Z"
+      "updated_at": "2026-09-08T19:50:00.446Z"
     }
   ],
   "attendants": [
@@ -1904,16 +1903,16 @@
     "website_url": "https://pitoco.malaca.com.br",
     "welcome_message": "\ud83d\udc76\u2728 *PITOCO DE GENTE \u2014 Roupas de Beb\u00ea & Enxovais*\nOl\u00e1, *{clientName}*! Bem-vindo(a) \u00e0 nossa loja oficial! Como podemos te ajudar hoje?",
     "company_address": "R. Vig. Jo\u00e3o Batista, 93 - Centro, Cabo de Santo Agostinho - PE, 54505-470",
-    "pix_key": "financeiro@pitocodegente.com.br",
-    "pix_owner": "Pitoco de Gente Artigos Infantis LTDA",
+    "pix_key": "81996138924",
+    "pix_owner": "Pitoco de Gente LTDA",
     "shipping_motoboy": 15,
     "shipping_correios": 24.9,
     "free_shipping_min": 250,
     "id": "default",
-    "updated_at": "2026-09-08T18:47:31.884Z",
+    "updated_at": "2026-09-08T19:48:05.666Z",
     "handoff_message": "Vou transferir seu atendimento para um de nossos profissionais. Por favor, aguarde um instante!",
     "pix_key_type": "telefone",
-    "notify_new_bookings": true,
+    "notify_new_bookings": false,
     "notify_phone": "81987300915",
     "play_audio_alerts": true,
     "custom_variables": [],
@@ -1943,16 +1942,16 @@
       "website_url": "https://pitoco.malaca.com.br",
       "welcome_message": "\ud83d\udc76\u2728 *PITOCO DE GENTE \u2014 Roupas de Beb\u00ea & Enxovais*\nOl\u00e1, *{clientName}*! Bem-vindo(a) \u00e0 nossa loja oficial! Como podemos te ajudar hoje?",
       "company_address": "R. Vig. Jo\u00e3o Batista, 93 - Centro, Cabo de Santo Agostinho - PE, 54505-470",
-      "pix_key": "financeiro@pitocodegente.com.br",
-      "pix_owner": "Pitoco de Gente Artigos Infantis LTDA",
+      "pix_key": "81996138924",
+      "pix_owner": "Pitoco de Gente LTDA",
       "shipping_motoboy": 15,
       "shipping_correios": 24.9,
       "free_shipping_min": 250,
       "id": "default",
-      "updated_at": "2026-09-08T18:47:31.884Z",
+      "updated_at": "2026-09-08T19:48:05.666Z",
       "handoff_message": "Vou transferir seu atendimento para um de nossos profissionais. Por favor, aguarde um instante!",
       "pix_key_type": "telefone",
-      "notify_new_bookings": true,
+      "notify_new_bookings": false,
       "notify_phone": "81987300915",
       "play_audio_alerts": true,
       "custom_variables": [],
@@ -1970,7 +1969,7 @@
       "name": ""
     },
     "created_at": "2026-09-03T16:43:07.297Z",
-    "updated_at": "2026-09-08T18:47:36.906Z",
+    "updated_at": "2026-09-08T19:48:10.617Z",
     "whatsapp_access_token_encrypted": "EAAO...7assistente_token_secret_vault",
     "backend_url": "https://talvane.discloud.app",
     "custom_variables": []
@@ -1985,23 +1984,23 @@
     },
     {
       "id": "var-2",
-      "name": "cidade_matriz",
+      "name": "{{cidade_matriz}}",
       "key": "cidade_matriz",
-      "value": "Recife/PE",
+      "value": "Cabo de Santo Agostinho - PE",
       "description": "Sede da matriz"
     },
     {
       "id": "var-3",
-      "name": "chave_pix",
+      "name": "{{chave_pix}}",
       "key": "chave_pix",
-      "value": "financeiro@pitocodegente.com.br",
+      "value": "81996138924",
       "description": "Chave PIX oficial"
     },
     {
       "id": "var-4",
-      "name": "frete_gratis_valor",
+      "name": "{{frete_gratis_valor}}",
       "key": "frete_gratis_valor",
-      "value": "250.00",
+      "value": "120.00",
       "description": "Valor m\u00ednimo frete gr\u00e1tis"
     }
   ],
@@ -2226,7 +2225,25 @@
     },
     "168650497613858": {
       "step": "MAIN_MENU",
-      "userName": "rogerio mlc"
+      "userName": "rogerio mlc",
+      "flowId": "flow-pitoco-001",
+      "currentNodeId": "node-question-1788893542405",
+      "variables": {
+        "whatsapp_pushname": "rogerio mlc",
+        "telefone_cliente": "168650497613858",
+        "telefone_whatsapp": "168650497613858",
+        "ultima_mensagem": "Malaquias",
+        "nome_cliente": "Malaquias",
+        "is_primeiro_contato": true,
+        "is_novo_contato": true,
+        "tipo_cliente": "novo",
+        "nome_clientenovo": "Malaquias",
+        "{{nome_clientenovo}}": "Malaquias",
+        "resposta_usuario": "Malaquias",
+        "cliente_nome": "Malaquias",
+        "nome": "Malaquias"
+      },
+      "waitingForVar": null
     }
   },
   "rolePermissions": {}

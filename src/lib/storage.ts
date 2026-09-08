@@ -399,7 +399,7 @@ export const StorageService = {
       const res = await fetch(`${API_BASE}/api/conversations`, { signal: AbortSignal.timeout(2500) });
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setItem(STORAGE_KEYS.CONVERSATIONS, data);
           let filtered = data;
           if (storeId) filtered = filtered.filter(c => !c.store_id || c.store_id === storeId);
@@ -410,12 +410,12 @@ export const StorageService = {
 
     if (SupabaseService.isSupabaseReady) {
       const dbConvs = await SupabaseService.getConversations(storeId);
-      if (dbConvs.length > 0) {
+      if (Array.isArray(dbConvs)) {
         setItem(STORAGE_KEYS.CONVERSATIONS, dbConvs);
         return dbConvs;
       }
     }
-    let convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, sampleConversations);
+    let convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, []);
     if (storeId) {
       convs = convs.filter(c => !c.store_id || c.store_id === storeId);
     }
@@ -435,7 +435,7 @@ export const StorageService = {
     if (SupabaseService.isSupabaseReady) {
       await SupabaseService.updateConversationStatus(id, status, storeId);
     }
-    const convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, sampleConversations);
+    const convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, []);
     const target = convs.find(c => c.id === id);
     if (target) {
       target.status = status;
@@ -446,7 +446,7 @@ export const StorageService = {
   },
 
   async assignAttendant(conversationId: string, attendantName: string): Promise<void> {
-    const convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, sampleConversations);
+    const convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, []);
     const target = convs.find(c => c.id === conversationId);
     if (target) {
       target.assigned_to = attendantName;
@@ -464,7 +464,7 @@ export const StorageService = {
       const res = await fetch(`${API_BASE}/api/conversations/${conversationId}/messages`, { signal: AbortSignal.timeout(3000) }).catch(() => null);
       if (res && res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setItem(`${STORAGE_KEYS.MESSAGES_PREFIX}${conversationId}`, data);
           return data;
         }
@@ -473,33 +473,12 @@ export const StorageService = {
 
     if (SupabaseService.isSupabaseReady) {
       const dbMsgs = await SupabaseService.getChatMessages(conversationId);
-      if (dbMsgs.length > 0) {
+      if (Array.isArray(dbMsgs)) {
         setItem(`${STORAGE_KEYS.MESSAGES_PREFIX}${conversationId}`, dbMsgs);
         return dbMsgs;
       }
     }
-    return getItem<Message[]>(`${STORAGE_KEYS.MESSAGES_PREFIX}${conversationId}`, [
-      {
-        id: `msg-1`,
-        conversation_id: conversationId,
-        direction: 'inbound',
-        message_type: 'text',
-        content: 'Olá! Gostaria de saber mais sobre as saídas de maternidade!',
-        status: 'read',
-        author_name: 'Cliente',
-        created_at: new Date(Date.now() - 3600000).toISOString(),
-      },
-      {
-        id: `msg-2`,
-        conversation_id: conversationId,
-        direction: 'outbound',
-        message_type: 'text',
-        content: 'Olá! Seja muito bem-vinda à Pitoco de Gente! Nossas saídas em tricot luxo acompanham manta coordenada e são 100% antialérgicas! 💕',
-        status: 'delivered',
-        author_name: 'Sofia Consultora VIP',
-        created_at: new Date(Date.now() - 3000000).toISOString(),
-      }
-    ]);
+    return getItem<Message[]>(`${STORAGE_KEYS.MESSAGES_PREFIX}${conversationId}`, []);
   },
 
   async addMessage(msg: Partial<Message>): Promise<Message> {
@@ -566,7 +545,7 @@ export const StorageService = {
 
     // Limpar localstorage
     setItem(`${STORAGE_KEYS.MESSAGES_PREFIX}${convId}`, []);
-    const convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, sampleConversations);
+    const convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, []);
     const filtered = convs.filter(c => c.id !== convId);
     setItem(STORAGE_KEYS.CONVERSATIONS, filtered);
     return true;
@@ -592,7 +571,7 @@ export const StorageService = {
       }).catch(() => {});
     } catch {}
 
-    const convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, sampleConversations);
+    const convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, []);
     const target = convs.find(c => c.id === convId);
     if (target) {
       target.assigned_to = attendantName;
@@ -611,35 +590,43 @@ export const StorageService = {
   // 5. CRM & CLIENTES
   // ==============================================================================
   async getContacts(storeId?: string): Promise<Contact[]> {
+    // 1. Tentar carregar do Backend Oficial (Discloud)
     try {
       const url = storeId ? `${API_BASE}/api/contacts?store_id=${storeId}` : `${API_BASE}/api/contacts`;
       const res = await fetch(url, { signal: AbortSignal.timeout(3000) }).catch(() => null);
       if (res && res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setItem(STORAGE_KEYS.CONTACTS, data);
           return data;
         }
       }
     } catch {}
 
+    // 2. Tentar carregar do Supabase
     if (SupabaseService.isSupabaseReady) {
-      const dbClients = await SupabaseService.getClients(storeId);
-      if (dbClients.length > 0) {
-        const mapped = dbClients.map(c => ({
-          ...c,
-          status: 'active' as const,
-          tags: c.tags || ['Cliente WhatsApp'],
-        }));
-        setItem(STORAGE_KEYS.CONTACTS, mapped);
-        return mapped;
+      try {
+        const dbClients = await SupabaseService.getClients(storeId);
+        if (Array.isArray(dbClients)) {
+          const mapped = dbClients.map(c => ({
+            ...c,
+            status: 'active' as const,
+            tags: c.tags || ['Cliente WhatsApp'],
+          }));
+          setItem(STORAGE_KEYS.CONTACTS, mapped);
+          return mapped;
+        }
+      } catch (err) {
+        console.warn('[Storage] Supabase getClients error:', err);
       }
     }
-    let contacts = getItem<Contact[]>(STORAGE_KEYS.CONTACTS, sampleContacts);
-    if (storeId) {
+
+    // 3. Fallback apenas para o localStorage sem injetar dados fictícios!
+    let contacts = getItem<Contact[]>(STORAGE_KEYS.CONTACTS, []);
+    if (storeId && Array.isArray(contacts)) {
       contacts = contacts.filter(c => !c.store_id || c.store_id === storeId);
     }
-    return contacts;
+    return contacts || [];
   },
 
   async saveContact(contact: Partial<Contact>): Promise<Contact> {
@@ -677,14 +664,13 @@ export const StorageService = {
     }
 
     // 3. Atualizar LocalStorage
-    const contacts = getItem<Contact[]>(STORAGE_KEYS.CONTACTS, sampleContacts);
+    const contacts = getItem<Contact[]>(STORAGE_KEYS.CONTACTS, []);
     const index = contacts.findIndex(c => c.phone.replace(/\D/g, '') === cleanPhone);
     if (index >= 0) contacts[index] = { ...contacts[index], ...newContact };
     else contacts.unshift(newContact);
     setItem(STORAGE_KEYS.CONTACTS, contacts);
     return newContact;
   },
-
 
   // ==============================================================================
   // 6. TICKETS DE ATENDIMENTO HUMANO
@@ -694,7 +680,7 @@ export const StorageService = {
       const res = await fetch(`${API_BASE}/api/tickets`, { signal: AbortSignal.timeout(2500) });
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setItem(STORAGE_KEYS.TICKETS, data);
           let filtered = data;
           if (storeId) filtered = filtered.filter(t => t.store_id === storeId);
@@ -705,27 +691,12 @@ export const StorageService = {
 
     if (SupabaseService.isSupabaseReady) {
       const dbTickets = await SupabaseService.getSupportTickets(storeId);
-      if (dbTickets.length > 0) {
+      if (Array.isArray(dbTickets)) {
         setItem(STORAGE_KEYS.TICKETS, dbTickets);
         return dbTickets;
       }
     }
-    let tickets = getItem<SupportTicket[]>(STORAGE_KEYS.TICKETS, [
-      {
-        id: 'ticket-1',
-        store_id: 'store-001',
-        store_name: 'Loja Matriz — Centro',
-        client_id: 'client-81991234567',
-        client_name: 'Mariana Silva (Mamãe do Theo)',
-        client_phone: '81991234567',
-        protocol: 'PTC-849102',
-        subject: 'Solicitação de retirada de Saída Maternidade',
-        status: 'open',
-        priority: 'high',
-        created_at: new Date(Date.now() - 1800000).toISOString(),
-        updated_at: new Date().toISOString(),
-      }
-    ]);
+    let tickets = getItem<SupportTicket[]>(STORAGE_KEYS.TICKETS, []);
     if (storeId) {
       tickets = tickets.filter(t => t.store_id === storeId);
     }
@@ -1745,13 +1716,66 @@ export const StorageService = {
     return true;
   },
 
-  async deleteContact(id: string): Promise<boolean> {
+  async deleteContact(id: string, phone?: string): Promise<boolean> {
+    const cleanPhone = phone ? String(phone).replace(/\D/g, '') : '';
+    const cleanId = String(id).replace(/\D/g, '');
+
+    // 1. Excluir do Backend Discloud
     try {
-      await fetch(`${API_BASE}/api/contacts/${id}`, { method: 'DELETE' }).catch(() => {});
+      await fetch(`${API_BASE}/api/contacts/${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => {});
+      if (cleanPhone) {
+        await fetch(`${API_BASE}/api/contacts/${encodeURIComponent(cleanPhone)}`, { method: 'DELETE' }).catch(() => {});
+      }
     } catch {}
-    const list = await this.getContacts();
-    const filtered = list.filter(c => c.id !== id);
+
+    // 2. Excluir do Supabase
+    if (SupabaseService.isSupabaseReady) {
+      try {
+        await SupabaseService.deleteClient(id, phone);
+      } catch (e) {
+        console.warn('[Storage] Supabase deleteClient error:', e);
+      }
+    }
+
+    // 3. Excluir do LocalStorage imediatamente
+    const list = getItem<Contact[]>(STORAGE_KEYS.CONTACTS, []);
+    const filtered = list.filter(c => {
+      const cPhone = String(c.phone || '').replace(/\D/g, '');
+      const isMatch = c.id === id || 
+                      (cleanPhone && (cPhone === cleanPhone || cPhone === `55${cleanPhone}` || cleanPhone === `55${cPhone}`)) ||
+                      (cleanId && (cPhone === cleanId || cPhone === `55${cleanId}` || cleanId === `55${cPhone}`));
+      return !isMatch;
+    });
     setItem(STORAGE_KEYS.CONTACTS, filtered);
+    try {
+      localStorage.removeItem('7assistente_contacts');
+    } catch {}
+
+    return true;
+  },
+
+  async deleteAllContacts(): Promise<boolean> {
+    // 1. Limpar backend
+    try {
+      await fetch(`${API_BASE}/api/contacts`, { method: 'DELETE' }).catch(() => {});
+    } catch {}
+
+    // 2. Limpar Supabase
+    if (SupabaseService.isSupabaseReady) {
+      try {
+        await SupabaseService.deleteAllClients();
+      } catch (e) {
+        console.warn('[Storage] Supabase deleteAllClients error:', e);
+      }
+    }
+
+    // 3. Limpar localStorage
+    setItem(STORAGE_KEYS.CONTACTS, []);
+    try {
+      localStorage.removeItem('7assistente_contacts');
+      localStorage.removeItem('pitoco_contacts');
+    } catch {}
+
     return true;
   },
 

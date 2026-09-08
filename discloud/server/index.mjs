@@ -807,14 +807,37 @@ app.post('/api/contacts', (req, res) => {
   }
 });
 
+app.delete('/api/contacts', (req, res) => {
+  try {
+    const db = loadDb();
+    db.contacts = {};
+    saveDb(db);
+    res.json({ success: true, message: 'Todos os contatos foram removidos' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.delete('/api/contacts/:id', (req, res) => {
   try {
     const db = loadDb();
     const id = req.params.id;
     const cleanPhone = id.replace(/\D/g, '');
-    if (db.contacts && (db.contacts[id] || db.contacts[cleanPhone])) {
+    if (db.contacts) {
       delete db.contacts[id];
-      delete db.contacts[cleanPhone];
+      if (cleanPhone) {
+        delete db.contacts[cleanPhone];
+        delete db.contacts[`55${cleanPhone}`];
+        if (cleanPhone.startsWith('55')) {
+          delete db.contacts[cleanPhone.substring(2)];
+        }
+      }
+      for (const [key, contact] of Object.entries(db.contacts)) {
+        const cPhone = String(contact.phone || '').replace(/\D/g, '');
+        if (contact.id === id || (cleanPhone && (cPhone === cleanPhone || cPhone === `55${cleanPhone}` || cleanPhone === `55${cPhone}`))) {
+          delete db.contacts[key];
+        }
+      }
     }
     saveDb(db);
     res.json({ success: true, message: `Contato ${id} removido` });

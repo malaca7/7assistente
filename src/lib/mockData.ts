@@ -381,75 +381,9 @@ export const sampleFlows: Flow[] = [
   },
 ];
 
-export const sampleContacts: Contact[] = [
-  {
-    id: 'client-81991234567',
-    phone: '81991234567',
-    name: 'Mariana Silva (Mamãe do Theo)',
-    email: 'mariana.silva@gmail.com',
-    store_id: 'store-001',
-    store_name: 'Loja Matriz — Centro',
-    address: 'Rua das Flores, 45 - Boa Viagem, Recife - PE',
-    baby_name: 'Theo',
-    due_date: '2026-11-15',
-    status: 'active',
-    total_orders: 3,
-    total_spent: 680.00,
-    tags: ['Enxoval Completo', 'VIP', 'Matriz'],
-    created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'client-81998765432',
-    phone: '81998765432',
-    name: 'Camila Fernandes (Mamãe da Laura)',
-    email: 'camila.fernandes@outlook.com',
-    store_id: 'store-002',
-    store_name: 'Loja Shopping Boulevard',
-    baby_name: 'Laura',
-    due_date: '2026-10-02',
-    status: 'active',
-    total_orders: 1,
-    total_spent: 249.90,
-    tags: ['Saída Maternidade', 'Boulevard'],
-    created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-    updated_at: new Date().toISOString(),
-  }
-];
+export const sampleContacts: Contact[] = [];
 
-export const sampleConversations: Conversation[] = [
-  {
-    id: 'conv-81991234567',
-    contact_id: 'client-81991234567',
-    contact_name: 'Mariana Silva (Mamãe do Theo)',
-    contact_phone: '81991234567',
-    store_id: 'store-001',
-    store_name: 'Loja Matriz — Centro',
-    status: 'waiting_human',
-    last_message: 'Olá! Queria confirmar se a Saída Maternidade Tricot Realeza na cor Azul Bebê está disponível para retirada na Matriz?',
-    unread_count: 1,
-    started_at: new Date(Date.now() - 3600000).toISOString(),
-    last_message_at: new Date(Date.now() - 300000).toISOString(),
-    created_at: new Date(Date.now() - 3600000).toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'conv-81998765432',
-    contact_id: 'client-81998765432',
-    contact_name: 'Camila Fernandes (Mamãe da Laura)',
-    contact_phone: '81998765432',
-    store_id: 'store-002',
-    store_name: 'Loja Shopping Boulevard',
-    status: 'human',
-    assigned_to: 'Sofia Consultora VIP',
-    last_message: 'Perfeito, Camila! Separei o Macacão Zíper Duplo Rosa Seco tamanho RN para você ver no Shopping Boulevard!',
-    unread_count: 0,
-    started_at: new Date(Date.now() - 7200000).toISOString(),
-    last_message_at: new Date(Date.now() - 600000).toISOString(),
-    created_at: new Date(Date.now() - 7200000).toISOString(),
-    updated_at: new Date().toISOString(),
-  }
-];
+export const sampleConversations: Conversation[] = [];
 
 export const initialAttendants: Attendant[] = [
   {

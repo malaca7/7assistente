@@ -254,6 +254,35 @@ export async function upsertClient(client: Partial<Client>): Promise<Client | nu
   }
 }
 
+export async function deleteClient(id: string, phone?: string): Promise<boolean> {
+  try {
+    const cleanPhone = phone ? String(phone).replace(/\D/g, '') : '';
+    let query = supabase.from('clients').delete();
+    if (cleanPhone) {
+      query = query.or(`id.eq.${id},phone.eq.${cleanPhone},phone.eq.55${cleanPhone}`);
+    } else {
+      query = query.eq('id', id);
+    }
+    const { error } = await query;
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] deleteClient error:', err);
+    return false;
+  }
+}
+
+export async function deleteAllClients(): Promise<boolean> {
+  try {
+    const { error } = await supabase.from('clients').delete().neq('id', '___NEVER_MATCH___');
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] deleteAllClients error:', err);
+    return false;
+  }
+}
+
 // ==========================================
 // 5. CHAT MESSAGES & REALTIME
 // ==========================================
