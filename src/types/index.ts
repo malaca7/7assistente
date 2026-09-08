@@ -315,6 +315,7 @@ export interface Flow {
   store_name?: string;
   steps?: FlowStep[];
   color?: string; // Cor personalizada do fluxo (#10b981, #3b82f6, etc.)
+  order_index?: number; // Ordem fixa personalizada (suporte a Drag & Drop)
   created_at: string;
   updated_at: string;
 }

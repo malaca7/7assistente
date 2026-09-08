@@ -882,20 +882,27 @@ export function recordRealMessage(phone, senderName, direction, content, explici
 
   // 2. Upsert Conversation
   if (!db.conversations) db.conversations = {};
-  const existingConv = db.conversations[convId] || {
+  const prevConv = db.conversations[convId] || {};
+  const existingConv = {
+    ...prevConv,
     id: convId,
     contact_id: existingContact.id,
-    contact_name: existingContact.name,
+    contact_name: existingContact.name || prevConv.contact_name || 'Cliente WhatsApp',
     contact_phone: cleanPhone,
-    status: 'bot',
-    started_at: now,
-    unread_count: 0,
-    created_at: now,
+    status: prevConv.status || 'bot',
+    assigned_to: prevConv.assigned_to || undefined,
+    assigned_attendant_name: prevConv.assigned_attendant_name || undefined,
+    assigned_attendant_id: prevConv.assigned_attendant_id || undefined,
+    store_id: prevConv.store_id || undefined,
+    store_name: prevConv.store_name || 'Pitoco de Gente',
+    sector: prevConv.sector || undefined,
+    started_at: prevConv.started_at || now,
+    unread_count: Number(prevConv.unread_count || 0),
+    created_at: prevConv.created_at || now,
+    last_message: typeof content === 'string' ? content : content.body || 'Mensagem Interativa',
+    last_message_at: now,
+    updated_at: now,
   };
-  existingConv.contact_name = existingContact.name;
-  existingConv.last_message = typeof content === 'string' ? content : content.body || 'Mensagem Interativa';
-  existingConv.last_message_at = now;
-  existingConv.updated_at = now;
   db.conversations[convId] = existingConv;
 
   // 3. Append to Messages
@@ -1290,7 +1297,7 @@ export async function syncFlowGraphToSupabase(flowId, nodes, edges) {
 }
 
 // Function to fetch latest active flow, nodes, and edges dynamically with Supabase priority
-export async function getActiveFlowAndGraph(db) {
+export async function getActiveFlowAndGraph(db, preferredFlowId = null) {
   let activeFlows = [];
 
   // 1. Consultar diretamente os fluxos com status ATIVO no Supabase
@@ -1299,8 +1306,7 @@ export async function getActiveFlowAndGraph(db) {
       const { data, error } = await supabaseClient
         .from('flows')
         .select('*')
-        .or('is_active.eq.true,status.eq.published')
-        .order('updated_at', { ascending: false });
+        .or('is_active.eq.true,status.eq.published');
 
       if (error && (error.code === 'PGRST205' || String(error.message || '').includes('Could not find the table'))) {
         supabaseHasFlowsTable = false;
@@ -1329,8 +1335,16 @@ export async function getActiveFlowAndGraph(db) {
     return { publishedFlow: null, nodes: [], edges: [] };
   }
 
-  // Pegar o fluxo ativo mais recente
-  const candidateFlow = activeFlows[0];
+  // Ordenar pela ordem configurada dos cards (order_index estável)
+  activeFlows.sort((a, b) => {
+    const oA = typeof a.order_index === 'number' ? a.order_index : 9999;
+    const oB = typeof b.order_index === 'number' ? b.order_index : 9999;
+    if (oA !== oB) return oA - oB;
+    return (a.name || '').localeCompare(b.name || '');
+  });
+
+  // Priorizar fluxo que o cliente já estava conversando na sessão atual, caso ainda ativo
+  const candidateFlow = (preferredFlowId && activeFlows.find(f => f.id === preferredFlowId)) || activeFlows[0];
   const flowId = candidateFlow.id;
   let nodes = [];
   let edges = [];
@@ -1394,8 +1408,23 @@ export async function executePublishedFlow(senderJid, messageText, pushName, rea
   // Record incoming message in real database
   recordRealMessage(cleanPhone, senderName, 'inbound', cleanInput, null, profilePicUrl);
 
+  // 🛡️ BLINDAGEM DE ATENDIMENTO HUMANO: Se a conversa estiver assumida por um atendente humano,
+  // o robô JAMAIS deve responder e JAMAIS deve alterar o status para bot!
+  const convId = `conv-${cleanPhone}`;
+  const currentConv = db.conversations?.[convId] || Object.values(db.conversations || {}).find(c => 
+    String(c?.phone || c?.contact_phone || '').replace(/\D/g, '') === cleanPhone
+  );
+
+  if (currentConv && (currentConv.status === 'human' || currentConv.assigned_to || currentConv.assigned_attendant_name)) {
+    console.log(`🛡️ [FlowRunner] Conversa ${cleanPhone} está em Atendimento Humano ("${currentConv.assigned_to || currentConv.assigned_attendant_name}"). O fluxo do robô não responderá.`);
+    return [];
+  }
+
+  // Obter sessão atual para preservar fluxo em andamento
+  const existingSession = db.sessions?.[cleanPhone] || db.sessions?.[rawId];
+
   // Dynamically resolve published flow, nodes, and edges
-  const { publishedFlow, nodes, edges } = await getActiveFlowAndGraph(db);
+  const { publishedFlow, nodes, edges } = await getActiveFlowAndGraph(db, existingSession?.flowId);
 
   if (!publishedFlow) {
     const defaultReply = `Olá, *${senderName}*! Recebi sua mensagem: "${cleanInput}".\n\nNo momento, não há nenhum fluxo ativo publicado no painel administrativo.`;

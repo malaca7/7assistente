@@ -1141,19 +1141,8 @@ export const StorageService = {
   },
 
   async saveFlow(flow: Partial<Flow>): Promise<Flow> {
-    const flows = getItem<Flow[]>(STORAGE_KEYS.FLOWS, sampleFlows);
+    const flows = await this.getFlows();
     const existingIndex = flows.findIndex(f => f.id === flow.id);
-    
-    const isPublishing = flow.status === 'published' || flow.is_active === true;
-    if (isPublishing) {
-      flows.forEach(f => {
-        if (f.id !== flow.id) {
-          f.status = 'draft';
-          f.is_active = false;
-        }
-      });
-    }
-
     const existing = existingIndex >= 0 ? flows[existingIndex] : null;
     const updatedFlow: Flow = {
       ...(existing || {}),
@@ -1169,6 +1158,7 @@ export const StorageService = {
       store_name: flow.store_name ?? existing?.store_name ?? (flow.store_id ? 'Filial Específica' : 'Toda a Rede'),
       steps: flow.steps ?? existing?.steps ?? [],
       color: flow.color ?? existing?.color ?? '#10b981',
+      order_index: flow.order_index ?? existing?.order_index ?? (existingIndex >= 0 ? existingIndex : flows.length),
       created_at: flow.created_at || existing?.created_at || new Date().toISOString(),
       updated_at: new Date().toISOString(),
       ...flow,
@@ -1177,7 +1167,7 @@ export const StorageService = {
     if (existingIndex >= 0) {
       flows[existingIndex] = updatedFlow;
     } else {
-      flows.unshift(updatedFlow);
+      flows.push(updatedFlow);
     }
     setItem(STORAGE_KEYS.FLOWS, flows);
 
@@ -1233,12 +1223,6 @@ export const StorageService = {
 
     const newActive = !target.is_active && target.status !== 'published';
     if (newActive) {
-      flows.forEach(f => {
-        if (f.id !== id) {
-          f.status = 'draft';
-          f.is_active = false;
-        }
-      });
       target.is_active = true;
       target.status = 'published';
     } else {
@@ -1265,6 +1249,30 @@ export const StorageService = {
     }
 
     return target;
+  },
+
+  async saveFlowsOrder(orderedFlows: Flow[]): Promise<void> {
+    const updated = orderedFlows.map((f, idx) => ({ ...f, order_index: idx }));
+    setItem(STORAGE_KEYS.FLOWS, updated);
+    try {
+      localStorage.setItem('pitoco_flows_order', JSON.stringify(updated.map(f => f.id)));
+    } catch {}
+
+    // 1. Sincronizar com o backend
+    try {
+      await fetch(`${API_BASE}/api/whatsapp/sync-flows`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ flows: updated }),
+      });
+    } catch {}
+
+    // 2. Sincronizar com Supabase se pronto
+    if (SupabaseService.isSupabaseReady) {
+      for (const flow of updated) {
+        SupabaseService.saveFlow(flow).catch(() => {});
+      }
+    }
   },
 
   async getFlowNodes(flowId: string): Promise<FlowNode[]> {

@@ -38,7 +38,11 @@ import {
   Eye,
   Layers,
   FileText,
-  DollarSign
+  DollarSign,
+  Maximize2,
+  Minimize2,
+  Zap,
+  ShieldCheck
 } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
@@ -85,6 +89,16 @@ const deduplicateMessages = (msgs: Message[]): Message[] => {
   return result;
 };
 
+// Snippets de Respostas Rápidas (Macros de 1 Clique)
+const QUICK_SNIPPETS = [
+  { id: 'saudacao', label: 'Boas-Vindas', icon: '👋', text: 'Olá! Seja muito bem-vindo(a) à Pitoco de Gente. Como posso te ajudar hoje?' },
+  { id: 'catalogo', label: 'Catálogo', icon: '🍼', text: 'Você pode conferir nossas peças exclusivas de enxoval e bodies com preços especiais no catálogo!' },
+  { id: 'pix', label: 'Chave PIX', icon: '💳', text: 'Nossa chave PIX oficial é o CNPJ da loja. Assim que efetuar o pagamento, basta enviar o comprovante por aqui!' },
+  { id: 'enderecos', label: 'Lojas Físicas', icon: '📍', text: 'Temos unidades no Centro (Matriz) e no Shopping Boulevard. Venha nos visitar!' },
+  { id: 'horario', label: 'Horários', icon: '⏱️', text: 'Nosso atendimento presencial funciona de segunda a sábado das 08h às 18h.' },
+  { id: 'duvidas', label: 'Dúvidas', icon: '💬', text: 'Fique à vontade para perguntar qualquer dúvida sobre tamanhos, tecidos ou prazos de entrega!' },
+];
+
 export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({ 
   initialStoreId,
   onNavigate,
@@ -118,6 +132,12 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
   const [transferTargetAttendant, setTransferTargetAttendant] = useState('');
   const [newTagInput, setNewTagInput] = useState('');
 
+  // 👤 CRM Drawer: Fechado por padrão (só abre quando o atendente/admin clicar para visualizar ou editar)
+  const [isCrmOpen, setIsCrmOpen] = useState(false);
+
+  // ⛶ Modo Tela Cheia Imersivo no Navegador
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
   // Modal do Catálogo de Peças / Envio no WhatsApp
   const [isCatalogModalOpen, setIsCatalogModalOpen] = useState(false);
   const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
@@ -139,6 +159,18 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
     store_id: '',
     email: '',
   });
+
+  // Atalho de Teclado (Esc para sair de Tela Cheia ou fechar CRM)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isCrmOpen) setIsCrmOpen(false);
+        if (isFullscreen) setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isCrmOpen, isFullscreen]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Carregar lojas, atendentes e setores cadastrados
@@ -778,42 +810,58 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
   }, [sortedConversations, activeConv, isAdmin]);
 
   return (
-    <div className="h-[calc(100vh-120px)] flex flex-col gap-4">
+    <div className={`${
+      isFullscreen 
+        ? 'fixed inset-0 z-50 bg-dark-950 p-4 h-screen w-screen flex flex-col gap-3' 
+        : 'h-[calc(100vh-120px)] flex flex-col gap-4'
+    } transition-all duration-200 select-none`}>
       {/* Header & Filtros Globais */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-xl bg-dark-900 border border-white/10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3.5 rounded-xl bg-dark-900 border border-white/10 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-pitoco-blue/20 border border-pitoco-blue/30 flex items-center justify-center text-pitoco-blue">
+          <div className="w-10 h-10 rounded-xl bg-pitoco-blue/20 border border-pitoco-blue/30 flex items-center justify-center text-pitoco-blue shrink-0">
             <Building2 className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              {isAttendantMode ? 'Central de Atendimento Operacional' : 'Inbox de Atendimento Humano'}
-              <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-normal">
+            <h2 className="text-base md:text-lg font-bold text-white flex items-center gap-2 flex-wrap">
+              <span>{isAttendantMode ? 'Central de Atendimento Operacional' : 'Inbox de Atendimento Humano'}</span>
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-normal flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 Tempo Real
               </span>
               {isAttendantMode && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-pitoco-blue/20 text-pitoco-blue border border-pitoco-blue/30">
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-pitoco-blue/20 text-pitoco-blue border border-pitoco-blue/30">
                   Operador Atendente
                 </span>
               )}
             </h2>
-            <p className="text-xs text-slate-400">
+            <p className="text-[11px] text-slate-400">
               {isAttendantMode 
-                ? 'Converse diretamente com os clientes, envie peças do catálogo e direcione por setor' 
+                ? 'Converse diretamente com os clientes, envie peças do catálogo e responda com agilidade' 
                 : 'Supervisão de conversas, transbordo do WhatsApp e gestão completa de filas'}
             </p>
           </div>
         </div>
 
-        {/* Filtro por Loja e Setor */}
-        <div className="flex items-center gap-3 flex-wrap">
+        {/* Controles: Métricas ao Vivo + Filtro de Loja/Setor + Tela Cheia */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Métricas Rápidas */}
+          <div className="hidden lg:flex items-center gap-1.5 text-[11px]">
+            <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300">
+              <Clock className="w-3 h-3 text-amber-400" />
+              <span>Aguardando: <strong>{conversations.filter(c => c.status === 'waiting_human').length}</strong></span>
+            </div>
+            <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">
+              <UserCheck className="w-3 h-3 text-emerald-400" />
+              <span>Seus Chats: <strong>{conversations.filter(c => (c.assigned_to === user?.name || c.assigned_attendant_name === user?.name)).length}</strong></span>
+            </div>
+          </div>
+
           {/* Filtro de Setor */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-slate-400">Setor:</span>
+          <div className="flex items-center gap-1">
             <select
               value={selectedSectorFilter}
               onChange={(e) => setSelectedSectorFilter(e.target.value)}
-              className="bg-dark-800 border border-white/10 text-xs text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-pitoco-blue"
+              className="bg-dark-800 border border-white/10 text-xs text-white rounded-lg px-2 py-1.5 focus:outline-none focus:border-pitoco-blue"
             >
               <option value="all">Todos os Setores</option>
               {sectors.map(s => (
@@ -823,39 +871,63 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
           </div>
 
           {/* Filtro por Loja */}
-          <div className="flex items-center bg-dark-800 rounded-lg p-1 border border-white/5">
+          <div className="flex items-center bg-dark-800 rounded-lg p-0.5 border border-white/5">
             <button
               onClick={() => setSelectedStoreFilter('all')}
-              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
                 selectedStoreFilter === 'all'
                   ? 'bg-pitoco-blue text-slate-900'
                   : 'text-slate-300 hover:text-white'
               }`}
             >
-              Todas as Lojas
+              Todas
             </button>
             {stores.map(s => (
               <button
                 key={s.id}
                 onClick={() => setSelectedStoreFilter(s.id)}
-                className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                className={`px-2 py-1 text-xs font-semibold rounded-md transition-all ${
                   selectedStoreFilter === s.id
                     ? 'bg-pitoco-blue text-slate-900'
                     : 'text-slate-300 hover:text-white'
                 }`}
               >
-                {s.slug === 'matriz' ? 'Matriz Centro' : s.slug === 'boulevard' ? 'Boulevard' : 'E-commerce'}
+                {s.slug === 'matriz' ? 'Matriz' : s.slug === 'boulevard' ? 'Boulevard' : 'E-com'}
               </button>
             ))}
           </div>
+
+          {/* Botão Tela Cheia no Navegador */}
+          <button
+            type="button"
+            onClick={() => setIsFullscreen(prev => !prev)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+              isFullscreen 
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-lg' 
+                : 'bg-dark-800 text-slate-300 border-white/10 hover:text-white hover:bg-white/5'
+            }`}
+            title={isFullscreen ? 'Sair do Modo Tela Cheia (Esc)' : 'Expandir Central em Tela Cheia no Navegador'}
+          >
+            {isFullscreen ? (
+              <>
+                <Minimize2 className="w-3.5 h-3.5 text-amber-400" />
+                <span className="hidden sm:inline">Restaurar</span>
+              </>
+            ) : (
+              <>
+                <Maximize2 className="w-3.5 h-3.5 text-pitoco-blue" />
+                <span className="hidden sm:inline">Tela Cheia</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
       {/* Main Split Layout: Chats List + Active Chat + CRM Sidebar */}
       <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 min-h-0">
         
-        {/* Coluna Esquerda: Lista de Conversas (4 colunas) */}
-        <Card className="md:col-span-4 flex flex-col h-full bg-dark-900 border-white/10 overflow-hidden">
+        {/* Coluna Esquerda: Lista de Conversas */}
+        <Card className={`${isCrmOpen ? 'md:col-span-3' : 'md:col-span-4'} flex flex-col h-full bg-dark-900 border-white/10 overflow-hidden transition-all duration-300`}>
           {/* Busca & Filtro de Status */}
           <div className="p-3 border-b border-white/5 space-y-2.5">
             <div className="relative">
@@ -1043,8 +1115,8 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
           </div>
         </Card>
 
-        {/* Coluna Central: Chat em Tempo Real (5 colunas) */}
-        <Card className="md:col-span-5 flex flex-col h-full bg-dark-900 border-white/10 overflow-hidden">
+        {/* Coluna Central: Chat em Tempo Real (largura dinâmica com CRM sob demanda) */}
+        <Card className={`flex flex-col h-full bg-dark-900 border-white/10 overflow-hidden transition-all duration-300 ${isCrmOpen ? 'md:col-span-6' : 'md:col-span-8'}`}>
           {activeConv ? (
             <>
               {/* Header do Chat com Ações Avançadas e Troca de Setor */}
@@ -1077,54 +1149,35 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                   </div>
                 </div>
 
-                {/* Toolbar de Ações do Chat */}
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {/* Se estiver na Lixeira: Opções de Restaurar e Excluir Definitivamente */}
-                  {activeConv.is_deleted ? (
-                    <div className="flex items-center gap-1.5 bg-red-950/30 border border-red-500/30 p-1 rounded-lg">
-                      <span className="text-[10px] text-red-400 font-semibold px-1">Lixeira</span>
-                      {canAdminDestructive && (
-                        <>
-                          <Button
-                            size="sm"
-                            onClick={() => handleRestoreConversation(activeConv.id)}
-                            className="text-xs bg-emerald-600 hover:bg-emerald-500 text-white h-7 px-2"
-                            title="Restaurar conversa da lixeira"
-                          >
-                            <RotateCcw className="w-3 h-3 mr-1" />
-                            Restaurar
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => handlePurgeConversation(activeConv.id)}
-                            className="text-xs bg-red-600 hover:bg-red-500 text-white h-7 px-2"
-                            title="Excluir permanentemente"
-                          >
-                            <Trash2 className="w-3 h-3 mr-1" />
-                            Expurgar
-                          </Button>
-                        </>
-                      )}
+                {/* Ações do Header */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Badge de Blindagem de Atendimento Humano */}
+                  {activeConv.status === 'human' && (
+                    <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-[11px] font-semibold" title="O Robô Pitoco não responderá por cima enquanto você estiver atendendo">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Blindado</span>
                     </div>
-                  ) : (
-                    <>
-                      {/* Botão de Enviar Produto do Catálogo */}
-                      <Button
-                        size="sm"
-                        onClick={handleOpenCatalog}
-                        className="text-xs bg-pitoco-pink/20 hover:bg-pitoco-pink/30 text-pitoco-pink border border-pitoco-pink/30 h-8 px-2.5 font-semibold"
-                        title="Enviar produto do catálogo com foto e preço"
-                      >
-                        <ShoppingBag className="w-3.5 h-3.5 mr-1" />
-                        Catálogo
-                      </Button>
+                  )}
 
-                      {/* Botão Assumir Atendimento ou Status de Atribuído */}
+                  {/* Toggle Perfil & CRM */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsCrmOpen(!isCrmOpen)}
+                    className={`text-xs h-8 px-2.5 transition-all ${isCrmOpen ? 'bg-white/15 text-white border-white/30 shadow-sm' : 'border-white/10 hover:bg-white/5 text-slate-300'}`}
+                    title={isCrmOpen ? 'Fechar painel Perfil & CRM (Esc)' : 'Abrir Perfil & CRM deste cliente'}
+                  >
+                    <User className="w-3.5 h-3.5 mr-1 text-zinc-300" />
+                    {isCrmOpen ? 'Fechar CRM' : 'Perfil & CRM'}
+                  </Button>
+
+                  {/* Assumir / Liberar Atendimento */}
+                  {!activeConv.is_deleted && (
+                    <>
                       {activeConv.status === 'human' && activeConv.assigned_to === (user?.name || (isCEO ? 'Malaca CEO' : isAdmin ? 'Administrador Geral' : isManager ? 'Gerente' : 'Sofia Consultora VIP')) ? (
                         <div className="flex items-center gap-1.5">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                            <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
-                            Assumido por você
+                          <span className="text-[11px] px-2.5 py-1 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-medium">
+                            Com você
                           </span>
                           <Button
                             size="sm"
@@ -1148,19 +1201,21 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                             <UserCheck className="w-3.5 h-3.5 mr-1.5" />
                             {activeConv.assigned_to ? `Assumir (De: ${activeConv.assigned_to.split(' ')[0]})` : 'Assumir Atendimento'}
                           </Button>
-                          {activeConv.status === 'human' && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={handleTransferToBot}
-                              className="text-xs border-white/10 hover:bg-white/5 text-slate-300 h-8 px-2.5"
-                              title="Devolver controle para o Robô Pitoco"
-                            >
-                              <Bot className="w-3.5 h-3.5 mr-1 text-zinc-300" />
-                              Robô
-                            </Button>
-                          )}
                         </div>
+                      )}
+
+                      {/* Devolver para o Robô */}
+                      {activeConv.status === 'human' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleTransferToBot}
+                          className="text-xs border-white/10 hover:bg-white/5 text-slate-300 h-8 px-2.5"
+                          title="Devolver controle para o Robô Pitoco"
+                        >
+                          <Bot className="w-3.5 h-3.5 mr-1 text-zinc-300" />
+                          Robô
+                        </Button>
                       )}
 
                       {/* Transferir para outro Atendente */}
@@ -1303,6 +1358,26 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                 <div ref={messagesEndRef} />
               </div>
 
+              {/* Barra Inovadora de Respostas Rápidas (Snippets/Macros) */}
+              <div className="px-3 py-1.5 bg-dark-900/90 border-t border-white/5 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1 shrink-0 uppercase tracking-wider">
+                  <Zap className="w-3 h-3 text-amber-400" />
+                  Rápidas:
+                </span>
+                {QUICK_SNIPPETS.map((snippet, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setInputText(prev => prev ? `${prev} ${snippet.text}` : snippet.text)}
+                    disabled={activeConv.is_deleted}
+                    className="px-2.5 py-1 rounded-lg text-[11px] bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all shrink-0 active:scale-95 disabled:opacity-40"
+                    title={snippet.text}
+                  >
+                    {snippet.label}
+                  </button>
+                ))}
+              </div>
+
               {/* Caixa de Entrada de Texto com botão rápido de catálogo */}
               <form onSubmit={handleSendMessage} className="p-3 bg-dark-850 border-t border-white/5 flex items-center gap-2">
                 <Button
@@ -1341,54 +1416,40 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
           )}
         </Card>
 
-        {/* Coluna Direita: Detalhes do Cliente CRM, Tags e Notas Internas (3 colunas) */}
-        <Card className="md:col-span-3 flex flex-col h-full bg-dark-900 border-white/10 overflow-hidden p-4">
-          <div className="border-b border-white/5 pb-3 mb-4 flex items-center justify-between">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-white" />
-              Perfil & CRM
-            </h3>
-            {activeConv && (
-              canEditClient ? (
+        {/* Coluna Direita: Detalhes do Cliente CRM, Tags e Notas Internas (3 colunas, fechado por padrão e sob demanda) */}
+        {isCrmOpen && (
+          <Card className="md:col-span-3 flex flex-col h-full bg-dark-900 border-white/10 overflow-hidden p-4 animate-in slide-in-from-right-3 duration-200">
+            <div className="border-b border-white/5 pb-3 mb-4 flex items-center justify-between">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-white" />
+                Perfil & CRM
+              </h3>
+              <div className="flex items-center gap-1">
+                {activeConv && canEditClient && (
+                  <button
+                    type="button"
+                    onClick={handleOpenEditClient}
+                    className="flex items-center gap-1 text-[11px] font-semibold text-zinc-300 hover:text-white px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+                    title="Editar dados e CRM deste cliente"
+                  >
+                    <Edit3 className="w-3 h-3 text-white" />
+                    Editar
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={handleOpenEditClient}
-                  className="flex items-center gap-1 text-[11px] font-semibold text-zinc-300 hover:text-white px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
-                  title="Editar dados e CRM deste cliente"
+                  onClick={() => setIsCrmOpen(false)}
+                  className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                  title="Fechar painel CRM (Esc)"
                 >
-                  <Edit3 className="w-3 h-3 text-white" />
-                  Editar Dados
+                  <X className="w-4 h-4" />
                 </button>
-              ) : (
-                <span className="text-[10px] px-2 py-0.5 rounded bg-white/5 text-slate-400 border border-white/5">
-                  Visualização
-                </span>
-              )
-            )}
-          </div>
-
-          {activeConv ? (
-            <div className="space-y-4 text-xs overflow-y-auto pr-1">
-              {/* Card Resumo do Cliente */}
-              <div className="p-3 rounded-xl bg-dark-850 border border-white/5 text-center relative group">
-                <div className="w-14 h-14 rounded-full mx-auto bg-zinc-800 border border-white/10 flex items-center justify-center text-white font-black text-xl mb-2">
-                  {(activeConv.contact_name || 'C')[0]}
-                </div>
-                <h4 className="font-bold text-white text-sm">
-                  {activeConv.contact_name || 'Cliente WhatsApp'}
-                </h4>
-                <p className="text-slate-400 text-xs mt-0.5">
-                  {activeConv.contact_phone || activeConv.phone}
-                </p>
-                <div className="mt-2 flex items-center justify-center gap-2">
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/10 text-zinc-300 border border-white/10">
-                    {activeConv.store_name || 'Loja Matriz Centro'}
-                  </span>
-                </div>
               </div>
+            </div>
 
-              {/* Informações CRM do Bebê e Parto */}
-              <div className="p-3 rounded-xl bg-dark-850 border border-white/5 space-y-2">
+            {activeConv ? (
+              <div className="space-y-4 text-xs overflow-y-auto pr-1">
+                <div className="p-3 rounded-xl bg-dark-850 border border-white/5 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] text-slate-400 uppercase font-bold block">
                     Dados do Enxoval
@@ -1593,7 +1654,8 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
               Nenhum contato selecionado.
             </div>
           )}
-        </Card>
+          </Card>
+        )}
 
       </div>
 

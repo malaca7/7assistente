@@ -178,6 +178,20 @@ async function startWhatsApp() {
         console.log(`📩 [WhatsApp Recebido] ${clientPhone} (${clientName}) [${remoteJid}]: "${text}"`);
         await recordMessageLocallyAndSupabase(clientPhone, clientName, 'inbound', text);
 
+        // 🛡️ BLINDAGEM DE ATENDIMENTO HUMANO:
+        // Se a conversa estiver assumida por um atendente ('human') ou tiver operador atribuído,
+        // o robô NÃO deve interferir, NÃO deve responder e NÃO deve resetar a conversa!
+        const dbCheck = loadDb();
+        const convCheck = dbCheck.conversations?.[`conv-${clientPhone}`] || 
+                          Object.values(dbCheck.conversations || {}).find(c => 
+                            String(c?.phone || c?.contact_phone || '').replace(/\D/g, '') === clientPhone
+                          );
+
+        if (convCheck && (convCheck.status === 'human' || convCheck.assigned_to || convCheck.assigned_attendant_name)) {
+          console.log(`🛡️ [Atendimento Humano Ativo] Cliente ${clientPhone} está sendo atendido por "${convCheck.assigned_to || convCheck.assigned_attendant_name}". Robô pausado.`);
+          continue;
+        }
+
         // Executar o fluxo publicado no Studio / Painel Admin
         try {
           console.log(`⚙️ [Flow Execution] Executando fluxo ativo no bot para ${clientPhone} (${clientName})...`);
@@ -343,15 +357,23 @@ async function recordMessageLocallyAndSupabase(phone, name, direction, content) 
     if (!db.conversations) db.conversations = {};
     if (!db.messages) db.messages = {};
 
+    const prevConv = db.conversations[convId] || {};
     db.conversations[convId] = {
+      ...prevConv,
       id: convId,
-      contact_name: name || 'Cliente WhatsApp',
+      contact_name: name || prevConv.contact_name || 'Cliente WhatsApp',
       contact_phone: cleanPhone,
       phone: cleanPhone,
       last_message: content,
       last_message_at: new Date().toISOString(),
-      status: db.conversations[convId]?.status || 'active',
-      store_name: db.conversations[convId]?.store_name || 'Pitoco de Gente',
+      status: prevConv.status || 'bot',
+      assigned_to: prevConv.assigned_to || undefined,
+      assigned_attendant_name: prevConv.assigned_attendant_name || undefined,
+      assigned_attendant_id: prevConv.assigned_attendant_id || undefined,
+      store_id: prevConv.store_id || undefined,
+      store_name: prevConv.store_name || 'Pitoco de Gente',
+      sector: prevConv.sector || undefined,
+      updated_at: new Date().toISOString(),
     };
 
     if (!db.messages[convId]) db.messages[convId] = [];
@@ -1437,12 +1459,6 @@ app.post('/api/whatsapp/flows/:id/publish', (req, res) => {
     const flow = (db.flows || []).find(f => f.id === id);
     if (!flow) return res.status(404).json({ error: 'Fluxo não encontrado' });
 
-    (db.flows || []).forEach(f => {
-      if (f.id !== id) {
-        f.status = 'draft';
-        f.is_active = false;
-      }
-    });
     flow.status = 'published';
     flow.is_active = true;
     flow.updated_at = new Date().toISOString();

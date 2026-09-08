@@ -565,12 +565,11 @@ export async function getFlows(): Promise<Flow[]> {
   try {
     const { data, error } = await supabase
       .from('flows')
-      .select('*')
-      .order('updated_at', { ascending: false });
+      .select('*');
 
     if (error) throw error;
     if (data && Array.isArray(data)) {
-      return data.map((f: any) => ({
+      const mapped = data.map((f: any) => ({
         id: f.id,
         name: f.name || 'Fluxo',
         description: f.description || '',
@@ -583,9 +582,18 @@ export async function getFlows(): Promise<Flow[]> {
         store_name: f.store_name || null,
         steps: Array.isArray(f.steps) ? f.steps : [],
         color: f.color || '#10b981',
+        order_index: typeof f.order_index === 'number' ? f.order_index : undefined,
         created_at: f.created_at || new Date().toISOString(),
         updated_at: f.updated_at || new Date().toISOString(),
       })) as Flow[];
+
+      // Ordenar por order_index estável (preserva ordem dos cards independente de atualizações de texto)
+      return mapped.sort((a, b) => {
+        const orderA = typeof a.order_index === 'number' ? a.order_index : 9999;
+        const orderB = typeof b.order_index === 'number' ? b.order_index : 9999;
+        if (orderA !== orderB) return orderA - orderB;
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      });
     }
   } catch (err) {
     console.warn('[Supabase] getFlows warning:', err);
@@ -597,14 +605,6 @@ export async function saveFlow(flow: Partial<Flow>): Promise<Flow | null> {
   try {
     if (!flow || !flow.id) return null;
     const isPublishing = flow.status === 'published' || flow.is_active === true;
-
-    // Se este fluxo for publicado/ativo, desativa os outros fluxos no Supabase
-    if (isPublishing) {
-      await supabase
-        .from('flows')
-        .update({ status: 'draft', is_active: false, updated_at: new Date().toISOString() })
-        .neq('id', flow.id);
-    }
 
     const payload = {
       id: flow.id,
@@ -619,6 +619,7 @@ export async function saveFlow(flow: Partial<Flow>): Promise<Flow | null> {
       node_count: flow.node_count || 0,
       steps: flow.steps || [],
       color: flow.color || '#10b981',
+      ...(typeof flow.order_index === 'number' ? { order_index: flow.order_index } : {}),
       updated_at: new Date().toISOString(),
     };
 

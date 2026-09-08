@@ -20,7 +20,8 @@ import {
   Check,
   Eye,
   Settings2,
-  Clock
+  Clock,
+  GripVertical
 } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -42,6 +43,10 @@ export const FlowListPage: React.FC<FlowListPageProps> = ({ onNavigate }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Drag and Drop State para reordenação dos cards
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   // Create Flow Modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -66,7 +71,29 @@ export const FlowListPage: React.FC<FlowListPageProps> = ({ onNavigate }) => {
     setIsLoading(true);
     try {
       const data = await StorageService.getFlows();
-      setFlows(data);
+      
+      // Carregar ordem fixa salva (localStorage ou order_index estável)
+      let savedOrder: string[] = [];
+      try {
+        const raw = localStorage.getItem('pitoco_flows_order');
+        if (raw) savedOrder = JSON.parse(raw);
+      } catch {}
+
+      const sorted = [...data].sort((a, b) => {
+        if (savedOrder.length > 0) {
+          const idxA = savedOrder.indexOf(a.id);
+          const idxB = savedOrder.indexOf(b.id);
+          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+          if (idxA !== -1) return -1;
+          if (idxB !== -1) return 1;
+        }
+        const oA = typeof a.order_index === 'number' ? a.order_index : 9999;
+        const oB = typeof b.order_index === 'number' ? b.order_index : 9999;
+        if (oA !== oB) return oA - oB;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+
+      setFlows(sorted);
     } catch (err) {
       console.error('Error fetching flows:', err);
     } finally {
@@ -211,39 +238,79 @@ export const FlowListPage: React.FC<FlowListPageProps> = ({ onNavigate }) => {
 
   const handleToggleStatus = async (flow: Flow, e: React.MouseEvent) => {
     e.stopPropagation();
-    // Toggle: published <-> draft/paused. Any non-published becomes published, published becomes draft.
+    // Toggle: published <-> draft. Suporta múltiplos fluxos ativos simultaneamente!
     const newStatus: FlowStatus = flow.status === 'published' ? 'draft' : 'published';
+    const updated: Flow = {
+      ...flow,
+      status: newStatus,
+      is_active: newStatus === 'published',
+      updated_at: new Date().toISOString(),
+    };
 
-    // If publishing, pause/deactivate all other flows first (only one active flow at a time)
-    if (newStatus === 'published') {
-      const allFlows = await StorageService.getFlows();
-      for (const f of allFlows) {
-        if (f.id !== flow.id && f.status === 'published') {
-          await StorageService.saveFlow({ ...f, status: 'draft' });
-        }
-      }
-    }
+    // Atualizar no estado local preservando rigorosamente a posição do card
+    setFlows((prev) => prev.map((f) => (f.id === flow.id ? updated : f)));
 
-    const updated = await StorageService.saveFlow({ ...flow, status: newStatus });
+    await StorageService.saveFlow(updated);
     
-    // Notify backend server to publish/sync immediately
+    // Notificar backend do WhatsApp
     const backendUrl = getBackendUrl();
     try {
       if (newStatus === 'published') {
         await fetch(`${backendUrl}/api/whatsapp/flows/${flow.id}/publish`, { method: 'POST' });
       }
-      // Always sync full state
       await fetch(`${backendUrl}/api/whatsapp/sync-flows`, { method: 'POST' });
     } catch {}
 
-    const freshFlows = await StorageService.getFlows();
-    setFlows(freshFlows);
     success(
       newStatus === 'published' ? '🟢 Fluxo Ativado no Bot' : '⚪ Fluxo Desativado',
       newStatus === 'published'
-        ? `O fluxo "${flow.name}" agora está ATIVO e rodando no WhatsApp. Os outros fluxos foram desativados.`
-        : `O fluxo "${flow.name}" foi desativado. O bot não vai mais executá-lo.`
+        ? `O fluxo "${flow.name}" agora está ATIVO e rodando no WhatsApp simultaneamente com os outros fluxos ativos.`
+        : `O fluxo "${flow.name}" foi pausado.`
     );
+  };
+
+  // ==============================================================================
+  // DRAG & DROP NATIVO (REORDENAÇÃO PERMANENTE DOS CARDS)
+  // ==============================================================================
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(index));
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const reordered = [...flows];
+    const [movedItem] = reordered.splice(draggedIndex, 1);
+    reordered.splice(targetIndex, 0, movedItem);
+
+    // Atribuir novos order_index em sequência
+    const finalized = reordered.map((f, idx) => ({ ...f, order_index: idx }));
+    setFlows(finalized);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+
+    await StorageService.saveFlowsOrder(finalized);
+    success('Ordem Salva!', `A nova ordem dos cards de fluxos foi salva com sucesso.`);
   };
 
   const handleDuplicate = async (flow: Flow, e: React.MouseEvent) => {
@@ -286,12 +353,21 @@ export const FlowListPage: React.FC<FlowListPageProps> = ({ onNavigate }) => {
       {/* Header & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-display font-bold text-white tracking-tight flex items-center gap-2">
-            <GitFork className="w-5 h-5 text-brand-400" />
-            Fluxos de Automação & Robôs
-          </h2>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h2 className="text-xl font-display font-bold text-white tracking-tight flex items-center gap-2">
+              <GitFork className="w-5 h-5 text-brand-400" />
+              Fluxos de Automação & Robôs
+            </h2>
+            {flows.filter(f => f.status === 'published' || f.is_active).length > 0 && (
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                {flows.filter(f => f.status === 'published' || f.is_active).length}{' '}
+                {flows.filter(f => f.status === 'published' || f.is_active).length === 1 ? 'Fluxo Ativo no WhatsApp' : 'Fluxos Ativos Simultâneos'}
+              </span>
+            )}
+          </div>
           <p className="text-xs text-slate-400 mt-1">
-            Crie, edite, gerencie e publique fluxos de atendimento com ramificações visuais e IA.
+            Crie e gerencie fluxos de atendimento. Arraste e solte (Drag & Drop) os cards para definir a ordem desejada.
           </p>
         </div>
 
@@ -341,7 +417,7 @@ export const FlowListPage: React.FC<FlowListPageProps> = ({ onNavigate }) => {
         </div>
       </Card>
 
-      {/* Flows Grid */}
+      {/* Flows Grid com suporte a Drag & Drop */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {isLoading ? (
           <div className="col-span-full p-12 text-center text-xs text-slate-500 animate-pulse">
@@ -364,42 +440,60 @@ export const FlowListPage: React.FC<FlowListPageProps> = ({ onNavigate }) => {
             </Button>
           </div>
         ) : (
-          filteredFlows.map((flow) => (
+          filteredFlows.map((flow, index) => (
             <div
               key={flow.id}
+              draggable
+              onDragStart={(e) => handleDragStart(e, index)}
+              onDragOver={(e) => handleDragOver(e, index)}
+              onDragEnd={handleDragEnd}
+              onDrop={(e) => handleDrop(e, index)}
               onClick={() => onNavigate(`/fluxos/${flow.id}`)}
-              className={`p-5 rounded-3xl bg-dark-900 border cursor-pointer transition-all duration-200 space-y-4 shadow-xl hover:shadow-2xl relative group flex flex-col justify-between ${
-                flow.status === 'published'
+              className={`p-5 rounded-3xl bg-dark-900 border cursor-pointer transition-all duration-200 space-y-4 shadow-xl hover:shadow-2xl relative group flex flex-col justify-between select-none ${
+                draggedIndex === index
+                  ? 'opacity-40 scale-95 border-dashed border-brand-400 ring-2 ring-brand-500/40'
+                  : dragOverIndex === index
+                  ? 'ring-2 ring-brand-400 shadow-2xl scale-[1.02] border-brand-400'
+                  : flow.status === 'published'
                   ? 'border-emerald-500/40 ring-1 ring-emerald-500/20'
                   : 'border-white/5 hover:border-brand-500/40'
               }`}
             >
               <div className="space-y-3">
-                {/* Top: Toggle Switch & Quick Actions */}
+                {/* Top: Drag Handle + Toggle Switch & Quick Actions */}
                 <div className="flex items-center justify-between">
-                  {/* Active/Inactive Toggle */}
-                  <div
-                    onClick={(e) => handleToggleStatus(flow, e)}
-                    className="flex items-center gap-2 cursor-pointer select-none"
-                    title={flow.status === 'published' ? 'Clique para DESATIVAR este fluxo no bot' : 'Clique para ATIVAR este fluxo no bot'}
-                  >
-                    {/* Toggle Switch */}
-                    <div className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${
-                      flow.status === 'published'
-                        ? 'bg-emerald-500 shadow-md shadow-emerald-500/30'
-                        : 'bg-dark-700 border border-white/10'
-                    }`}>
-                      <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                        flow.status === 'published' ? 'translate-x-[18px]' : 'translate-x-0.5'
-                      }`} />
+                  {/* Alça de Arraste + Active/Inactive Toggle */}
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="cursor-grab active:cursor-grabbing p-1 rounded text-slate-500 hover:text-white hover:bg-white/10 transition-colors"
+                      title="Clique e arraste para reordenar este card de fluxo"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <GripVertical className="w-4 h-4" />
                     </div>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider ${
-                      flow.status === 'published'
-                        ? 'text-emerald-300'
-                        : 'text-slate-500'
-                    }`}>
-                      {flow.status === 'published' ? '🟢 Ativo no Bot' : '⚪ Inativo'}
-                    </span>
+
+                    <div
+                      onClick={(e) => handleToggleStatus(flow, e)}
+                      className="flex items-center gap-2 cursor-pointer select-none"
+                      title={flow.status === 'published' ? 'Clique para DESATIVAR este fluxo no bot' : 'Clique para ATIVAR este fluxo no bot'}
+                    >
+                      {/* Toggle Switch */}
+                      <div className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${
+                        flow.status === 'published'
+                          ? 'bg-emerald-500 shadow-md shadow-emerald-500/30'
+                          : 'bg-dark-700 border border-white/10'
+                      }`}>
+                        <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                          flow.status === 'published' ? 'translate-x-[18px]' : 'translate-x-0.5'
+                        }`} />
+                      </div>
+                      <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                        flow.status === 'published'
+                          ? 'text-emerald-300'
+                          : 'text-slate-500'
+                      }`}>
+                        {flow.status === 'published' ? '🟢 Ativo' : '⚪ Inativo'}
+                      </span>
                   </div>
 
                   <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
