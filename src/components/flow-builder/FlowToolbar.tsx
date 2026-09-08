@@ -80,6 +80,7 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
 }) => {
   const [isAutoSaveMenuOpen, setIsAutoSaveMenuOpen] = useState(false);
   const [isLinesMenuOpen, setIsLinesMenuOpen] = useState(false);
+  const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const isPublished = flow.status === 'published';
 
@@ -107,29 +108,32 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
     : null;
 
   return (
-    <div className="h-16 bg-dark-900 border-b border-white/5 px-4 flex items-center justify-between z-20 flex-shrink-0 relative">
+    <div className="h-16 bg-dark-900 border-b border-white/5 px-4 flex items-center justify-between z-20 flex-shrink-0 relative gap-2">
       {/* Left: Back button + Flow Name + Status */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-dark-850 border border-white/10 hover:border-white/20 text-slate-300 hover:text-white transition-all text-xs font-semibold shadow-sm"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-dark-850 border border-white/10 hover:border-white/20 text-slate-300 hover:text-white transition-all text-xs font-semibold shadow-sm shrink-0"
           title="Sair do Studio e voltar para a Lista de Fluxos"
         >
           <ArrowLeft className="w-4 h-4 text-slate-400 group-hover:text-white" />
-          <span>Sair do Studio</span>
+          <span className="hidden sm:inline">Sair do Studio</span>
         </button>
 
-        <div className="hidden sm:block">
+        <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-bold text-white tracking-tight">{flow.name}</h2>
+            <h2 className="text-sm font-bold text-white tracking-tight max-w-[150px] sm:max-w-[200px] md:max-w-[250px] lg:max-w-[320px] truncate" title={flow.name}>
+              {flow.name}
+            </h2>
             <Badge
               variant={isPublished ? 'brand' : flow.status === 'paused' ? 'warning' : 'neutral'}
               dot
+              className="shrink-0"
             >
-              {isPublished ? 'Publicado (Ativo)' : flow.status === 'paused' ? 'Pausado' : 'Rascunho'}
+              {isPublished ? 'Publicado' : flow.status === 'paused' ? 'Pausado' : 'Rascunho'}
             </Badge>
           </div>
-          <p className="text-[11px] text-slate-400">Versão {flow.version || 1} • Studio Visual Tela Cheia</p>
+          <p className="text-[11px] text-slate-400 truncate">Versão {flow.version || 1} • Studio Visual</p>
         </div>
       </div>
 
@@ -253,136 +257,164 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
       </div>
 
       {/* Right: Actions */}
-      <div className="flex items-center gap-2">
-        {/* Style of connecting lines */}
-        <div className="relative">
-          <button
-            onClick={() => setIsLinesMenuOpen(!isLinesMenuOpen)}
-            className="px-2.5 py-1.5 rounded-xl bg-dark-850 border border-white/5 hover:border-white/15 text-xs text-slate-300 flex items-center gap-1.5 transition-colors"
-            title="Estilo das Linhas de Conexão"
-          >
-            <GitCommit className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="hidden sm:inline font-medium capitalize">Linhas: {edgeType}</span>
-            <ChevronDown className="w-3 h-3 text-slate-400" />
-          </button>
-
-          {isLinesMenuOpen && (
-            <div className="absolute top-full mt-2 right-0 w-48 p-2 rounded-2xl bg-dark-900 border border-white/10 shadow-2xl space-y-1 z-50 animate-in fade-in">
-              <span className="text-[10px] font-bold text-white uppercase px-2 py-1 block">
-                Estilo das Linhas
-              </span>
-              {[
-                { id: 'smoothstep', label: 'Curvas Suaves (SmoothStep)' },
-                { id: 'default', label: 'Curvas Bézier' },
-                { id: 'straight', label: 'Linhas Retas' },
-                { id: 'step', label: 'Linhas em Ângulo Reto' },
-              ].map((style) => (
-                <button
-                  key={style.id}
-                  onClick={() => {
-                    onChangeEdgeType(style.id as any);
-                    setIsLinesMenuOpen(false);
-                  }}
-                  className={`w-full p-2 rounded-xl text-left text-xs flex items-center justify-between transition-colors ${
-                    edgeType === style.id
-                      ? 'bg-cyan-500/20 text-cyan-300 font-bold'
-                      : 'text-slate-300 hover:bg-dark-850'
-                  }`}
-                >
-                  <span>{style.label}</span>
-                  {edgeType === style.id && <Check className="w-3.5 h-3.5 text-cyan-400" />}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Switch to Mobile Step Mode Button */}
-        {onSwitchToMobileMode && (
-          <button
-            onClick={onSwitchToMobileMode}
-            className="p-2 rounded-xl bg-dark-850 border border-brand-500/20 hover:border-brand-500/50 text-brand-300 hover:text-brand-200 transition-colors flex items-center gap-1.5 text-xs shadow-sm"
-            title="Alternar para Modo Lista Passo a Passo (Otimizado para Celular / Mobile)"
-          >
-            <Smartphone className="w-4 h-4 text-brand-400" />
-            <span className="hidden lg:inline font-medium">Modo Lista</span>
-          </button>
-        )}
-
-        {/* Auto-Organize Flow Button - Destaque Visual Máximo */}
-        {onAutoLayout && (
-          <button
-            type="button"
-            onClick={onAutoLayout}
-            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600/30 to-teal-600/30 hover:from-emerald-500/40 hover:to-teal-500/40 border border-emerald-500/40 hover:border-emerald-400 text-emerald-300 hover:text-emerald-100 transition-all flex items-center gap-1.5 text-xs font-bold shadow-sm active:scale-95"
-            title="Auto-Organizar nós e conexões de cima para baixo sem sobreposição (Atalho: Alt+O)"
-          >
-            <Sparkles className="w-4 h-4 text-emerald-400 animate-pulse" />
-            <span className="hidden sm:inline font-bold">Auto-Organizar</span>
-            <span className="hidden xl:inline text-[9.5px] font-mono px-1 py-0.2 rounded bg-dark-900/80 text-emerald-400 border border-emerald-500/30">Alt+O</span>
-          </button>
-        )}
-
-        {/* Dicionário de Variáveis do Sistema & Fluxo */}
-        {onOpenVariables && (
-          <button
-            type="button"
-            onClick={onOpenVariables}
-            className="px-3 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-300 hover:text-purple-100 transition-all flex items-center gap-1.5 text-xs font-bold shadow-sm active:scale-95"
-            title="Abrir painel popup com todas as variáveis do sistema e deste fluxo"
-          >
-            <Braces className="w-4 h-4 text-purple-400" />
-            <span className="hidden sm:inline font-bold">Variáveis</span>
-          </button>
-        )}
-
-        {/* Fullscreen Toggle Button */}
-        <button
-          onClick={handleToggleFullscreen}
-          className="p-2 rounded-xl bg-dark-850 border border-white/5 hover:border-white/20 text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 text-xs"
-          title={isFullscreen ? "Sair da Tela Cheia do Navegador" : "Expandir em Tela Cheia Nativa"}
-        >
-          {isFullscreen ? (
-            <>
-              <Minimize2 className="w-4 h-4 text-cyan-400" />
-              <span className="hidden xl:inline font-medium">Restaurar</span>
-            </>
-          ) : (
-            <>
-              <Maximize2 className="w-4 h-4 text-cyan-400" />
-              <span className="hidden xl:inline font-medium">Tela Cheia</span>
-            </>
-          )}
-        </button>
-
-        {/* Keyboard Shortcuts Button */}
-        <button
-          onClick={onOpenShortcuts}
-          className="p-2 rounded-xl bg-dark-850 border border-white/5 hover:border-white/15 text-slate-300 hover:text-white transition-colors flex items-center gap-1 text-xs"
-          title="Ver Atalhos de Teclado (F1 ou ?)"
-        >
-          <Keyboard className="w-4 h-4 text-brand-400" />
-          <span className="hidden md:inline font-medium">Atalhos</span>
-        </button>
-
+      <div className="flex items-center gap-2 flex-shrink-0">
         {/* Undo / Redo */}
-        <div className="hidden sm:flex items-center gap-1 pr-2 border-r border-white/5">
+        <div className="hidden sm:flex items-center gap-0.5 pr-1 border-r border-white/5">
           <button
             onClick={onUndo}
             disabled={!canUndo}
-            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
             title="Desfazer (Ctrl+Z)"
           >
-            <RotateCcw className="w-4 h-4" />
+            <RotateCcw className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={onRedo}
             disabled={!canRedo}
-            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
             title="Refazer (Ctrl+Y)"
           >
-            <RotateCw className="w-4 h-4" />
+            <RotateCw className="w-3.5 h-3.5" />
           </button>
+        </div>
+
+        {/* Auto-Organize Flow Button */}
+        {onAutoLayout && (
+          <button
+            type="button"
+            onClick={onAutoLayout}
+            className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600/30 to-teal-600/30 hover:from-emerald-500/40 hover:to-teal-500/40 border border-emerald-500/40 text-emerald-300 hover:text-white transition-all flex items-center gap-1.5 text-xs font-bold shadow-sm active:scale-95"
+            title="Auto-Organizar nós de cima para baixo (Atalho: Alt+O)"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden sm:inline">Auto-Organizar</span>
+          </button>
+        )}
+
+        {/* Dropdown de Ferramentas & Opções do Studio */}
+        <div className="relative">
+          <button
+            onClick={() => setIsOptionsMenuOpen(!isOptionsMenuOpen)}
+            className="px-2.5 py-1.5 rounded-xl bg-dark-850 border border-white/10 hover:border-white/20 text-xs text-slate-300 hover:text-white flex items-center gap-1.5 transition-colors shadow-sm"
+            title="Mais opções e configurações do editor de fluxo"
+          >
+            <Settings className="w-3.5 h-3.5 text-slate-400" />
+            <span className="hidden md:inline font-medium">Opções</span>
+            <ChevronDown className="w-3 h-3 text-slate-400" />
+          </button>
+
+          {isOptionsMenuOpen && (
+            <div className="absolute top-full mt-2 right-0 w-60 p-2.5 rounded-2xl bg-dark-900 border border-white/10 shadow-2xl space-y-2 z-50 animate-in fade-in">
+              <div className="px-2 py-1 border-b border-white/5 flex items-center justify-between">
+                <span className="text-[10px] font-bold text-white uppercase tracking-wider">
+                  Configurações do Studio
+                </span>
+                <button
+                  onClick={() => setIsOptionsMenuOpen(false)}
+                  className="text-slate-400 hover:text-white"
+                >
+                  <ChevronDown className="w-3 h-3 rotate-180" />
+                </button>
+              </div>
+
+              {/* Seletor de Estilo de Linhas */}
+              <div className="space-y-1">
+                <span className="text-[10px] text-slate-400 font-semibold px-2 block">
+                  Estilo das Linhas ({edgeType}):
+                </span>
+                <div className="grid grid-cols-2 gap-1 px-1">
+                  {[
+                    { id: 'smoothstep', label: 'Suaves' },
+                    { id: 'default', label: 'Bézier' },
+                    { id: 'straight', label: 'Retas' },
+                    { id: 'step', label: 'Ângulo' },
+                  ].map((style) => (
+                    <button
+                      key={style.id}
+                      onClick={() => {
+                        onChangeEdgeType(style.id as any);
+                      }}
+                      className={`px-2 py-1 rounded-lg text-left text-[11px] flex items-center justify-between transition-colors ${
+                        edgeType === style.id
+                          ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30'
+                          : 'text-slate-400 hover:bg-dark-850 hover:text-white'
+                      }`}
+                    >
+                      <span>{style.label}</span>
+                      {edgeType === style.id && <Check className="w-3 h-3 text-cyan-400" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t border-white/5 pt-1 space-y-1">
+                {/* Dicionário de Variáveis */}
+                {onOpenVariables && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onOpenVariables();
+                      setIsOptionsMenuOpen(false);
+                    }}
+                    className="w-full px-2 py-1.5 rounded-lg text-left text-xs flex items-center gap-2 text-slate-300 hover:text-white hover:bg-dark-850 transition-colors"
+                  >
+                    <Braces className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Dicionário de Variáveis</span>
+                  </button>
+                )}
+
+                {/* Modo Lista / Mobile */}
+                {onSwitchToMobileMode && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onSwitchToMobileMode();
+                      setIsOptionsMenuOpen(false);
+                    }}
+                    className="w-full px-2 py-1.5 rounded-lg text-left text-xs flex items-center gap-2 text-slate-300 hover:text-white hover:bg-dark-850 transition-colors"
+                  >
+                    <Smartphone className="w-3.5 h-3.5 text-brand-400" />
+                    <span>Modo Lista Passo a Passo</span>
+                  </button>
+                )}
+
+                {/* Atalhos de Teclado */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOpenShortcuts();
+                    setIsOptionsMenuOpen(false);
+                  }}
+                  className="w-full px-2 py-1.5 rounded-lg text-left text-xs flex items-center gap-2 text-slate-300 hover:text-white hover:bg-dark-850 transition-colors"
+                >
+                  <Keyboard className="w-3.5 h-3.5 text-brand-400" />
+                  <span>Atalhos de Teclado (F1)</span>
+                </button>
+
+                {/* Tela Cheia */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleToggleFullscreen();
+                    setIsOptionsMenuOpen(false);
+                  }}
+                  className="w-full px-2 py-1.5 rounded-lg text-left text-xs flex items-center gap-2 text-slate-300 hover:text-white hover:bg-dark-850 transition-colors"
+                >
+                  {isFullscreen ? (
+                    <>
+                      <Minimize2 className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Restaurar Janela</span>
+                    </>
+                  ) : (
+                    <>
+                      <Maximize2 className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Expandir Tela Cheia</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Test Simulator */}
@@ -392,8 +424,9 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
             variant="secondary"
             leftIcon={<Play className="w-3.5 h-3.5 text-brand-400" />}
             onClick={onTestFlow}
+            className="text-xs h-8 px-2.5"
           >
-            Testar
+            <span className="hidden sm:inline">Testar</span>
           </Button>
         )}
 
@@ -401,12 +434,12 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
         <Button
           size="sm"
           variant={isDirty ? 'primary' : 'outline'}
-          leftIcon={!isDirty ? <Check className="w-4 h-4 text-emerald-400" /> : <Save className="w-4 h-4" />}
+          leftIcon={!isDirty ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Save className="w-3.5 h-3.5" />}
           isLoading={isSaving}
           disabled={!isDirty || isSaving}
           onClick={onSave}
           title={isDirty ? 'Salvar Alterações (Ctrl+S)' : 'Nenhuma alteração pendente (Tudo Salvo)'}
-          className={!isDirty ? 'opacity-50 cursor-not-allowed border-white/5 text-slate-400 hover:bg-transparent hover:text-slate-400' : 'border-primary-500/60 shadow-sm shadow-primary-500/20'}
+          className={!isDirty ? 'opacity-50 cursor-not-allowed border-white/5 text-slate-400 hover:bg-transparent h-8 px-2.5 text-xs' : 'border-primary-500/60 shadow-sm h-8 px-2.5 text-xs'}
         >
           {isDirty ? 'Salvar' : 'Salvo'}
         </Button>
@@ -415,8 +448,9 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
         <Button
           size="sm"
           variant={isPublished ? 'secondary' : isConnectedWhatsApp ? 'brand' : 'outline'}
-          leftIcon={isPublished ? <Pause className="w-4 h-4 text-amber-400" /> : <Play className="w-4 h-4" />}
+          leftIcon={isPublished ? <Pause className="w-3.5 h-3.5 text-amber-400" /> : <Play className="w-3.5 h-3.5" />}
           onClick={onToggleStatus}
+          className="text-xs h-8 px-2.5 font-bold"
         >
           {isPublished ? 'Pausar' : 'Publicar'}
         </Button>

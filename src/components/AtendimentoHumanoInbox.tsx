@@ -30,7 +30,8 @@ import {
   Download,
   Eraser,
   UserPlus,
-  Plus
+  Plus,
+  Edit3
 } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
@@ -48,11 +49,40 @@ interface AtendimentoHumanoInboxProps {
   onNavigate?: (path: string) => void;
 }
 
+// Utilitário de deduplicação estrita de mensagens para evitar clones visuais
+const deduplicateMessages = (msgs: Message[]): Message[] => {
+  const seenIds = new Set<string>();
+  const result: Message[] = [];
+
+  for (const m of msgs) {
+    if (m.id && seenIds.has(m.id)) continue;
+
+    // Verificar se já existe mensagem recente com mesmo conteúdo e mesma direção (dentro de 4 segundos)
+    const isDuplicateRecent = result.some(prev => {
+      if (prev.direction !== m.direction) return false;
+      if ((prev.content || '').trim() !== (m.content || '').trim()) return false;
+      const tPrev = new Date(prev.created_at || '').getTime();
+      const tCurr = new Date(m.created_at || '').getTime();
+      if (!isNaN(tPrev) && !isNaN(tCurr) && Math.abs(tCurr - tPrev) < 4000) {
+        return true;
+      }
+      return false;
+    });
+
+    if (isDuplicateRecent) continue;
+
+    if (m.id) seenIds.add(m.id);
+    result.push(m);
+  }
+  return result;
+};
+
 export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({ 
   initialStoreId,
   onNavigate 
 }) => {
-  const { user } = useAuth();
+  const { user, isCEO, isManager } = useAuth();
+  const canAdminDestructive = isCEO || isManager || user?.role === 'admin';
   const { success, warning, error: toastError, info } = useToast();
 
   const [stores, setStores] = useState<Store[]>([]);
@@ -70,6 +100,17 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [transferTargetAttendant, setTransferTargetAttendant] = useState('');
   const [newTagInput, setNewTagInput] = useState('');
+  
+  // Modal de Edição de Dados do Cliente CRM
+  const [isEditClientModalOpen, setIsEditClientModalOpen] = useState(false);
+  const [clientForm, setClientForm] = useState({
+    name: '',
+    phone: '',
+    baby_name: '',
+    due_date: '',
+    store_id: '',
+    email: '',
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Carregar lojas e atendentes cadastrados
@@ -127,7 +168,7 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
         StorageService.getContacts(),
       ]);
       if (isMounted) {
-        setMessages(msgs);
+        setMessages(deduplicateMessages(msgs));
         const contact = contacts.find(
           c => c.phone.replace(/\D/g, '') === (activeConv.contact_phone || activeConv.phone || '').replace(/\D/g, '')
         );
@@ -139,7 +180,7 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
     // Supabase Realtime subscription para a conversa ativa
     const unsubscribe = SupabaseService.subscribeToMessages(activeConv.id, (newMsg) => {
       if (isMounted) {
-        setMessages(prev => [...prev, newMsg]);
+        setMessages(prev => deduplicateMessages([...prev, newMsg]));
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }
     });
@@ -166,13 +207,13 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
     const targetPhone = activeConv.contact_phone || activeConv.phone || '';
     const authorName = user?.name || 'Sofia Consultora VIP';
 
-    // 1. Enviar mensagem de saída via WhatsApp microservice
+    // 1. Enviar mensagem de saída via WhatsApp microservice (com skipRecord para não duplicar no Baileys)
     const sendResult = await whatsappService.sendMessage({
       phone: targetPhone,
       text: textToSend,
     });
 
-    // 2. Persistir no banco de dados e estado local
+    // 2. Persistir no banco de dados e estado local oficial
     const newMsg = await StorageService.addMessage({
       conversation_id: activeConv.id,
       store_id: activeConv.store_id || null,
@@ -182,7 +223,7 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
       status: sendResult.success ? 'delivered' : 'pending',
     });
 
-    setMessages(prev => [...prev, newMsg]);
+    setMessages(prev => deduplicateMessages([...prev, newMsg]));
 
     // Se a conversa estava com o robô ou aguardando, assume como atendimento humano
     if (activeConv.status !== 'human') {
@@ -215,26 +256,38 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
     success('Você assumiu este atendimento humano!', `Loja: ${activeConv.store_name || 'Rede Pitoco'}`);
   };
 
-  // 1. Apagar Mensagem Individual
+  // 1. Apagar Mensagem Individual (Restrito a Admin/Gerente)
   const handleDeleteMessage = async (msgId: string) => {
     if (!activeConv) return;
+    if (!canAdminDestructive) {
+      warning('Ação Restrita', 'Apenas Administradores e Gerentes podem remover mensagens do histórico.');
+      return;
+    }
     await StorageService.deleteMessage(activeConv.id, msgId);
     setMessages(prev => prev.filter(m => m.id !== msgId));
     info('Mensagem removida da conversa');
   };
 
-  // 2. Limpar Histórico da Conversa
+  // 2. Limpar Histórico da Conversa (Restrito a Admin/Gerente)
   const handleClearHistory = async () => {
     if (!activeConv) return;
+    if (!canAdminDestructive) {
+      warning('Ação Restrita', 'Apenas Administradores e Gerentes podem limpar o histórico completo.');
+      return;
+    }
     if (!window.confirm(`Tem certeza que deseja limpar todo o histórico com ${activeConv.contact_name || activeConv.phone}?`)) return;
     await StorageService.clearMessages(activeConv.id);
     setMessages([]);
     success('Histórico de mensagens limpo com sucesso');
   };
 
-  // 3. Excluir Conversa Completa
+  // 3. Excluir Conversa Completa (Restrito a Admin/Gerente)
   const handleDeleteConversation = async () => {
     if (!activeConv) return;
+    if (!canAdminDestructive) {
+      warning('Ação Restrita', 'Apenas Administradores e Gerentes podem excluir conversas da fila.');
+      return;
+    }
     if (!window.confirm(`Tem certeza que deseja excluir esta conversa com ${activeConv.contact_name || activeConv.phone}? Esta ação removerá a conversa da fila.`)) return;
     const convId = activeConv.id;
     await StorageService.deleteConversation(convId);
@@ -312,35 +365,107 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
   };
 
   // 6. Tags do Cliente: Adicionar e Remover
-  const handleAddTag = async (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && newTagInput.trim() && activeConv) {
-      e.preventDefault();
-      const currentTags = contactInfo?.tags || [];
-      const tagClean = newTagInput.trim();
-      if (!currentTags.includes(tagClean)) {
-        const updatedTags = [...currentTags, tagClean];
+  const handleAddTag = async (e?: React.KeyboardEvent | React.MouseEvent) => {
+    if (e && 'key' in e && e.key !== 'Enter') return;
+    if (e && 'preventDefault' in e) e.preventDefault();
+
+    const tagClean = newTagInput.trim();
+    if (!tagClean || !activeConv) return;
+
+    const currentTags = contactInfo?.tags || [];
+    if (!currentTags.includes(tagClean)) {
+      const updatedTags = [...currentTags, tagClean];
+      try {
         const updatedContact = await StorageService.saveContact({
           id: contactInfo?.id,
           phone: activeConv.contact_phone || activeConv.phone,
-          name: activeConv.contact_name,
+          name: activeConv.contact_name || 'Cliente WhatsApp',
           tags: updatedTags,
+          store_id: activeConv.store_id,
+          store_name: activeConv.store_name,
         });
         setContactInfo(updatedContact);
         success(`Tag "${tagClean}" vinculada ao cliente`);
+      } catch (err) {
+        console.error('Erro ao salvar tag:', err);
       }
-      setNewTagInput('');
     }
+    setNewTagInput('');
   };
 
   const handleRemoveTag = async (tagToRemove: string) => {
-    if (!activeConv || !contactInfo) return;
-    const updatedTags = (contactInfo.tags || []).filter(t => t !== tagToRemove);
-    const updatedContact = await StorageService.saveContact({
-      ...contactInfo,
-      tags: updatedTags,
+    if (!activeConv) return;
+    const currentTags = contactInfo?.tags || [];
+    const updatedTags = currentTags.filter(t => t !== tagToRemove);
+    try {
+      const updatedContact = await StorageService.saveContact({
+        id: contactInfo?.id,
+        phone: activeConv.contact_phone || activeConv.phone,
+        name: activeConv.contact_name || 'Cliente WhatsApp',
+        tags: updatedTags,
+        store_id: activeConv.store_id,
+        store_name: activeConv.store_name,
+      });
+      setContactInfo(updatedContact);
+      info(`Tag "${tagToRemove}" removida`);
+    } catch (err) {
+      console.error('Erro ao remover tag:', err);
+    }
+  };
+
+  // 7. Modal de Edição de Dados do Cliente CRM
+  const handleOpenEditClient = () => {
+    if (!activeConv) return;
+    setClientForm({
+      name: activeConv.contact_name || contactInfo?.name || '',
+      phone: activeConv.contact_phone || activeConv.phone || contactInfo?.phone || '',
+      baby_name: contactInfo?.baby_name || '',
+      due_date: contactInfo?.due_date || '',
+      store_id: activeConv.store_id || contactInfo?.store_id || '',
+      email: contactInfo?.email || '',
     });
-    setContactInfo(updatedContact);
-    info(`Tag "${tagToRemove}" removida`);
+    setIsEditClientModalOpen(true);
+  };
+
+  const handleSaveClientData = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeConv) return;
+
+    const cleanPhone = clientForm.phone.replace(/\D/g, '');
+    const selectedStore = stores.find(s => s.id === clientForm.store_id);
+    const storeName = selectedStore ? selectedStore.name : activeConv.store_name;
+
+    try {
+      const updatedContact = await StorageService.saveContact({
+        id: contactInfo?.id,
+        name: clientForm.name.trim() || 'Cliente WhatsApp',
+        phone: cleanPhone || activeConv.contact_phone || activeConv.phone,
+        baby_name: clientForm.baby_name.trim(),
+        due_date: clientForm.due_date.trim(),
+        store_id: clientForm.store_id || null,
+        store_name: storeName,
+        email: clientForm.email.trim(),
+        tags: contactInfo?.tags || ['Cliente WhatsApp'],
+      });
+
+      setContactInfo(updatedContact);
+
+      // Atualizar a conversa ativa e na lista
+      const updatedConv: Conversation = {
+        ...activeConv,
+        contact_name: clientForm.name.trim() || activeConv.contact_name,
+        contact_phone: cleanPhone || activeConv.contact_phone,
+        store_id: clientForm.store_id || activeConv.store_id,
+        store_name: storeName || activeConv.store_name,
+      };
+      setActiveConv(updatedConv);
+      setConversations(prev => prev.map(c => c.id === activeConv.id ? updatedConv : c));
+
+      setIsEditClientModalOpen(false);
+      success('Dados Atualizados', 'Perfil e CRM do cliente salvos com sucesso.');
+    } catch (err: any) {
+      toastError('Erro ao salvar', err?.message || 'Falha ao salvar dados do cliente.');
+    }
   };
 
   // Filtragem de conversas
@@ -589,27 +714,30 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                     Transcrição
                   </Button>
 
-                  {/* Limpar Histórico */}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleClearHistory}
-                    className="text-xs border-white/10 hover:bg-amber-500/10 text-amber-400 border-amber-500/20 h-8 px-2"
-                    title="Limpar todas as mensagens desta conversa"
-                  >
-                    <Eraser className="w-3.5 h-3.5" />
-                  </Button>
+                  {/* Funções Destrutivas: Limpar Histórico e Excluir Conversa (Apenas Admin/Gerente) */}
+                  {canAdminDestructive && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleClearHistory}
+                        className="text-xs border-white/10 hover:bg-amber-500/10 text-amber-400 border-amber-500/20 h-8 px-2"
+                        title="Limpar todas as mensagens desta conversa (Apenas Administrador)"
+                      >
+                        <Eraser className="w-3.5 h-3.5" />
+                      </Button>
 
-                  {/* Excluir Conversa */}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleDeleteConversation}
-                    className="text-xs border-red-500/30 hover:bg-red-500/10 text-red-400 h-8 px-2"
-                    title="Excluir esta conversa definitivamente"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleDeleteConversation}
+                        className="text-xs border-red-500/30 hover:bg-red-500/10 text-red-400 h-8 px-2"
+                        title="Excluir esta conversa definitivamente (Apenas Administrador)"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -635,19 +763,21 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                               : 'bg-dark-800 text-slate-200 border border-white/5 rounded-bl-none'
                           }`}
                         >
-                          {/* Botão de apagar mensagem individual no hover */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (window.confirm('Deseja apagar esta mensagem individual?')) {
-                                handleDeleteMessage(msg.id);
-                              }
-                            }}
-                            title="Apagar esta mensagem"
-                            className="absolute -top-2 -right-2 p-1 rounded-full bg-dark-900 border border-red-500/40 text-red-400 opacity-0 group-hover/msg:opacity-100 hover:bg-red-500/20 transition-all shadow-md z-10"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
+                          {/* Botão de apagar mensagem individual no hover (apenas admin/gerente) */}
+                          {canAdminDestructive && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (window.confirm('Deseja apagar esta mensagem individual?')) {
+                                  handleDeleteMessage(msg.id);
+                                }
+                              }}
+                              title="Apagar esta mensagem"
+                              className="absolute -top-2 -right-2 p-1 rounded-full bg-dark-900 border border-red-500/40 text-red-400 opacity-0 group-hover/msg:opacity-100 hover:bg-red-500/20 transition-all shadow-md z-10"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          )}
 
                           {!isOutbound && (
                             <span className="block text-[10px] text-zinc-400 font-bold mb-1">
@@ -670,7 +800,7 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Caixa de Entrada de Texto (sem respostas rápidas, conforme solicitado) */}
+              {/* Caixa de Entrada de Texto */}
               <form onSubmit={handleSendMessage} className="p-3 bg-dark-850 border-t border-white/5 flex items-center gap-2">
                 <input
                   type="text"
@@ -697,17 +827,28 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
 
         {/* Coluna Direita: Detalhes do Cliente CRM & Enxoval (3 colunas) */}
         <Card className="md:col-span-3 flex flex-col h-full bg-dark-900 border-white/10 overflow-hidden p-4">
-          <div className="border-b border-white/5 pb-3 mb-4">
+          <div className="border-b border-white/5 pb-3 mb-4 flex items-center justify-between">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
               <User className="w-3.5 h-3.5 text-white" />
               Perfil & CRM do Cliente
             </h3>
+            {activeConv && (
+              <button
+                type="button"
+                onClick={handleOpenEditClient}
+                className="flex items-center gap-1 text-[11px] font-semibold text-zinc-300 hover:text-white px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+                title="Editar dados e CRM deste cliente"
+              >
+                <Edit3 className="w-3 h-3 text-white" />
+                Editar Dados
+              </button>
+            )}
           </div>
 
           {activeConv ? (
             <div className="space-y-4 text-xs overflow-y-auto">
               {/* Card Resumo */}
-              <div className="p-3 rounded-xl bg-dark-850 border border-white/5 text-center">
+              <div className="p-3 rounded-xl bg-dark-850 border border-white/5 text-center relative group">
                 <div className="w-14 h-14 rounded-full mx-auto bg-zinc-800 border border-white/10 flex items-center justify-center text-white font-black text-xl mb-2">
                   {(activeConv.contact_name || 'C')[0]}
                 </div>
@@ -717,7 +858,7 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                 <p className="text-slate-400 text-xs mt-0.5">
                   {activeConv.contact_phone || activeConv.phone}
                 </p>
-                <div className="mt-2">
+                <div className="mt-2 flex items-center justify-center gap-2">
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/10 text-zinc-300 border border-white/10">
                     {activeConv.store_name || 'Loja Matriz Centro'}
                   </span>
@@ -726,17 +867,32 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
 
               {/* Informações do Cliente */}
               <div className="p-3 rounded-xl bg-dark-850 border border-white/5 space-y-2">
-                <span className="text-[10px] text-slate-400 uppercase font-bold block">
-                  Informações Adicionais
-                </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold block">
+                    Informações Adicionais
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleOpenEditClient}
+                    className="text-[10px] text-zinc-400 hover:text-white transition-colors"
+                  >
+                    Editar
+                  </button>
+                </div>
                 <div className="flex items-center justify-between text-slate-300">
                   <span>Nome do Bebê:</span>
-                  <span className="font-bold text-white">{contactInfo?.baby_name || 'Theo'}</span>
+                  <span className="font-bold text-white">{contactInfo?.baby_name || 'Não informado'}</span>
                 </div>
                 <div className="flex items-center justify-between text-slate-300">
                   <span>Data Prevista (DPP):</span>
-                  <span className="font-medium text-zinc-300">{contactInfo?.due_date || 'Novembro / 2026'}</span>
+                  <span className="font-medium text-zinc-300">{contactInfo?.due_date || 'Não informada'}</span>
                 </div>
+                {contactInfo?.email && (
+                  <div className="flex items-center justify-between text-slate-300">
+                    <span>E-mail:</span>
+                    <span className="font-medium text-zinc-300 truncate max-w-[140px]">{contactInfo.email}</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between text-slate-300">
                   <span>Status do Atendimento:</span>
                   <span className="font-bold text-emerald-400 capitalize">{activeConv.status}</span>
@@ -755,23 +911,27 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                 </div>
 
                 {/* Lista de Tags com botão de remover */}
-                <div className="flex flex-wrap gap-1.5 min-h-[30px]">
-                  {(contactInfo?.tags || ['Enxoval Completo', 'VIP', 'Mala Maternidade']).map((tag, idx) => (
-                    <span
-                      key={idx}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] bg-white/5 text-slate-300 border border-white/10 hover:border-white/20 transition-all"
-                    >
-                      {tag}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveTag(tag)}
-                        className="text-slate-500 hover:text-red-400 transition-colors ml-0.5"
-                        title={`Remover tag "${tag}"`}
+                <div className="flex flex-wrap gap-1.5 min-h-[30px] items-center">
+                  {(contactInfo?.tags && contactInfo.tags.length > 0) ? (
+                    contactInfo.tags.map((tag, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] bg-white/5 text-slate-300 border border-white/10 hover:border-white/20 transition-all"
                       >
-                        <X className="w-2.5 h-2.5" />
-                      </button>
-                    </span>
-                  ))}
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTag(tag)}
+                          className="text-slate-500 hover:text-red-400 transition-colors ml-0.5"
+                          title={`Remover tag "${tag}"`}
+                        >
+                          <X className="w-2.5 h-2.5" />
+                        </button>
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-[10px] text-slate-500 italic">Nenhuma tag vinculada</span>
+                  )}
                 </div>
 
                 {/* Adicionar Nova Tag */}
@@ -784,14 +944,14 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
-                        handleAddTag();
+                        handleAddTag(e);
                       }
                     }}
                     className="flex-1 bg-dark-900 border border-white/10 rounded-lg px-2.5 py-1 text-[11px] text-white placeholder-slate-500 focus:outline-none focus:border-white/30"
                   />
                   <button
                     type="button"
-                    onClick={handleAddTag}
+                    onClick={(e) => handleAddTag(e)}
                     className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
                     title="Adicionar tag ao cliente"
                   >
@@ -808,6 +968,128 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
         </Card>
 
       </div>
+
+      {/* Modal de Edição de Dados do Cliente CRM */}
+      {isEditClientModalOpen && activeConv && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-dark-900 border border-white/10 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-white/10 text-white">
+                  <Edit3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-sm">Editar Dados do Cliente & CRM</h3>
+                  <p className="text-xs text-slate-400">Atualizar nome, loja, bebê e data prevista de parto</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsEditClientModalOpen(false)}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveClientData} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 mb-1 font-medium">Nome Completo:</label>
+                  <input
+                    type="text"
+                    required
+                    value={clientForm.name}
+                    onChange={(e) => setClientForm({ ...clientForm, name: e.target.value })}
+                    placeholder="Ex: Mariana Silva"
+                    className="w-full bg-dark-850 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-white/30"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1 font-medium">WhatsApp / Telefone:</label>
+                  <input
+                    type="text"
+                    required
+                    value={clientForm.phone}
+                    onChange={(e) => setClientForm({ ...clientForm, phone: e.target.value })}
+                    placeholder="5581999999999"
+                    className="w-full bg-dark-850 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-white/30 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 mb-1 font-medium">Nome do Bebê:</label>
+                  <input
+                    type="text"
+                    value={clientForm.baby_name}
+                    onChange={(e) => setClientForm({ ...clientForm, baby_name: e.target.value })}
+                    placeholder="Ex: Theo / Sofia"
+                    className="w-full bg-dark-850 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-white/30"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1 font-medium">Data Prevista (DPP):</label>
+                  <input
+                    type="text"
+                    value={clientForm.due_date}
+                    onChange={(e) => setClientForm({ ...clientForm, due_date: e.target.value })}
+                    placeholder="Ex: Novembro / 2026"
+                    className="w-full bg-dark-850 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-white/30"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 mb-1 font-medium">Filial / Loja Vinculada:</label>
+                  <select
+                    value={clientForm.store_id}
+                    onChange={(e) => setClientForm({ ...clientForm, store_id: e.target.value })}
+                    className="w-full bg-dark-850 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-white/30"
+                  >
+                    <option value="">Selecione uma filial...</option>
+                    {stores.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1 font-medium">E-mail (opcional):</label>
+                  <input
+                    type="email"
+                    value={clientForm.email}
+                    onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })}
+                    placeholder="cliente@email.com"
+                    className="w-full bg-dark-850 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-white/30"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditClientModalOpen(false)}
+                  className="border-white/10 hover:bg-white/5 text-slate-300 text-xs"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="bg-white text-black hover:bg-zinc-200 font-bold text-xs"
+                >
+                  Salvar Alterações
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Modal de Transferência de Atendimento */}
       {isTransferModalOpen && activeConv && (

@@ -7,7 +7,10 @@ import {
   SupportTicket, 
   Message, 
   Conversation, 
-  BotConfig 
+  BotConfig,
+  FlowNode,
+  FlowEdge,
+  Flow
 } from '../types';
 
 const SUPABASE_URL = 
@@ -501,4 +504,69 @@ export function subscribeToConversations(onUpdate: (conv: Conversation) => void)
   return () => {
     supabase.removeChannel(channel);
   };
+}
+
+// ==========================================
+// 8. FLOWS & NODES SYNC (SUPABASE CLOUD)
+// ==========================================
+export async function saveFlowGraph(flowId: string, nodes: FlowNode[], edges: FlowEdge[]): Promise<void> {
+  try {
+    if (Array.isArray(nodes) && nodes.length > 0) {
+      const nodeRecords = nodes.map((n) => ({
+        id: n.id,
+        flow_id: flowId,
+        type: n.type || 'message',
+        label: n.data?.label || (n as any).label || 'Nó',
+        data: n.data || {},
+        position: n.position || { x: 0, y: 0 },
+        updated_at: new Date().toISOString(),
+      }));
+      await supabase.from('flow_nodes').upsert(nodeRecords, { onConflict: 'id' });
+    }
+
+    if (Array.isArray(edges) && edges.length > 0) {
+      const edgeRecords = edges.map((e) => ({
+        id: e.id,
+        flow_id: flowId,
+        source: e.source,
+        target: e.target,
+        source_handle: e.sourceHandle || null,
+        target_handle: e.targetHandle || null,
+        data: e.data || {},
+        updated_at: new Date().toISOString(),
+      }));
+      await supabase.from('flow_edges').upsert(edgeRecords, { onConflict: 'id' });
+    }
+  } catch (err) {
+    console.warn('[Supabase] saveFlowGraph warning:', err);
+  }
+}
+
+export async function getFlowGraph(flowId: string): Promise<{ nodes: FlowNode[]; edges: FlowEdge[] } | null> {
+  try {
+    const [nodesRes, edgesRes] = await Promise.all([
+      supabase.from('flow_nodes').select('*').eq('flow_id', flowId),
+      supabase.from('flow_edges').select('*').eq('flow_id', flowId),
+    ]);
+    if (nodesRes.data && nodesRes.data.length > 0) {
+      const nodes: FlowNode[] = nodesRes.data.map((r: any) => ({
+        id: r.id,
+        type: r.type,
+        position: r.position || { x: 0, y: 0 },
+        data: r.data || { label: r.label, nodeType: r.type, config: {} },
+      }));
+      const edges: FlowEdge[] = (edgesRes.data || []).map((r: any) => ({
+        id: r.id,
+        source: r.source,
+        target: r.target,
+        sourceHandle: r.source_handle || undefined,
+        targetHandle: r.target_handle || undefined,
+        data: r.data,
+      }));
+      return { nodes, edges };
+    }
+  } catch (err) {
+    console.warn('[Supabase] getFlowGraph warning:', err);
+  }
+  return null;
 }

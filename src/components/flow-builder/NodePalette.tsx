@@ -42,7 +42,7 @@ import {
 import { NodeTypeEnum } from '../../types';
 import { cn } from '../../lib/utils';
 
-export type NodeCategory = 'Triggers' | 'Messages' | 'Ecommerce' | 'Agenda' | 'CRM & Logic' | 'AI & Support' | 'Integrations';
+export type NodeCategory = 'Triggers' | 'Messages' | 'Ecommerce' | 'CRM & Logic' | 'AI & Support' | 'Integrations';
 
 export interface NodeDefinition {
   type: NodeTypeEnum;
@@ -75,12 +75,6 @@ export const CATEGORY_INFO: Record<NodeCategory, { label: string; icon: React.Re
     icon: <ShoppingBag className="w-3.5 h-3.5" />,
     color: 'text-pink-400',
     bg: 'bg-pink-500/10 border-pink-500/20',
-  },
-  'Agenda': {
-    label: 'Agenda & Serviços',
-    icon: <Calendar className="w-3.5 h-3.5" />,
-    color: 'text-emerald-400',
-    bg: 'bg-emerald-500/10 border-emerald-500/20',
   },
   'CRM & Logic': {
     label: 'Lógica & Contatos',
@@ -338,86 +332,6 @@ export const NODE_DEFINITIONS: NodeDefinition[] = [
     },
   },
 
-  // 4. Agenda & Serviços
-  {
-    type: 'show_services',
-    label: '1. Exibir Catálogo de Serviços',
-    category: 'Agenda',
-    description: 'Envia uma mensagem com todos os serviços, descrições e valores cadastrados (Apenas Leitura).',
-    icon: <Layers className="w-4 h-4" />,
-    iconBg: 'bg-amber-600',
-    accentColor: 'border-amber-500/40',
-    badge: 'Catálogo',
-    outputVars: ['catalogo_servicos_texto'],
-    defaultConfig: {
-      headerText: '🍼 *Catálogo Pitoco de Gente — Moda Bebê & Enxovais*',
-      footerText: 'Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!',
-    },
-  },
-  {
-    type: 'select_service',
-    label: '2. Selecionar Serviço',
-    category: 'Agenda',
-    description: 'Apresenta os serviços como botões interativos no WhatsApp para o cliente escolher.',
-    icon: <Scissors className="w-4 h-4" />,
-    iconBg: 'bg-emerald-600',
-    accentColor: 'border-emerald-500/40',
-    badge: 'Escolha',
-    outputVars: ['servico_selecionado', 'valor_servico', 'duracao_minutos'],
-    defaultConfig: {
-      introMessage: 'Qual serviço você deseja agendar hoje?',
-      footerText: 'Toque no serviço desejado:',
-      serviceVarName: 'servico_selecionado',
-      priceVarName: 'valor_servico',
-      durationVarName: 'duracao_minutos',
-    },
-  },
-  {
-    type: 'select_date',
-    label: '3. Escolher Data do Agendamento',
-    category: 'Agenda',
-    description: 'Oferece botões rápidos (Hoje, Amanhã) ou permite o cliente digitar uma data (ex: 25/08).',
-    icon: <CalendarDays className="w-4 h-4" />,
-    iconBg: 'bg-teal-600',
-    accentColor: 'border-teal-500/40',
-    badge: 'Data',
-    outputVars: ['data_agendamento', 'data_formatada'],
-    defaultConfig: {
-      questionText: 'Para qual dia você gostaria de agendar?',
-      dateVariable: 'data_agendamento',
-      allowCustomDate: true,
-    },
-  },
-  {
-    type: 'select_time_slot',
-    label: '4. Escolher Horário Disponível',
-    category: 'Agenda',
-    description: 'Calcula vagas realmente livres na data escolhida e envia em botões interativos no WhatsApp.',
-    icon: <Clock className="w-4 h-4" />,
-    iconBg: 'bg-emerald-600',
-    accentColor: 'border-emerald-500/40',
-    badge: 'Horário',
-    outputVars: ['horario_agendamento'],
-    defaultConfig: {
-      dateVariable: 'data_agendamento',
-      serviceName: '{{servico_selecionado}}',
-      introMessage: 'Estes são os horários livres para agendamento. Toque no seu horário preferido:',
-    },
-  },
-  {
-    type: 'confirm_booking',
-    label: '5. Confirmar & Gravar Agendamento',
-    category: 'Agenda',
-    description: 'Exibe resumo com serviço, valor, data e horário, grava na Agenda e adiciona tag Agendado.',
-    icon: <CheckCircle2 className="w-4 h-4" />,
-    iconBg: 'bg-emerald-600',
-    accentColor: 'border-emerald-500/40',
-    badge: 'Confirmação',
-    defaultConfig: {
-      confirmMessage: '✅ Perfeito {{nome_cliente}}! Seu agendamento de *{{servico_selecionado}}* foi confirmado para o dia *{{data_agendamento}}* às *{{horario_agendamento}}*!',
-    },
-  },
-
   // 4. CRM & Logic
   {
     type: 'client_lookup',
@@ -612,12 +526,30 @@ export const NodePalette: React.FC<NodePaletteProps> = ({
   const startXRef = useRef(0);
   const startWidthRef = useRef(width);
 
+  // Densidade explícita dos cartões de nós: 'mini' | 'normal' | 'amplo'
+  const [densityMode, setDensityMode] = useState<'mini' | 'normal' | 'amplo'>(() => {
+    try {
+      const saved = localStorage.getItem('pitoco_palette_density');
+      if (saved === 'mini' || saved === 'normal' || saved === 'amplo') return saved;
+    } catch {}
+    return 'normal';
+  });
+
+  const handleSelectDensity = (density: 'mini' | 'normal' | 'amplo') => {
+    setDensityMode(density);
+    try {
+      localStorage.setItem('pitoco_palette_density', density);
+    } catch {}
+    if (density === 'mini') onWidthChange(210);
+    else if (density === 'normal') onWidthChange(280);
+    else if (density === 'amplo') onWidthChange(380);
+  };
+
   const categories: Array<{ id: string; label: string; icon?: React.ReactNode }> = [
     { id: 'all', label: 'Todos', icon: <Layers className="w-3 h-3" /> },
     { id: 'Triggers', label: 'Gatilhos', icon: <Zap className="w-3 h-3 text-amber-400" /> },
     { id: 'Messages', label: 'Mensagens', icon: <MessageSquare className="w-3 h-3 text-primary-400" /> },
     { id: 'Ecommerce', label: 'Loja & E-commerce', icon: <ShoppingBag className="w-3 h-3 text-pink-400" /> },
-    { id: 'Agenda', label: 'Agenda & Serviços', icon: <Calendar className="w-3 h-3 text-emerald-400" /> },
     { id: 'CRM & Logic', label: 'Lógica & CRM', icon: <GitBranch className="w-3 h-3 text-purple-400" /> },
     { id: 'AI & Support', label: 'IA & Atendimento', icon: <Sparkles className="w-3 h-3 text-pink-400" /> },
     { id: 'Integrations', label: 'Integrações', icon: <Globe className="w-3 h-3 text-cyan-400" /> },
@@ -670,8 +602,6 @@ export const NodePalette: React.FC<NodePaletteProps> = ({
     };
   }, [isResizing, onWidthChange]);
 
-  const isCompactMode = width < 220;
-
   return (
     <div className="relative flex h-full z-20 select-none">
       {/* Collapsed State Strip / Opener */}
@@ -706,38 +636,38 @@ export const NodePalette: React.FC<NodePaletteProps> = ({
               </h3>
               
               <div className="flex items-center gap-1 flex-shrink-0">
-                {/* Botões de Dimensionamento Rápido */}
+                {/* Botões de Densidade dos Nós (Mini, Normal, Amplo - Fixos e Persistentes) */}
                 <div className="flex items-center bg-dark-850 p-0.5 rounded-lg border border-white/10 text-[9.5px]">
                   <button
                     type="button"
-                    onClick={() => onWidthChange(175)}
+                    onClick={() => handleSelectDensity('mini')}
                     className={cn(
-                      "px-1.5 py-0.5 rounded transition-colors font-bold",
-                      width <= 210 ? "bg-primary-600 text-white shadow-xs" : "text-slate-400 hover:text-white"
+                      "px-1.5 py-0.5 rounded transition-all font-bold",
+                      densityMode === 'mini' ? "bg-white text-black shadow-xs" : "text-slate-400 hover:text-white"
                     )}
-                    title="Diminuir tamanho: Modo Mini (175px)"
+                    title="Exibição Mini (compacta, ideal para visualizar muitos nós)"
                   >
                     Mini
                   </button>
                   <button
                     type="button"
-                    onClick={() => onWidthChange(280)}
+                    onClick={() => handleSelectDensity('normal')}
                     className={cn(
-                      "px-1.5 py-0.5 rounded transition-colors font-bold",
-                      width > 210 && width <= 330 ? "bg-primary-600 text-white shadow-xs" : "text-slate-400 hover:text-white"
+                      "px-1.5 py-0.5 rounded transition-all font-bold",
+                      densityMode === 'normal' ? "bg-white text-black shadow-xs" : "text-slate-400 hover:text-white"
                     )}
-                    title="Tamanho Normal (280px)"
+                    title="Exibição Normal (equilibrada com título e resumo)"
                   >
                     Normal
                   </button>
                   <button
                     type="button"
-                    onClick={() => onWidthChange(380)}
+                    onClick={() => handleSelectDensity('amplo')}
                     className={cn(
-                      "px-1.5 py-0.5 rounded transition-colors font-bold",
-                      width > 330 ? "bg-primary-600 text-white shadow-xs" : "text-slate-400 hover:text-white"
+                      "px-1.5 py-0.5 rounded transition-all font-bold",
+                      densityMode === 'amplo' ? "bg-white text-black shadow-xs" : "text-slate-400 hover:text-white"
                     )}
-                    title="Modo Amplo (380px)"
+                    title="Exibição Ampla (detalhada com preview e descrição completa)"
                   >
                     Amplo
                   </button>
@@ -808,7 +738,7 @@ export const NodePalette: React.FC<NodePaletteProps> = ({
                     </span>
                   </div>
 
-                    {/* Nodes in this category */}
+                  {/* Nodes in this category */}
                   <div className="space-y-1.5">
                     {catNodes.map((nodeDef) => (
                       <div
@@ -820,13 +750,17 @@ export const NodePalette: React.FC<NodePaletteProps> = ({
                         }}
                         onClick={() => onAddNode(nodeDef)}
                         className={cn(
-                          isCompactMode ? 'p-1.5 rounded-lg gap-2' : 'p-2.5 rounded-xl gap-2.5',
+                          densityMode === 'mini' 
+                            ? 'p-1.5 rounded-lg gap-2' 
+                            : densityMode === 'amplo'
+                            ? 'p-3 rounded-xl gap-3'
+                            : 'p-2 rounded-xl gap-2.5',
                           'bg-dark-850/80 hover:bg-dark-800/95 border border-white/5 hover:border-white/20 cursor-grab active:cursor-grabbing transition-all duration-150 flex items-center group relative hover:shadow-lg hover:shadow-primary-500/5 hover:-translate-y-0.5'
                         )}
                         title={`${nodeDef.label}: ${nodeDef.description}`}
                       >
                         {/* Drag Handle Accent */}
-                        {!isCompactMode && (
+                        {densityMode !== 'mini' && (
                           <div className="absolute top-2.5 right-2 opacity-0 group-hover:opacity-60 text-slate-400 transition-opacity">
                             <GripVertical className="w-3.5 h-3.5" />
                           </div>
@@ -834,7 +768,7 @@ export const NodePalette: React.FC<NodePaletteProps> = ({
 
                         <div
                           className={cn(
-                            isCompactMode ? 'w-6 h-6 rounded-md' : 'w-7 h-7 rounded-lg',
+                            densityMode === 'mini' ? 'w-6 h-6 rounded-md' : densityMode === 'amplo' ? 'w-8 h-8 rounded-xl' : 'w-7 h-7 rounded-lg',
                             'flex items-center justify-center text-white shadow-sm flex-shrink-0 group-hover:scale-110 transition-transform',
                             nodeDef.iconBg
                           )}
@@ -844,24 +778,32 @@ export const NodePalette: React.FC<NodePaletteProps> = ({
 
                         <div className="flex-1 min-w-0 pr-1">
                           <div className="flex items-center gap-1">
-                            <span className={cn(isCompactMode ? "text-[11px]" : "text-xs", "font-bold text-white group-hover:text-primary-300 transition-colors truncate")}>
+                            <span className={cn(
+                              densityMode === 'mini' ? "text-[11px]" : densityMode === 'amplo' ? "text-xs font-black" : "text-xs font-bold", 
+                              "text-white group-hover:text-primary-300 transition-colors truncate"
+                            )}>
                               {nodeDef.label}
                             </span>
-                            {!isCompactMode && nodeDef.badge && (
-                              <span className="text-[9px] px-1.5 py-0.2 rounded-md font-mono font-bold bg-primary-500/20 text-primary-300 border border-primary-500/30">
+                            {densityMode !== 'mini' && nodeDef.badge && (
+                              <span className="text-[9px] px-1.5 py-0.2 rounded-md font-mono font-bold bg-white/10 text-zinc-300 border border-white/10">
                                 {nodeDef.badge}
                               </span>
                             )}
                           </div>
 
-                          {!isCompactMode && (
-                            <p className="text-[10px] text-slate-400 line-clamp-2 mt-0.5 leading-tight">
+                          {densityMode === 'normal' && (
+                            <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5 leading-tight">
+                              {nodeDef.description}
+                            </p>
+                          )}
+                          {densityMode === 'amplo' && (
+                            <p className="text-[11px] text-slate-300 line-clamp-2 mt-1 leading-snug">
                               {nodeDef.description}
                             </p>
                           )}
 
-                          {/* Variable Preview Tags if any */}
-                          {!isCompactMode && nodeDef.outputVars && nodeDef.outputVars.length > 0 && (
+                          {/* Variable Preview Tags if any (in Amplo mode) */}
+                          {densityMode === 'amplo' && nodeDef.outputVars && nodeDef.outputVars.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1.5">
                               {nodeDef.outputVars.map((v) => (
                                 <span

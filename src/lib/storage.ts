@@ -1127,6 +1127,17 @@ export const StorageService = {
         }
       }
     } catch {}
+
+    if (SupabaseService.isSupabaseReady) {
+      try {
+        const cloudGraph = await SupabaseService.getFlowGraph(flowId);
+        if (cloudGraph?.nodes && cloudGraph.nodes.length > 0) {
+          setItem(`${STORAGE_KEYS.FLOW_NODES_PREFIX}${flowId}`, cloudGraph.nodes);
+          return cloudGraph.nodes;
+        }
+      } catch {}
+    }
+
     return getItem<FlowNode[]>(`${STORAGE_KEYS.FLOW_NODES_PREFIX}${flowId}`, initialFlowNodes);
   },
 
@@ -1145,6 +1156,17 @@ export const StorageService = {
         }
       }
     } catch {}
+
+    if (SupabaseService.isSupabaseReady) {
+      try {
+        const cloudGraph = await SupabaseService.getFlowGraph(flowId);
+        if (cloudGraph?.edges && cloudGraph.edges.length > 0) {
+          setItem(`${STORAGE_KEYS.FLOW_EDGES_PREFIX}${flowId}`, cloudGraph.edges);
+          return cloudGraph.edges;
+        }
+      } catch {}
+    }
+
     return getItem<FlowEdge[]>(`${STORAGE_KEYS.FLOW_EDGES_PREFIX}${flowId}`, initialFlowEdges);
   },
 
@@ -1168,6 +1190,15 @@ export const StorageService = {
       });
     } catch (e) {
       console.warn('[StorageService] Falha ao sincronizar grafo com backend:', e);
+    }
+
+    // 3. Sincronizar com Supabase em nuvem
+    if (SupabaseService.isSupabaseReady) {
+      try {
+        await SupabaseService.saveFlowGraph(flowId, nodes, edges);
+      } catch (e) {
+        console.warn('[StorageService] Falha ao sincronizar grafo com Supabase:', e);
+      }
     }
   },
 

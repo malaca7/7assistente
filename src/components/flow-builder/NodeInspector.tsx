@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FlowNode, AgendaServiceItem } from '../../types';
+import { FlowNode, Store, Product, Category } from '../../types';
 import { Input, Textarea } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { 
@@ -25,7 +25,7 @@ import {
   Wand2,
   Tag,
   Scissors,
-  Store,
+  Store as StoreIcon,
   ShoppingBag,
   ShoppingCart,
   Truck,
@@ -34,7 +34,8 @@ import {
   Luggage,
   Package,
   BadgePercent,
-  HeartHandshake
+  HeartHandshake,
+  UserCheck
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { VariableBadge } from './ui/VariableBadge';
@@ -47,9 +48,11 @@ const SYSTEM_VARIABLES_LIST = [
   { key: 'primeiro_nome', label: 'primeiro_nome (1º Nome)', category: 'Contato' },
   { key: 'telefone_cliente', label: 'telefone_cliente (WhatsApp)', category: 'Contato' },
   { key: 'status', label: 'status (Status Geral)', category: 'Status' },
-  { key: 'data_agendamento', label: 'data_agendamento (Data da Reserva)', category: 'Agenda' },
-  { key: 'horario_agendamento', label: 'horario_agendamento (Horário da Reserva)', category: 'Agenda' },
-  { key: 'servico_selecionado', label: 'servico_selecionado (Serviço)', category: 'Agenda' },
+  { key: 'nome_bebe', label: 'nome_bebe (Nome do Bebê)', category: 'Pitoco CRM' },
+  { key: 'data_parto', label: 'data_parto (DPP Gestação)', category: 'Pitoco CRM' },
+  { key: 'loja_escolhida', label: 'loja_escolhida (Filial / Loja)', category: 'Vendas' },
+  { key: 'cupom_aplicado', label: 'cupom_aplicado (Desconto)', category: 'Vendas' },
+  { key: 'numero_pedido', label: 'numero_pedido (Pedido Online)', category: 'Vendas' },
   { key: 'valor_total', label: 'valor_total (Financeiro)', category: 'Financeiro' },
   { key: 'tentativas_contato', label: 'tentativas_contato (Contador)', category: 'Controle' },
   { key: 'observacoes', label: 'observacoes (Notas do Lead)', category: 'CRM' },
@@ -80,16 +83,22 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
 }) => {
   const [localWidth, setLocalWidth] = useState(width);
   const [isResizing, setIsResizing] = useState(false);
-  const [agendaServices, setAgendaServices] = useState<AgendaServiceItem[]>([]);
+  const [stores, setStores] = useState<Store[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const startXRef = useRef(0);
   const startWidthRef = useRef(localWidth);
 
   useEffect(() => {
-    StorageService.getAgendaSettings().then((res) => {
-      if (res?.services && Array.isArray(res.services)) {
-        setAgendaServices(res.services.filter((s: any) => s.active !== false && s.is_active !== false));
-      }
-    }).catch(() => {});
+    Promise.all([
+      StorageService.getStores().catch(() => []),
+      StorageService.getProducts().catch(() => []),
+      StorageService.getCategories().catch(() => []),
+    ]).then(([sList, pList, cList]) => {
+      if (Array.isArray(sList)) setStores(sList);
+      if (Array.isArray(pList)) setProducts(pList);
+      if (Array.isArray(cList)) setCategories(cList);
+    });
   }, []);
 
   const currentWidth = onWidthChange ? width : localWidth;
@@ -1161,249 +1170,6 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
           </div>
         )}
 
-        {/* 10. Schedule Contact (Agenda & Horários Livres) */}
-        {/* 10. Show Services (Exibir Catálogo de Serviços) */}
-        {nodeType === 'show_services' && (
-          <div className="space-y-4">
-            <div className="p-3 rounded-2xl bg-amber-950/40 border border-amber-500/30 text-xs text-amber-200 space-y-1">
-              <span className="font-bold flex items-center gap-1.5 text-amber-300">
-                <Sparkles className="w-3.5 h-3.5" />
-                Exibição do Catálogo de Serviços:
-              </span>
-              <p className="text-[11px] text-slate-300 leading-relaxed">
-                Gera e envia automaticamente uma mensagem com todos os <strong>serviços ativos, durações e preços</strong> da Agenda. Não bloqueia a conversa e avança para o próximo nó.
-              </p>
-            </div>
-
-            <Input
-              label="Título do Catálogo"
-              value={config.headerText || '🍼 *Catálogo Pitoco de Gente — Bebê & Enxovais*'}
-              onChange={(e) => handleConfigChange('headerText', e.target.value)}
-              placeholder="Ex: 🍼 *Nossas Peças e Destaques:*"
-            />
-
-            <Input
-              label="Texto de Rodapé (Opcional)"
-              value={config.footerText || ''}
-              onChange={(e) => handleConfigChange('footerText', e.target.value)}
-              placeholder="Ex: _Valores sujeitos a alteração sem aviso prévio._"
-            />
-
-            {/* Live Services Preview */}
-            <div className="p-3 rounded-xl bg-dark-950/80 border border-amber-500/20 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-amber-300 flex items-center gap-1.5">
-                  <Scissors className="w-3.5 h-3.5 text-amber-400" />
-                  Serviços Ativos na Agenda:
-                </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30">
-                  {agendaServices.length} ativo{agendaServices.length !== 1 ? 's' : ''}
-                </span>
-              </div>
-              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
-                {agendaServices.length > 0 ? (
-                  agendaServices.map((srv, i) => (
-                    <div
-                      key={srv.id || i}
-                      className="p-2 rounded-lg bg-dark-900/90 border border-white/5 text-[11px] flex items-center justify-between hover:border-amber-500/30 transition-colors"
-                    >
-                      <div className="min-w-0 pr-2">
-                        <span className="font-semibold text-white truncate block">{srv.name}</span>
-                        <span className="text-[10px] text-slate-400">⏱️ {srv.duration_minutes || 30} min</span>
-                      </div>
-                      <span className="text-emerald-400 font-bold text-[11px] flex-shrink-0">
-                        R$ {Number(srv.price || 0).toFixed(2).replace('.', ',')}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-[10.5px] text-slate-400 italic py-1">
-                    Carregando serviços ou nenhum serviço ativo cadastrado na Agenda.
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-2">
-              <span className="text-xs font-semibold text-amber-400 block">
-                Variável Gerada no Contexto:
-              </span>
-              <div className="flex items-center gap-2">
-                <VariableBadge name="catalogo_servicos_texto" />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 11. Select Service (Selecionar Serviço) */}
-        {(nodeType === 'select_service' || nodeType === 'services_catalog') && (
-          <div className="space-y-4">
-            <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-200 space-y-1">
-              <span className="font-bold flex items-center gap-1.5 text-emerald-300">
-                <Scissors className="w-3.5 h-3.5" />
-                Seleção Interativa de Serviço:
-              </span>
-              <p className="text-[11px] text-slate-300 leading-relaxed">
-                Puxa os serviços cadastrados na <strong>Agenda</strong> e apresenta como <strong>botões clicáveis no WhatsApp</strong> para o cliente escolher.
-              </p>
-            </div>
-
-            <Textarea
-              label="Mensagem de Escolha"
-              value={config.introMessage || 'Qual serviço você deseja agendar hoje?'}
-              onChange={(e) => handleConfigChange('introMessage', e.target.value)}
-              placeholder="Ex: Qual serviço você gostaria de realizar hoje?"
-              rows={2}
-            />
-
-            <Input
-              label="Texto de Rodapé dos Botões"
-              value={config.footerText || 'Toque no serviço desejado:'}
-              onChange={(e) => handleConfigChange('footerText', e.target.value)}
-              placeholder="Ex: Toque no serviço desejado:"
-            />
-
-            <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-emerald-400">
-                  Variáveis Salvas na Escolha:
-                </span>
-                <span className="text-[10px] text-emerald-400 font-mono">1-Clique Copiar</span>
-              </div>
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                <VariableBadge name="servico_selecionado" />
-                <VariableBadge name="valor_servico" />
-                <VariableBadge name="duracao_minutos" />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 12. Select Date (Escolher Data do Agendamento) */}
-        {(nodeType === 'select_date' || nodeType === 'ask_date') && (
-          <div className="space-y-4">
-            <div className="p-3 rounded-2xl bg-teal-950/40 border border-teal-500/30 text-xs text-teal-200 space-y-1">
-              <span className="font-bold flex items-center gap-1.5 text-teal-300">
-                <Calendar className="w-3.5 h-3.5" />
-                Escolha da Data pelo Cliente:
-              </span>
-              <p className="text-[11px] text-slate-300 leading-relaxed">
-                Envia opções interativas para o cliente escolher o dia (ex: <strong>Hoje</strong>, <strong>Amanhã</strong> ou <strong>Digitar Outra Data</strong>). Converte datas digitadas (ex: 25/08) para formato ISO e salva na variável.
-              </p>
-            </div>
-
-            <Textarea
-              label="Mensagem da Pergunta de Data"
-              value={config.questionText || 'Para qual dia você gostaria de agendar?'}
-              onChange={(e) => handleConfigChange('questionText', e.target.value)}
-              placeholder="Ex: Para qual dia você gostaria de agendar seu atendimento?"
-              rows={2}
-            />
-
-            <Input
-              label="Nome da Variável para Salvar a Data"
-              value={config.dateVariable || 'data_agendamento'}
-              onChange={(e) => handleConfigChange('dateVariable', e.target.value)}
-              placeholder="data_agendamento"
-              hint="Salva a data selecionada no formato AAAA-MM-DD para consultar horários livres."
-            />
-
-            <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-2">
-              <span className="text-xs font-semibold text-teal-400 block">
-                Variável Gerada:
-              </span>
-              <div className="flex items-center gap-2">
-                <VariableBadge name={config.dateVariable || 'data_agendamento'} />
-                <span className="text-[11px] text-slate-400 font-mono">(ex: 2026-08-30)</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 13. Select Time Slot (Escolher Horário Disponível) */}
-        {(nodeType === 'select_time_slot' || nodeType === 'schedule_contact') && (
-          <div className="space-y-4">
-            <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-200 space-y-1">
-              <span className="font-bold flex items-center gap-1.5 text-emerald-300">
-                <Clock className="w-3.5 h-3.5" />
-                Consulta & Escolha de Horários Livres:
-              </span>
-              <p className="text-[11px] text-slate-300 leading-relaxed">
-                Calcula os horários livres na <strong>Agenda</strong> para a data selecionada e a duração do serviço, enviando como botões interativos no WhatsApp para o cliente escolher.
-              </p>
-            </div>
-
-            <Input
-              label="Nome da Variável com a Data"
-              value={config.dateVariable || 'data_agendamento'}
-              onChange={(e) => handleConfigChange('dateVariable', e.target.value)}
-              placeholder="data_agendamento"
-              hint="Variável que contém a data escolhida na etapa anterior."
-            />
-
-            <Input
-              label="Serviço ou Duração"
-              value={config.serviceName || ''}
-              onChange={(e) => handleConfigChange('serviceName', e.target.value)}
-              placeholder="Ex: {{servico_selecionado}}"
-              hint="Se vazio, usa {{servico_selecionado}} para calcular o tempo do atendimento."
-            />
-
-            <Textarea
-              label="Texto de Apresentação dos Horários"
-              value={config.introMessage || 'Estes são os horários livres para agendamento. Toque no seu horário preferido:'}
-              onChange={(e) => handleConfigChange('introMessage', e.target.value)}
-              placeholder="Ex: Estes são os horários livres disponíveis para esta data. Toque no seu horário desejado:"
-              rows={2}
-            />
-
-            <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-2">
-              <span className="text-xs font-semibold text-emerald-400 block">
-                Variável Salva ao Clicar no Horário:
-              </span>
-              <div className="flex items-center gap-2">
-                <VariableBadge name="horario_agendamento" />
-                <span className="text-[11px] text-slate-400 font-mono">(ex: 14:30)</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 14. Confirm Booking (Confirmar & Gravar na Agenda) */}
-        {nodeType === 'confirm_booking' && (
-          <div className="space-y-4">
-            <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-200 space-y-1">
-              <span className="font-bold flex items-center gap-1.5 text-emerald-300">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                Confirmação & Gravação na Agenda:
-              </span>
-              <p className="text-[11px] text-slate-300 leading-relaxed">
-                Apresenta o resumo completo de todos os dados do agendamento, bloqueia o horário na Agenda e adiciona a tag <strong>Agendado</strong> ao cliente no CRM.
-              </p>
-            </div>
-
-            <Textarea
-              label="Mensagem de Confirmação Final"
-              value={config.confirmMessage || ''}
-              onChange={(e) => handleConfigChange('confirmMessage', e.target.value)}
-              placeholder="Ex: ✅ Perfeito {{nome_cliente}}! Seu agendamento de *{{servico_selecionado}}* está confirmado para o dia *{{data_agendamento}}* às *{{horario_agendamento}}*."
-              rows={3}
-            />
-
-            <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-2">
-              <span className="text-xs font-semibold text-emerald-400 block">
-                Resumo de Variáveis Utilizadas:
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                <VariableBadge name="nome_cliente" />
-                <VariableBadge name="servico_selecionado" />
-                <VariableBadge name="valor_servico" />
-                <VariableBadge name="data_agendamento" />
-                <VariableBadge name="horario_agendamento" />
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Client Lookup (Consultar Cliente CRM) */}
         {nodeType === 'client_lookup' && (
@@ -1723,7 +1489,7 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
           <div className="space-y-4">
             <div className="p-3 rounded-2xl bg-amber-950/40 border border-amber-500/30 text-xs text-amber-200 space-y-1">
               <span className="font-bold flex items-center gap-1.5 text-amber-300">
-                <Store className="w-4 h-4" />
+                <StoreIcon className="w-4 h-4" />
                 Seleção de Filial / Loja (3 Saídas)
               </span>
               <p className="text-[11px] text-slate-300 leading-relaxed">
@@ -1739,31 +1505,56 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
               placeholder="Mensagem de saudação e apresentação das lojas..."
             />
 
-            <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-3">
-              <span className="text-xs font-semibold text-amber-400 block">
-                Filiais Disponíveis no Bot:
-              </span>
+            <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-amber-400">
+                  Filiais Sincronizadas do Banco de Dados:
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30">
+                  {stores.length > 0 ? `${stores.length} lojas` : 'Padrão'}
+                </span>
+              </div>
               
-              <div className="space-y-1 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                <span className="text-[11px] font-bold text-amber-300 flex items-center gap-1">
-                  1️⃣ Matriz Centro (Recife)
-                </span>
-                <p className="text-[10px] text-slate-400">Rua da Penha, 120 - São José • Saída: <code>store_matriz</code></p>
-              </div>
+              {stores.length > 0 ? (
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                  {stores.map((st, idx) => (
+                    <div key={st.id || idx} className="p-2 rounded-lg bg-dark-900 border border-white/5 flex items-center justify-between text-xs">
+                      <div>
+                        <span className="font-bold text-white flex items-center gap-1">
+                          {idx + 1}️⃣ {st.name}
+                        </span>
+                        <p className="text-[10px] text-slate-400">{st.address || 'Recife e Online'}</p>
+                      </div>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono">
+                        store_{st.slug || 'loja'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-1 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                    <span className="text-[11px] font-bold text-amber-300 flex items-center gap-1">
+                      1️⃣ Matriz Centro (Recife)
+                    </span>
+                    <p className="text-[10px] text-slate-400">Rua da Penha, 120 - São José • Saída: <code>store_matriz</code></p>
+                  </div>
 
-              <div className="space-y-1 p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
-                <span className="text-[11px] font-bold text-yellow-300 flex items-center gap-1">
-                  2️⃣ Shopping Boulevard
-                </span>
-                <p className="text-[10px] text-slate-400">Piso L2 - Próximo à Praça de Alimentação • Saída: <code>store_boulevard</code></p>
-              </div>
+                  <div className="space-y-1 p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                    <span className="text-[11px] font-bold text-yellow-300 flex items-center gap-1">
+                      2️⃣ Shopping Boulevard
+                    </span>
+                    <p className="text-[10px] text-slate-400">Piso L2 • Saída: <code>store_boulevard</code></p>
+                  </div>
 
-              <div className="space-y-1 p-2 rounded-lg bg-pink-500/10 border border-pink-500/20">
-                <span className="text-[11px] font-bold text-pink-300 flex items-center gap-1">
-                  3️⃣ Loja Virtual & E-commerce (Brasil)
-                </span>
-                <p className="text-[10px] text-slate-400">Envio para todo o Brasil com frete rápido • Saída: <code>store_ecommerce</code></p>
-              </div>
+                  <div className="space-y-1 p-2 rounded-lg bg-pink-500/10 border border-pink-500/20">
+                    <span className="text-[11px] font-bold text-pink-300 flex items-center gap-1">
+                      3️⃣ Loja Virtual & E-commerce (Brasil)
+                    </span>
+                    <p className="text-[10px] text-slate-400">Envio para todo o Brasil • Saída: <code>store_ecommerce</code></p>
+                  </div>
+                </>
+              )}
             </div>
 
             <Input
@@ -1790,17 +1581,32 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-300">Filtro de Categoria</label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-slate-300">Filtro de Categoria</label>
+                <span className="text-[10px] text-emerald-400 font-mono">
+                  {categories.length > 0 ? `${categories.length} categorias sincronizadas` : ''}
+                </span>
+              </div>
               <select
                 value={config.categoryFilter || 'all'}
                 onChange={(e) => handleConfigChange('categoryFilter', e.target.value)}
                 className="w-full bg-dark-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-pink-500"
               >
                 <option value="all">Todas as Categorias em Destaque</option>
-                <option value="bodies">Bodies & Macacões Confort</option>
-                <option value="saidas">Saídas Maternidade de Tricot Luxo</option>
-                <option value="berco">Kits de Berço & Quarto de Bebê</option>
-                <option value="enxoval">Enxoval Completo para Recém-Nascido</option>
+                {categories.length > 0 ? (
+                  categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="bodies">Bodies & Macacões Confort</option>
+                    <option value="saidas">Saídas Maternidade de Tricot Luxo</option>
+                    <option value="berco">Kits de Berço & Quarto de Bebê</option>
+                    <option value="enxoval">Enxoval Completo para Recém-Nascido</option>
+                  </>
+                )}
               </select>
             </div>
 

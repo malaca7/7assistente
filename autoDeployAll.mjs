@@ -122,7 +122,7 @@ async function main() {
     const status = execSync('git status --porcelain', { cwd: __dirname, encoding: 'utf8' }).trim();
     if (status.length > 0) {
       console.log('📌 Mudanças detectadas. Criando commit de deploy...');
-      execSync('git commit -m "fix(persistence): persistencia permanente do painel admin e bot whatsapp com banco de dados central protegido e sync"', { cwd: __dirname, stdio: 'inherit' });
+      execSync('git commit -m "feat(atendimento-fluxos): correcoes atendimento (tags, crm, deduplicacao) e studio de fluxos (topbar, remocao nos legados, densidade fixa e sync db)"', { cwd: __dirname, stdio: 'inherit' });
       console.log('✅ Commit criado com sucesso!');
     } else {
       console.log('ℹ️ Nenhuma alteração pendente para commit.');

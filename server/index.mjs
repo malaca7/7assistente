@@ -219,7 +219,7 @@ async function startWhatsApp() {
 }
 
 // Enviar resposta gerada pelo motor de fluxo (texto, botões ou mídia)
-async function sendBotReply(remoteJid, reply, quotedMsg = null) {
+async function sendBotReply(remoteJid, reply, quotedMsg = null, skipRecord = false) {
   if (!sock || connectionStatus !== 'connected') {
     console.warn(`[SendReply] ⚠️ Baileys não conectado, não foi possível responder para ${remoteJid}`);
     return false;
@@ -260,7 +260,9 @@ async function sendBotReply(remoteJid, reply, quotedMsg = null) {
       const ok = await trySendMessage({ text: reply });
       if (ok) {
         console.log(`✅ [WhatsApp Enviado] Texto para ${remoteJid}: "${reply.slice(0, 50).replace(/\n/g, ' ')}..."`);
-        await recordMessageLocallyAndSupabase(cleanPhone, 'Pitoco Bot', 'outbound', reply);
+        if (!skipRecord) {
+          await recordMessageLocallyAndSupabase(cleanPhone, 'Pitoco Bot', 'outbound', reply);
+        }
       }
       return ok;
     }
@@ -284,7 +286,9 @@ async function sendBotReply(remoteJid, reply, quotedMsg = null) {
       const ok = await trySendMessage({ text: formatted });
       if (ok) {
         console.log(`✅ [WhatsApp Enviado] Menu (${buttons.length} opções) para ${remoteJid}`);
-        await recordMessageLocallyAndSupabase(cleanPhone, 'Pitoco Bot', 'outbound', formatted);
+        if (!skipRecord) {
+          await recordMessageLocallyAndSupabase(cleanPhone, 'Pitoco Bot', 'outbound', formatted);
+        }
       }
       return ok;
     }
@@ -309,7 +313,9 @@ async function sendBotReply(remoteJid, reply, quotedMsg = null) {
       const ok = await trySendMessage(payload);
       if (ok) {
         console.log(`✅ [WhatsApp Enviado] Mídia (${mediaType}) para ${remoteJid}`);
-        await recordMessageLocallyAndSupabase(cleanPhone, 'Pitoco Bot', 'outbound', caption || `[Arquivo ${mediaType}]`);
+        if (!skipRecord) {
+          await recordMessageLocallyAndSupabase(cleanPhone, 'Pitoco Bot', 'outbound', caption || `[Arquivo ${mediaType}]`);
+        }
       }
       return ok;
     }
@@ -321,8 +327,8 @@ async function sendBotReply(remoteJid, reply, quotedMsg = null) {
   }
 }
 
-async function sendWhatsAppMessage(jid, text, quotedMsg = null) {
-  return sendBotReply(jid, text, quotedMsg);
+async function sendWhatsAppMessage(jid, text, quotedMsg = null, skipRecord = false) {
+  return sendBotReply(jid, text, quotedMsg, skipRecord);
 }
 
 async function recordMessageLocallyAndSupabase(phone, name, direction, content) {
@@ -934,6 +940,17 @@ app.post('/api/conversations/:id/messages', (req, res) => {
     if (!db.messages[convId]) db.messages[convId] = [];
 
     const msgData = req.body;
+    const content = (msgData.content || '').trim();
+
+    // Deduplicação: se a última mensagem tiver mesmo conteúdo, direção e foi registrada nos últimos 5 segundos, não insere duplicada
+    const lastMsg = db.messages[convId][db.messages[convId].length - 1];
+    if (lastMsg && lastMsg.direction === (msgData.direction || 'outbound') && (lastMsg.content || '').trim() === content) {
+      const diffMs = Math.abs(Date.now() - new Date(lastMsg.created_at || 0).getTime());
+      if (diffMs < 5000) {
+        return res.json({ success: true, message: lastMsg, deduplicated: true });
+      }
+    }
+
     const newMsg = {
       id: msgData.id || `msg-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       conversation_id: convId,
@@ -1609,11 +1626,13 @@ app.delete('/api/custom-variables/:id', (req, res) => {
 // 14. ENVIO DE MENSAGENS WHATSAPP
 // ==============================================================================
 app.post('/api/send-message', async (req, res) => {
-  const { phone, text, message } = req.body;
+  const { phone, text, message, skipRecord } = req.body;
   const bodyText = text || message;
   if (!phone || !bodyText) return res.status(400).json({ success: false, error: 'phone e text são obrigatórios' });
   const cleanPhone = String(phone).replace(/\D/g, '');
-  const success = await sendWhatsAppMessage(`${cleanPhone}@s.whatsapp.net`, bodyText);
+  // Por padrão, chamadas diretas de atendimento humano do painel passam skipRecord=true para não duplicar com addMessage
+  const shouldSkipRecord = skipRecord !== undefined ? Boolean(skipRecord) : true;
+  const success = await sendWhatsAppMessage(`${cleanPhone}@s.whatsapp.net`, bodyText, null, shouldSkipRecord);
   if (success) {
     res.json({ success: true, messageId: `msg-${Date.now()}`, status: 'sent' });
   } else {
