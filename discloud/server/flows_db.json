@@ -234,7 +234,7 @@
       "store_id": null,
       "store_name": "Toda a Rede",
       "created_at": "2026-09-01T10:00:00.000Z",
-      "updated_at": "2026-09-08T19:06:27.348Z",
+      "updated_at": "2026-09-08T19:34:35.011Z",
       "steps": []
     },
     {
@@ -818,7 +818,7 @@
           "width": 330,
           "height": 213
         },
-        "selected": true,
+        "selected": false,
         "dragging": false
       },
       {
@@ -919,7 +919,7 @@
           "config": {
             "questionText": "Por favor, informe seu *Nome*:",
             "expectedType": "text",
-            "variableName": "nome_cliente"
+            "variableName": "nome_clientenovo"
           }
         },
         "measured": {
@@ -974,7 +974,7 @@
           "width": 330,
           "height": 182
         },
-        "selected": false,
+        "selected": true,
         "dragging": false
       },
       {
@@ -1460,69 +1460,70 @@
     ]
   },
   "contacts": {
-    "558196138924": {
-      "id": "contact-558196138924",
-      "phone": "558196138924",
-      "name": "rogerio mlc",
-      "email": null,
-      "store_id": null,
-      "store_name": null,
-      "baby_name": null,
-      "due_date": null,
-      "status": "lead",
-      "tags": [],
-      "total_orders": 0,
-      "total_spent": 0,
-      "created_at": "2026-09-08T12:25:08.998Z",
-      "updated_at": "2026-09-08T12:25:09.007Z",
-      "whatsapp_pushname": "rogerio mlc",
-      "is_registered": false,
-      "metadata": {}
+    "81991234567": {
+      "id": "client-81991234567",
+      "phone": "81991234567",
+      "name": "Mariana Silva (Mam\u00e3e do Theo)",
+      "email": "mariana.silva@gmail.com",
+      "store_id": "store-001",
+      "store_name": "Loja Matriz \u2014 Centro",
+      "address": "Rua das Flores, 45 - Boa Viagem, Recife - PE",
+      "baby_name": "Theo",
+      "due_date": "2026-11-15",
+      "status": "active",
+      "total_orders": 3,
+      "total_spent": 680,
+      "tags": [
+        "Enxoval Completo",
+        "VIP",
+        "Matriz"
+      ],
+      "created_at": "2026-09-08T19:28:34.199Z",
+      "updated_at": "2026-09-08T19:28:34.199Z"
     }
   },
   "conversations": {
     "conv-558196138924": {
       "id": "conv-558196138924",
-      "contact_name": "Pitoco Bot",
+      "contact_name": "Oi",
       "contact_phone": "558196138924",
-      "phone": "558196138924",
+      "phone": "168650497613858",
       "last_message": "Oi",
-      "last_message_at": "2026-09-08T19:11:56.451Z",
-      "status": "waiting_human",
+      "last_message_at": "2026-09-08T19:29:23.869Z",
+      "status": "active",
       "store_name": "Pitoco de Gente",
-      "updated_at": "2026-09-08T19:12:01.054Z"
+      "contact_id": "contact-558196138924"
+    },
+    "conv-168650497613858": {
+      "id": "conv-168650497613858",
+      "contact_name": "Pitoco Bot",
+      "contact_phone": "168650497613858",
+      "phone": "168650497613858",
+      "last_message": "\ud83d\udc76\u2728 *PITOCO DE GENTE \u2014 Roupas de Beb\u00ea & Enxovais*\nOl\u00e1, *rogerio mlc*! Bem-vindo(a) \u00e0 nossa loja oficial! Como podemos te ajudar hoje?\n\nDigite o n\u00famero da op\u00e7\u00e3o desejada:\n\n1\ufe0f\u20e3 *Ver Cat\u00e1logo de Produtos* (Bodies, Macac\u00f5es, Sa\u00eddas, Ber\u00e7o)\n2\ufe0f\u20e3 *Guia de Medidas* (RN ao 3 anos com peso e altura)\n3\ufe0f\u20e3 *Checklist da Mala de Maternidade*\n4\ufe0f\u20e3 *Consultoria VIP de Enxoval* (Agendamento personalizado)\n5\ufe0f\u20e3 *C\u00e1lculo de Frete & Formas de Entrega* (Motoboy/Correios/Retirada)\n6\ufe0f\u20e3 *Pagamento via PIX* (Chave & QR Code Copia e Cola)\n7\ufe0f\u20e3 *Falar com Atendente Humana* (Escolha sua loja f\u00edsica ou online)\n\n_Responda apenas com o n\u00famero de 1 a 7._",
+      "last_message_at": "2026-09-08T19:29:25.099Z",
+      "status": "active",
+      "store_name": "Pitoco de Gente"
     }
   },
   "messages": {
     "conv-558196138924": [
       {
-        "id": "msg-1788870308998-qi8rm",
+        "id": "msg-1788895625787-s4z19",
         "conversation_id": "conv-558196138924",
         "direction": "outbound",
-        "message_type": "button",
-        "content": "Como podemos te ajudar hoje? Selecione uma das op\u00e7\u00f5es abaixo:",
-        "status": "delivered",
-        "created_at": "2026-09-08T12:25:08.998Z"
-      },
-      {
-        "id": "msg-1788894720690-qna6d",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "content": "Oi",
+        "content": "\ud83d\udc76\u2728 *PITOCO DE GENTE \u2014 Roupas de Beb\u00ea & Enxovais*\nOl\u00e1, *rogerio mlc*! Bem-vindo(a) \u00e0 nossa loja oficial! Como podemos te ajudar hoje?\n\nDigite o n\u00famero da op\u00e7\u00e3o desejada:\n\n1\ufe0f\u20e3 *Ver Cat\u00e1logo de Produtos* (Bodies, Macac\u00f5es, Sa\u00eddas, Ber\u00e7o)\n2\ufe0f\u20e3 *Guia de Medidas* (RN ao 3 anos com peso e altura)\n3\ufe0f\u20e3 *Checklist da Mala de Maternidade*\n4\ufe0f\u20e3 *Consultoria VIP de Enxoval* (Agendamento personalizado)\n5\ufe0f\u20e3 *C\u00e1lculo de Frete & Formas de Entrega* (Motoboy/Correios/Retirada)\n6\ufe0f\u20e3 *Pagamento via PIX* (Chave & QR Code Copia e Cola)\n7\ufe0f\u20e3 *Falar com Atendente Humana* (Escolha sua loja f\u00edsica ou online)\n\n_Responda apenas com o n\u00famero de 1 a 7._",
         "sender": "bot",
         "author_name": "Pitoco Bot",
-        "created_at": "2026-09-08T19:12:00.690Z"
+        "created_at": "2026-09-08T19:27:05.787Z"
       },
       {
-        "id": "msg-1788894716451",
+        "id": "msg-1788895763869-xu65t",
         "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
+        "direction": "inbound",
         "content": "Oi",
-        "author_name": "Malaca CEO",
-        "status": "delivered",
-        "created_at": "2026-09-08T19:11:56.451Z",
-        "store_id": null
+        "sender": "user",
+        "author_name": "rogerio mlc",
+        "created_at": "2026-09-08T19:29:23.869Z"
       }
     ],
     "conv-5581999991234": [
@@ -1701,6 +1702,17 @@
         "status": "delivered",
         "created_at": "2026-09-03T17:21:43.363Z"
       }
+    ],
+    "conv-168650497613858": [
+      {
+        "id": "msg-1788895765099-o4blf",
+        "conversation_id": "conv-168650497613858",
+        "direction": "outbound",
+        "content": "\ud83d\udc76\u2728 *PITOCO DE GENTE \u2014 Roupas de Beb\u00ea & Enxovais*\nOl\u00e1, *rogerio mlc*! Bem-vindo(a) \u00e0 nossa loja oficial! Como podemos te ajudar hoje?\n\nDigite o n\u00famero da op\u00e7\u00e3o desejada:\n\n1\ufe0f\u20e3 *Ver Cat\u00e1logo de Produtos* (Bodies, Macac\u00f5es, Sa\u00eddas, Ber\u00e7o)\n2\ufe0f\u20e3 *Guia de Medidas* (RN ao 3 anos com peso e altura)\n3\ufe0f\u20e3 *Checklist da Mala de Maternidade*\n4\ufe0f\u20e3 *Consultoria VIP de Enxoval* (Agendamento personalizado)\n5\ufe0f\u20e3 *C\u00e1lculo de Frete & Formas de Entrega* (Motoboy/Correios/Retirada)\n6\ufe0f\u20e3 *Pagamento via PIX* (Chave & QR Code Copia e Cola)\n7\ufe0f\u20e3 *Falar com Atendente Humana* (Escolha sua loja f\u00edsica ou online)\n\n_Responda apenas com o n\u00famero de 1 a 7._",
+        "sender": "bot",
+        "author_name": "Pitoco Bot",
+        "created_at": "2026-09-08T19:29:25.099Z"
+      }
     ]
   },
   "tickets": [
@@ -1825,7 +1837,7 @@
       "store_name": "Toda a Rede (Global)",
       "status": "active",
       "created_at": "2026-09-03T23:23:37.718Z",
-      "updated_at": "2026-09-08T12:28:21.516Z"
+      "updated_at": "2026-09-08T19:16:42.556Z"
     }
   ],
   "attendants": [
@@ -2213,33 +2225,8 @@
       ]
     },
     "168650497613858": {
-      "flowId": "flow-pitoco-001",
-      "currentNodeId": "node-buttons-pitoco",
-      "variables": {
-        "whatsapp_pushname": "rogerio mlc",
-        "telefone_cliente": "168650497613858",
-        "telefone_whatsapp": "168650497613858",
-        "ultima_mensagem": "To precisando ser atendido para ver umas roupas infantil",
-        "nome_cliente": "",
-        "opcao_selecionada": "3. Falar com Atendente",
-        "botao_id": "btn_atendente",
-        "catalogo_servicos_texto": "\ud83c\udf7c *DESTAQUES PITOCO DE GENTE*\nConfira nossas pe\u00e7as queridinhas do momento:\n\n*1\ufe0f\u20e3* *Consultoria VIP de Enxoval (Online ou Loja)*\n   \ud83d\udcb0 R$ 0,00 \u2022 \u23f1\ufe0f 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do beb\u00ea_\n\n*2\ufe0f\u20e3* *Kit Sa\u00edda de Maternidade Tricot Realeza*\n   \ud83d\udcb0 R$ 199,90 \u2022 \u23f1\ufe0f 30 min\n   _Macac\u00e3o bordado + manta antial\u00e9rgica 100% algod\u00e3o_\n\n*3\ufe0f\u20e3* *Kit Bodies Suedine Pima (3 Pe\u00e7as)*\n   \ud83d\udcb0 R$ 89,90 \u2022 \u23f1\ufe0f 30 min\n   _Toque macio, gola americana facilitada e bot\u00f5es de press\u00e3o_\n\n*4\ufe0f\u20e3* *Macac\u00e3o Z\u00edper Duplo Termo Confort*\n   \ud83d\udcb0 R$ 79,90 \u2022 \u23f1\ufe0f 30 min\n   _Praticidade nas trocas noturnas sem despir o beb\u00ea_\n\n*5\ufe0f\u20e3* *Kit Ninho Redutor + Almofada Amamenta\u00e7\u00e3o*\n   \ud83d\udcb0 R$ 189,00 \u2022 \u23f1\ufe0f 30 min\n   _Aconchego e seguran\u00e7a para os primeiros meses do rec\u00e9m-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
-        "catalogo_servicos": "\ud83c\udf7c *DESTAQUES PITOCO DE GENTE*\nConfira nossas pe\u00e7as queridinhas do momento:\n\n*1\ufe0f\u20e3* *Consultoria VIP de Enxoval (Online ou Loja)*\n   \ud83d\udcb0 R$ 0,00 \u2022 \u23f1\ufe0f 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do beb\u00ea_\n\n*2\ufe0f\u20e3* *Kit Sa\u00edda de Maternidade Tricot Realeza*\n   \ud83d\udcb0 R$ 199,90 \u2022 \u23f1\ufe0f 30 min\n   _Macac\u00e3o bordado + manta antial\u00e9rgica 100% algod\u00e3o_\n\n*3\ufe0f\u20e3* *Kit Bodies Suedine Pima (3 Pe\u00e7as)*\n   \ud83d\udcb0 R$ 89,90 \u2022 \u23f1\ufe0f 30 min\n   _Toque macio, gola americana facilitada e bot\u00f5es de press\u00e3o_\n\n*4\ufe0f\u20e3* *Macac\u00e3o Z\u00edper Duplo Termo Confort*\n   \ud83d\udcb0 R$ 79,90 \u2022 \u23f1\ufe0f 30 min\n   _Praticidade nas trocas noturnas sem despir o beb\u00ea_\n\n*5\ufe0f\u20e3* *Kit Ninho Redutor + Almofada Amamenta\u00e7\u00e3o*\n   \ud83d\udcb0 R$ 189,00 \u2022 \u23f1\ufe0f 30 min\n   _Aconchego e seguran\u00e7a para os primeiros meses do rec\u00e9m-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_"
-      },
-      "activeButtons": [
-        {
-          "id": "btn_catalogo",
-          "title": "1. Ver Cat\u00e1logo Beb\u00ea"
-        },
-        {
-          "id": "btn_enxoval",
-          "title": "2. Consultoria de Enxoval"
-        },
-        {
-          "id": "btn_atendente",
-          "title": "3. Falar com Atendente"
-        }
-      ]
+      "step": "MAIN_MENU",
+      "userName": "rogerio mlc"
     }
   },
   "rolePermissions": {}

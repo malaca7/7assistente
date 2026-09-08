@@ -36,7 +36,21 @@ export async function syncToSupabase(dbOverride) {
     console.log(`📡 Sincronizando ${db.stores.length} lojas...`);
     for (const s of db.stores) {
       try {
-        const { error } = await supabase.from('stores').upsert(s, { onConflict: 'id' });
+        const { error } = await supabase.from('stores').upsert({
+          id: s.id,
+          name: s.name,
+          slug: s.slug,
+          address: s.address || '',
+          phone: s.phone || '',
+          whatsapp_number: s.whatsapp_number || '',
+          is_active: s.is_active ?? true,
+          business_hours: s.business_hours || 'Seg a Sáb: 09:00 às 19:00',
+          city: s.city || 'Recife - PE',
+          manager_name: s.manager_name || '',
+          monthly_revenue: s.monthly_revenue || 0,
+          active_chats: s.active_chats || 0,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
         if (error) report.errors.push(`stores: ${error.message}`);
         else report.stores++;
       } catch (err) {
@@ -50,7 +64,16 @@ export async function syncToSupabase(dbOverride) {
     console.log(`📡 Sincronizando ${db.categories.length} categorias...`);
     for (const c of db.categories) {
       try {
-        const { error } = await supabase.from('categories').upsert(c, { onConflict: 'id' });
+        const { error } = await supabase.from('categories').upsert({
+          id: c.id,
+          store_id: c.store_id || null,
+          name: c.name,
+          slug: c.slug,
+          description: c.description || null,
+          icon: c.icon || null,
+          sort_order: c.sort_order || 0,
+          is_active: c.is_active ?? true
+        }, { onConflict: 'id' });
         if (error) report.errors.push(`categories: ${error.message}`);
         else report.categories++;
       } catch (err) {
@@ -64,7 +87,25 @@ export async function syncToSupabase(dbOverride) {
     console.log(`📡 Sincronizando ${db.products.length} produtos...`);
     for (const p of db.products) {
       try {
-        const { error } = await supabase.from('products').upsert(p, { onConflict: 'id' });
+        const { error } = await supabase.from('products').upsert({
+          id: p.id,
+          store_id: p.store_id || null,
+          category_id: p.category_id,
+          category_name: p.category_name || null,
+          name: p.name,
+          description: p.description || '',
+          price: p.price || 0,
+          promotional_price: p.promotional_price || null,
+          sizes: p.sizes || ['RN', 'P', 'M', 'G'],
+          colors: p.colors || ['Branco Puro'],
+          image_url: p.image_url || null,
+          stock_quantity: p.stock_quantity ?? 50,
+          sku: p.sku || null,
+          is_featured: p.is_featured ?? false,
+          is_active: p.is_active ?? true,
+          material: p.material || 'Algodão Suedine 100% Pima',
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
         if (error) report.errors.push(`products: ${error.message}`);
         else report.products++;
       } catch (err) {
@@ -79,7 +120,24 @@ export async function syncToSupabase(dbOverride) {
     console.log(`📡 Sincronizando ${contactsList.length} contatos...`);
     for (const c of contactsList) {
       try {
-        const { error } = await supabase.from('clients').upsert(c, { onConflict: 'phone' });
+        const cleanPhone = String(c.phone || '').replace(/\D/g, '');
+        if (!cleanPhone) continue;
+        const { error } = await supabase.from('clients').upsert({
+          id: c.id || `cli-${cleanPhone}`,
+          store_id: c.store_id || null,
+          store_name: c.store_name || null,
+          name: c.name || 'Cliente WhatsApp',
+          phone: cleanPhone,
+          email: c.email || null,
+          address: c.address || null,
+          city: c.city || null,
+          notes: c.notes || null,
+          baby_name: c.baby_name || null,
+          due_date: c.due_date || null,
+          tags: c.tags || ['Cliente WhatsApp'],
+          last_interaction: c.last_interaction || new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'phone' });
         if (error) report.errors.push(`clients: ${error.message}`);
         else report.clients++;
       } catch (err) {
@@ -93,7 +151,19 @@ export async function syncToSupabase(dbOverride) {
     console.log(`📡 Sincronizando ${db.flows.length} fluxos...`);
     for (const f of db.flows) {
       try {
-        const { error } = await supabase.from('flows').upsert(f, { onConflict: 'id' });
+        const { error } = await supabase.from('flows').upsert({
+          id: f.id,
+          name: f.name,
+          description: f.description || '',
+          status: f.status || 'published',
+          version: f.version || 1,
+          is_active: f.is_active ?? true,
+          trigger_type: f.trigger_type || 'Qualquer Mensagem Recebida',
+          store_id: f.store_id || null,
+          store_name: f.store_name || null,
+          node_count: f.node_count || 0,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
         if (error) report.errors.push(`flows: ${error.message}`);
         else report.flows++;
       } catch (err) {
@@ -102,26 +172,25 @@ export async function syncToSupabase(dbOverride) {
     }
   }
 
-  // 6. Sincronizar Nós e Arestas dos Fluxos
+  // 6. Sincronizar Nós e Arestas dos Fluxos em Lote
   if (db.nodes && typeof db.nodes === 'object') {
     for (const [flowId, nodesList] of Object.entries(db.nodes)) {
-      if (Array.isArray(nodesList)) {
-        for (const n of nodesList) {
-          try {
-            const { error } = await supabase.from('flow_nodes').upsert({
-              id: n.id,
-              flow_id: flowId,
-              type: n.type || 'text_message',
-              label: n.data?.label || n.label || 'Nó',
-              data: n.data || {},
-              position: n.position || { x: 0, y: 0 },
-              updated_at: new Date().toISOString()
-            }, { onConflict: 'id' });
-            if (error) report.errors.push(`nodes: ${error.message}`);
-            else report.nodes++;
-          } catch (err) {
-            report.errors.push(`nodes: ${err.message}`);
-          }
+      if (Array.isArray(nodesList) && nodesList.length > 0) {
+        const batch = nodesList.map(n => ({
+          id: n.id,
+          flow_id: flowId,
+          type: n.type || 'message',
+          label: n.data?.label || n.label || 'Nó',
+          position: n.position || { x: 0, y: 0 },
+          data: n.data || {},
+          updated_at: new Date().toISOString()
+        }));
+        try {
+          const { error } = await supabase.from('flow_nodes').upsert(batch, { onConflict: 'id' });
+          if (error) report.errors.push(`nodes (${flowId}): ${error.message}`);
+          else report.nodes += batch.length;
+        } catch (err) {
+          report.errors.push(`nodes (${flowId}): ${err.message}`);
         }
       }
     }
@@ -129,23 +198,23 @@ export async function syncToSupabase(dbOverride) {
 
   if (db.edges && typeof db.edges === 'object') {
     for (const [flowId, edgesList] of Object.entries(db.edges)) {
-      if (Array.isArray(edgesList)) {
-        for (const e of edgesList) {
-          try {
-            const { error } = await supabase.from('flow_edges').upsert({
-              id: e.id,
-              flow_id: flowId,
-              source: e.source,
-              target: e.target,
-              source_handle: e.sourceHandle || null,
-              target_handle: e.targetHandle || null,
-              updated_at: new Date().toISOString()
-            }, { onConflict: 'id' });
-            if (error) report.errors.push(`edges: ${error.message}`);
-            else report.edges++;
-          } catch (err) {
-            report.errors.push(`edges: ${err.message}`);
-          }
+      if (Array.isArray(edgesList) && edgesList.length > 0) {
+        const batch = edgesList.map(e => ({
+          id: e.id,
+          flow_id: flowId,
+          source: e.source,
+          target: e.target,
+          source_handle: e.sourceHandle || null,
+          target_handle: e.targetHandle || null,
+          data: e.data || {},
+          updated_at: new Date().toISOString()
+        }));
+        try {
+          const { error } = await supabase.from('flow_edges').upsert(batch, { onConflict: 'id' });
+          if (error) report.errors.push(`edges (${flowId}): ${error.message}`);
+          else report.edges += batch.length;
+        } catch (err) {
+          report.errors.push(`edges (${flowId}): ${err.message}`);
         }
       }
     }
@@ -155,7 +224,21 @@ export async function syncToSupabase(dbOverride) {
   if (Array.isArray(db.tickets) && db.tickets.length > 0) {
     for (const t of db.tickets) {
       try {
-        const { error } = await supabase.from('support_tickets').upsert(t, { onConflict: 'id' });
+        const { error } = await supabase.from('support_tickets').upsert({
+          id: t.id,
+          store_id: t.store_id || null,
+          store_name: t.store_name || null,
+          client_id: t.client_id || null,
+          client_name: t.client_name || null,
+          client_phone: t.client_phone || null,
+          protocol: t.protocol,
+          subject: t.subject || 'Dúvida Geral',
+          status: t.status || 'open',
+          priority: t.priority || 'normal',
+          attendant_name: t.attendant_name || null,
+          notes: t.notes || null,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
         if (error) report.errors.push(`tickets: ${error.message}`);
         else report.tickets++;
       } catch (err) {
@@ -181,7 +264,19 @@ export async function syncToSupabase(dbOverride) {
   if (Array.isArray(db.systemUsers) && db.systemUsers.length > 0) {
     for (const u of db.systemUsers) {
       try {
-        const { error } = await supabase.from('system_users').upsert(u, { onConflict: 'id' });
+        const { error } = await supabase.from('system_users').upsert({
+          id: u.id,
+          store_id: u.store_id || null,
+          name: u.name,
+          phone: u.phone,
+          email: u.email || null,
+          password_hash: u.password_hash || '1234',
+          role: u.role || 'attendant',
+          panels: u.panels || ['atendimento'],
+          permissions: u.permissions || {},
+          is_active: u.is_active ?? true,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'phone' });
         if (error) report.errors.push(`system_users: ${error.message}`);
         else report.users++;
       } catch (err) {
@@ -195,7 +290,16 @@ export async function syncToSupabase(dbOverride) {
     try {
       const { error } = await supabase.from('bot_config').upsert({
         id: 'default',
-        ...db.botProfile,
+        bot_name: db.botProfile.bot_nome || db.botProfile.bot_name || 'Pitoco Bot',
+        store_name: db.botProfile.empresa || db.botProfile.store_name || 'Pitoco de Gente',
+        welcome_message: db.botProfile.welcome_message || 'Olá! Bem-vindo(a) à Pitoco de Gente!',
+        handoff_message: db.botProfile.handoff_message || 'Transferindo para consultora...',
+        pix_key: db.botProfile.pix_key || 'financeiro@pitocodegente.com.br',
+        pix_name: db.botProfile.pix_name || db.botProfile.pix_owner || 'Pitoco de Gente Artigos Infantis LTDA',
+        shipping_motoboy_price: db.botProfile.shipping_motoboy || db.botProfile.shipping_motoboy_price || 15.00,
+        shipping_correios_price: db.botProfile.shipping_correios || db.botProfile.shipping_correios_price || 24.90,
+        free_shipping_threshold: db.botProfile.free_shipping_min || db.botProfile.free_shipping_threshold || 250.00,
+        is_active: db.botProfile.is_active ?? true,
         updated_at: new Date().toISOString()
       }, { onConflict: 'id' });
       if (error) report.errors.push(`bot_config: ${error.message}`);
@@ -209,8 +313,16 @@ export async function syncToSupabase(dbOverride) {
   if (db.settings) {
     try {
       const { error } = await supabase.from('settings').upsert({
-        id: 'global',
-        ...db.settings,
+        id: 'default',
+        backend_url: db.settings.backend_url || 'https://pitoco.discloud.app',
+        whatsapp_phone_number_id: db.settings.whatsapp_phone_number_id || null,
+        whatsapp_business_account_id: db.settings.whatsapp_business_account_id || null,
+        webhook_verify_token: db.settings.webhook_verify_token || '7assistente_meta_webhook_token_2026',
+        bot_profile: db.settings.bot_profile || {},
+        whatsapp_session: db.settings.whatsapp_session || { status: 'disconnected' },
+        custom_variables: db.settings.custom_variables || [],
+        supabase_url: SUPABASE_URL,
+        supabase_anon_key: process.env.SUPABASE_ANON_KEY || '',
         updated_at: new Date().toISOString()
       }, { onConflict: 'id' });
       if (error) report.errors.push(`settings: ${error.message}`);
