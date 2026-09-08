@@ -123,19 +123,19 @@ export const App: React.FC = () => {
     subtitle = 'Supervisão executiva, vendas da loja e fila de atendimento';
     pageContent = <ManagerPortalPage onNavigate={navigate} />;
   } else if (currentPath === '/catalogo' || currentPath === '/produtos') {
-    title = 'Catálogo de Produtos & Estoque';
+    title = 'Catálogo de Produtos';
     subtitle = 'Gerenciamento completo de peças, tamanhos e preços';
     pageContent = <AdminPage onNavigate={navigate} activeTabProp="produtos" />;
   } else if (currentPath === '/bot_config' || currentPath === '/robo') {
-    title = 'Parâmetros do Robô & PIX';
+    title = 'Bot';
     subtitle = 'Chave PIX, fretes e mensagens automáticas do WhatsApp';
     pageContent = <AdminPage onNavigate={navigate} activeTabProp="bot_config" />;
   } else if (currentPath === '/clientes' || currentPath === '/crm' || currentPath === '/agendamentos' || currentPath === '/consultorias') {
-    title = 'Gestão de Clientes & CRM';
+    title = 'Gestão de Clientes';
     subtitle = 'Cadastro, histórico, tags e gerenciamento de contatos da rede';
     pageContent = <ClientsPage onNavigate={navigate} />;
   } else if (currentPath === '/atendimento' || currentPath === '/conversas') {
-    title = isAttendant ? 'Central de Atendimento Operacional' : 'Inbox de Atendimento Humano';
+    title = 'Central de Atendimentos';
     subtitle = 'Atendimento em tempo real com direcionamento por loja e envio de catálogo';
     pageContent = (
       <AtendimentoHumanoInbox 
@@ -144,11 +144,11 @@ export const App: React.FC = () => {
       />
     );
   } else if (currentPath === '/lojas' || currentPath === '/rede') {
-    title = 'Rede de Lojas';
+    title = 'Central de Lojas';
     subtitle = 'Gestão centralizada das unidades Centro, Shopping Boulevard e E-commerce';
     pageContent = <RedeLojasView onNavigate={navigate} />;
   } else if (currentPath.startsWith('/fluxos')) {
-    title = 'Studio de Fluxos de Atendimento';
+    title = 'Fluxos';
     subtitle = 'Árvores de automação e nós de atendimento no WhatsApp';
     pageContent = <FlowBuilderView onNavigate={navigate} />;
   } else if (currentPath === '/whatsapp' || currentPath === '/qrcode') {
@@ -156,7 +156,7 @@ export const App: React.FC = () => {
     subtitle = 'Gerenciamento de sessão, QR Code e status do microsserviço Discloud';
     pageContent = <WhatsappConnectView />;
   } else if (currentPath === '/acessos' || currentPath === '/usuarios') {
-    title = 'Gestão de Acessos & Usuários';
+    title = 'Gestão de Acessos';
     subtitle = 'Controle de painéis autorizados: Admin, Gerente e Atendimento';
     pageContent = <UsersPage />;
   } else if (currentPath === '/logs') {
@@ -164,7 +164,7 @@ export const App: React.FC = () => {
     subtitle = 'Histórico de eventos, transbordos e mensagens do sistema';
     pageContent = <LogsPage />;
   } else if (currentPath === '/configuracoes') {
-    title = 'Configurações & Banco Supabase';
+    title = 'Configurações';
     subtitle = 'Perfil da empresa, status de sincronização e credenciais';
     pageContent = <SettingsPage />;
   }

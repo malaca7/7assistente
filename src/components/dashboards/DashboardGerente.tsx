@@ -14,14 +14,14 @@ import {
 } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { Store, Product, SupportTicket, VIPConsultation, DashboardKPIs } from '../../types';
+import { Store, Product, VIPConsultation, DashboardKPIs } from '../../types';
 import { formatCurrency } from '../../lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface DashboardGerenteProps {
   stores: Store[];
   products: Product[];
-  tickets: SupportTicket[];
+  tickets?: any[];
   consultations: VIPConsultation[];
   onNavigateTab: (tab: any) => void;
   selectedStoreId: string | null;
@@ -31,7 +31,6 @@ interface DashboardGerenteProps {
 export const DashboardGerente: React.FC<DashboardGerenteProps> = ({
   stores,
   products,
-  tickets,
   consultations,
   onNavigateTab,
   selectedStoreId,
@@ -43,7 +42,6 @@ export const DashboardGerente: React.FC<DashboardGerenteProps> = ({
   const currentStore = stores.find(s => s.id === (selectedStoreId || user?.store_id)) || stores[0] || null;
   const storeProducts = products.filter(p => !p.store_id || p.store_id === currentStore?.id);
   const lowStockProducts = storeProducts.filter(p => p.stock_quantity <= 15);
-  const storeTickets = tickets.filter(t => !t.store_id || t.store_id === currentStore?.id);
   const storeConsultations = consultations.filter(c => !c.store_id || c.store_id === currentStore?.id);
 
   return (
@@ -248,7 +246,7 @@ export const DashboardGerente: React.FC<DashboardGerenteProps> = ({
             <MessageSquare className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-white">Inbox da Filial</h4>
+            <h4 className="text-sm font-bold text-white">Central de Atendimentos</h4>
             <p className="text-xs text-zinc-400">Atender e transferir clientes</p>
           </div>
         </Card>
@@ -261,21 +259,21 @@ export const DashboardGerente: React.FC<DashboardGerenteProps> = ({
             <ShoppingBag className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-white">Catálogo & Preços</h4>
+            <h4 className="text-sm font-bold text-white">Catálogo de Produtos</h4>
             <p className="text-xs text-zinc-400">Ajustar estoque e detalhes</p>
           </div>
         </Card>
 
         <Card
-          onClick={() => onNavigateTab('tickets')}
+          onClick={() => onNavigateTab('clientes')}
           className="p-4 bg-[#0c0c0e] border-white/10 hover:border-white/20 transition-all cursor-pointer flex items-center gap-3.5"
         >
           <div className="p-3 rounded-xl bg-white/5 text-white border border-white/10">
-            <LifeBuoy className="w-5 h-5" />
+            <Users className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-white">Tickets da Filial</h4>
-            <p className="text-xs text-zinc-400">{storeTickets.length} protocolos registrados</p>
+            <h4 className="text-sm font-bold text-white">Gestão de Clientes</h4>
+            <p className="text-xs text-zinc-400">Carteira da loja e CRM</p>
           </div>
         </Card>
       </div>

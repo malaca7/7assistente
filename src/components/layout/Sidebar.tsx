@@ -10,12 +10,11 @@ import {
   ChevronLeft, 
   ChevronRight,
   Store,
-  QrCode,
   ShoppingBag,
   Building2,
   Calendar,
-  LifeBuoy,
   Bot,
+  ShieldCheck,
   PanelLeftClose,
   PanelLeftOpen,
   Maximize2,
@@ -49,14 +48,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { user, isCEO, isManager, isAttendant, logout } = useAuth();
   const { isConnected } = useWhatsApp();
 
-  // Todos os itens de navegação
+  // Todos os itens de navegação organizados conforme nova estrutura oficial
   const allNavigationGroups = [
     {
-      title: 'Visão Geral',
+      title: 'VISÃO GERAL',
       items: [
         {
           id: 'dashboard',
-          label: isCEO ? 'Painel CEO' : isManager ? 'Painel Gestão' : 'Painel Atendimento',
+          label: 'Painel CEO',
           path: '/admin',
           icon: LayoutDashboard,
           roles: ['ceo', 'admin', 'manager', 'attendant'],
@@ -64,11 +63,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ],
     },
     {
-      title: 'Operação & Vendas',
+      title: 'OPERAÇÃO',
       items: [
         {
           id: 'atendimento',
-          label: 'Inbox WhatsApp',
+          label: 'Central de Atendimentos',
           path: '/atendimento',
           icon: MessageSquareText,
           badge: 'LIVE',
@@ -77,14 +76,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         },
         {
           id: 'produtos',
-          label: 'Catálogo & Estoque',
+          label: 'Catálogo de Produtos',
           path: '/catalogo',
           icon: ShoppingBag,
           roles: ['ceo', 'admin', 'manager', 'attendant'],
         },
         {
           id: 'lojas',
-          label: 'Rede de Lojas',
+          label: 'Central de Lojas',
           path: '/lojas',
           icon: Building2,
           badge: 'REDE',
@@ -94,8 +93,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ],
     },
     {
-      title: 'Clientes & CRM',
+      title: 'GESTÃO',
       items: [
+        {
+          id: 'fluxos',
+          label: 'Fluxos',
+          path: '/fluxos',
+          icon: GitFork,
+          roles: ['ceo', 'admin'],
+        },
         {
           id: 'clientes',
           label: 'Gestão de Clientes',
@@ -103,51 +109,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
           icon: Users,
           roles: ['ceo', 'admin', 'manager', 'attendant'],
         },
-      ],
-    },
-    {
-      title: 'Automação & Robô',
-      items: [
-        {
-          id: 'fluxos',
-          label: 'Studio de Fluxos',
-          path: '/fluxos',
-          icon: GitFork,
-          roles: ['ceo', 'admin'],
-        },
-        {
-          id: 'whatsapp',
-          label: 'Conexão WhatsApp',
-          path: '/whatsapp',
-          icon: QrCode,
-          badge: isConnected ? 'ON' : 'OFF',
-          badgeColor: isConnected 
-            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
-            : 'bg-rose-500/10 text-rose-400 border border-rose-500/20',
-          roles: ['ceo', 'admin'],
-        },
-        {
-          id: 'bot_config',
-          label: 'Parâmetros do Robô',
-          path: '/bot_config',
-          icon: Bot,
-          roles: ['ceo', 'admin'],
-        },
-      ],
-    },
-    {
-      title: 'Gestão & Sistema',
-      items: [
         {
           id: 'acessos',
           label: 'Gestão de Acessos',
           path: '/acessos',
-          icon: Users,
+          icon: ShieldCheck,
           roles: ['ceo', 'admin', 'manager'],
         },
+      ],
+    },
+    {
+      title: 'SISTEMA',
+      items: [
         {
           id: 'configuracoes',
-          label: 'Configurações & Banco',
+          label: 'Configurações',
           path: '/configuracoes',
           icon: SettingsIcon,
           roles: ['ceo', 'admin'],
@@ -157,6 +133,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           label: 'Logs & Auditoria',
           path: '/logs',
           icon: Sparkles,
+          roles: ['ceo', 'admin'],
+        },
+        {
+          id: 'bot_config',
+          label: 'Bot',
+          path: '/bot_config',
+          icon: Bot,
           roles: ['ceo', 'admin'],
         },
       ],

@@ -17,14 +17,14 @@ import {
 } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { Store, Product, SupportTicket, VIPConsultation, DashboardKPIs } from '../../types';
+import { Store, Product, VIPConsultation, DashboardKPIs } from '../../types';
 import { formatCurrency } from '../../lib/utils';
 
 interface DashboardCEOProps {
   kpis: DashboardKPIs | null;
   stores: Store[];
   products: Product[];
-  tickets: SupportTicket[];
+  tickets?: any[];
   consultations: VIPConsultation[];
   onNavigateTab: (tab: any) => void;
   onSelectStore: (storeId: string | null) => void;
@@ -34,13 +34,11 @@ export const DashboardCEO: React.FC<DashboardCEOProps> = ({
   kpis,
   stores,
   products,
-  tickets,
   consultations,
   onNavigateTab,
   onSelectStore,
 }) => {
   const totalRevenue = stores.reduce((acc, s) => acc + (s.monthly_revenue || 0), 0) || kpis?.monthRevenue || 206600;
-  const pendingTickets = tickets.filter(t => t.status === 'open' || t.status === 'pending').length;
   const upcomingConsultations = consultations.filter(c => c.status === 'confirmed').length;
 
   return (
@@ -226,7 +224,7 @@ export const DashboardCEO: React.FC<DashboardCEOProps> = ({
             <ShoppingBag className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-white">Catálogo & Estoque</h4>
+            <h4 className="text-sm font-bold text-white">Catálogo de Produtos</h4>
             <p className="text-xs text-zinc-400">{products.length} itens cadastrados</p>
           </div>
         </Card>
@@ -239,7 +237,7 @@ export const DashboardCEO: React.FC<DashboardCEOProps> = ({
             <Bot className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-white">Parâmetros do Robô</h4>
+            <h4 className="text-sm font-bold text-white">Bot</h4>
             <p className="text-xs text-zinc-400">PIX, fretes e mensagens</p>
           </div>
         </Card>
@@ -252,7 +250,7 @@ export const DashboardCEO: React.FC<DashboardCEOProps> = ({
             <MessageSquare className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-white">Inbox WhatsApp</h4>
+            <h4 className="text-sm font-bold text-white">Central de Atendimentos</h4>
             <p className="text-xs text-zinc-400">Atendimento ao vivo</p>
           </div>
         </Card>
@@ -265,7 +263,7 @@ export const DashboardCEO: React.FC<DashboardCEOProps> = ({
             <Users className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-white">Equipe & Acessos</h4>
+            <h4 className="text-sm font-bold text-white">Gestão de Acessos</h4>
             <p className="text-xs text-zinc-400">Gerentes e consultoras</p>
           </div>
         </Card>

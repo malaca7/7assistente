@@ -79,7 +79,10 @@ async function main() {
       'fila', 
       'conversas', 
       'clientes',
-      'dashboard'
+      'dashboard',
+      'bot_config',
+      'configuracoes',
+      'logs'
     ];
 
     for (const route of routes) {
