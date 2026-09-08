@@ -681,144 +681,22 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
             </div>
           </div>
 
-          {/* Gerenciamento dos Passos do Fluxo */}
-          <div className="pt-2 border-t border-white/5">
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-pitoco-blue" />
-                Passos & Ações do Fluxo ({flowSteps.length}):
-              </label>
-            </div>
-
-            {/* Lista dos Passos Existentes */}
-            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-              {flowSteps.map((step, idx) => (
-                <div 
-                  key={step.id} 
-                  className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-dark-800/80 border border-white/5 text-xs"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="w-5 h-5 rounded-full bg-dark-900 border border-white/10 flex items-center justify-center text-[10px] font-bold text-slate-400 flex-shrink-0">
-                      {idx + 1}
-                    </span>
-                    <div className="min-w-0">
-                      <span className="font-bold text-white block truncate">{step.title}</span>
-                      <span className="text-[10px] text-slate-400 block truncate">{step.description}</span>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveStep(idx)}
-                    className="p-1 text-slate-500 hover:text-rose-400 transition-colors flex-shrink-0"
-                    title="Remover Passo"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            {/* Ações Rápidas para Adicionar Módulos ao Fluxo */}
-            <div className="mt-3 pt-2 border-t border-white/5">
-              <span className="text-[10px] text-slate-400 font-semibold block mb-1.5 uppercase">
-                Adicionar Módulo à Árvore:
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => handleAddStep('message', 'Boas-Vindas Pitoco', 'Atendimento', 'Saudação com menu oficial')}
-                  className="px-2 py-1 rounded-lg bg-dark-800 hover:bg-dark-700 border border-white/10 text-[10px] text-slate-300 font-medium"
-                >
-                  + Boas-Vindas
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAddStep('show_catalog', 'Catálogo de Produtos', 'Vendas', 'Bodies, macacões e saídas')}
-                  className="px-2 py-1 rounded-lg bg-dark-800 hover:bg-dark-700 border border-white/10 text-[10px] text-emerald-400 font-medium"
-                >
-                  + Catálogo
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAddStep('measure_guide', 'Guia de Medidas RN a 3 anos', 'Consultoria', 'Tabela de peso e altura')}
-                  className="px-2 py-1 rounded-lg bg-dark-800 hover:bg-dark-700 border border-white/10 text-[10px] text-amber-400 font-medium"
-                >
-                  + Guia Medidas
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAddStep('layette_checklist', 'Mala de Maternidade', 'Consultoria', 'Checklist essencial das 48h')}
-                  className="px-2 py-1 rounded-lg bg-dark-800 hover:bg-dark-700 border border-white/10 text-[10px] text-purple-400 font-medium"
-                >
-                  + Checklist Mala
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAddStep('vip_consultation', 'Consultoria VIP', 'Atendimento', 'Agendamento com especialista')}
-                  className="px-2 py-1 rounded-lg bg-dark-800 hover:bg-dark-700 border border-white/10 text-[10px] text-pitoco-pink font-medium"
-                >
-                  + Consultoria VIP
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAddStep('shipping_calculator', 'Cálculo de Frete', 'Logística', 'Motoboy e Correios')}
-                  className="px-2 py-1 rounded-lg bg-dark-800 hover:bg-dark-700 border border-white/10 text-[10px] text-sky-400 font-medium"
-                >
-                  + Frete Express
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAddStep('pix_payment', 'Pagamento PIX', 'Financeiro', 'Chave e Copia e Cola')}
-                  className="px-2 py-1 rounded-lg bg-dark-800 hover:bg-dark-700 border border-white/10 text-[10px] text-emerald-400 font-medium"
-                >
-                  + PIX Oficial
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAddStep('human_handoff', 'Transbordo Humano', 'Multi-Lojas', 'Transferência para equipe da loja')}
-                  className="px-2 py-1 rounded-lg bg-dark-800 hover:bg-dark-700 border border-white/10 text-[10px] text-rose-400 font-medium"
-                >
-                  + Transbordo
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="sticky -bottom-5 sm:-bottom-6 bg-dark-900/95 backdrop-blur-md -mx-5 px-5 sm:-mx-6 sm:px-6 py-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 z-30">
-            <div>
-              {editingFlow && (
-                <Button
-                  type="button"
-                  onClick={() => {
-                    setIsFlowModalOpen(false);
-                    handleOpenStudio(editingFlow.id);
-                  }}
-                  className="bg-gradient-to-r from-purple-600 to-pitoco-blue hover:from-purple-500 hover:to-pitoco-blue text-white font-bold text-xs px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm"
-                >
-                  <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-                  Editar no Studio
-                </Button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsFlowModalOpen(false)}
-                className="text-xs border-white/10 text-slate-300"
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSavingFlow}
-                className="bg-pitoco-blue text-slate-950 font-bold text-xs px-5 rounded-xl hover:bg-pitoco-blue/90"
-              >
-                {isSavingFlow ? 'Salvando...' : editingFlow ? 'Salvar Alterações' : 'Criar Fluxo'}
-              </Button>
-            </div>
+          <div className="sticky -bottom-5 sm:-bottom-6 bg-dark-900/95 backdrop-blur-md -mx-5 px-5 sm:-mx-6 sm:px-6 py-3 border-t border-white/10 flex items-center justify-end gap-2 z-30">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsFlowModalOpen(false)}
+              className="text-xs border-white/10 text-slate-300"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSavingFlow}
+              className="bg-pitoco-blue text-slate-950 font-bold text-xs px-5 rounded-xl hover:bg-pitoco-blue/90"
+            >
+              {isSavingFlow ? 'Salvando...' : editingFlow ? 'Salvar Alterações' : 'Criar Fluxo'}
+            </Button>
           </div>
         </form>
       </Modal>

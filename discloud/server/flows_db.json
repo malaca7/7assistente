@@ -223,37 +223,6 @@
   ],
   "flows": [
     {
-      "id": "flow-1788903683074",
-      "name": "Atendimento ao cliente Principal",
-      "description": "Atendimento ao cliente principal",
-      "status": "draft",
-      "is_active": false,
-      "version": 2,
-      "node_count": 4,
-      "trigger_type": "Qualquer Mensagem Recebida",
-      "store_id": null,
-      "store_name": "Toda a Rede (Global)",
-      "steps": [
-        {
-          "id": "step-1",
-          "type": "trigger",
-          "title": "Gatilho Inicial",
-          "category": "In\u00edcio",
-          "description": "Disparo do fluxo"
-        },
-        {
-          "id": "step-2",
-          "type": "message",
-          "title": "Mensagem de Atendimento",
-          "category": "Atendimento",
-          "description": "Apresenta\u00e7\u00e3o do menu"
-        }
-      ],
-      "color": "#10b981",
-      "created_at": "2026-09-08T21:41:27.921908+00:00",
-      "updated_at": "2026-09-08T22:31:03.427Z"
-    },
-    {
       "id": "flow-1788903542304",
       "name": "AAAA",
       "description": "Atendimento ao cliente principal",
@@ -1037,95 +1006,6 @@
         }
       }
     ],
-    "flow-1788903683074": [
-      {
-        "id": "node-handoff-4",
-        "flow_id": "flow-1788903683074",
-        "type": "human_handoff",
-        "position": {
-          "x": 530,
-          "y": 520
-        },
-        "data": {
-          "label": "Transbordo por Loja",
-          "config": {
-            "multiStore": true
-          },
-          "nodeType": "human_handoff",
-          "description": "Cliente escolhe entre Matriz Centro, Shopping Boulevard ou E-commerce",
-          "isConfigured": true
-        },
-        "measured": {
-          "width": 330,
-          "height": 130
-        }
-      },
-      {
-        "id": "node-trigger-1",
-        "flow_id": "flow-1788903683074",
-        "type": "trigger",
-        "position": {
-          "x": 315,
-          "y": 100
-        },
-        "data": {
-          "label": "Mensagem Recebida",
-          "config": {
-            "eventType": "any_message"
-          },
-          "nodeType": "trigger",
-          "description": "Dispara quando o cliente manda qualquer mensagem no WhatsApp",
-          "isConfigured": true
-        },
-        "measured": {
-          "width": 330,
-          "height": 172
-        }
-      },
-      {
-        "id": "node-welcome-2",
-        "flow_id": "flow-1788903683074",
-        "type": "message",
-        "position": {
-          "x": 315,
-          "y": 300
-        },
-        "data": {
-          "label": "Boas-vindas Pitoco de Gente",
-          "config": {
-            "text": "Bem vindo a *{{empresa}}*.",
-            "message": "Ol\u00e1! Seja muito bem-vindo(a) \u00e0 Pitoco de Gente \u2014 Roupas de Beb\u00ea, Infantil e Enxovais! \ud83d\udc76\u2728"
-          },
-          "nodeType": "message",
-          "description": "Envia a sauda\u00e7\u00e3o oficial com menu de 1 a 7",
-          "isConfigured": true
-        },
-        "measured": {
-          "width": 330,
-          "height": 160
-        }
-      },
-      {
-        "id": "node-catalog-3",
-        "flow_id": "flow-1788903683074",
-        "type": "show_catalog",
-        "position": {
-          "x": 100,
-          "y": 520
-        },
-        "data": {
-          "label": "Cat\u00e1logo Interativo",
-          "config": {},
-          "nodeType": "show_catalog",
-          "description": "Bodies 100% suedine, macac\u00f5es z\u00edper duplo, sa\u00eddas de maternidade e kits de ber\u00e7o",
-          "isConfigured": true
-        },
-        "measured": {
-          "width": 330,
-          "height": 238
-        }
-      }
-    ],
     "flow-1788903542304": [
       {
         "id": "node-trigger-1",
@@ -1598,32 +1478,6 @@
         "targetHandle": null
       }
     ],
-    "flow-1788903683074": [
-      {
-        "id": "edge-1-2",
-        "flow_id": "flow-1788903683074",
-        "source": "node-trigger-1",
-        "target": "node-welcome-2",
-        "data": {},
-        "targetHandle": null
-      },
-      {
-        "id": "edge-2-3",
-        "flow_id": "flow-1788903683074",
-        "source": "node-welcome-2",
-        "target": "node-catalog-3",
-        "data": {},
-        "targetHandle": null
-      },
-      {
-        "id": "edge-2-4",
-        "flow_id": "flow-1788903683074",
-        "source": "node-welcome-2",
-        "target": "node-handoff-4",
-        "data": {},
-        "targetHandle": null
-      }
-    ],
     "flow-1788903542304": [
       {
         "id": "edge-1-2",
@@ -1671,9 +1525,13 @@
       "phone": "168650497613858",
       "last_message": "oi",
       "last_message_at": "2026-09-08T22:24:46.277Z",
-      "status": "active",
+      "status": "waiting_human",
       "store_name": "Pitoco de Gente",
-      "contact_id": "contact-558196138924"
+      "contact_id": "contact-558196138924",
+      "assigned_to": "Jefferson",
+      "updated_at": "2026-09-08T22:48:14.359Z",
+      "assigned_attendant_id": "user-1788477817013",
+      "assigned_attendant_name": "Malaca"
     },
     "conv-168650497613858": {
       "id": "conv-168650497613858",
@@ -1682,8 +1540,11 @@
       "phone": "168650497613858",
       "last_message": "\ud83d\udc76\u2728 *PITOCO DE GENTE \u2014 Roupas de Beb\u00ea & Enxovais*\nOl\u00e1, *rogerio mlc*! Bem-vindo(a) \u00e0 nossa loja oficial! Como podemos te ajudar hoje?\n\nDigite o n\u00famero da op\u00e7\u00e3o desejada:\n\n1\ufe0f\u20e3 *Ver Cat\u00e1logo de Produtos* (Bodies, Macac\u00f5es, Sa\u00eddas, Ber\u00e7o)\n2\ufe0f\u20e3 *Guia de Medidas* (RN ao 3 anos com peso e altura)\n3\ufe0f\u20e3 *Checklist da Mala de Maternidade*\n4\ufe0f\u20e3 *Consultoria VIP de Enxoval* (Agendamento personalizado)\n5\ufe0f\u20e3 *C\u00e1lculo de Frete & Formas de Entrega* (Motoboy/Correios/Retirada)\n6\ufe0f\u20e3 *Pagamento via PIX* (Chave & QR Code Copia e Cola)\n7\ufe0f\u20e3 *Falar com Atendente Humana* (Escolha sua loja f\u00edsica ou online)\n\n_Responda apenas com o n\u00famero de 1 a 7._",
       "last_message_at": "2026-09-08T22:24:47.084Z",
-      "status": "active",
-      "store_name": "Pitoco de Gente"
+      "status": "waiting_human",
+      "store_name": "Pitoco de Gente",
+      "assigned_attendant_id": "user-1788477817013",
+      "assigned_to": "Jefferson",
+      "updated_at": "2026-09-08T22:47:01.741Z"
     }
   },
   "messages": {
