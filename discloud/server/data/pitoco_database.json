@@ -4,43 +4,33 @@
       "id": "store-001",
       "name": "Loja Matriz \u2014 Centro",
       "slug": "matriz",
-      "address": "Rua do Sol, 120 - Centro, Recife - PE",
-      "phone": "8132211000",
-      "whatsapp_number": "81996138924",
+      "address": "R. Vig. Jo\u00e3o Batista, 93 - Centro, Cabo de Santo Agostinho - PE, 54505-470",
+      "phone": "",
+      "whatsapp_number": "81987300915",
       "is_active": true,
-      "business_hours": "Seg a Sex: 08:30 \u00e0s 18:30 | S\u00e1b: 08:30 \u00e0s 14:00",
-      "city": "Recife - PE",
-      "manager_name": "Juliana Matriz",
-      "monthly_revenue": 48500,
-      "active_chats": 6
+      "business_hours": "Seg a Sex: 08:00 \u00e0s 18:00 | S\u00e1b: 08:00 \u00e0s 12:00",
+      "city": "Cabo - PE",
+      "manager_name": "Gerente",
+      "monthly_revenue": 0,
+      "active_chats": 0,
+      "created_at": "2026-09-08T18:22:02.268Z",
+      "updated_at": "2026-09-08T18:22:02.268Z"
     },
     {
       "id": "store-002",
-      "name": "Loja Shopping Boulevard",
-      "slug": "boulevard",
-      "address": "Av. Principal, 500 - Piso L2, Loja 204",
-      "phone": "8134422000",
-      "whatsapp_number": "81996138924",
+      "name": "Loja Ipojuca - Filial",
+      "slug": "ipojuca",
+      "address": "R. Crist\u00f3v\u00e3o Jos\u00e9 da Silva, 114 - Centro, Ipojuca - PE, 54590-000",
+      "phone": "",
+      "whatsapp_number": "81987300915",
       "is_active": true,
-      "business_hours": "Seg a S\u00e1b: 10:00 \u00e0s 22:00 | Dom: 13:00 \u00e0s 21:00",
-      "city": "Recife - PE",
-      "manager_name": "Carla Boulevard",
-      "monthly_revenue": 62300,
-      "active_chats": 11
-    },
-    {
-      "id": "store-003",
-      "name": "Atendimento Geral / E-commerce",
-      "slug": "ecommerce",
-      "address": "Centro de Distribui\u00e7\u00e3o Online - Av. Brasil, 1500",
-      "phone": "81996138924",
-      "whatsapp_number": "81996138924",
-      "is_active": true,
-      "business_hours": "24 horas (Autom\u00e1tico) | Consultoras: 08h \u00e0s 20h",
-      "city": "Digital / Brasil",
-      "manager_name": "Equipe Digital Pitoco",
-      "monthly_revenue": 95800,
-      "active_chats": 18
+      "business_hours": "Seg a Sex: 08:00 \u00e0s 18:00 | S\u00e1b: 08:00 \u00e0s 12:00",
+      "city": "Ipojuca - PE",
+      "manager_name": "Gerente",
+      "monthly_revenue": 0,
+      "active_chats": 0,
+      "created_at": "2026-09-08T18:23:02.118Z",
+      "updated_at": "2026-09-08T18:23:02.118Z"
     }
   ],
   "categories": [
@@ -227,7 +217,8 @@
       "store_id": null,
       "store_name": "Toda a Rede",
       "created_at": "2026-09-01T10:00:00.000Z",
-      "updated_at": "2026-09-07T18:10:11.470Z"
+      "updated_at": "2026-09-08T18:16:56.619Z",
+      "steps": []
     },
     {
       "id": "flow-pitoco-002",
@@ -785,8 +776,8 @@
         "id": "node-trigger-pitoco",
         "type": "trigger",
         "position": {
-          "x": 350,
-          "y": 50
+          "x": 530,
+          "y": 100
         },
         "data": {
           "label": "Gatilho Inicial",
@@ -797,14 +788,19 @@
             "eventType": "any_message",
             "matchType": "contains"
           }
-        }
+        },
+        "measured": {
+          "width": 330,
+          "height": 172
+        },
+        "selected": false
       },
       {
         "id": "node-welcome-pitoco",
         "type": "message",
         "position": {
-          "x": 350,
-          "y": 220
+          "x": 530,
+          "y": 300
         },
         "data": {
           "label": "Boas-Vindas Pitoco de Gente",
@@ -812,16 +808,21 @@
           "description": "Mensagem carinhosa de boas-vindas com o nome do cliente",
           "isConfigured": true,
           "config": {
-            "text": "\ud83d\udc76\u2728 Ol\u00e1! Seja muito bem-vindo(a) \u00e0 *Pitoco de Gente* \u2014 Moda Beb\u00ea, Infantil & Enxovais!\n\nMe chamo *{{bot_nome}}*, assistente virtual da nossa loja. \u00c9 um prazer atender voc\u00ea!"
+            "text": "\ud83d\udc76\u2728 Ol\u00e1! Seja muito bem-vindo(a) \u00e0 *{{empresa}}* \u2014 Moda Beb\u00ea, Infantil & Enxovais!\n\nMe chamo *{{bot_nome}}*, assistente virtual da nossa loja. \u00c9 um prazer atender voc\u00ea!"
           }
-        }
+        },
+        "measured": {
+          "width": 330,
+          "height": 213
+        },
+        "selected": true
       },
       {
         "id": "node-buttons-pitoco",
         "type": "buttons",
         "position": {
-          "x": 350,
-          "y": 440
+          "x": 530,
+          "y": 550
         },
         "data": {
           "label": "Menu Principal de Op\u00e7\u00f5es",
@@ -846,6 +847,10 @@
               }
             ]
           }
+        },
+        "measured": {
+          "width": 330,
+          "height": 248
         }
       },
       {
@@ -853,7 +858,7 @@
         "type": "show_services",
         "position": {
           "x": 100,
-          "y": 720
+          "y": 866
         },
         "data": {
           "label": "Exibir Cat\u00e1logo de Produtos",
@@ -864,14 +869,18 @@
             "headerText": "\ud83c\udf7c *DESTAQUES PITOCO DE GENTE*\nConfira nossas pe\u00e7as queridinhas do momento:",
             "footerText": "Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!"
           }
+        },
+        "measured": {
+          "width": 330,
+          "height": 174
         }
       },
       {
         "id": "node-handoff-pitoco",
         "type": "human_handoff",
         "position": {
-          "x": 600,
-          "y": 720
+          "x": 530,
+          "y": 866
         },
         "data": {
           "label": "Falar com Consultora",
@@ -881,6 +890,10 @@
           "config": {
             "notifyMessage": "\ud83d\udc69\u200d\ud83d\udcbc *Atendimento Humanizado*\n\nConectando voc\u00ea agora com uma de nossas consultoras especialistas em beb\u00eas da Pitoco de Gente. Aguarde s\u00f3 um instante!"
           }
+        },
+        "measured": {
+          "width": 330,
+          "height": 130
         }
       }
     ]
@@ -1215,25 +1228,29 @@
         "id": "edge-p1-p2",
         "source": "node-trigger-pitoco",
         "target": "node-welcome-pitoco",
-        "animated": true
+        "animated": true,
+        "targetHandle": null
       },
       {
         "id": "edge-p2-p3",
         "source": "node-welcome-pitoco",
         "target": "node-buttons-pitoco",
-        "animated": true
+        "animated": true,
+        "targetHandle": null
       },
       {
         "id": "edge-p3-p4",
         "source": "node-buttons-pitoco",
         "target": "node-catalog-pitoco",
-        "sourceHandle": "btn_catalogo"
+        "sourceHandle": "btn_catalogo",
+        "targetHandle": null
       },
       {
         "id": "edge-p3-p5",
         "source": "node-buttons-pitoco",
         "target": "node-handoff-pitoco",
-        "sourceHandle": "btn_atendente"
+        "sourceHandle": "btn_atendente",
+        "targetHandle": null
       }
     ]
   },
@@ -1279,6 +1296,34 @@
       "metadata": {},
       "created_at": "2026-09-07T20:34:21.222Z",
       "updated_at": "2026-09-07T20:34:21.482Z"
+    },
+    "5581999991111": {
+      "id": "contact-5581999991111",
+      "phone": "5581999991111",
+      "name": "Mam\u00e3e Teste",
+      "whatsapp_pushname": "Mam\u00e3e Teste",
+      "status": "lead",
+      "tags": [
+        "Lead"
+      ],
+      "is_registered": false,
+      "metadata": {},
+      "created_at": "2026-09-07T22:13:56.597Z",
+      "updated_at": "2026-09-07T22:13:57.489Z"
+    },
+    "558196138924": {
+      "id": "contact-558196138924",
+      "phone": "558196138924",
+      "name": "rogerio mlc",
+      "whatsapp_pushname": "rogerio mlc",
+      "status": "lead",
+      "tags": [
+        "Lead"
+      ],
+      "is_registered": false,
+      "metadata": {},
+      "created_at": "2026-09-08T12:25:08.998Z",
+      "updated_at": "2026-09-08T12:25:09.007Z"
     }
   },
   "conversations": {
@@ -1359,513 +1404,54 @@
       "last_message": "\ud83d\udc69\u200d\ud83d\udcbc *Atendimento Humanizado*\n\nConectando voc\u00ea agora com uma de nossas consultoras especialistas em beb\u00eas da Pitoco de Gente. Aguarde s\u00f3 um instante!",
       "last_message_at": "2026-09-07T20:34:21.482Z",
       "updated_at": "2026-09-07T20:34:21.482Z"
+    },
+    "conv-5581999991111": {
+      "id": "conv-5581999991111",
+      "contact_id": "contact-5581999991111",
+      "contact_name": "Mam\u00e3e Teste",
+      "contact_phone": "5581999991111",
+      "status": "bot",
+      "started_at": "2026-09-07T22:13:56.597Z",
+      "unread_count": 0,
+      "created_at": "2026-09-07T22:13:56.597Z",
+      "last_message": "\ud83c\udf7c *DESTAQUES PITOCO DE GENTE*\nConfira nossas pe\u00e7as queridinhas do momento:\n\n*1\ufe0f\u20e3* *Consultoria VIP de Enxoval (Online ou Loja)*\n   \ud83d\udcb0 R$ 0,00 \u2022 \u23f1\ufe0f 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do beb\u00ea_\n\n*2\ufe0f\u20e3* *Kit Sa\u00edda de Maternidade Tricot Realeza*\n   \ud83d\udcb0 R$ 199,90 \u2022 \u23f1\ufe0f 30 min\n   _Macac\u00e3o bordado + manta antial\u00e9rgica 100% algod\u00e3o_\n\n*3\ufe0f\u20e3* *Kit Bodies Suedine Pima (3 Pe\u00e7as)*\n   \ud83d\udcb0 R$ 89,90 \u2022 \u23f1\ufe0f 30 min\n   _Toque macio, gola americana facilitada e bot\u00f5es de press\u00e3o_\n\n*4\ufe0f\u20e3* *Macac\u00e3o Z\u00edper Duplo Termo Confort*\n   \ud83d\udcb0 R$ 79,90 \u2022 \u23f1\ufe0f 30 min\n   _Praticidade nas trocas noturnas sem despir o beb\u00ea_\n\n*5\ufe0f\u20e3* *Kit Ninho Redutor + Almofada Amamenta\u00e7\u00e3o*\n   \ud83d\udcb0 R$ 189,00 \u2022 \u23f1\ufe0f 30 min\n   _Aconchego e seguran\u00e7a para os primeiros meses do rec\u00e9m-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
+      "last_message_at": "2026-09-07T22:13:57.489Z",
+      "updated_at": "2026-09-07T22:13:57.489Z"
+    },
+    "conv-558196138924": {
+      "id": "conv-558196138924",
+      "contact_id": "contact-558196138924",
+      "contact_name": "rogerio mlc",
+      "contact_phone": "558196138924",
+      "status": "bot",
+      "started_at": "2026-09-08T12:25:08.998Z",
+      "unread_count": 0,
+      "created_at": "2026-09-08T12:25:08.998Z",
+      "last_message": "Como podemos te ajudar hoje? Selecione uma das op\u00e7\u00f5es abaixo:",
+      "last_message_at": "2026-09-08T12:25:08.998Z",
+      "updated_at": "2026-09-08T12:25:08.998Z"
+    },
+    "conv-168650497613858": {
+      "id": "conv-168650497613858",
+      "contact_name": "Pitoco Bot",
+      "contact_phone": "168650497613858",
+      "phone": "168650497613858",
+      "last_message": "Como podemos te ajudar hoje? Selecione uma das op\u00e7\u00f5es abaixo:\n\n1\ufe0f\u20e3 1. Ver Cat\u00e1logo Beb\u00ea\n2\ufe0f\u20e3 2. Consultoria de Enxoval\n3\ufe0f\u20e3 3. Falar com Atendente\n\n_Pitoco de Gente \u2022 Atendimento Oficial_\n_\ud83d\udc49 Digite o n\u00famero ou o nome da op\u00e7\u00e3o desejada._",
+      "last_message_at": "2026-09-08T12:25:10.098Z",
+      "status": "active",
+      "store_name": "Pitoco de Gente"
     }
   },
   "messages": {
     "conv-558196138924": [
       {
-        "id": "msg-1788044404971-kuvsl",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Ol\u00e1, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:00:04.971Z"
-      },
-      {
-        "id": "msg-1788044404971-2kru5",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Por favor, informe seu nome:",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:00:04.971Z"
-      },
-      {
-        "id": "msg-1788044411785-gkyue",
+        "id": "msg-1788870308998-qi8rm",
         "conversation_id": "conv-558196138924",
         "direction": "outbound",
         "message_type": "button",
-        "content": "O que voc\u00ea deseja malaquias?",
+        "content": "Como podemos te ajudar hoje? Selecione uma das op\u00e7\u00f5es abaixo:",
         "status": "delivered",
-        "created_at": "2026-08-29T23:00:11.785Z"
-      },
-      {
-        "id": "msg-1788044788667-z341y",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Ol\u00e1, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:06:28.667Z"
-      },
-      {
-        "id": "msg-1788044788674-95p8s",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Por favor, informe seu nome:",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:06:28.674Z"
-      },
-      {
-        "id": "msg-1788044794245-sr7gl",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "button",
-        "content": "O que voc\u00ea deseja malaquias?",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:06:34.245Z"
-      },
-      {
-        "id": "msg-1788044824213-55y40",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "button",
-        "content": "O que voc\u00ea deseja malaquias?",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:07:04.213Z"
-      },
-      {
-        "id": "msg-1788044830433-ox91o",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Ol\u00e1, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:07:10.433Z"
-      },
-      {
-        "id": "msg-1788044830439-n0xpx",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Por favor, informe seu nome:",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:07:10.439Z"
-      },
-      {
-        "id": "msg-1788044838744-lms0r",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "button",
-        "content": "O que voc\u00ea deseja Malaquias?",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:07:18.744Z"
-      },
-      {
-        "id": "msg-1788045151608-qb3rj",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Ol\u00e1, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:12:31.608Z"
-      },
-      {
-        "id": "msg-1788045151613-oyqp6",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Por favor, informe seu nome:",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:12:31.613Z"
-      },
-      {
-        "id": "msg-1788045157913-2mtxu",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "button",
-        "content": "O que voc\u00ea deseja Malaquias?",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:12:37.913Z"
-      },
-      {
-        "id": "msg-1788045163371-92bv5",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Obrigado Malaquias, estou finalizando o atendimento",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:12:43.371Z"
-      },
-      {
-        "id": "msg-1788045163378-rgmaz",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "button",
-        "content": "Op\u00e7\u00f5es Interativas",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:12:43.378Z"
-      },
-      {
-        "id": "msg-1788045163384-fdb96",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "\ud83d\udc68\u200d\ud83d\udcbc *Atendimento Humano:*\n\nVoc\u00ea foi transferido para nossa equipe de atendimento.",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:12:43.384Z"
-      },
-      {
-        "id": "msg-1788045171625-t13d1",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Ol\u00e1, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:12:51.625Z"
-      },
-      {
-        "id": "msg-1788045171630-7w1jx",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Por favor, informe seu nome:",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:12:51.630Z"
-      },
-      {
-        "id": "msg-1788045798236-jwm75",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "[Disparando Fluxo: *Atendimento*]",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:23:18.236Z"
-      },
-      {
-        "id": "msg-1788045807147-i31y5",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "button",
-        "content": "O que voc\u00ea deseja Rogerio?",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:23:27.147Z"
-      },
-      {
-        "id": "msg-1788045812075-ibj9v",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Obrigado Rogerio, estou finalizando o atendimento",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:23:32.075Z"
-      },
-      {
-        "id": "msg-1788045812080-nxlu2",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "button",
-        "content": "Op\u00e7\u00f5es Interativas",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:23:32.080Z"
-      },
-      {
-        "id": "msg-1788045812085-9u819",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "\ud83d\udc68\u200d\ud83d\udcbc *Atendimento Humano:*\n\nVoc\u00ea foi transferido para nossa equipe de atendimento.",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:23:32.085Z"
-      },
-      {
-        "id": "msg-1788045954304-zdszs",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Ol\u00e1, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:25:54.304Z"
-      },
-      {
-        "id": "msg-1788045954305-z1kx0",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Por favor, informe seu nome:",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:25:54.304Z"
-      },
-      {
-        "id": "msg-1788045959344-hcvh6",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "button",
-        "content": "O que voc\u00ea deseja jr?",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:25:59.344Z"
-      },
-      {
-        "id": "msg-1788045963368-idjk0",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Obrigado jr, estou finalizando o atendimento",
-        "status": "delivered",
-        "created_at": "2026-08-29T23:26:03.368Z"
-      },
-      {
-        "id": "msg-1788102716995-7rvy5",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Ol\u00e1, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:11:56.995Z"
-      },
-      {
-        "id": "msg-1788102716997-3edqn",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Por favor, informe seu nome:",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:11:56.997Z"
-      },
-      {
-        "id": "msg-1788102735742-h7u02",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "button",
-        "content": "O que voc\u00ea deseja Rogerio?",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:12:15.742Z"
-      },
-      {
-        "id": "msg-1788102744140-4rir0",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Conhe\u00e7a nossos servi\u00e7os e valores:\n\n*1.* \ud83c\udff7\ufe0f *Atendimento Especialista*\n   \ud83d\udcb0 R$ 150,00 \u2022 \u23f1\ufe0f 30 min\n\n*2.* \ud83c\udff7\ufe0f *Demonstra\u00e7\u00e3o da Plataforma*\n   \ud83d\udcb0 R$ 0,00 \u2022 \u23f1\ufe0f 45 min\n\n*3.* \ud83c\udff7\ufe0f *Suporte & Configura\u00e7\u00e3o*\n   \ud83d\udcb0 R$ 80,00 \u2022 \u23f1\ufe0f 30 min",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:12:24.140Z"
-      },
-      {
-        "id": "msg-1788102876862-6ui5u",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Ol\u00e1, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:14:36.862Z"
-      },
-      {
-        "id": "msg-1788102876862-34xz8",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Por favor, informe seu nome:",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:14:36.862Z"
-      },
-      {
-        "id": "msg-1788102883133-xg1x1",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "button",
-        "content": "O que voc\u00ea deseja Rogerio?",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:14:43.133Z"
-      },
-      {
-        "id": "msg-1788102886853-tvvut",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Conhe\u00e7a nossos servi\u00e7os e valores:\n\n*1.* \ud83c\udff7\ufe0f *Consultoria VIP de Enxoval*\n   \ud83d\udcb0 R$ 30,00 \u2022 \u23f1\ufe0f 45 min\n\n*2.* \ud83c\udff7\ufe0f *Kit Sa\u00edda de Maternidade Tricot*\n   \ud83d\udcb0 R$ 20,00 \u2022 \u23f1\ufe0f 20 min\n\n*3.* \ud83c\udff7\ufe0f *Consultoria VIP + Kit Sa\u00edda Maternidade (Promo\u00e7\u00e3o)*\n   \ud83d\udcb0 R$ 45,00 \u2022 \u23f1\ufe0f 50 min",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:14:46.853Z"
-      },
-      {
-        "id": "msg-1788103533271-wgru7",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Ol\u00e1 Rogerio, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:25:33.271Z"
-      },
-      {
-        "id": "msg-1788103533272-ss7fm",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "button",
-        "content": "O que voc\u00ea deseja Rogerio?",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:25:33.272Z"
-      },
-      {
-        "id": "msg-1788103538364-wtim7",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Conhe\u00e7a nossos servi\u00e7os e valores:\n\n*1.* \ud83c\udff7\ufe0f *Consultoria VIP de Enxoval*\n   \ud83d\udcb0 R$ 30,00 \u2022 \u23f1\ufe0f 45 min\n\n*2.* \ud83c\udff7\ufe0f *Kit Sa\u00edda de Maternidade Tricot*\n   \ud83d\udcb0 R$ 20,00 \u2022 \u23f1\ufe0f 20 min\n\n*3.* \ud83c\udff7\ufe0f *Consultoria VIP + Kit Sa\u00edda Maternidade (Promo\u00e7\u00e3o)*\n   \ud83d\udcb0 R$ 45,00 \u2022 \u23f1\ufe0f 50 min",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:25:38.364Z"
-      },
-      {
-        "id": "msg-1788103543470-furvd",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Conhe\u00e7a nossos servi\u00e7os e valores:\n\n*1.* \ud83c\udff7\ufe0f *Consultoria VIP de Enxoval*\n   \ud83d\udcb0 R$ 30,00 \u2022 \u23f1\ufe0f 45 min\n\n*2.* \ud83c\udff7\ufe0f *Kit Sa\u00edda de Maternidade Tricot*\n   \ud83d\udcb0 R$ 20,00 \u2022 \u23f1\ufe0f 20 min\n\n*3.* \ud83c\udff7\ufe0f *Consultoria VIP + Kit Sa\u00edda Maternidade (Promo\u00e7\u00e3o)*\n   \ud83d\udcb0 R$ 45,00 \u2022 \u23f1\ufe0f 50 min",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:25:43.470Z"
-      },
-      {
-        "id": "msg-1788103554102-3q41o",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Conhe\u00e7a nossos servi\u00e7os e valores:\n\n*1.* \ud83c\udff7\ufe0f *Consultoria VIP de Enxoval*\n   \ud83d\udcb0 R$ 30,00 \u2022 \u23f1\ufe0f 45 min\n\n*2.* \ud83c\udff7\ufe0f *Kit Sa\u00edda de Maternidade Tricot*\n   \ud83d\udcb0 R$ 20,00 \u2022 \u23f1\ufe0f 20 min\n\n*3.* \ud83c\udff7\ufe0f *Consultoria VIP + Kit Sa\u00edda Maternidade (Promo\u00e7\u00e3o)*\n   \ud83d\udcb0 R$ 45,00 \u2022 \u23f1\ufe0f 50 min",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:25:54.102Z"
-      },
-      {
-        "id": "msg-1788104098855-q8a3s",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Ol\u00e1 Rogerio, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:34:58.855Z"
-      },
-      {
-        "id": "msg-1788104098856-41ine",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "*Rogerio*, qual servi\u00e7o voc\u00ea deseja?\n\n*1.* \ud83c\udff7\ufe0f *Consultoria VIP de Enxoval*\n   \ud83d\udcb0 R$ 30,00 \u2022 \u23f1\ufe0f 45 min\n\n*2.* \ud83c\udff7\ufe0f *Kit Sa\u00edda de Maternidade Tricot*\n   \ud83d\udcb0 R$ 20,00 \u2022 \u23f1\ufe0f 20 min\n\n*3.* \ud83c\udff7\ufe0f *Consultoria VIP + Kit Sa\u00edda Maternidade (Promo\u00e7\u00e3o)*\n   \ud83d\udcb0 R$ 45,00 \u2022 \u23f1\ufe0f 50 min",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:34:58.856Z"
-      },
-      {
-        "id": "msg-1788104098858-ryrfa",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "button",
-        "content": "\ud83d\udcc5 *Hor\u00e1rios Dispon\u00edveis na Agenda (2026-08-30):*\n\nServi\u00e7o: *{{servico_selecionado}}*\n\nEscolha o melhor hor\u00e1rio:",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:34:58.858Z"
-      },
-      {
-        "id": "msg-1788104116623-qou5w",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "\u2705 Seu agendamento de *{{servico_selecionado}}* foi confirmado para 2026-08-30 \u00e0s 08:00 com dura\u00e7\u00e3o de {{duracao_servico}}!",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:35:16.623Z"
-      },
-      {
-        "id": "msg-1788104116625-f0r7r",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "button",
-        "content": "\ud83d\udcc5 *Hor\u00e1rios Dispon\u00edveis na Agenda (2026-08-30):*\n\nServi\u00e7o: *{{servico_selecionado}}*\n\nEscolha o melhor hor\u00e1rio:",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:35:16.625Z"
-      },
-      {
-        "id": "msg-1788104123642-iq86i",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "\u2705 Seu agendamento de *{{servico_selecionado}}* foi confirmado para 2026-08-30 \u00e0s 08:30 com dura\u00e7\u00e3o de {{duracao_servico}}!",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:35:23.642Z"
-      },
-      {
-        "id": "msg-1788104123644-5vqz8",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "button",
-        "content": "\ud83d\udcc5 *Hor\u00e1rios Dispon\u00edveis na Agenda (2026-08-30):*\n\nServi\u00e7o: *{{servico_selecionado}}*\n\nEscolha o melhor hor\u00e1rio:",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:35:23.644Z"
-      },
-      {
-        "id": "msg-1788104852271-c0ql9",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Ol\u00e1 Rogerio, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:47:32.271Z"
-      },
-      {
-        "id": "msg-1788104852272-mh2o9",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "button",
-        "content": "*Rogerio*, qual servi\u00e7o voc\u00ea deseja?",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:47:32.272Z"
-      },
-      {
-        "id": "msg-1788104864326-csq8y",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "button",
-        "content": "*Rogerio*, qual servi\u00e7o voc\u00ea deseja?",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:47:44.326Z"
-      },
-      {
-        "id": "msg-1788104869545-5rds5",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "button",
-        "content": "*Rogerio*, qual servi\u00e7o voc\u00ea deseja?",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:47:49.545Z"
-      },
-      {
-        "id": "msg-1788105229427-rfvay",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Ol\u00e1 Rogerio, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:53:49.427Z"
-      },
-      {
-        "id": "msg-1788105229429-8cegg",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "button",
-        "content": "*Rogerio*, qual servi\u00e7o voc\u00ea deseja?",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:53:49.428Z"
-      },
-      {
-        "id": "msg-1788105235421-t8y5t",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "button",
-        "content": "*Rogerio*, qual servi\u00e7o voc\u00ea deseja?",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:53:55.421Z"
-      },
-      {
-        "id": "msg-1788105298043-dqzp8",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "text",
-        "content": "Ol\u00e1 Rogerio, me chamo *Malaca*. e sou assistente de atendimento da *Malaca Group*! e vou lhe auxiliar para ter um melhor atendimento",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:54:58.043Z"
-      },
-      {
-        "id": "msg-1788105298044-p16ka",
-        "conversation_id": "conv-558196138924",
-        "direction": "outbound",
-        "message_type": "button",
-        "content": "*Rogerio*, qual servi\u00e7o voc\u00ea deseja?",
-        "status": "delivered",
-        "created_at": "2026-08-30T15:54:58.044Z"
+        "created_at": "2026-09-08T12:25:08.998Z"
       }
     ],
     "conv-5581999991234": [
@@ -2398,6 +1984,55 @@
         "status": "delivered",
         "created_at": "2026-09-07T20:34:21.482Z"
       }
+    ],
+    "conv-5581999991111": [
+      {
+        "id": "msg-1788819236598-zwfh1",
+        "conversation_id": "conv-5581999991111",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "\ud83d\udc76\u2728 Ol\u00e1! Seja muito bem-vindo(a) \u00e0 *Pitoco de Gente* \u2014 Moda Beb\u00ea, Infantil & Enxovais!\n\nMe chamo *Pitoco Bot*, assistente virtual da nossa loja. \u00c9 um prazer atender voc\u00ea!",
+        "status": "delivered",
+        "created_at": "2026-09-07T22:13:56.597Z"
+      },
+      {
+        "id": "msg-1788819236708-z1ldm",
+        "conversation_id": "conv-5581999991111",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Como podemos te ajudar hoje? Selecione uma das op\u00e7\u00f5es abaixo:",
+        "status": "delivered",
+        "created_at": "2026-09-07T22:13:56.708Z"
+      },
+      {
+        "id": "msg-1788819237489-dpffj",
+        "conversation_id": "conv-5581999991111",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "\ud83c\udf7c *DESTAQUES PITOCO DE GENTE*\nConfira nossas pe\u00e7as queridinhas do momento:\n\n*1\ufe0f\u20e3* *Consultoria VIP de Enxoval (Online ou Loja)*\n   \ud83d\udcb0 R$ 0,00 \u2022 \u23f1\ufe0f 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do beb\u00ea_\n\n*2\ufe0f\u20e3* *Kit Sa\u00edda de Maternidade Tricot Realeza*\n   \ud83d\udcb0 R$ 199,90 \u2022 \u23f1\ufe0f 30 min\n   _Macac\u00e3o bordado + manta antial\u00e9rgica 100% algod\u00e3o_\n\n*3\ufe0f\u20e3* *Kit Bodies Suedine Pima (3 Pe\u00e7as)*\n   \ud83d\udcb0 R$ 89,90 \u2022 \u23f1\ufe0f 30 min\n   _Toque macio, gola americana facilitada e bot\u00f5es de press\u00e3o_\n\n*4\ufe0f\u20e3* *Macac\u00e3o Z\u00edper Duplo Termo Confort*\n   \ud83d\udcb0 R$ 79,90 \u2022 \u23f1\ufe0f 30 min\n   _Praticidade nas trocas noturnas sem despir o beb\u00ea_\n\n*5\ufe0f\u20e3* *Kit Ninho Redutor + Almofada Amamenta\u00e7\u00e3o*\n   \ud83d\udcb0 R$ 189,00 \u2022 \u23f1\ufe0f 30 min\n   _Aconchego e seguran\u00e7a para os primeiros meses do rec\u00e9m-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
+        "status": "delivered",
+        "created_at": "2026-09-07T22:13:57.489Z"
+      }
+    ],
+    "conv-168650497613858": [
+      {
+        "id": "msg-1788870309405-ybztj",
+        "conversation_id": "conv-168650497613858",
+        "direction": "outbound",
+        "content": "\ud83d\udc76\u2728 Ol\u00e1! Seja muito bem-vindo(a) \u00e0 *Pitoco de Gente* \u2014 Moda Beb\u00ea, Infantil & Enxovais!\n\nMe chamo *Pitoco Bot*, assistente virtual da nossa loja. \u00c9 um prazer atender voc\u00ea!",
+        "sender": "bot",
+        "author_name": "Pitoco Bot",
+        "created_at": "2026-09-08T12:25:09.405Z"
+      },
+      {
+        "id": "msg-1788870310098-0uf8d",
+        "conversation_id": "conv-168650497613858",
+        "direction": "outbound",
+        "content": "Como podemos te ajudar hoje? Selecione uma das op\u00e7\u00f5es abaixo:\n\n1\ufe0f\u20e3 1. Ver Cat\u00e1logo Beb\u00ea\n2\ufe0f\u20e3 2. Consultoria de Enxoval\n3\ufe0f\u20e3 3. Falar com Atendente\n\n_Pitoco de Gente \u2022 Atendimento Oficial_\n_\ud83d\udc49 Digite o n\u00famero ou o nome da op\u00e7\u00e3o desejada._",
+        "sender": "bot",
+        "author_name": "Pitoco Bot",
+        "created_at": "2026-09-08T12:25:10.098Z"
+      }
     ]
   },
   "tickets": [
@@ -2503,34 +2138,26 @@
     {
       "id": "user-talvane",
       "name": "Malaca",
-      "phone": "81996138924",
-      "password": "102030",
-      "pin": "102030",
-      "role": "admin",
-      "permissions": {
-        "can_access_admin": true,
-        "can_access_atendimento": true,
-        "can_access_barbeiro": true
-      },
+      "username": "malaca",
+      "password": "199425",
+      "role": "ceo",
+      "store_id": null,
+      "store_name": "Toda a Rede (Global)",
       "status": "active",
       "created_at": "2026-09-03T21:32:42.145Z",
-      "updated_at": "2026-09-03T23:24:08.323Z"
+      "updated_at": "2026-09-08T12:28:29.436Z"
     },
     {
       "id": "user-1788477817013",
-      "name": "Talvane",
-      "phone": "81900000000",
+      "name": "Jefferson",
+      "username": "jefferson",
       "password": "123456",
-      "pin": "123456",
-      "role": "custom",
-      "permissions": {
-        "can_access_admin": false,
-        "can_access_atendimento": true,
-        "can_access_barbeiro": true
-      },
+      "role": "attendant",
+      "store_id": null,
+      "store_name": "Toda a Rede (Global)",
       "status": "active",
       "created_at": "2026-09-03T23:23:37.718Z",
-      "updated_at": "2026-09-03T23:26:14.663Z"
+      "updated_at": "2026-09-08T12:28:21.516Z"
     }
   ],
   "attendants": [
@@ -2848,6 +2475,64 @@
         "telefone_cliente": "5581988887777",
         "telefone_whatsapp": "5581988887777",
         "ultima_mensagem": "3",
+        "nome_cliente": "",
+        "opcao_selecionada": "3. Falar com Atendente",
+        "botao_id": "btn_atendente",
+        "catalogo_servicos_texto": "\ud83c\udf7c *DESTAQUES PITOCO DE GENTE*\nConfira nossas pe\u00e7as queridinhas do momento:\n\n*1\ufe0f\u20e3* *Consultoria VIP de Enxoval (Online ou Loja)*\n   \ud83d\udcb0 R$ 0,00 \u2022 \u23f1\ufe0f 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do beb\u00ea_\n\n*2\ufe0f\u20e3* *Kit Sa\u00edda de Maternidade Tricot Realeza*\n   \ud83d\udcb0 R$ 199,90 \u2022 \u23f1\ufe0f 30 min\n   _Macac\u00e3o bordado + manta antial\u00e9rgica 100% algod\u00e3o_\n\n*3\ufe0f\u20e3* *Kit Bodies Suedine Pima (3 Pe\u00e7as)*\n   \ud83d\udcb0 R$ 89,90 \u2022 \u23f1\ufe0f 30 min\n   _Toque macio, gola americana facilitada e bot\u00f5es de press\u00e3o_\n\n*4\ufe0f\u20e3* *Macac\u00e3o Z\u00edper Duplo Termo Confort*\n   \ud83d\udcb0 R$ 79,90 \u2022 \u23f1\ufe0f 30 min\n   _Praticidade nas trocas noturnas sem despir o beb\u00ea_\n\n*5\ufe0f\u20e3* *Kit Ninho Redutor + Almofada Amamenta\u00e7\u00e3o*\n   \ud83d\udcb0 R$ 189,00 \u2022 \u23f1\ufe0f 30 min\n   _Aconchego e seguran\u00e7a para os primeiros meses do rec\u00e9m-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
+        "catalogo_servicos": "\ud83c\udf7c *DESTAQUES PITOCO DE GENTE*\nConfira nossas pe\u00e7as queridinhas do momento:\n\n*1\ufe0f\u20e3* *Consultoria VIP de Enxoval (Online ou Loja)*\n   \ud83d\udcb0 R$ 0,00 \u2022 \u23f1\ufe0f 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do beb\u00ea_\n\n*2\ufe0f\u20e3* *Kit Sa\u00edda de Maternidade Tricot Realeza*\n   \ud83d\udcb0 R$ 199,90 \u2022 \u23f1\ufe0f 30 min\n   _Macac\u00e3o bordado + manta antial\u00e9rgica 100% algod\u00e3o_\n\n*3\ufe0f\u20e3* *Kit Bodies Suedine Pima (3 Pe\u00e7as)*\n   \ud83d\udcb0 R$ 89,90 \u2022 \u23f1\ufe0f 30 min\n   _Toque macio, gola americana facilitada e bot\u00f5es de press\u00e3o_\n\n*4\ufe0f\u20e3* *Macac\u00e3o Z\u00edper Duplo Termo Confort*\n   \ud83d\udcb0 R$ 79,90 \u2022 \u23f1\ufe0f 30 min\n   _Praticidade nas trocas noturnas sem despir o beb\u00ea_\n\n*5\ufe0f\u20e3* *Kit Ninho Redutor + Almofada Amamenta\u00e7\u00e3o*\n   \ud83d\udcb0 R$ 189,00 \u2022 \u23f1\ufe0f 30 min\n   _Aconchego e seguran\u00e7a para os primeiros meses do rec\u00e9m-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_"
+      },
+      "activeButtons": [
+        {
+          "id": "btn_catalogo",
+          "title": "1. Ver Cat\u00e1logo Beb\u00ea"
+        },
+        {
+          "id": "btn_enxoval",
+          "title": "2. Consultoria de Enxoval"
+        },
+        {
+          "id": "btn_atendente",
+          "title": "3. Falar com Atendente"
+        }
+      ]
+    },
+    "5581999991111": {
+      "flowId": "flow-pitoco-001",
+      "currentNodeId": "node-catalog-pitoco",
+      "variables": {
+        "whatsapp_pushname": "Mam\u00e3e Teste",
+        "telefone_cliente": "5581999991111",
+        "telefone_whatsapp": "5581999991111",
+        "ultima_mensagem": "1",
+        "nome_cliente": "",
+        "opcao_selecionada": "1. Ver Cat\u00e1logo Beb\u00ea",
+        "botao_id": "btn_catalogo",
+        "catalogo_servicos_texto": "\ud83c\udf7c *DESTAQUES PITOCO DE GENTE*\nConfira nossas pe\u00e7as queridinhas do momento:\n\n*1\ufe0f\u20e3* *Consultoria VIP de Enxoval (Online ou Loja)*\n   \ud83d\udcb0 R$ 0,00 \u2022 \u23f1\ufe0f 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do beb\u00ea_\n\n*2\ufe0f\u20e3* *Kit Sa\u00edda de Maternidade Tricot Realeza*\n   \ud83d\udcb0 R$ 199,90 \u2022 \u23f1\ufe0f 30 min\n   _Macac\u00e3o bordado + manta antial\u00e9rgica 100% algod\u00e3o_\n\n*3\ufe0f\u20e3* *Kit Bodies Suedine Pima (3 Pe\u00e7as)*\n   \ud83d\udcb0 R$ 89,90 \u2022 \u23f1\ufe0f 30 min\n   _Toque macio, gola americana facilitada e bot\u00f5es de press\u00e3o_\n\n*4\ufe0f\u20e3* *Macac\u00e3o Z\u00edper Duplo Termo Confort*\n   \ud83d\udcb0 R$ 79,90 \u2022 \u23f1\ufe0f 30 min\n   _Praticidade nas trocas noturnas sem despir o beb\u00ea_\n\n*5\ufe0f\u20e3* *Kit Ninho Redutor + Almofada Amamenta\u00e7\u00e3o*\n   \ud83d\udcb0 R$ 189,00 \u2022 \u23f1\ufe0f 30 min\n   _Aconchego e seguran\u00e7a para os primeiros meses do rec\u00e9m-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
+        "catalogo_servicos": "\ud83c\udf7c *DESTAQUES PITOCO DE GENTE*\nConfira nossas pe\u00e7as queridinhas do momento:\n\n*1\ufe0f\u20e3* *Consultoria VIP de Enxoval (Online ou Loja)*\n   \ud83d\udcb0 R$ 0,00 \u2022 \u23f1\ufe0f 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do beb\u00ea_\n\n*2\ufe0f\u20e3* *Kit Sa\u00edda de Maternidade Tricot Realeza*\n   \ud83d\udcb0 R$ 199,90 \u2022 \u23f1\ufe0f 30 min\n   _Macac\u00e3o bordado + manta antial\u00e9rgica 100% algod\u00e3o_\n\n*3\ufe0f\u20e3* *Kit Bodies Suedine Pima (3 Pe\u00e7as)*\n   \ud83d\udcb0 R$ 89,90 \u2022 \u23f1\ufe0f 30 min\n   _Toque macio, gola americana facilitada e bot\u00f5es de press\u00e3o_\n\n*4\ufe0f\u20e3* *Macac\u00e3o Z\u00edper Duplo Termo Confort*\n   \ud83d\udcb0 R$ 79,90 \u2022 \u23f1\ufe0f 30 min\n   _Praticidade nas trocas noturnas sem despir o beb\u00ea_\n\n*5\ufe0f\u20e3* *Kit Ninho Redutor + Almofada Amamenta\u00e7\u00e3o*\n   \ud83d\udcb0 R$ 189,00 \u2022 \u23f1\ufe0f 30 min\n   _Aconchego e seguran\u00e7a para os primeiros meses do rec\u00e9m-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_"
+      },
+      "activeButtons": [
+        {
+          "id": "btn_catalogo",
+          "title": "1. Ver Cat\u00e1logo Beb\u00ea"
+        },
+        {
+          "id": "btn_enxoval",
+          "title": "2. Consultoria de Enxoval"
+        },
+        {
+          "id": "btn_atendente",
+          "title": "3. Falar com Atendente"
+        }
+      ]
+    },
+    "168650497613858": {
+      "flowId": "flow-pitoco-001",
+      "currentNodeId": "node-buttons-pitoco",
+      "variables": {
+        "whatsapp_pushname": "rogerio mlc",
+        "telefone_cliente": "168650497613858",
+        "telefone_whatsapp": "168650497613858",
+        "ultima_mensagem": "To precisando ser atendido para ver umas roupas infantil",
         "nome_cliente": "",
         "opcao_selecionada": "3. Falar com Atendente",
         "botao_id": "btn_atendente",
