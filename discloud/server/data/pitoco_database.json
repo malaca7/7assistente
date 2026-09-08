@@ -257,16 +257,16 @@
       "id": "flow-pitoco-001",
       "name": "teste",
       "description": "teste",
-      "status": "published",
+      "status": "draft",
       "version": 6,
-      "is_active": true,
+      "is_active": false,
       "trigger_type": "Qualquer Mensagem Recebida",
       "store_id": null,
       "store_name": "Toda a Rede (Global)",
       "node_count": 9,
       "steps": [],
       "created_at": "2026-09-08T20:00:48.042417+00:00",
-      "updated_at": "2026-09-08T22:34:45.931Z",
+      "updated_at": "2026-09-08T22:50:46.180Z",
       "color": "#10b981"
     }
   ],
@@ -1525,13 +1525,13 @@
       "phone": "168650497613858",
       "last_message": "oi",
       "last_message_at": "2026-09-08T22:24:46.277Z",
-      "status": "waiting_human",
+      "status": "human",
       "store_name": "Pitoco de Gente",
       "contact_id": "contact-558196138924",
-      "assigned_to": "Jefferson",
-      "updated_at": "2026-09-08T22:48:14.359Z",
-      "assigned_attendant_id": "user-1788477817013",
-      "assigned_attendant_name": "Malaca"
+      "assigned_to": "Atendente Pitoco",
+      "updated_at": "2026-09-08T22:48:44.979Z",
+      "assigned_attendant_id": null,
+      "assigned_attendant_name": "Atendente Pitoco"
     },
     "conv-168650497613858": {
       "id": "conv-168650497613858",

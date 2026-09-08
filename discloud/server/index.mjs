@@ -1429,23 +1429,12 @@ app.patch('/api/flows/:id/toggle', (req, res) => {
     if (!flow) return res.status(404).json({ error: 'Fluxo não encontrado' });
 
     const newActive = !flow.is_active && flow.status !== 'published';
-    if (newActive) {
-      (db.flows || []).forEach(f => {
-        if (f.id !== id) {
-          f.status = 'draft';
-          f.is_active = false;
-        }
-      });
-      flow.status = 'published';
-      flow.is_active = true;
-    } else {
-      flow.status = 'draft';
-      flow.is_active = false;
-    }
+    flow.status = newActive ? 'published' : 'draft';
+    flow.is_active = newActive;
     flow.updated_at = new Date().toISOString();
     saveDb(db);
     syncFlowToSupabase(flow);
-    console.log(`[Flows API] 🔄 Status alternado e sincronizado com Supabase: "${flow.name}" (${id}) -> ${flow.status}`);
+    console.log(`[Flows API] 🔄 Status alternado individualmente: "${flow.name}" (${id}) -> ${flow.status} (is_active: ${flow.is_active})`);
     res.json({ success: true, flow });
   } catch (err) {
     res.status(500).json({ error: err.message });

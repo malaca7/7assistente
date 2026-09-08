@@ -653,22 +653,14 @@ export async function deleteFlow(id: string): Promise<boolean> {
 
 export async function toggleFlowStatus(id: string, isActive: boolean): Promise<boolean> {
   try {
-    if (isActive) {
-      await supabase
-        .from('flows')
-        .update({ status: 'draft', is_active: false, updated_at: new Date().toISOString() })
-        .neq('id', id);
-
-      await supabase
-        .from('flows')
-        .update({ status: 'published', is_active: true, updated_at: new Date().toISOString() })
-        .eq('id', id);
-    } else {
-      await supabase
-        .from('flows')
-        .update({ status: 'draft', is_active: false, updated_at: new Date().toISOString() })
-        .eq('id', id);
-    }
+    await supabase
+      .from('flows')
+      .update({
+        status: isActive ? 'published' : 'draft',
+        is_active: isActive,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id);
     return true;
   } catch (err) {
     console.warn('[Supabase] toggleFlowStatus warning:', err);

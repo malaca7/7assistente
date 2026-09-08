@@ -205,16 +205,23 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
     }
   };
 
-  // Alternar Ativar / Desativar
+  // Alternar Ativar / Desativar (Suporta múltiplos fluxos ativos independentes)
   const handleToggleFlowStatus = async (flow: Flow) => {
+    const nextActive = !flow.is_active;
+    // 1. Atualização otimista na interface (mantém os outros fluxos exatamente como estão)
+    setFlows(prev => prev.map(f => f.id === flow.id ? { ...f, is_active: nextActive, status: nextActive ? 'published' : 'draft' } : f));
+
     try {
       const updated = await StorageService.toggleFlowStatus(flow.id);
       if (updated) {
+        setFlows(prev => prev.map(f => f.id === flow.id ? { ...f, is_active: updated.is_active, status: updated.status } : f));
         const actionText = updated.is_active ? 'ativado e publicado' : 'pausado / desativado';
         success(`Fluxo "${updated.name}" ${actionText}!`);
-        loadData();
+        loadData(true);
       }
     } catch (err: any) {
+      // Reverter em caso de erro
+      setFlows(prev => prev.map(f => f.id === flow.id ? { ...f, is_active: flow.is_active, status: flow.status } : f));
       toastError('Erro ao alternar status do fluxo', err.message);
     }
   };
