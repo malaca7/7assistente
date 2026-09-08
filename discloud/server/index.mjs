@@ -29,7 +29,10 @@ import {
   getActiveFlowAndGraph,
   exportDatabase,
   importDatabase,
-  getDatabaseStats
+  getDatabaseStats,
+  syncFlowToSupabase,
+  deleteFlowFromSupabase,
+  syncFlowGraphToSupabase
 } from './flowRunner.mjs';
 import { processAdminBotMessage } from './botEngine.mjs';
 import { syncToSupabase } from './syncSupabase.mjs';
@@ -1261,7 +1264,8 @@ app.post('/api/flows', (req, res) => {
     }
 
     saveDb(db);
-    console.log(`[Flows API] 💾 Fluxo salvo: "${flowData.name}" (${flowData.id}) - Status: ${flowData.status}`);
+    syncFlowToSupabase(flowData);
+    console.log(`[Flows API] 💾 Fluxo salvo e sincronizado com Supabase: "${flowData.name}" (${flowData.id}) - Status: ${flowData.status}`);
     res.json({ success: true, flow: flowData });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1282,7 +1286,8 @@ app.delete('/api/flows/:id', (req, res) => {
       delete db.edges[id];
     }
     saveDb(db);
-    res.json({ success: true, message: `Fluxo ${id} removido` });
+    deleteFlowFromSupabase(id);
+    res.json({ success: true, message: `Fluxo ${id} removido e excluído do Supabase` });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1311,7 +1316,8 @@ app.patch('/api/flows/:id/toggle', (req, res) => {
     }
     flow.updated_at = new Date().toISOString();
     saveDb(db);
-    console.log(`[Flows API] 🔄 Status alternado: "${flow.name}" (${id}) -> ${flow.status}`);
+    syncFlowToSupabase(flow);
+    console.log(`[Flows API] 🔄 Status alternado e sincronizado com Supabase: "${flow.name}" (${id}) -> ${flow.status}`);
     res.json({ success: true, flow });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1335,7 +1341,8 @@ app.post('/api/whatsapp/flows/:id/publish', (req, res) => {
     flow.is_active = true;
     flow.updated_at = new Date().toISOString();
     saveDb(db);
-    console.log(`[Flows API] 🚀 Fluxo publicado oficialmente no bot: "${flow.name}" (${id})`);
+    syncFlowToSupabase(flow);
+    console.log(`[Flows API] 🚀 Fluxo publicado no bot e sincronizado com Supabase: "${flow.name}" (${id})`);
     res.json({ success: true, message: `Fluxo ${flow.name} publicado com sucesso no bot WhatsApp`, flow });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1393,7 +1400,9 @@ app.post('/api/flows/:id/graph', (req, res) => {
     }
 
     saveDb(db);
-    console.log(`[Flows API] 🎨 Grafo gravado com sucesso para "${id}": ${nodes?.length || 0} nós, ${edges?.length || 0} edges`);
+    syncFlowGraphToSupabase(id, nodes, edges);
+    if (targetFlow) syncFlowToSupabase(targetFlow);
+    console.log(`[Flows API] 🎨 Grafo gravado e sincronizado com Supabase para "${id}": ${nodes?.length || 0} nós, ${edges?.length || 0} edges`);
     res.json({ success: true, id, nodesCount: nodes?.length || 0, edgesCount: edges?.length || 0 });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1738,4 +1747,12 @@ app.get('*', (req, res, next) => {
 app.listen(PORT, HOST, () => {
   console.log(`🚀 [Pitoco Server] Rodando em http://${HOST}:${PORT}`);
   startWhatsApp();
+
+  // Sincronização automática em segundo plano contínua com o Supabase (a cada 60s)
+  setTimeout(() => {
+    syncToSupabase().catch(() => {});
+    setInterval(() => {
+      syncToSupabase().catch(() => {});
+    }, 60000);
+  }, 5000);
 });

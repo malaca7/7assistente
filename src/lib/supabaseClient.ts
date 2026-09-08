@@ -538,6 +538,118 @@ export function subscribeToConversations(onUpdate: (conv: Conversation) => void)
 // ==========================================
 // 8. FLOWS & NODES SYNC (SUPABASE CLOUD)
 // ==========================================
+export async function getFlows(): Promise<Flow[]> {
+  try {
+    const { data, error } = await supabase
+      .from('flows')
+      .select('*')
+      .order('updated_at', { ascending: false });
+
+    if (error) throw error;
+    if (data && Array.isArray(data)) {
+      return data.map((f: any) => ({
+        id: f.id,
+        name: f.name || 'Fluxo',
+        description: f.description || '',
+        status: f.status || (f.is_active ? 'published' : 'draft'),
+        is_active: f.is_active ?? (f.status === 'published'),
+        version: f.version || 1,
+        node_count: f.node_count || 0,
+        trigger_type: f.trigger_type || 'keyword',
+        store_id: f.store_id || null,
+        store_name: f.store_name || null,
+        steps: Array.isArray(f.steps) ? f.steps : [],
+        created_at: f.created_at || new Date().toISOString(),
+        updated_at: f.updated_at || new Date().toISOString(),
+      })) as Flow[];
+    }
+  } catch (err) {
+    console.warn('[Supabase] getFlows warning:', err);
+  }
+  return [];
+}
+
+export async function saveFlow(flow: Partial<Flow>): Promise<Flow | null> {
+  try {
+    if (!flow || !flow.id) return null;
+    const isPublishing = flow.status === 'published' || flow.is_active === true;
+
+    // Se este fluxo for publicado/ativo, desativa os outros fluxos no Supabase
+    if (isPublishing) {
+      await supabase
+        .from('flows')
+        .update({ status: 'draft', is_active: false, updated_at: new Date().toISOString() })
+        .neq('id', flow.id);
+    }
+
+    const payload = {
+      id: flow.id,
+      name: flow.name || 'Novo Fluxo',
+      description: flow.description || '',
+      status: flow.status || (flow.is_active ? 'published' : 'draft'),
+      is_active: isPublishing,
+      version: flow.version || 1,
+      trigger_type: flow.trigger_type || 'keyword',
+      store_id: flow.store_id || null,
+      store_name: flow.store_name || null,
+      node_count: flow.node_count || 0,
+      steps: flow.steps || [],
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await supabase
+      .from('flows')
+      .upsert(payload, { onConflict: 'id' })
+      .select()
+      .maybeSingle();
+
+    if (error) throw error;
+    return data as Flow;
+  } catch (err) {
+    console.warn('[Supabase] saveFlow warning:', err);
+    return null;
+  }
+}
+
+export async function deleteFlow(id: string): Promise<boolean> {
+  try {
+    await Promise.all([
+      supabase.from('flow_nodes').delete().eq('flow_id', id),
+      supabase.from('flow_edges').delete().eq('flow_id', id),
+      supabase.from('flows').delete().eq('id', id),
+    ]);
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] deleteFlow error:', err);
+    return false;
+  }
+}
+
+export async function toggleFlowStatus(id: string, isActive: boolean): Promise<boolean> {
+  try {
+    if (isActive) {
+      await supabase
+        .from('flows')
+        .update({ status: 'draft', is_active: false, updated_at: new Date().toISOString() })
+        .neq('id', id);
+
+      await supabase
+        .from('flows')
+        .update({ status: 'published', is_active: true, updated_at: new Date().toISOString() })
+        .eq('id', id);
+    } else {
+      await supabase
+        .from('flows')
+        .update({ status: 'draft', is_active: false, updated_at: new Date().toISOString() })
+        .eq('id', id);
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] toggleFlowStatus warning:', err);
+    return false;
+  }
+}
+
 export async function saveFlowGraph(flowId: string, nodes: FlowNode[], edges: FlowEdge[]): Promise<void> {
   try {
     if (Array.isArray(nodes) && nodes.length > 0) {

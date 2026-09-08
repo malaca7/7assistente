@@ -1197,110 +1197,174 @@ export async function findRegisteredContact(cleanPhone, senderName, db) {
 
 let supabaseHasFlowsTable = null;
 
-// Function to fetch latest flow, nodes, and edges dynamically with Supabase priority
+// Helper functions to sync flows directly with Supabase
+export async function syncFlowToSupabase(flow) {
+  if (!supabaseClient || !flow || !flow.id) return;
+  try {
+    const isPublishing = flow.status === 'published' || flow.is_active === true;
+    if (isPublishing) {
+      await supabaseClient
+        .from('flows')
+        .update({ status: 'draft', is_active: false, updated_at: new Date().toISOString() })
+        .neq('id', flow.id);
+    }
+    await supabaseClient.from('flows').upsert({
+      id: flow.id,
+      name: flow.name || 'Fluxo',
+      description: flow.description || '',
+      status: flow.status || (flow.is_active ? 'published' : 'draft'),
+      is_active: isPublishing,
+      version: flow.version || 1,
+      trigger_type: flow.trigger_type || 'keyword',
+      store_id: flow.store_id || null,
+      store_name: flow.store_name || null,
+      node_count: flow.node_count || 0,
+      steps: flow.steps || [],
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'id' });
+  } catch (err) {
+    console.warn('[FlowRunner] syncFlowToSupabase warning:', err.message);
+  }
+}
+
+export async function deleteFlowFromSupabase(flowId) {
+  if (!supabaseClient || !flowId) return;
+  try {
+    await Promise.all([
+      supabaseClient.from('flow_nodes').delete().eq('flow_id', flowId),
+      supabaseClient.from('flow_edges').delete().eq('flow_id', flowId),
+      supabaseClient.from('flows').delete().eq('id', flowId),
+    ]);
+  } catch (err) {
+    console.warn('[FlowRunner] deleteFlowFromSupabase warning:', err.message);
+  }
+}
+
+export async function syncFlowGraphToSupabase(flowId, nodes, edges) {
+  if (!supabaseClient || !flowId) return;
+  try {
+    if (Array.isArray(nodes) && nodes.length > 0) {
+      const nodeRecords = nodes.map((n) => ({
+        id: n.id,
+        flow_id: flowId,
+        type: n.type || 'message',
+        label: n.data?.label || (n as any).label || 'Nó',
+        data: n.data || {},
+        position: n.position || { x: 0, y: 0 },
+        updated_at: new Date().toISOString(),
+      }));
+      await supabaseClient.from('flow_nodes').upsert(nodeRecords, { onConflict: 'id' });
+    }
+    if (Array.isArray(edges) && edges.length > 0) {
+      const edgeRecords = edges.map((e) => ({
+        id: e.id,
+        flow_id: flowId,
+        source: e.source,
+        target: e.target,
+        source_handle: e.sourceHandle || null,
+        target_handle: e.targetHandle || null,
+        data: e.data || {},
+        updated_at: new Date().toISOString(),
+      }));
+      await supabaseClient.from('flow_edges').upsert(edgeRecords, { onConflict: 'id' });
+    }
+  } catch (err) {
+    console.warn('[FlowRunner] syncFlowGraphToSupabase warning:', err.message);
+  }
+}
+
+// Function to fetch latest active flow, nodes, and edges dynamically with Supabase priority
 export async function getActiveFlowAndGraph(db) {
-  let flows = db.flows || [];
-  
+  let activeFlows = [];
+
+  // 1. Consultar diretamente os fluxos com status ATIVO no Supabase
   if (supabaseClient && supabaseHasFlowsTable !== false) {
     try {
-      const { data, error } = await supabaseClient.from('flows').select('*').order('updated_at', { ascending: false });
+      const { data, error } = await supabaseClient
+        .from('flows')
+        .select('*')
+        .or('is_active.eq.true,status.eq.published')
+        .order('updated_at', { ascending: false });
+
       if (error && (error.code === 'PGRST205' || String(error.message || '').includes('Could not find the table'))) {
         supabaseHasFlowsTable = false;
-      } else if (data && Array.isArray(data) && data.length > 0 && !error) {
+      } else if (!error && Array.isArray(data)) {
         supabaseHasFlowsTable = true;
-        db.flows = data;
-        flows = data;
-        saveDb(db);
+        activeFlows = data.filter((f) => f.is_active === true || f.status === 'published');
+        // Regra estrita: se a tabela existe no Supabase e não há nenhum fluxo ativo, NÃO rodar nenhum fluxo!
+        if (activeFlows.length === 0) {
+          console.log('[FlowRunner] ⏸️ Nenhum fluxo ativo no Supabase (status=published ou is_active=true). O bot não executará fluxos inativos.');
+          return { publishedFlow: null, nodes: [], edges: [] };
+        }
       }
     } catch (e) {
-      supabaseHasFlowsTable = false;
+      console.warn('[FlowRunner] Aviso ao consultar fluxos ativos no Supabase:', e.message);
     }
   }
 
-  // Filter only published/active flows (exclude draft and inactive)
-  const publishedFlows = (flows || []).filter((f) => f.status === 'published' || f.is_active === true);
-  
-  if (publishedFlows.length === 0 && flows.length === 0) {
+  // 2. Se o Supabase estiver offline, consultar db local estritamente ativos
+  if (activeFlows.length === 0) {
+    activeFlows = (db.flows || []).filter((f) => f.status === 'published' || f.is_active === true);
+  }
+
+  // Se não houver NENHUM fluxo ativo, encerra (NUNCA faz fallback para fluxos desativados ou rascunhos)
+  if (activeFlows.length === 0) {
+    console.log('[FlowRunner] ⏸️ Nenhum fluxo ativo configurado no sistema. Robô aguardando ativação.');
     return { publishedFlow: null, nodes: [], edges: [] };
   }
 
-  // Try each published flow in order (newest first), looking for one with actual nodes
-  const candidateFlows = publishedFlows.length > 0 ? publishedFlows : [flows[0]];
-  
-  for (const candidateFlow of candidateFlows) {
-    const flowId = candidateFlow.id;
-    let nodes = db.nodes?.[flowId] || [];
-    let edges = db.edges?.[flowId] || [];
+  // Pegar o fluxo ativo mais recente
+  const candidateFlow = activeFlows[0];
+  const flowId = candidateFlow.id;
+  let nodes = [];
+  let edges = [];
 
-    // Try Supabase for nodes/edges only if tables exist
-    if (supabaseClient && supabaseHasFlowsTable === true) {
-      try {
-        const [nodesRes, edgesRes] = await Promise.all([
-          supabaseClient.from('flow_nodes').select('*').eq('flow_id', flowId),
-          supabaseClient.from('flow_edges').select('*').eq('flow_id', flowId)
-        ]);
+  // Buscar nós e arestas diretamente no Supabase
+  if (supabaseClient && supabaseHasFlowsTable !== false) {
+    try {
+      const [nodesRes, edgesRes] = await Promise.all([
+        supabaseClient.from('flow_nodes').select('*').eq('flow_id', flowId),
+        supabaseClient.from('flow_edges').select('*').eq('flow_id', flowId),
+      ]);
 
-        if (nodesRes.data && nodesRes.data.length > 0) {
-          nodes = nodesRes.data.map((d) => ({
-            id: d.id,
-            flow_id: d.flow_id,
-            type: d.node_type || d.type,
-            position: { x: Number(d.position_x || 0), y: Number(d.position_y || 0) },
-            data: d.data || {},
-          }));
-          if (!db.nodes) db.nodes = {};
-          db.nodes[flowId] = nodes;
-        }
+      if (nodesRes.data && Array.isArray(nodesRes.data) && nodesRes.data.length > 0) {
+        nodes = nodesRes.data.map((d) => ({
+          id: d.id,
+          flow_id: d.flow_id,
+          type: d.type || d.node_type || 'message',
+          position: d.position || { x: Number(d.position_x || 0), y: Number(d.position_y || 0) },
+          data: d.data || { label: d.label, nodeType: d.type, config: {} },
+        }));
+        if (!db.nodes) db.nodes = {};
+        db.nodes[flowId] = nodes;
+      }
 
-        if (edgesRes.data && edgesRes.data.length > 0) {
-          edges = edgesRes.data.map((e) => ({
-            id: e.id,
-            flow_id: e.flow_id,
-            source: e.source_node_id || e.source,
-            target: e.target_node_id || e.target,
-            sourceHandle: e.source_handle || e.sourceHandle,
-            targetHandle: e.target_handle || e.targetHandle,
-            data: e.condition || e.data,
-          }));
-          if (!db.edges) db.edges = {};
-          db.edges[flowId] = edges;
-        }
-
-        if (nodes.length > 0) {
-          saveDb(db);
-        }
-      } catch (e) {}
-    }
-
-    // If this flow has nodes, use it!
-    if (nodes.length > 0) {
-      console.log(`[FlowRunner] ✅ Usando fluxo ativo: "${candidateFlow.name}" (${flowId}) com ${nodes.length} nós`);
-      return { publishedFlow: candidateFlow, nodes, edges };
-    }
-
-    console.warn(`[FlowRunner] ⚠️ Fluxo "${candidateFlow.name}" (${flowId}) publicado mas sem nós, tentando próximo...`);
+      if (edgesRes.data && Array.isArray(edgesRes.data) && edgesRes.data.length > 0) {
+        edges = edgesRes.data.map((e) => ({
+          id: e.id,
+          flow_id: e.flow_id,
+          source: e.source || e.source_node_id,
+          target: e.target || e.target_node_id,
+          sourceHandle: e.source_handle || e.sourceHandle,
+          targetHandle: e.target_handle || e.targetHandle,
+          data: e.data || e.condition || {},
+        }));
+        if (!db.edges) db.edges = {};
+        db.edges[flowId] = edges;
+      }
+    } catch (e) {}
   }
 
-  // If candidate flows had no nodes, find ANY flow in db that HAS nodes
-  const flowWithNodes = (flows || []).find((f) => (db.nodes?.[f.id] || []).length > 0);
-  if (flowWithNodes) {
-    const fallbackNodes = db.nodes[flowWithNodes.id];
-    const fallbackEdges = db.edges?.[flowWithNodes.id] || [];
-    console.log(`[FlowRunner] 🔄 Reutilizando grafo de "${flowWithNodes.name}" (${fallbackNodes.length} nós) para fluxo ativo`);
-    return { publishedFlow: publishedFlows[0] || flowWithNodes, nodes: fallbackNodes, edges: fallbackEdges };
+  // Fallback para cache local de nós/arestas caso a rede falhe
+  if (nodes.length === 0 && db.nodes?.[flowId]) {
+    nodes = db.nodes[flowId];
+  }
+  if (edges.length === 0 && db.edges?.[flowId]) {
+    edges = db.edges[flowId];
   }
 
-  // Check if db.nodes has any entries at all
-  const anyKey = Object.keys(db.nodes || {}).find((k) => (db.nodes[k] || []).length > 0);
-  if (anyKey) {
-    const fallbackNodes = db.nodes[anyKey];
-    const fallbackEdges = db.edges?.[anyKey] || [];
-    return { publishedFlow: publishedFlows[0] || flows[0] || { name: 'Atendimento' }, nodes: fallbackNodes, edges: fallbackEdges };
-  }
-
-  // Last resort: return first published flow even without nodes
-  const fallback = publishedFlows[0] || flows[0];
-  return { publishedFlow: fallback || null, nodes: db.nodes?.[fallback?.id] || [], edges: db.edges?.[fallback?.id] || [] };
+  console.log(`[FlowRunner] 🚀 Rodando fluxo ATIVO do Supabase: "${candidateFlow.name}" (${flowId}) com ${nodes.length} nós e ${edges.length} conexões.`);
+  return { publishedFlow: candidateFlow, nodes, edges };
 }
 
 // Execute published flow

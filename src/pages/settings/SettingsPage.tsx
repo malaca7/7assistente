@@ -162,7 +162,6 @@ export const SettingsPage: React.FC = () => {
     system_users_count: 0,
     conversations_count: 0,
   });
-  const [isSyncingDb, setIsSyncingDb] = useState(false);
   const [isSavingDbConfig, setIsSavingDbConfig] = useState(false);
 
   // Custom Variables State
@@ -428,24 +427,6 @@ export const SettingsPage: React.FC = () => {
       toastError('Erro ao salvar credenciais', err.message);
     } finally {
       setIsSavingDbConfig(false);
-    }
-  };
-
-  const handleSyncAllTables = async () => {
-    setIsSyncingDb(true);
-    try {
-      await StorageService.getContacts();
-      await StorageService.getAppointments();
-      await StorageService.getFlows();
-      await StorageService.getAttendants();
-      await StorageService.getSettings();
-      await StorageService.getCustomVariables();
-      await loadDbStats();
-      success('Sincronização Completa Realizada', 'Todas as tabelas foram lidas e sincronizadas com o banco de dados em nuvem.');
-    } catch (err: any) {
-      toastError('Erro ao sincronizar tabelas', err.message);
-    } finally {
-      setIsSyncingDb(false);
     }
   };
 
@@ -786,20 +767,6 @@ export const SettingsPage: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={async () => {
-                    const list = await StorageService.getAttendants();
-                    setAttendants(list);
-                    success('Banco Sincronizado', `${list.length} atendentes carregados do banco de dados.`);
-                  }}
-                  leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
-                  className="text-xs"
-                >
-                  Sincronizar Banco
-                </Button>
-
                 <a
                   href="/relacionamento"
                   target="_blank"
@@ -1334,7 +1301,7 @@ export const SettingsPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Action Buttons */}
+            {/* Action Buttons & Real-Time Sync Indicator */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-white/5">
               <Button
                 variant="outline"
@@ -1346,16 +1313,10 @@ export const SettingsPage: React.FC = () => {
                 Baixar Backup Completo (JSON)
               </Button>
 
-              <Button
-                variant="brand"
-                size="sm"
-                onClick={handleSyncAllTables}
-                disabled={isSyncingDb}
-                leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${isSyncingDb ? 'animate-spin' : ''}`} />}
-                className="w-full sm:w-auto text-xs font-bold"
-              >
-                {isSyncingDb ? 'Sincronizando com o Banco...' : 'Sincronizar Todas as Tabelas'}
-              </Button>
+              <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Sincronização Automática com Supabase Ativa</span>
+              </div>
             </div>
           </Card>
         </div>

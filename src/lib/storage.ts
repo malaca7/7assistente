@@ -990,20 +990,34 @@ export const StorageService = {
   // 9. FLOWS & GESTÃO COMPLETA DE FLUXOS
   // ==============================================================================
   async getFlows(): Promise<Flow[]> {
-    let flows = getItem<Flow[]>(STORAGE_KEYS.FLOWS, sampleFlows);
+    // 1. Tentar carregar diretamente do Supabase (prioridade máxima)
+    if (SupabaseService.isSupabaseReady) {
+      try {
+        const cloudFlows = await SupabaseService.getFlows();
+        if (Array.isArray(cloudFlows) && cloudFlows.length > 0) {
+          setItem(STORAGE_KEYS.FLOWS, cloudFlows);
+          return cloudFlows;
+        }
+      } catch (e) {
+        console.warn('[StorageService] Falha ao consultar fluxos no Supabase:', e);
+      }
+    }
+
+    // 2. Tentar carregar do Backend Discloud
     try {
       const res = await fetch(`${API_BASE}/api/flows`, { signal: AbortSignal.timeout(2000) });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          flows = data;
-          setItem(STORAGE_KEYS.FLOWS, flows);
+          setItem(STORAGE_KEYS.FLOWS, data);
+          return data;
         }
       }
     } catch {
       // Usar cache local em caso de offline
     }
-    return flows;
+
+    return getItem<Flow[]>(STORAGE_KEYS.FLOWS, sampleFlows);
   },
 
   async getFlow(id: string): Promise<Flow | null> {
@@ -1019,11 +1033,21 @@ export const StorageService = {
     const flows = getItem<Flow[]>(STORAGE_KEYS.FLOWS, sampleFlows);
     const existingIndex = flows.findIndex(f => f.id === flow.id);
     
+    const isPublishing = flow.status === 'published' || flow.is_active === true;
+    if (isPublishing) {
+      flows.forEach(f => {
+        if (f.id !== flow.id) {
+          f.status = 'draft';
+          f.is_active = false;
+        }
+      });
+    }
+
     const updatedFlow: Flow = {
       id: flow.id || `flow-${Date.now()}`,
       name: flow.name || 'Novo Fluxo de Atendimento',
       description: flow.description || '',
-      status: flow.status || 'published',
+      status: flow.status || (flow.is_active ? 'published' : 'draft'),
       is_active: flow.is_active !== undefined ? flow.is_active : (flow.status === 'published'),
       version: flow.version || 1,
       node_count: flow.steps ? flow.steps.length : (flow.node_count || 4),
@@ -1043,6 +1067,7 @@ export const StorageService = {
     }
     setItem(STORAGE_KEYS.FLOWS, flows);
 
+    // 1. Sincronizar com o backend Discloud
     try {
       await fetch(`${API_BASE}/api/flows`, {
         method: 'POST',
@@ -1050,6 +1075,15 @@ export const StorageService = {
         body: JSON.stringify(updatedFlow),
       });
     } catch {}
+
+    // 2. Sincronizar em tempo real com o banco de dados Supabase
+    if (SupabaseService.isSupabaseReady) {
+      try {
+        await SupabaseService.saveFlow(updatedFlow);
+      } catch (e) {
+        console.warn('[StorageService] Falha ao sincronizar fluxo no Supabase:', e);
+      }
+    }
 
     return updatedFlow;
   },
@@ -1059,11 +1093,21 @@ export const StorageService = {
     flows = flows.filter(f => f.id !== id);
     setItem(STORAGE_KEYS.FLOWS, flows);
 
+    // 1. Deletar no backend
     try {
       await fetch(`${API_BASE}/api/flows/${id}`, {
         method: 'DELETE',
       });
     } catch {}
+
+    // 2. Deletar no Supabase
+    if (SupabaseService.isSupabaseReady) {
+      try {
+        await SupabaseService.deleteFlow(id);
+      } catch (e) {
+        console.warn('[StorageService] Falha ao excluir fluxo no Supabase:', e);
+      }
+    }
 
     return true;
   },
@@ -1073,16 +1117,38 @@ export const StorageService = {
     const target = flows.find(f => f.id === id);
     if (!target) return null;
 
-    target.is_active = !target.is_active;
-    target.status = target.is_active ? 'published' : 'paused';
+    const newActive = !target.is_active && target.status !== 'published';
+    if (newActive) {
+      flows.forEach(f => {
+        if (f.id !== id) {
+          f.status = 'draft';
+          f.is_active = false;
+        }
+      });
+      target.is_active = true;
+      target.status = 'published';
+    } else {
+      target.is_active = false;
+      target.status = 'draft';
+    }
     target.updated_at = new Date().toISOString();
     setItem(STORAGE_KEYS.FLOWS, flows);
 
+    // 1. Atualizar backend
     try {
       await fetch(`${API_BASE}/api/flows/${id}/toggle`, {
         method: 'PATCH',
       });
     } catch {}
+
+    // 2. Atualizar Supabase
+    if (SupabaseService.isSupabaseReady) {
+      try {
+        await SupabaseService.toggleFlowStatus(id, target.is_active);
+      } catch (e) {
+        console.warn('[StorageService] Falha ao alternar status do fluxo no Supabase:', e);
+      }
+    }
 
     return target;
   },

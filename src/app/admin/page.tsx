@@ -660,7 +660,7 @@ export default function AdminPage({ onNavigate, activeTabProp }: AdminPageProps 
                   className="bg-pitoco-blue text-slate-950 font-bold text-sm px-6 py-3 rounded-xl shadow-xl shadow-pitoco-blue/20 flex items-center gap-2"
                 >
                   <RefreshCw className={`w-4 h-4 ${isSavingBot ? 'animate-spin' : ''}`} />
-                  {isSavingBot ? 'Sincronizando com o Robô...' : 'Salvar e Sincronizar com o Robô WhatsApp'}
+                  {isSavingBot ? 'Salvando Configurações...' : 'Salvar Configurações do Robô'}
                 </Button>
               </div>
             </form>
