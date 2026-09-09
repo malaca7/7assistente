@@ -160,7 +160,7 @@ export const whatsappService = {
     }
     return [
       { id: 'store-001', name: 'Loja Matriz — Centro', slug: 'matriz' },
-      { id: 'store-002', name: 'Loja Shopping Boulevard', slug: 'boulevard' },
+      { id: 'store-002', name: 'Loja Ipojuca - Filial', slug: 'ipojuca' },
       { id: 'store-003', name: 'Atendimento Geral / E-commerce', slug: 'ecommerce' },
     ];
   },

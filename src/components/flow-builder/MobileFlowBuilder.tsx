@@ -37,6 +37,7 @@ import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Modal } from '../ui/Modal';
 import { useToast } from '../../contexts/ToastContext';
+import { StorageService } from '../../lib/storage';
 
 export interface MobileFlowBuilderProps {
   flow: Flow;
@@ -72,6 +73,25 @@ export const MobileFlowBuilder: React.FC<MobileFlowBuilderProps> = ({
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [insertAfterNodeId, setInsertAfterNodeId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [adminStores, setAdminStores] = useState<any[]>(() => {
+    try {
+      const cached = localStorage.getItem('pitoco_stores');
+      if (cached) return JSON.parse(cached);
+    } catch {}
+    return [
+      { id: 'store-001', name: 'Loja Matriz — Centro', slug: 'matriz' },
+      { id: 'store-002', name: 'Loja Ipojuca - Filial', slug: 'ipojuca' },
+      { id: 'store-003', name: 'Atendimento Geral / E-commerce', slug: 'ecommerce' },
+    ];
+  });
+
+  React.useEffect(() => {
+    StorageService.getStores().then((list) => {
+      if (Array.isArray(list) && list.length > 0) {
+        setAdminStores(list);
+      }
+    }).catch(() => {});
+  }, []);
 
   const isPublished = flow.status === 'published';
 
@@ -564,51 +584,43 @@ export const MobileFlowBuilder: React.FC<MobileFlowBuilderProps> = ({
                       </div>
                     ) : nodeType === 'store_selector' ? (
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                        <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
-                            🏬 Matriz Centro:
-                          </span>
-                          <select
-                            value={outgoingEdges.find(e => e.sourceHandle === 'store_matriz')?.target || ''}
-                            onChange={e => handleSetTargetNode(node.id, e.target.value, 'store_matriz')}
-                            className="w-full bg-dark-800 border border-white/10 rounded-xl px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
-                          >
-                            <option value="">-- Próximo Passo --</option>
-                            {nodes.filter(n => n.id !== node.id).map(n => (
-                              <option key={n.id} value={n.id}>➡️ {n.data?.label || n.id}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-1">
-                            🏬 Shopping Boulevard:
-                          </span>
-                          <select
-                            value={outgoingEdges.find(e => e.sourceHandle === 'store_boulevard')?.target || ''}
-                            onChange={e => handleSetTargetNode(node.id, e.target.value, 'store_boulevard')}
-                            className="w-full bg-dark-800 border border-white/10 rounded-xl px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-yellow-500"
-                          >
-                            <option value="">-- Próximo Passo --</option>
-                            {nodes.filter(n => n.id !== node.id).map(n => (
-                              <option key={n.id} value={n.id}>➡️ {n.data?.label || n.id}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-pink-400 uppercase tracking-wider flex items-center gap-1">
-                            🌐 Loja Virtual Brasil:
-                          </span>
-                          <select
-                            value={outgoingEdges.find(e => e.sourceHandle === 'store_ecommerce')?.target || ''}
-                            onChange={e => handleSetTargetNode(node.id, e.target.value, 'store_ecommerce')}
-                            className="w-full bg-dark-800 border border-white/10 rounded-xl px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-pink-500"
-                          >
-                            <option value="">-- Próximo Passo --</option>
-                            {nodes.filter(n => n.id !== node.id).map(n => (
-                              <option key={n.id} value={n.id}>➡️ {n.data?.label || n.id}</option>
-                            ))}
-                          </select>
-                        </div>
+                        {adminStores.filter(s => s.is_active !== false).map((st, sIdx) => {
+                          const handleId = st.id;
+                          const currentTarget = outgoingEdges.find(
+                            e => e.sourceHandle === handleId || 
+                                 e.sourceHandle === `store_${st.slug}` ||
+                                 (st.slug === 'matriz' && e.sourceHandle === 'store_matriz') ||
+                                 (st.slug === 'ipojuca' && (e.sourceHandle === 'store_ipojuca' || e.sourceHandle === 'store_boulevard')) ||
+                                 (st.slug === 'ecommerce' && e.sourceHandle === 'store_ecommerce')
+                          )?.target || '';
+
+                          const colors = [
+                            'text-amber-400 focus:border-amber-500',
+                            'text-cyan-400 focus:border-cyan-500',
+                            'text-pink-400 focus:border-pink-500',
+                            'text-emerald-400 focus:border-emerald-500',
+                            'text-purple-400 focus:border-purple-500'
+                          ];
+                          const colorScheme = colors[sIdx % colors.length];
+
+                          return (
+                            <div key={st.id} className="space-y-1">
+                              <span className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${colorScheme.split(' ')[0]}`}>
+                                🏬 {st.name}:
+                              </span>
+                              <select
+                                value={currentTarget}
+                                onChange={e => handleSetTargetNode(node.id, e.target.value, handleId)}
+                                className="w-full bg-dark-800 border border-white/10 rounded-xl px-2 py-1.5 text-xs text-slate-200 focus:outline-none"
+                              >
+                                <option value="">-- Próximo Passo --</option>
+                                {nodes.filter(n => n.id !== node.id).map(n => (
+                                  <option key={n.id} value={n.id}>➡️ {n.data?.label || n.id}</option>
+                                ))}
+                              </select>
+                            </div>
+                          );
+                        })}
                       </div>
                     ) : nodeType === 'shipping_calculator' ? (
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">

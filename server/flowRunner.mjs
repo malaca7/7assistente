@@ -1839,14 +1839,21 @@ function parseCustomDateString(input) {
 
         // If from store_selector
         if (prevType === 'store_selector') {
+          const storeFromDb = (db.stores || []).find(
+            (s) => s.id === matchedBtn.id || s.slug === matchedBtn.id || s.name === matchedBtn.title || matchedBtn.id.includes(s.id)
+          );
           const storeMap = {
             store_matriz: 'Matriz Centro (Recife)',
-            store_boulevard: 'Shopping Boulevard',
+            store_ipojuca: 'Loja Ipojuca - Filial',
+            store_boulevard: 'Loja Ipojuca - Filial',
             store_ecommerce: 'Loja Virtual & E-commerce',
+            'store-001': 'Matriz Centro (Recife)',
+            'store-002': 'Loja Ipojuca - Filial',
+            'store-003': 'Loja Virtual & E-commerce',
           };
-          const storeName = storeMap[matchedBtn.id] || matchedBtn.title;
+          const storeName = storeFromDb?.name || storeMap[matchedBtn.id] || matchedBtn.title;
           session.variables['loja_escolhida'] = storeName;
-          session.variables['loja_id'] = matchedBtn.id;
+          session.variables['loja_id'] = storeFromDb?.id || matchedBtn.id;
           session.variables['opcao_selecionada'] = storeName;
           console.log(`[FlowRunner] 🏬 Loja selecionada pelo cliente: "${storeName}" (${matchedBtn.id})`);
         }
@@ -1905,7 +1912,16 @@ function parseCustomDateString(input) {
               e.source === prevNode.id &&
               (e.sourceHandle === matchedBtn.id ||
                 e.sourceHandle === `btn_${matchedBtnIndex + 1}` ||
-                e.sourceHandle === `btn_${matchedBtnIndex}`)
+                e.sourceHandle === `btn_${matchedBtnIndex}` ||
+                (matchedBtn.storeId && e.sourceHandle === matchedBtn.storeId) ||
+                (matchedBtn.slug && e.sourceHandle === matchedBtn.slug) ||
+                (matchedBtn.slug && e.sourceHandle === `store_${matchedBtn.slug}`) ||
+                (matchedBtn.id === 'store-001' && (e.sourceHandle === 'store_matriz' || e.sourceHandle === 'matriz')) ||
+                (matchedBtn.id === 'store_matriz' && (e.sourceHandle === 'store-001' || e.sourceHandle === 'matriz')) ||
+                (matchedBtn.id === 'store-002' && (e.sourceHandle === 'store_ipojuca' || e.sourceHandle === 'store_boulevard' || e.sourceHandle === 'ipojuca')) ||
+                (matchedBtn.id === 'store_ipojuca' && (e.sourceHandle === 'store-002' || e.sourceHandle === 'store_boulevard' || e.sourceHandle === 'ipojuca')) ||
+                (matchedBtn.id === 'store-003' && (e.sourceHandle === 'store_ecommerce' || e.sourceHandle === 'ecommerce')) ||
+                (matchedBtn.id === 'store_ecommerce' && (e.sourceHandle === 'store-003' || e.sourceHandle === 'ecommerce')))
           ) || edges.find((e) => e.source === prevNode.id);
 
         if (targetEdge) {
@@ -2585,25 +2601,45 @@ function parseCustomDateString(input) {
     }
 
 
-    // 5.3 Store Selector Node (Multi-Filiais: Matriz, Boulevard, Loja Virtual)
+    // 5.3 Store Selector Node (Multi-Filiais dinâmico baseado em db.stores)
     else if (nodeType === 'store_selector') {
       const intro = config.introMessage
         ? replaceVars(config.introMessage, session.variables, botProfile)
         : 'Olá! Seja bem-vinda à *Pitoco de Gente*. 🍼 Com qual de nossas lojas você deseja falar hoje?';
 
-      const storeButtons = [
-        { id: 'store_matriz', title: '1️⃣ Matriz Centro' },
-        { id: 'store_boulevard', title: '2️⃣ Boulevard' },
-        { id: 'store_ecommerce', title: '3️⃣ Loja Virtual' },
-      ];
+      // Carregar lojas ativas do banco ou lista padrão real
+      const activeStores = Array.isArray(db.stores) && db.stores.length > 0
+        ? db.stores.filter((s) => s.is_active !== false && s.status !== 'inactive')
+        : [
+            { id: 'store-001', name: 'Loja Matriz — Centro', slug: 'matriz' },
+            { id: 'store-002', name: 'Loja Ipojuca - Filial', slug: 'ipojuca' },
+            { id: 'store-003', name: 'Atendimento Geral / E-commerce', slug: 'ecommerce' },
+          ];
+
+      const emojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣'];
+      const storeButtons = activeStores.slice(0, 3).map((st, idx) => {
+        const cleanName = st.name.replace(/^Loja\s+/i, '').trim();
+        const shortName = cleanName.length > 15 ? cleanName.slice(0, 15) : cleanName;
+        return {
+          id: st.id,
+          title: `${emojis[idx] || `${idx + 1}️⃣`} ${shortName}`,
+          storeId: st.id,
+          slug: st.slug,
+          storeName: st.name,
+        };
+      });
 
       session.activeButtons = storeButtons;
       session.currentNodeId = currentNode.id;
 
+      const storesListText = activeStores
+        .map((st, idx) => `• *${idx + 1}.* ${st.name}${st.city ? ` (${st.city})` : ''}`)
+        .join('\n');
+
       replies.push({
         type: 'buttons',
-        body: `🏬 *Escolha de Filial / Loja:*\n\n${intro}\n\n• *1.* Matriz Centro (Recife)\n• *2.* Shopping Boulevard\n• *3.* Loja Virtual & E-commerce (Brasil)`,
-        footer: 'Toque no botão ou digite 1, 2 ou 3:',
+        body: `🏬 *Escolha de Filial / Loja:*\n\n${intro}\n\n${storesListText}`,
+        footer: 'Toque no botão ou digite o número correspondente:',
         buttons: storeButtons,
       });
       break;
@@ -2683,7 +2719,7 @@ function parseCustomDateString(input) {
 
       replies.push({
         type: 'buttons',
-        body: `🚚 *Calculadora de Frete & Entrega:*\n\n${intro}\n\n• *1. Motoboy Express:* R$ ${motoboyPrice} (Recife e RMR - Chega hoje)\n• *2. Correios PAC/SEDEX:* R$ ${correiosPrice} (Todo o Brasil)\n• *3. Retirada em Loja:* Grátis (Matriz Centro ou Shopping Boulevard)`,
+        body: `🚚 *Calculadora de Frete & Entrega:*\n\n${intro}\n\n• *1. Motoboy Express:* R$ ${motoboyPrice} (Recife e RMR - Chega hoje)\n• *2. Correios PAC/SEDEX:* R$ ${correiosPrice} (Todo o Brasil)\n• *3. Retirada em Loja:* Grátis (Matriz Centro ou Loja Ipojuca)`,
         footer: 'Toque em uma opção ou digite 1, 2 ou 3:',
         buttons: shipButtons,
       });

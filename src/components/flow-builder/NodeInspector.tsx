@@ -1782,53 +1782,64 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
             <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-2.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-amber-400">
-                  Filiais Sincronizadas do Banco de Dados:
+                  Lojas do seu Painel Administrativo:
                 </span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30">
-                  {stores.length > 0 ? `${stores.length} lojas` : 'Padrão'}
+                  {stores.length > 0 ? `${stores.length} lojas ativas` : '3 lojas'}
                 </span>
               </div>
               
-              {stores.length > 0 ? (
-                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
-                  {stores.map((st, idx) => (
-                    <div key={st.id || idx} className="p-2 rounded-lg bg-dark-900 border border-white/5 flex items-center justify-between text-xs">
-                      <div>
-                        <span className="font-bold text-white flex items-center gap-1">
-                          {idx + 1}️⃣ {st.name}
-                        </span>
-                        <p className="text-[10px] text-slate-400">{st.address || 'Recife e Online'}</p>
+              <p className="text-[10px] text-slate-400 leading-tight">
+                Cada loja abaixo terá uma <strong>saída dedicada no card</strong> para você conectar às próximas etapas do fluxo:
+              </p>
+
+              <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
+                {(stores.length > 0 ? stores : [
+                  { id: 'store-001', name: 'Loja Matriz — Centro', city: 'Recife - PE', address: 'Rua do Sol, 120' },
+                  { id: 'store-002', name: 'Loja Ipojuca - Filial', city: 'Ipojuca - PE', address: 'Rodovia PE-060' },
+                  { id: 'store-003', name: 'Atendimento Geral / E-commerce', city: 'Digital', address: 'Online / WhatsApp' },
+                ]).map((st: any, idx: number) => {
+                  const isSelected = !Array.isArray(config.selectedStores) || config.selectedStores.length === 0 || config.selectedStores.includes(st.id) || config.selectedStores.includes(st.slug);
+                  return (
+                    <div 
+                      key={st.id || idx} 
+                      onClick={() => {
+                        const current = Array.isArray(config.selectedStores) && config.selectedStores.length > 0 
+                          ? config.selectedStores 
+                          : stores.map(s => s.id);
+                        const next = current.includes(st.id) 
+                          ? current.filter((id: string) => id !== st.id)
+                          : [...current, st.id];
+                        handleConfigChange('selectedStores', next.length === stores.length ? [] : next);
+                      }}
+                      className={cn(
+                        "p-2.5 rounded-xl border flex items-center justify-between text-xs cursor-pointer transition-all",
+                        isSelected
+                          ? "bg-amber-950/30 border-amber-500/40 text-white"
+                          : "bg-dark-900/50 border-white/5 text-slate-400 opacity-60 hover:opacity-100"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <div className={cn(
+                          "w-4 h-4 rounded-md border flex items-center justify-center text-[10px] shrink-0 font-bold",
+                          isSelected ? "bg-amber-500 border-amber-400 text-dark-950" : "border-white/20"
+                        )}>
+                          {isSelected && '✓'}
+                        </div>
+                        <div className="min-w-0">
+                          <span className="font-bold text-white block truncate">
+                            {idx + 1}️⃣ {st.name}
+                          </span>
+                          <p className="text-[10px] text-slate-400 truncate">{st.address || st.city || 'Filial Oficial'}</p>
+                        </div>
                       </div>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono">
-                        store_{st.slug || 'loja'}
+                      <span className="text-[9.5px] px-2 py-0.5 rounded-md bg-white/5 text-amber-300 font-mono shrink-0 ml-2 border border-white/5">
+                        Saída #{idx + 1}
                       </span>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <>
-                  <div className="space-y-1 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                    <span className="text-[11px] font-bold text-amber-300 flex items-center gap-1">
-                      1️⃣ Matriz Centro (Recife)
-                    </span>
-                    <p className="text-[10px] text-slate-400">Rua da Penha, 120 - São José • Saída: <code>store_matriz</code></p>
-                  </div>
-
-                  <div className="space-y-1 p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
-                    <span className="text-[11px] font-bold text-yellow-300 flex items-center gap-1">
-                      2️⃣ Shopping Boulevard
-                    </span>
-                    <p className="text-[10px] text-slate-400">Piso L2 • Saída: <code>store_boulevard</code></p>
-                  </div>
-
-                  <div className="space-y-1 p-2 rounded-lg bg-pink-500/10 border border-pink-500/20">
-                    <span className="text-[11px] font-bold text-pink-300 flex items-center gap-1">
-                      3️⃣ Loja Virtual & E-commerce (Brasil)
-                    </span>
-                    <p className="text-[10px] text-slate-400">Envio para todo o Brasil • Saída: <code>store_ecommerce</code></p>
-                  </div>
-                </>
-              )}
+                  );
+                })}
+              </div>
             </div>
 
             <Input
@@ -1836,7 +1847,7 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
               value={config.storeVarName || 'loja_escolhida'}
               onChange={(e) => handleConfigChange('storeVarName', e.target.value)}
               placeholder="loja_escolhida"
-              hint="Armazena o nome da loja selecionada (ex: Matriz Centro, Shopping Boulevard, Loja Virtual)."
+              hint="Armazena o nome da loja selecionada (ex: Matriz Centro, Loja Ipojuca, Loja Virtual)."
             />
           </div>
         )}

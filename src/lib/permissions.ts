@@ -67,7 +67,7 @@ export const SYSTEM_PERMISSION_CATEGORIES: PermissionCategory[] = [
       {
         key: 'can_manage_stores',
         label: 'Gestão da Rede de Lojas',
-        description: 'Gerenciar filiais (Centro, Boulevard e E-commerce)',
+        description: 'Gerenciar filiais (Centro, Ipojuca e E-commerce)',
       },
       {
         key: 'can_manage_clients',
@@ -191,7 +191,7 @@ export const DEFAULT_ROLE_CONFIGS: Record<string, RoleConfig> = {
     id: 'manager',
     name: 'Gerente de Filial',
     badgeLabel: 'GERÊNCIA',
-    description: 'Acesso focado na gestão da sua unidade física (Centro ou Shopping Boulevard) e consultoras.',
+    description: 'Acesso focado na gestão da sua unidade física (Centro ou Loja Ipojuca) e consultoras.',
     color: 'purple',
     bgLight: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
     borderColor: 'border-purple-500/40',

@@ -519,11 +519,23 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
       // 14.1 Store Selector Node (Multi-Filiais)
       else if (type === 'store_selector') {
         const intro = substituteVariables(config.introMessage || 'Olá! Seja bem-vinda à *Pitoco de Gente*. 🍼 Com qual de nossas lojas você deseja falar hoje?', activeVars, p || undefined);
-        const buttons = [
-          { id: 'store_matriz', title: '1️⃣ Matriz Centro' },
-          { id: 'store_boulevard', title: '2️⃣ Shopping Boulevard' },
-          { id: 'store_ecommerce', title: '3️⃣ Loja Virtual Brasil' },
-        ];
+        let loadedStores: any[] = [];
+        try {
+          const cached = localStorage.getItem('pitoco_stores') || localStorage.getItem('7assistente_stores');
+          if (cached) loadedStores = JSON.parse(cached);
+        } catch {}
+        if (!Array.isArray(loadedStores) || loadedStores.length === 0) {
+          loadedStores = [
+            { id: 'store-001', name: 'Loja Matriz Centro' },
+            { id: 'store-002', name: 'Loja Ipojuca - Filial' },
+            { id: 'store-003', name: 'Atendimento Geral / E-commerce' },
+          ];
+        }
+        const numEmojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'];
+        const buttons = loadedStores.map((st: any, i: number) => ({
+          id: st.id || `store_${st.slug || i}`,
+          title: `${numEmojis[i] || `${i + 1}.`} ${st.name.replace(/Loja\s*/i, '').slice(0, 18)}`
+        }));
 
         setMessages((prev) => [
           ...prev,
@@ -600,7 +612,7 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
           {
             id: `msg-${Date.now()}-${Math.random()}`,
             sender: 'bot',
-            content: `🚚 *Calculadora de Frete & Entrega:*\n\n${intro}\n\n• *Motoboy Express:* Recife e RMR (Entrega hoje)\n• *Correios PAC/SEDEX:* Envio para todo o Brasil\n• *Retirada:* Grátis na Matriz Centro ou Shopping Boulevard`,
+            content: `🚚 *Calculadora de Frete & Entrega:*\n\n${intro}\n\n• *Motoboy Express:* Recife e RMR (Entrega hoje)\n• *Correios PAC/SEDEX:* Envio para todo o Brasil\n• *Retirada:* Grátis na Matriz Centro ou Loja Ipojuca`,
             buttons,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             nodeId: nextNode.id,
@@ -815,13 +827,8 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
     if (btnId) updatedVars.botao_id = btnId;
 
     // Store variables based on button type
-    if (btnId === 'store_matriz' || btnId === 'store_boulevard' || btnId === 'store_ecommerce') {
-      const storeMap: Record<string, string> = {
-        store_matriz: 'Matriz Centro (Recife)',
-        store_boulevard: 'Shopping Boulevard',
-        store_ecommerce: 'Loja Virtual & E-commerce',
-      };
-      const storeName = storeMap[btnId] || btnTitle;
+    if (btnId.startsWith('store_') || btnId.startsWith('store-')) {
+      const storeName = btnTitle.replace(/^\d+️⃣?\s*/, '').trim();
       updatedVars.loja_escolhida = storeName;
       updatedVars.loja_id = btnId;
       updatedVars.opcao_selecionada = storeName;

@@ -40,7 +40,7 @@ NEXT_PUBLIC_BOT_URL=https://pitoco.discloud.app
 | `GET` | `/api/whatsapp/qr` | Retorna status do WhatsApp, QR Code (texto e Base64 DataURL) |
 | `POST` | `/api/whatsapp/qr` | Força reinicialização do socket e geração de novo QR Code |
 | `POST` | `/api/send-message` | Envia mensagem de texto/mídia para um número de WhatsApp |
-| `GET` | `/api/stores` | Lista as lojas ativas da rede (Centro, Shopping Boulevard, E-commerce) |
+| `GET` | `/api/stores` | Lista as lojas ativas da rede (Centro, Ipojuca, E-commerce) |
 | `POST` | `/api/whatsapp/disconnect` | Desconecta a sessão do WhatsApp de forma limpa |
 
 ---
@@ -48,7 +48,7 @@ NEXT_PUBLIC_BOT_URL=https://pitoco.discloud.app
 ## 🛍️ Lojas Suportadas
 
 1. **Loja Matriz — Centro** (`matriz`)
-2. **Loja Shopping Boulevard** (`boulevard`)
+2. **Loja Ipojuca - Filial** (`ipojuca`)
 3. **Atendimento Geral / E-commerce** (`ecommerce`)
 
 ---

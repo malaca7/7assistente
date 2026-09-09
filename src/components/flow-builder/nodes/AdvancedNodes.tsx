@@ -32,8 +32,9 @@ import {
   HeartHandshake
 } from 'lucide-react';
 import { BaseNode } from './BaseNode';
-import { FlowNodeData } from '../../../types';
+import { FlowNodeData, Store as StoreType } from '../../../types';
 import { VariableBadge } from '../ui/VariableBadge';
+import { StorageService } from '../../../lib/storage';
 
 export const ConditionNode: React.FC<NodeProps> = ({ id, selected, data }) => {
   const nodeData = data as unknown as FlowNodeData;
@@ -670,11 +671,43 @@ export const EndFlowNode: React.FC<NodeProps> = ({ id, selected, data }) => {
 export const StoreSelectorNode: React.FC<NodeProps> = ({ id, selected, data }) => {
   const nodeData = data as unknown as FlowNodeData;
   const config = nodeData.config || {};
+  const [stores, setStores] = React.useState<StoreType[]>(() => {
+    try {
+      const cached = localStorage.getItem('pitoco_stores') || localStorage.getItem('7assistente_stores');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return [];
+  });
 
-  const outputs = [
-    { id: 'store_matriz', label: '1. Loja Matriz Centro', color: '!bg-amber-400' },
-    { id: 'store_boulevard', label: '2. Shopping Boulevard', color: '!bg-cyan-400' },
-    { id: 'store_ecommerce', label: '3. Loja Virtual / E-commerce', color: '!bg-emerald-400' },
+  React.useEffect(() => {
+    let isMounted = true;
+    StorageService.getStores().then((list) => {
+      if (isMounted && Array.isArray(list) && list.length > 0) {
+        setStores(list);
+      }
+    }).catch(() => {});
+    return () => { isMounted = false; };
+  }, []);
+
+  const activeStores = stores.filter(s => s.is_active !== false);
+  const effectiveStores = (Array.isArray(config.selectedStores) && config.selectedStores.length > 0)
+    ? stores.filter(s => config.selectedStores.includes(s.id) || config.selectedStores.includes(s.slug))
+    : (activeStores.length > 0 ? activeStores : stores);
+
+  const colors = ['!bg-amber-400', '!bg-cyan-400', '!bg-emerald-400', '!bg-purple-400', '!bg-rose-400', '!bg-sky-400'];
+
+  // Gera saídas dinamicamente a partir das lojas reais cadastradas no painel admin
+  const outputs = effectiveStores.length > 0 ? effectiveStores.map((st, idx) => ({
+    id: st.id || `store_${st.slug || idx}`,
+    label: `${idx + 1}. ${st.name}`,
+    color: colors[idx % colors.length],
+  })) : [
+    { id: 'store-001', label: '1. Loja Matriz Centro', color: '!bg-amber-400' },
+    { id: 'store-002', label: '2. Loja Ipojuca - Filial', color: '!bg-cyan-400' },
+    { id: 'store-003', label: '3. Atendimento Geral / E-commerce', color: '!bg-emerald-400' },
   ];
 
   return (
@@ -690,17 +723,37 @@ export const StoreSelectorNode: React.FC<NodeProps> = ({ id, selected, data }) =
       hasOutput={false}
       customOutputs={outputs}
       isConfigured={true}
+      replyMode={config.replyMode || 'send'}
     >
-      <div className="space-y-2 p-2.5 rounded-xl bg-dark-950/90 border border-amber-500/20 text-[11px]">
+      <div className="space-y-2.5 p-2.5 rounded-xl bg-dark-950/90 border border-amber-500/20 text-[11px]">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30">
             🏬 Multi-Lojas
           </span>
-          <span className="text-[10px] text-slate-400 font-mono">3 Saídas Dedicadas</span>
+          <span className="text-[10px] text-amber-300/90 font-mono font-bold">
+            {outputs.length} {outputs.length === 1 ? 'Saída Dedicada' : 'Saídas Dedicadas'}
+          </span>
         </div>
-        <p className="text-[10.5px] text-slate-300 leading-snug">
-          {config.introMessage || 'O cliente escolhe entre Matriz Centro, Shopping Boulevard ou Loja Virtual Brasil.'}
-        </p>
+
+        <div className="space-y-1.5">
+          <span className="text-[10px] font-semibold text-slate-400 block">
+            Lojas do seu Painel Admin:
+          </span>
+          <div className="space-y-1 max-h-36 overflow-y-auto pr-0.5 custom-scrollbar">
+            {(effectiveStores.length > 0 ? effectiveStores : [
+              { id: 'store-001', name: 'Loja Matriz Centro', city: 'Recife - PE' },
+              { id: 'store-002', name: 'Loja Ipojuca - Filial', city: 'Ipojuca - PE' },
+              { id: 'store-003', name: 'Atendimento Geral / E-commerce', city: 'Digital' },
+            ]).map((st: any, idx: number) => (
+              <div key={st.id || idx} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/5 border border-white/5 text-[10.5px] text-slate-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                <span className="font-semibold text-white truncate flex-1">{idx + 1}. {st.name}</span>
+                {st.city && <span className="text-[9px] text-slate-400 ml-auto shrink-0 font-mono">{st.city.split('-')[0].trim()}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="border-t border-white/5 pt-1.5 space-y-1">
           <span className="text-[10px] font-semibold text-amber-400 block">Variáveis Gravadas:</span>
           <div className="flex items-center gap-1.5 flex-wrap">

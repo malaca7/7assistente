@@ -885,7 +885,7 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                     : 'text-slate-300 hover:text-white'
                 }`}
               >
-                {s.slug === 'matriz' ? 'Matriz' : s.slug === 'boulevard' ? 'Boulevard' : 'E-com'}
+                {s.name ? s.name.replace(/^Loja\s+/i, '').slice(0, 10) : (s.slug === 'matriz' ? 'Matriz' : s.slug === 'ipojuca' ? 'Ipojuca' : 'E-com')}
               </button>
             ))}
           </div>

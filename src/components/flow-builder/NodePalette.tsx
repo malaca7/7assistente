@@ -171,7 +171,7 @@ export const NODE_DEFINITIONS: NodeDefinition[] = [
     type: 'store_selector',
     label: 'Escolha de Loja / Filial',
     category: 'Ecommerce',
-    description: 'Apresenta as lojas físicas e online (Matriz, Shopping Boulevard, E-commerce) com 3 saídas.',
+    description: 'Apresenta as lojas físicas e online (Matriz, Ipojuca, E-commerce) com saídas dedicadas.',
     icon: <Store className="w-4 h-4" />,
     iconBg: 'bg-amber-600',
     accentColor: 'border-amber-500/40',

@@ -145,7 +145,7 @@ export const App: React.FC = () => {
     );
   } else if (currentPath === '/lojas' || currentPath === '/rede') {
     title = 'Central de Lojas';
-    subtitle = 'Gestão centralizada das unidades Centro, Shopping Boulevard e E-commerce';
+    subtitle = 'Gestão centralizada das unidades Centro, Ipojuca e E-commerce';
     pageContent = <RedeLojasView onNavigate={navigate} />;
   } else if (currentPath.startsWith('/fluxos')) {
     title = 'Fluxos';

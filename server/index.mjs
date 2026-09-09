@@ -77,13 +77,13 @@ const STORES = [
   },
   {
     id: 'store-002',
-    name: 'Loja Shopping Boulevard',
-    slug: 'boulevard',
-    address: 'Av. Principal, 500 - Piso L2, Loja 204',
-    phone: '8134422000',
+    name: 'Loja Ipojuca - Filial',
+    slug: 'ipojuca',
+    address: 'Rodovia PE-060, Centro, Ipojuca - PE',
+    phone: '8135511000',
     whatsapp_number: '81996138924',
     is_active: true,
-    business_hours: '10:00 às 22:00',
+    business_hours: '08:30 às 18:00',
   },
   {
     id: 'store-003',

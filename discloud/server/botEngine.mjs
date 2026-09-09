@@ -31,14 +31,14 @@ export const PITOCO_STORES = [
   },
   {
     id: 'store-002',
-    name: 'Loja Shopping Boulevard',
-    slug: 'boulevard',
-    address: 'Av. Principal, 500 - Piso L2, Loja 204',
-    phone: '8134422000',
+    name: 'Loja Ipojuca - Filial',
+    slug: 'ipojuca',
+    address: 'Rodovia PE-060, Centro, Ipojuca - PE',
+    phone: '8135511000',
     whatsapp_number: '81996138924',
     is_active: true,
-    business_hours: '10:00 às 22:00',
-    city: 'Recife - PE',
+    business_hours: '08:30 às 18:00',
+    city: 'Ipojuca - PE',
   },
   {
     id: 'store-003',
@@ -171,7 +171,7 @@ export function getShippingInfoText(botConfig = {}) {
     `   - Prazo: 2 a 6 dias úteis.\n` +
     `   - Valor médio: *R$ ${correios}* (Frete Grátis acima de R$ ${freeMin})\n\n` +
     `3️⃣ *Retirada Grátis em Loja Física*:\n` +
-    `   - Disponível em até 2 horas na *Loja Matriz Centro* ou *Shopping Boulevard*.\n\n` +
+    `   - Disponível em até 2 horas na *Loja Matriz Centro* ou *Loja Ipojuca*.\n\n` +
     `_Digite *0* para voltar ao Menu Principal._`
   );
 }

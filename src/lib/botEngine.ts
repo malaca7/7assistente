@@ -66,14 +66,14 @@ export const PITOCO_STORES: Store[] = [
   },
   {
     id: 'store-002',
-    name: 'Loja Shopping Boulevard',
-    slug: 'boulevard',
-    address: 'Av. Principal, 500 - Loja 204 - Shopping Boulevard',
-    phone: '8134422000',
+    name: 'Loja Ipojuca - Filial',
+    slug: 'ipojuca',
+    address: 'Rodovia PE-060, Centro, Ipojuca - PE',
+    phone: '8135511000',
     whatsapp_number: '81996138924',
     is_active: true,
-    business_hours: '10:00 às 22:00',
-    city: 'Recife - PE',
+    business_hours: '08:30 às 18:00',
+    city: 'Ipojuca - PE',
     monthly_revenue: 62300,
   },
   {
@@ -226,7 +226,7 @@ export function getShippingInfoText(): string {
     `   - Prazo: 2 a 6 dias úteis.\n` +
     `   - Valor médio: *R$ 24,90* (Frete Grátis acima de R$ 299,00)\n\n` +
     `3️⃣ *Retirada Grátis em Loja Física*:\n` +
-    `   - Disponível em até 2 horas na *Loja Matriz Centro* ou *Shopping Boulevard*.\n\n` +
+    `   - Disponível em até 2 horas na *Loja Matriz Centro* ou *Loja Ipojuca*.\n\n` +
     `_Digite *0* para voltar ao Menu Principal._`
   );
 }
@@ -256,7 +256,7 @@ export function getStoreHandoffMenuText(): string {
     `👩‍💼 *ATENDIMENTO HUMANO — PITOCO DE GENTE*\n` +
     `Por favor, escolha qual unidade você prefere para ser atendido(a):\n\n` +
     `1️⃣ *Loja Matriz — Centro* (Rua do Sol, 120)\n` +
-    `2️⃣ *Loja Shopping Boulevard* (Piso L2, Loja 204)\n` +
+    `2️⃣ *Loja Ipojuca - Filial* (Rodovia PE-060, Centro)\n` +
     `3️⃣ *Atendimento Geral / E-commerce* (Central Digital)\n\n` +
     `_Digite o número correspondente (1, 2 ou 3) ou *0* para voltar._`
   );

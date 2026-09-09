@@ -17,15 +17,15 @@ export const initialStores = [
   },
   {
     id: 'store-002',
-    name: 'Loja Shopping Boulevard',
-    slug: 'boulevard',
-    address: 'Av. Principal, 500 - Piso L2, Loja 204',
-    phone: '8134422000',
+    name: 'Loja Ipojuca - Filial',
+    slug: 'ipojuca',
+    address: 'Rodovia PE-060, Centro, Ipojuca - PE',
+    phone: '8135511000',
     whatsapp_number: '81996138924',
     is_active: true,
-    business_hours: 'Seg a Sáb: 10:00 às 22:00 | Dom: 13:00 às 21:00',
-    city: 'Recife - PE',
-    manager_name: 'Carla Boulevard',
+    business_hours: 'Seg a Sáb: 08:30 às 18:00',
+    city: 'Ipojuca - PE',
+    manager_name: 'Gerente Ipojuca',
     monthly_revenue: 62300,
     active_chats: 11,
   },
@@ -230,7 +230,7 @@ export const initialFlowNodes = [
     data: {
       label: 'Transbordo por Loja',
       nodeType: 'human_handoff',
-      description: 'Cliente escolhe entre Matriz Centro, Shopping Boulevard ou E-commerce',
+      description: 'Cliente escolhe entre Matriz Centro, Loja Ipojuca ou E-commerce',
       isConfigured: true,
       config: { multiStore: true }
     }

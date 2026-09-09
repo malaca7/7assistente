@@ -89,6 +89,15 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
   // Branch Selector Modal for nodes with multiple outputs (e.g. check_contact or buttons)
   const [branchSelectorNode, setBranchSelectorNode] = useState<FlowNode | null>(null);
 
+  // Lojas reais cadastradas no painel admin para conexões e saídas dinâmicas
+  const [adminStores, setAdminStores] = useState<Store[]>([]);
+
+  useEffect(() => {
+    StorageService.getStores().then((stList) => {
+      if (Array.isArray(stList)) setAdminStores(stList);
+    }).catch(() => {});
+  }, []);
+
   // Line style state
   const [edgeType, setEdgeType] = useState<'smoothstep' | 'default' | 'straight' | 'step'>('smoothstep');
 
@@ -745,11 +754,19 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
         }
       }
 
-      // Store selector: 3 dedicated branch handles
-      if (pType === 'store_selector' || handle.startsWith('store_')) {
-        if (handle === 'store_matriz') return -COL_WIDTH;
-        if (handle === 'store_boulevard') return 0;
-        if (handle === 'store_ecommerce') return COL_WIDTH;
+      // Store selector: handles dinâmicos para lojas reais
+      if (pType === 'store_selector' || handle.startsWith('store_') || handle.startsWith('store-')) {
+        const storesList = adminStores.length > 0 ? adminStores : [
+          { id: 'store-001', slug: 'matriz' },
+          { id: 'store-002', slug: 'ipojuca' },
+          { id: 'store-003', slug: 'ecommerce' },
+        ];
+        const storeIdx = storesList.findIndex((s: any) => s.id === handle || `store_${s.slug}` === handle || s.slug === handle);
+        if (storeIdx >= 0) {
+          const total = Math.max(storesList.length, 1);
+          const step = (COL_WIDTH * 2) / (total + 1);
+          return -COL_WIDTH + step * (storeIdx + 1);
+        }
       }
 
       // Shipping calculator: 3 dedicated branch handles
@@ -1538,50 +1555,33 @@ export const FlowEditorPageContent: React.FC<FlowEditorPageProps> = ({ flowId, o
               </>
             ) : (branchSelectorNode.data?.nodeType || branchSelectorNode.type) === 'store_selector' ? (
               <>
-                <button
-                  onClick={() => {
-                    const node = branchSelectorNode;
-                    setBranchSelectorNode(null);
-                    handleStartConnecting(node, 'store_matriz', '1. Matriz Centro');
-                  }}
-                  className="w-full p-3 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 font-bold text-xs flex items-center justify-between text-left transition-all"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-3 h-3 rounded-full bg-amber-400" />
-                    <span>🏬 1. Matriz Centro (Recife)</span>
-                  </div>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-
-                <button
-                  onClick={() => {
-                    const node = branchSelectorNode;
-                    setBranchSelectorNode(null);
-                    handleStartConnecting(node, 'store_boulevard', '2. Shopping Boulevard');
-                  }}
-                  className="w-full p-3 rounded-2xl bg-yellow-500/15 hover:bg-yellow-500/25 border border-yellow-500/30 text-yellow-300 font-bold text-xs flex items-center justify-between text-left transition-all"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-3 h-3 rounded-full bg-yellow-400" />
-                    <span>🏬 2. Shopping Boulevard</span>
-                  </div>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-
-                <button
-                  onClick={() => {
-                    const node = branchSelectorNode;
-                    setBranchSelectorNode(null);
-                    handleStartConnecting(node, 'store_ecommerce', '3. Loja Virtual & E-commerce');
-                  }}
-                  className="w-full p-3 rounded-2xl bg-pink-500/15 hover:bg-pink-500/25 border border-pink-500/30 text-pink-300 font-bold text-xs flex items-center justify-between text-left transition-all"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-3 h-3 rounded-full bg-pink-400" />
-                    <span>🌐 3. Loja Virtual & E-commerce (Brasil)</span>
-                  </div>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
+                {(adminStores.length > 0 ? adminStores : [
+                  { id: 'store-001', name: 'Loja Matriz Centro', city: 'Recife - PE' },
+                  { id: 'store-002', name: 'Loja Ipojuca - Filial', city: 'Ipojuca - PE' },
+                  { id: 'store-003', name: 'Atendimento Geral / E-commerce', city: 'Digital' },
+                ]).map((st: any, idx: number) => {
+                  const handleKey = st.id || `store_${st.slug || idx}`;
+                  const label = `${idx + 1}. ${st.name}`;
+                  const colors = ['bg-amber-400', 'bg-cyan-400', 'bg-emerald-400', 'bg-purple-400', 'bg-rose-400'];
+                  const dotColor = colors[idx % colors.length];
+                  return (
+                    <button
+                      key={handleKey}
+                      onClick={() => {
+                        const node = branchSelectorNode;
+                        setBranchSelectorNode(null);
+                        handleStartConnecting(node, handleKey, label);
+                      }}
+                      className="w-full p-3 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 font-bold text-xs flex items-center justify-between text-left transition-all active:scale-95"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className={`w-3 h-3 rounded-full ${dotColor} shrink-0`} />
+                        <span className="truncate">🏬 {label} {st.city ? `(${st.city})` : ''}</span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 shrink-0" />
+                    </button>
+                  );
+                })}
               </>
             ) : (branchSelectorNode.data?.nodeType || branchSelectorNode.type) === 'shipping_calculator' ? (
               <>

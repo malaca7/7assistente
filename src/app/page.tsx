@@ -462,7 +462,7 @@ export default function StorefrontPage() {
                     className="w-full bg-dark-800 border border-white/10 rounded-xl p-2.5 text-xs text-white"
                   >
                     <option value="store-001">Loja Matriz — Centro (Rua do Sol, 120)</option>
-                    <option value="store-002">Loja Shopping Boulevard (Piso L2)</option>
+                    <option value="store-002">Loja Ipojuca - Filial (Rodovia PE-060, Centro)</option>
                     <option value="store-003">Online via Vídeo Chamada WhatsApp</option>
                   </select>
                 </div>
