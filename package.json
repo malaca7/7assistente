@@ -11,14 +11,12 @@
     "start": "node index.mjs",
     "server": "node server/index.mjs",
     "discloud": "node discloud/server.js",
-    "deploy:bot": "node deployDiscloud.mjs",
+    "deploy": "node autoDeployAll.mjs",
+    "deploy:all": "node autoDeployAll.mjs",
+    "deploy:quick": "node autoDeployAll.mjs --quick",
+    "deploy:github": "node autoDeployAll.mjs --gh-only",
     "deploy:discloud": "node deployDiscloud.mjs",
-    "deploy:github": "node autoDeployAll.mjs",
-    "deploy:full": "node autoDeployAll.mjs",
-    "bot:rebuild": "node deployDiscloud.mjs",
-    "bot:restart": "node deployDiscloud.mjs",
-    "deploy": "powershell -ExecutionPolicy Bypass -File .\\deployAllBranches.ps1",
-    "deploy:all": "powershell -ExecutionPolicy Bypass -File .\\deployAllBranches.ps1"
+    "deploy:bot": "node deployDiscloud.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.115.0",

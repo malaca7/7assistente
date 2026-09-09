@@ -7,6 +7,12 @@ server/whatsapp_auth
 discloud/whatsapp_auth
 dist
 .next
-7assistente.zip
-pitoco.zip
+*.zip
 .gh-pages-temp
+docs
+assets
+discloud/dist
+discloud/server
+*.log
+*.tmp
+

@@ -1,218 +1,210 @@
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { fileURLToPath } from 'url';
+import { deployToDiscloud } from './deployDiscloud.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Helper para executar comandos assincronamente em paralelo
+function execCommand(cmd, cwd = __dirname) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(cmd, { cwd, shell: true, stdio: 'pipe' });
+    let stdout = '';
+    let stderr = '';
+
+    proc.stdout?.on('data', (d) => (stdout += d.toString()));
+    proc.stderr?.on('data', (d) => (stderr += d.toString()));
+
+    proc.on('close', (code) => {
+      if (code === 0) resolve(stdout.trim());
+      else reject(new Error(stderr.trim() || stdout.trim() || `Exit code ${code}`));
+    });
+  });
+}
+
+// Rotas SPA para gerar diretorios fisicos no dist/ para GitHub Pages
+const SPA_ROUTES = [
+  'admin', 'gerente', 'gestao', 'atendimento', 'login', 'ceo',
+  'lojas', 'fluxos', 'acessos', 'usuarios', 'whatsapp', 'catalogo',
+  'enxoval', 'medidas', 'fila', 'conversas', 'clientes', 'dashboard',
+  'bot_config', 'configuracoes', 'logs'
+];
+
 async function main() {
+  const args = process.argv.slice(2);
+  const skipBuild = args.includes('--skip-build') || args.includes('--quick');
+  const ghOnly = args.includes('--gh-only');
+  const discloudOnly = args.includes('--discloud-only');
+
   console.log('===============================================================');
-  console.log('🚀 [AutoDeploy] Deploy Automático Pitoco de Gente (GitHub & Discloud)');
-  console.log('   GitHub:   https://github.com/malaca7/botpitoco.git (branch: main)');
-  console.log('   Discloud: https://pitoco.discloud.app');
-  console.log('   Site:     https://pitoco.malaca.com.br');
+  console.log('⚡ [FastDeploy] Deploy Otimizado Pitoco de Gente');
+  console.log('   GitHub Pages: https://pitoco.malaca.com.br/admin');
+  console.log('   Discloud API: https://pitoco.discloud.app');
   console.log('===============================================================');
 
-  // 1. Build de Produção do Frontend
-  console.log('\n📦 [1/5] Compilando frontend (npm run build)...');
-  try {
-    execSync('npm run build', { cwd: __dirname, stdio: 'inherit' });
-    console.log('✅ Frontend compilado com sucesso!');
-  } catch (err) {
-    console.error('❌ Falha na compilação:', err.message);
-    process.exit(1);
+  const overallStartTime = Date.now();
+
+  // -------------------------------------------------------------
+  // 1. BUILD DO FRONTEND (Se nao for pulado)
+  // -------------------------------------------------------------
+  const distDir = path.resolve(__dirname, 'dist');
+
+  if (!discloudOnly && !skipBuild) {
+    console.log('\n📦 [1/4] Compilando frontend (Vite build)...');
+    const buildStart = Date.now();
+    try {
+      execSync('npm run build', { cwd: __dirname, stdio: 'inherit' });
+      console.log(`✅ Build concluído em ${((Date.now() - buildStart) / 1000).toFixed(1)}s!`);
+    } catch (err) {
+      console.error('❌ Falha na compilação:', err.message);
+      process.exit(1);
+    }
   }
 
-  // 2. Garantir assets no dist (CNAME, .nojekyll, 404.html e rotas físicas)
-  const distDir = path.resolve(__dirname, 'dist');
+  // -------------------------------------------------------------
+  // 2. PREPARAR ARQUIVOS ESTÁTICOS NO DIST (Sem poluir a raiz!)
+  // -------------------------------------------------------------
   if (fs.existsSync(distDir)) {
+    // CNAME e .nojekyll
     fs.writeFileSync(path.join(distDir, 'CNAME'), 'pitoco.malaca.com.br\n');
     fs.writeFileSync(path.join(distDir, '.nojekyll'), '');
-    fs.writeFileSync(path.resolve(__dirname, 'CNAME'), 'pitoco.malaca.com.br\n');
-    fs.writeFileSync(path.resolve(__dirname, '.nojekyll'), '');
 
-    const root404 = path.resolve(__dirname, '404.html');
-    if (fs.existsSync(root404)) {
-      fs.copyFileSync(root404, path.join(distDir, '404.html'));
-    }
+    // Fallback 404.html
+    const distHtmlPath = path.join(distDir, 'index.html');
+    if (fs.existsSync(distHtmlPath)) {
+      const distHtml = fs.readFileSync(distHtmlPath, 'utf8');
+      fs.writeFileSync(path.join(distDir, '404.html'), distHtml, 'utf8');
 
-    const officialLogoPath = path.resolve(__dirname, 'public', 'logo.png');
-    const novaLogoPath = path.resolve(__dirname, 'public', 'logopitoconova.png');
-    const logoSource = fs.existsSync(novaLogoPath) ? novaLogoPath : officialLogoPath;
-    if (fs.existsSync(logoSource)) {
-      const logoTargets = [
-        path.join(distDir, 'logo.png'),
-        path.join(distDir, 'logo.jpg'),
-        path.join(distDir, 'logopitoconova.png'),
-        path.resolve(__dirname, 'logo.png'),
-        path.resolve(__dirname, 'logo.jpg'),
-        path.resolve(__dirname, 'logopitoconova.png'),
-        path.resolve(__dirname, 'public', 'logo.png'),
-        path.resolve(__dirname, 'public', 'logo.jpg'),
-        path.resolve(__dirname, 'public', 'logopitoconova.png'),
-      ];
-      for (const target of logoTargets) {
-        fs.copyFileSync(logoSource, target);
+      // Gerar subdiretórios com index.html apenas dentro de dist/ para rotas limpas no GitHub Pages
+      for (const route of SPA_ROUTES) {
+        const routeDistDir = path.join(distDir, route);
+        if (!fs.existsSync(routeDistDir)) fs.mkdirSync(routeDistDir, { recursive: true });
+        fs.writeFileSync(path.join(routeDistDir, 'index.html'), distHtml, 'utf8');
       }
-      console.log('✅ Logo oficial transparente replicada para todas as rotas estáticas.');
     }
-
-    const distHtml = fs.readFileSync(path.join(distDir, 'index.html'), 'utf8');
-
-    // Criar diretórios físicos para cada rota SPA para eliminar erro 404 no GitHub Pages
-    const routes = [
-      'admin', 
-      'gerente',
-      'gestao',
-      'atendimento', 
-      'login', 
-      'ceo', 
-      'lojas', 
-      'fluxos', 
-      'acessos',
-      'usuarios',
-      'whatsapp', 
-      'catalogo', 
-      'enxoval', 
-      'medidas', 
-      'fila', 
-      'conversas', 
-      'clientes',
-      'dashboard',
-      'bot_config',
-      'configuracoes',
-      'logs'
-    ];
-
-    for (const route of routes) {
-      // 1. No dist/
-      const routeDistDir = path.join(distDir, route);
-      if (!fs.existsSync(routeDistDir)) fs.mkdirSync(routeDistDir, { recursive: true });
-      fs.writeFileSync(path.join(routeDistDir, 'index.html'), distHtml, 'utf8');
-
-      // 2. Na raiz do repositório
-      const routeRootDir = path.resolve(__dirname, route);
-      if (!fs.existsSync(routeRootDir)) fs.mkdirSync(routeRootDir, { recursive: true });
-      fs.writeFileSync(path.join(routeRootDir, 'index.html'), distHtml, 'utf8');
-    }
-    console.log('✅ Diretórios físicos de rotas (/admin, /login, /fluxos, etc.) gerados para prevenir erro 404.');
-
-    // Copiar assets para a raiz para evitar tela branca caso GitHub Pages sirva da raiz do main
-    const rootAssets = path.resolve(__dirname, 'assets');
-    if (fs.existsSync(path.join(distDir, 'assets'))) {
-      fs.cpSync(path.join(distDir, 'assets'), rootAssets, { recursive: true });
-      console.log('✅ Assets compilados sincronizados na raiz do repositório (/assets).');
-    }
-
-    // Copiar dist para /docs para garantir suporte caso GitHub Pages aponte para /docs
-    const docsDir = path.resolve(__dirname, 'docs');
-    fs.cpSync(distDir, docsDir, { recursive: true });
-    console.log('✅ Pasta /docs atualizada para suporte ao GitHub Pages /docs.');
-
-    // Copiar dist para discloud/dist para o bot servir os arquivos estáticos
-    const discloudDist = path.resolve(__dirname, 'discloud', 'dist');
-    fs.cpSync(distDir, discloudDist, { recursive: true });
-    console.log('✅ Frontend sincronizado no diretório da Discloud.');
   }
 
-  // 3. Verificar e commitar alterações no Git
-  console.log('\n📝 [2/5] Registrando alterações no Git...');
-  try {
-    // Forçar inclusão dos arquivos essenciais na raiz (logo, CNAME, 404, docs, routes)
-    execSync('git add -A', { cwd: __dirname, stdio: 'inherit' });
-    execSync('git add -f logo.png logo.jpg CNAME .nojekyll 404.html docs/ admin/ fluxos/ login/ assets/', { cwd: __dirname, stdio: 'inherit' });
-    
-    const status = execSync('git status --porcelain', { cwd: __dirname, encoding: 'utf8' }).trim();
-    if (status.length > 0) {
-      console.log('📌 Mudanças detectadas. Criando commit de deploy...');
-      execSync('git commit -m "feat(fluxos): sincronizacao em tempo real bot com banco de dados, correcao contagem de funcoes no card, criacao de novos fluxos e drag-and-drop"', { cwd: __dirname, stdio: 'inherit' });
-      console.log('✅ Commit criado com sucesso!');
-    } else {
-      console.log('ℹ️ Nenhuma alteração pendente para commit.');
-    }
-  } catch (gitErr) {
-    console.warn('ℹ️ Informação sobre git commit:', gitErr.message);
-  }
-
-  // 4. Sincronizar branch main no GitHub (botpitoco.git)
-  console.log('\n🌐 [3/5] Enviando branch main para GitHub (https://github.com/malaca7/botpitoco.git)...');
-  try {
-    execSync('git branch -f main HEAD', { cwd: __dirname, stdio: 'inherit' });
-    execSync('git push botpitoco main --force', { cwd: __dirname, stdio: 'inherit' });
-    execSync('git push botpitoco source --force', { cwd: __dirname, stdio: 'inherit' });
-    console.log('✅ Branches main e source enviadas com sucesso para botpitoco!');
-  } catch (pushErr) {
-    console.error('❌ Erro no push para GitHub botpitoco:', pushErr.message);
-  }
-
-  // Sincronizar também com remote origin (backup)
-  try {
-    const remotes = execSync('git remote', { cwd: __dirname, encoding: 'utf8' });
-    if (remotes.includes('origin')) {
-      console.log('📡 Sincronizando também com remote origin...');
-      execSync('git push origin main --force', { cwd: __dirname, stdio: 'inherit' });
-      execSync('git push origin source --force', { cwd: __dirname, stdio: 'inherit' });
-      console.log('✅ Remote origin sincronizado (main e source)!');
-    }
-  } catch (origErr) {
-    console.warn('⚠️ Aviso ao sincronizar com origin:', origErr.message);
-  }
-
-  // 5. Atualizar branch gh-pages no GitHub botpitoco com os arquivos estáticos de produção
-  console.log('\n🌐 [4/5] Atualizando branch gh-pages no GitHub com a versão compilada...');
-  try {
-    const tempDeployDir = path.resolve(__dirname, '.gh-pages-temp');
-    if (fs.existsSync(tempDeployDir)) fs.rmSync(tempDeployDir, { recursive: true, force: true });
-    fs.mkdirSync(tempDeployDir, { recursive: true });
-
-    // Copiar todo o conteúdo do dist para o diretório temporário
-    fs.cpSync(distDir, tempDeployDir, { recursive: true });
-
-    // Inicializar repositório Git isolado para a branch gh-pages
-    execSync('git init', { cwd: tempDeployDir, stdio: 'pipe' });
-    execSync('git checkout -b gh-pages', { cwd: tempDeployDir, stdio: 'pipe' });
-    execSync('git config user.email "bot@pitoco.malaca.com.br"', { cwd: tempDeployDir, stdio: 'pipe' });
-    execSync('git config user.name "Pitoco Bot"', { cwd: tempDeployDir, stdio: 'pipe' });
-    execSync('git add -A', { cwd: tempDeployDir, stdio: 'pipe' });
-    execSync('git commit -m "fix(persistence): persistencia permanente do painel admin e bot whatsapp com banco de dados central protegido e sync"', { cwd: tempDeployDir, stdio: 'pipe' });
-
-    // Push para botpitoco gh-pages
-    execSync('git remote add botpitoco https://github.com/malaca7/botpitoco.git', { cwd: tempDeployDir, stdio: 'pipe' });
-    execSync('git push botpitoco gh-pages --force', { cwd: tempDeployDir, stdio: 'inherit' });
-    console.log('✅ Branch gh-pages atualizada com sucesso no repositório botpitoco!');
-
-    // Push para origin se existir
+  // -------------------------------------------------------------
+  // 3. REGISTRAR ALTERAÇÕES NO GIT LOCAL (Fontes e configs)
+  // -------------------------------------------------------------
+  if (!discloudOnly) {
+    console.log('\n📝 [2/4] Verificando alterações no Git...');
     try {
-      const originUrl = execSync('git config --get remote.origin.url', { cwd: __dirname, encoding: 'utf8' }).trim();
-      if (originUrl) {
-        execSync(`git remote add origin ${originUrl}`, { cwd: tempDeployDir, stdio: 'pipe' });
-        execSync('git push origin gh-pages --force', { cwd: tempDeployDir, stdio: 'inherit' });
-        console.log('✅ Branch gh-pages atualizada com sucesso no origin!');
+      execSync('git add -A', { cwd: __dirname, stdio: 'pipe' });
+      const status = execSync('git status --porcelain', { cwd: __dirname, encoding: 'utf8' }).trim();
+      if (status.length > 0) {
+        console.log('📌 Mudanças detectadas. Criando commit...');
+        execSync('git commit -m "chore(perf): otimizacao do pipeline de build/deploy e limpeza de arquivos"', { cwd: __dirname, stdio: 'inherit' });
+        console.log('✅ Commit criado.');
+      } else {
+        console.log('ℹ️ Nenhuma alteração pendente de código para commit.');
       }
+    } catch (gitErr) {
+      console.warn('ℹ️ Informação sobre git commit:', gitErr.message);
+    }
+
+    // -------------------------------------------------------------
+    // 4. SINCRONIZAÇÃO GIT EM PARALELO (Main & gh-pages)
+    // -------------------------------------------------------------
+    console.log('\n🌐 [3/4] Enviando atualizações para o GitHub em paralelo...');
+    const gitStartTime = Date.now();
+
+    // Descobrir remotes disponíveis
+    let remotes = [];
+    try {
+      remotes = execSync('git remote', { cwd: __dirname, encoding: 'utf8' })
+        .split('\n')
+        .map((r) => r.trim())
+        .filter(Boolean);
+    } catch (e) {
+      remotes = ['origin'];
+    }
+
+    // Alinhar main com o HEAD atual
+    try {
+      execSync('git branch -f main HEAD', { cwd: __dirname, stdio: 'pipe' });
     } catch (e) {}
 
-    // Limpar diretório temporário
-    fs.rmSync(tempDeployDir, { recursive: true, force: true });
-  } catch (ghPagesErr) {
-    console.warn('⚠️ Nota sobre envio de gh-pages:', ghPagesErr.message);
+    const pushPromises = [];
+
+    // Push branches de código (main e source) nos remotes em paralelo
+    for (const remote of remotes) {
+      pushPromises.push(
+        execCommand(`git push ${remote} main --force`)
+          .then(() => console.log(`  ✅ [Git] ${remote}/main atualizado com sucesso.`))
+          .catch((err) => console.warn(`  ⚠️ [Git] Aviso ao enviar ${remote}/main:`, err.message))
+      );
+      pushPromises.push(
+        execCommand(`git push ${remote} source --force`)
+          .then(() => console.log(`  ✅ [Git] ${remote}/source atualizado com sucesso.`))
+          .catch((err) => console.warn(`  ⚠️ [Git] Aviso ao enviar ${remote}/source:`, err.message))
+      );
+    }
+
+    // Atualizar branch gh-pages com dist/
+    if (fs.existsSync(distDir)) {
+      const tempDeployDir = path.join(os.tmpdir(), `gh_deploy_${Date.now()}`);
+      try {
+        fs.mkdirSync(tempDeployDir, { recursive: true });
+        fs.cpSync(distDir, tempDeployDir, { recursive: true });
+
+        execSync('git init', { cwd: tempDeployDir, stdio: 'pipe' });
+        execSync('git checkout -b gh-pages', { cwd: tempDeployDir, stdio: 'pipe' });
+        execSync('git config user.email "bot@pitoco.malaca.com.br"', { cwd: tempDeployDir, stdio: 'pipe' });
+        execSync('git config user.name "Pitoco Bot"', { cwd: tempDeployDir, stdio: 'pipe' });
+        execSync('git add -A', { cwd: tempDeployDir, stdio: 'pipe' });
+        execSync('git commit -m "deploy(pages): producao estatica otimizada pitoco.malaca.com.br"', { cwd: tempDeployDir, stdio: 'pipe' });
+
+        // Adicionar remotes no repo temporário
+        if (remotes.includes('botpitoco')) {
+          execSync('git remote add botpitoco https://github.com/malaca7/botpitoco.git', { cwd: tempDeployDir, stdio: 'pipe' });
+          pushPromises.push(
+            execCommand('git push botpitoco gh-pages --force', tempDeployDir)
+              .then(() => console.log('  ✅ [Git] botpitoco/gh-pages (site ao vivo) atualizado.'))
+              .catch((err) => console.warn('  ⚠️ [Git] Erro em botpitoco gh-pages:', err.message))
+          );
+        }
+
+        if (remotes.includes('origin')) {
+          try {
+            const originUrl = execSync('git config --get remote.origin.url', { cwd: __dirname, encoding: 'utf8' }).trim();
+            if (originUrl) {
+              execSync(`git remote add origin ${originUrl}`, { cwd: tempDeployDir, stdio: 'pipe' });
+              pushPromises.push(
+                execCommand('git push origin gh-pages --force', tempDeployDir)
+                  .then(() => console.log('  ✅ [Git] origin/gh-pages atualizado.'))
+                  .catch((err) => console.warn('  ⚠️ [Git] Aviso origin gh-pages:', err.message))
+              );
+            }
+          } catch (e) {}
+        }
+      } catch (ghErr) {
+        console.warn('⚠️ Falha ao preparar gh-pages:', ghErr.message);
+      }
+    }
+
+    // Aguardar todos os envios Git simultâneos
+    await Promise.allSettled(pushPromises);
+    console.log(`🚀 Sincronização GitHub finalizada em ${((Date.now() - gitStartTime) / 1000).toFixed(1)}s!`);
   }
 
-  // 6. Empacotar, atualizar e reiniciar bot no Discloud
-  console.log('\n🤖 [5/5] Atualizando arquivos do bot no Discloud (pitoco.discloud.app)...');
-  try {
-    execSync('node deployDiscloud.mjs', { cwd: __dirname, stdio: 'inherit' });
-    console.log('✅ Bot no Discloud atualizado e reiniciado com sucesso!');
-  } catch (err) {
-    console.error('❌ Erro no deploy Discloud:', err.message);
+  // -------------------------------------------------------------
+  // 5. DEPLOY DISCLOUD (Container do Bot & API)
+  // -------------------------------------------------------------
+  if (!ghOnly) {
+    console.log('\n🤖 [4/4] Atualizando bot no Discloud...');
+    await deployToDiscloud();
   }
 
+  const totalTimeSeconds = ((Date.now() - overallStartTime) / 1000).toFixed(1);
   console.log('\n===============================================================');
-  console.log('🎉 DEPLOY COMPLETO CONCLUÍDO COM SUCESSO!');
-  console.log(' - GitHub Repository: https://github.com/malaca7/botpitoco/tree/main');
-  console.log(' - GitHub Pages:      https://pitoco.malaca.com.br/admin');
-  console.log(' - Bot Discloud API:  https://pitoco.discloud.app');
-  console.log(' - Health Check:      https://pitoco.discloud.app/health');
+  console.log(`🎉 DEPLOY COMPLETO FINALIZADO EM APENAS ${totalTimeSeconds}s!`);
+  console.log(' - Site / Painel: https://pitoco.malaca.com.br/admin');
+  console.log(' - API / Bot:     https://pitoco.discloud.app');
+  console.log(' - Health Check:  https://pitoco.discloud.app/health');
   console.log('===============================================================');
 }
 
