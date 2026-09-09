@@ -17,6 +17,7 @@ export interface BaseNodeProps {
   isConfigured?: boolean;
   children?: React.ReactNode;
   customOutputs?: Array<{ id: string; label: string; color?: string }>;
+  replyMode?: 'reply' | 'send';
 }
 
 export const BaseNode: React.FC<BaseNodeProps> = ({
@@ -32,6 +33,7 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
   isConfigured = true,
   children,
   customOutputs,
+  replyMode,
 }) => {
   const connCtx = useFlowConnection();
   const isConnecting = connCtx?.isConnecting ?? false;
@@ -131,6 +133,20 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
             >
               <Link2 className="w-3.5 h-3.5" />
             </button>
+          )}
+
+          {replyMode && (
+            <span 
+              title={replyMode === 'reply' ? 'Cita e responde à mensagem do cliente no WhatsApp' : 'Envia a mensagem direta no WhatsApp, sem citação'}
+              className={cn(
+                'flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold border shadow-xs transition-all',
+                replyMode === 'reply'
+                  ? 'bg-purple-950/70 border-purple-500/40 text-purple-300'
+                  : 'bg-sky-950/70 border-sky-500/40 text-sky-300'
+              )}
+            >
+              <span>{replyMode === 'reply' ? '💬 Cita msg' : '📨 Envia'}</span>
+            </span>
           )}
 
           {isConfigured ? (

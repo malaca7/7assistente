@@ -41,7 +41,6 @@ import {
   DollarSign,
   Maximize2,
   Minimize2,
-  Zap,
   ShieldCheck
 } from 'lucide-react';
 import { Card } from './ui/Card';
@@ -88,16 +87,6 @@ const deduplicateMessages = (msgs: Message[]): Message[] => {
   }
   return result;
 };
-
-// Snippets de Respostas Rápidas (Macros de 1 Clique)
-const QUICK_SNIPPETS = [
-  { id: 'saudacao', label: 'Boas-Vindas', icon: '👋', text: 'Olá! Seja muito bem-vindo(a) à Pitoco de Gente. Como posso te ajudar hoje?' },
-  { id: 'catalogo', label: 'Catálogo', icon: '🍼', text: 'Você pode conferir nossas peças exclusivas de enxoval e bodies com preços especiais no catálogo!' },
-  { id: 'pix', label: 'Chave PIX', icon: '💳', text: 'Nossa chave PIX oficial é o CNPJ da loja. Assim que efetuar o pagamento, basta enviar o comprovante por aqui!' },
-  { id: 'enderecos', label: 'Lojas Físicas', icon: '📍', text: 'Temos unidades no Centro (Matriz) e no Shopping Boulevard. Venha nos visitar!' },
-  { id: 'horario', label: 'Horários', icon: '⏱️', text: 'Nosso atendimento presencial funciona de segunda a sábado das 08h às 18h.' },
-  { id: 'duvidas', label: 'Dúvidas', icon: '💬', text: 'Fique à vontade para perguntar qualquer dúvida sobre tamanhos, tecidos ou prazos de entrega!' },
-];
 
 export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({ 
   initialStoreId,
@@ -294,7 +283,11 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
     setActiveConv(prev => prev ? { ...prev, status: 'human', assigned_to: authorName } : null);
     setConversations(prev => prev.map(c => c.id === activeConv.id ? { ...c, status: 'human', assigned_to: authorName } : c));
 
-    setIsSending(false);
+    // Cooldown de proteção para evitar duplo envio acidental e sinalização anti-spam no WhatsApp
+    setTimeout(() => {
+      setIsSending(false);
+    }, 1200);
+
     if (!sendResult.success) {
       warning('Mensagem salva no painel, mas o envio direto ao WhatsApp falhou. Verifique o QR Code.');
     }
@@ -1356,26 +1349,6 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                   })
                 )}
                 <div ref={messagesEndRef} />
-              </div>
-
-              {/* Barra Inovadora de Respostas Rápidas (Snippets/Macros) */}
-              <div className="px-3 py-1.5 bg-dark-900/90 border-t border-white/5 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-                <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1 shrink-0 uppercase tracking-wider">
-                  <Zap className="w-3 h-3 text-amber-400" />
-                  Rápidas:
-                </span>
-                {QUICK_SNIPPETS.map((snippet, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setInputText(prev => prev ? `${prev} ${snippet.text}` : snippet.text)}
-                    disabled={activeConv.is_deleted}
-                    className="px-2.5 py-1 rounded-lg text-[11px] bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all shrink-0 active:scale-95 disabled:opacity-40"
-                    title={snippet.text}
-                  >
-                    {snippet.label}
-                  </button>
-                ))}
               </div>
 
               {/* Caixa de Entrada de Texto com botão rápido de catálogo */}

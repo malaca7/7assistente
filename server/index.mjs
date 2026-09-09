@@ -201,6 +201,19 @@ async function startWhatsApp() {
           continue;
         }
 
+        // 🛡️ ANTI-BAN: Marcar mensagem como lida na telemetria oficial do WhatsApp
+        try {
+          if (msg.key) {
+            await sock.readMessages([msg.key]);
+          }
+        } catch (readErr) {}
+
+        // 🛡️ ANTI-BAN & ANTI-FLOOD: Prevenção contra disparo em rajada e loops de bots
+        if (isFloodOrLoop(remoteJid)) {
+          console.warn(`🛡️ [Anti-Ban Guard] Taxa excessiva de mensagens de ${remoteJid}. Pausando respostas para proteger a conta e evitar banimento.`);
+          continue;
+        }
+
         // Executar o fluxo publicado no Studio / Painel Admin
         try {
           console.log(`⚙️ [Flow Execution] Executando fluxo ativo no bot para ${clientPhone} (${clientName})...`);
@@ -209,9 +222,12 @@ async function startWhatsApp() {
           if (Array.isArray(replies) && replies.length > 0) {
             for (let i = 0; i < replies.length; i++) {
               const reply = replies[i];
-              await sendBotReply(remoteJid, reply, msg);
+              const replyMode = (typeof reply === 'object' && reply?.replyMode) ? reply.replyMode : 'send';
+              const quotedToPass = replyMode === 'reply' ? msg : null;
+              await sendBotReply(remoteJid, reply, quotedToPass);
               if (i < replies.length - 1) {
-                await new Promise((r) => setTimeout(r, 600));
+                // Intervalo natural com digitação simulada entre mensagens consecutivas do bot
+                await simulateHumanPresence(remoteJid, 20);
               }
             }
           } else {
@@ -219,13 +235,38 @@ async function startWhatsApp() {
           }
         } catch (botErr) {
           console.error(`❌ [Bot Engine Error] Erro ao processar mensagem para ${clientPhone}:`, botErr);
-          await sendBotReply(remoteJid, `Olá, *${clientName}*! Recebemos sua mensagem na *Pitoco de Gente*. Como podemos te ajudar?`, msg);
+          await sendBotReply(remoteJid, `Olá, *${clientName}*! Recebemos sua mensagem na *Pitoco de Gente*. Como podemos te ajudar?`, null);
         }
       }
     });
   } catch (err) {
     console.error('❌ [Server] Erro ao iniciar Baileys:', err);
     connectionStatus = 'error';
+  }
+}
+
+// 🛡️ ANTI-BAN: Rastreamento anti-flood e detecção de loop infinito
+const floodTracker = new Map();
+function isFloodOrLoop(jid) {
+  const now = Date.now();
+  const list = floodTracker.get(jid) || [];
+  const recent = list.filter(t => now - t < 12000);
+  recent.push(now);
+  floodTracker.set(jid, recent);
+  return recent.length > 5;
+}
+
+// 🛡️ ANTI-BAN & HUMANIZAÇÃO: Simulação nativa de digitação humana no WhatsApp
+async function simulateHumanPresence(remoteJid, charCount = 30) {
+  if (!sock || connectionStatus !== 'connected') return;
+  try {
+    await sock.sendPresenceUpdate('composing', remoteJid);
+    // Tempo natural de digitação (1.2s a 2.6s) para simular operador real no teclado
+    const naturalDelay = Math.min(Math.max(1200 + (charCount * 10) + Math.floor(Math.random() * 350), 1300), 2600);
+    await new Promise(r => setTimeout(r, naturalDelay));
+    await sock.sendPresenceUpdate('paused', remoteJid);
+  } catch (e) {
+    // Falhas de presença não devem impedir o envio
   }
 }
 
@@ -237,7 +278,11 @@ async function sendBotReply(remoteJid, reply, quotedMsg = null, skipRecord = fal
   }
 
   const cleanPhone = remoteJid.replace('@s.whatsapp.net', '').replace(/@lid$/, '').replace(/\D/g, '');
-  const sendOpts = quotedMsg ? { quoted: quotedMsg } : {};
+  
+  // Respeitar a opção do nó: se o card estiver em 'send', desativar citação
+  const isSendOnly = (typeof reply === 'object' && reply?.replyMode === 'send');
+  const effectiveQuoted = isSendOnly ? null : quotedMsg;
+  const sendOpts = effectiveQuoted ? { quoted: effectiveQuoted } : {};
 
   const trySendMessage = async (payload) => {
     try {
@@ -266,13 +311,17 @@ async function sendBotReply(remoteJid, reply, quotedMsg = null, skipRecord = fal
   };
 
   try {
-    // 1. Resposta em Texto Puro
-    if (typeof reply === 'string') {
-      const ok = await trySendMessage({ text: reply });
+    // 1. Resposta em Texto Puro (String ou Objeto com .text)
+    const textContent = typeof reply === 'string' ? reply : (reply && reply.type === 'text' ? reply.text : null);
+    if (textContent) {
+      // 🛡️ ANTI-BAN: Simular presença humana de digitação antes do disparo
+      await simulateHumanPresence(remoteJid, textContent.length);
+
+      const ok = await trySendMessage({ text: textContent });
       if (ok) {
-        console.log(`✅ [WhatsApp Enviado] Texto para ${remoteJid}: "${reply.slice(0, 50).replace(/\n/g, ' ')}..."`);
+        console.log(`✅ [WhatsApp Enviado] Texto (${isSendOnly ? 'Envio Direto' : 'Com Citação'}) para ${remoteJid}: "${textContent.slice(0, 50).replace(/\n/g, ' ')}..."`);
         if (!skipRecord) {
-          await recordMessageLocallyAndSupabase(cleanPhone, 'Pitoco Bot', 'outbound', reply);
+          await recordMessageLocallyAndSupabase(cleanPhone, 'Pitoco Bot', 'outbound', textContent);
         }
       }
       return ok;
@@ -293,6 +342,9 @@ async function sendBotReply(remoteJid, reply, quotedMsg = null, skipRecord = fal
       if (footer) {
         formatted += `\n_${footer}_\n_👉 Digite o número ou o nome da opção desejada._`;
       }
+
+      // 🛡️ ANTI-BAN: Simular digitação humana
+      await simulateHumanPresence(remoteJid, formatted.length);
 
       const ok = await trySendMessage({ text: formatted });
       if (ok) {
@@ -320,6 +372,9 @@ async function sendBotReply(remoteJid, reply, quotedMsg = null, skipRecord = fal
       } else {
         payload = { document: { url: mediaUrl }, mimetype: 'application/pdf', fileName: reply.fileName || 'documento.pdf', caption };
       }
+
+      // 🛡️ ANTI-BAN: Simular presença antes de envio de mídia
+      await simulateHumanPresence(remoteJid, 20);
 
       const ok = await trySendMessage(payload);
       if (ok) {

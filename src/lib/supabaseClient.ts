@@ -638,7 +638,6 @@ export async function saveFlow(flow: Partial<Flow>): Promise<Flow | null> {
       node_count: flow.node_count || 0,
       steps: flow.steps || [],
       color: flow.color || '#10b981',
-      ...(typeof flow.order_index === 'number' ? { order_index: flow.order_index } : {}),
       updated_at: new Date().toISOString(),
     };
 
@@ -649,6 +648,7 @@ export async function saveFlow(flow: Partial<Flow>): Promise<Flow | null> {
       .maybeSingle();
 
     if (error) throw error;
+    console.log('[Supabase] Fluxo gravado com sucesso no banco:', payload.name, `(${payload.id})`);
     return data as Flow;
   } catch (err) {
     console.warn('[Supabase] saveFlow warning:', err);
@@ -690,18 +690,18 @@ export async function toggleFlowStatus(id: string, isActive: boolean): Promise<b
 export async function saveFlowGraph(flowId: string, nodes: FlowNode[], edges: FlowEdge[]): Promise<void> {
   try {
     if (!flowId) return;
-    const nodeIds = (nodes || []).map(n => n.id);
-    const edgeIds = (edges || []).map(e => e.id);
+    const nodeIds = (nodes || []).map(n => n.id).filter(Boolean);
+    const edgeIds = (edges || []).map(e => e.id).filter(Boolean);
 
     // Remove nós e arestas deletados do fluxo
     if (nodeIds.length > 0) {
-      await supabase.from('flow_nodes').delete().eq('flow_id', flowId).not('id', 'in', `(${nodeIds.map(id => `"${id}"`).join(',')})`);
+      await supabase.from('flow_nodes').delete().eq('flow_id', flowId).not('id', 'in', `(${nodeIds.join(',')})`);
     } else {
       await supabase.from('flow_nodes').delete().eq('flow_id', flowId);
     }
 
     if (edgeIds.length > 0) {
-      await supabase.from('flow_edges').delete().eq('flow_id', flowId).not('id', 'in', `(${edgeIds.map(id => `"${id}"`).join(',')})`);
+      await supabase.from('flow_edges').delete().eq('flow_id', flowId).not('id', 'in', `(${edgeIds.join(',')})`);
     } else {
       await supabase.from('flow_edges').delete().eq('flow_id', flowId);
     }
@@ -738,6 +738,7 @@ export async function saveFlowGraph(flowId: string, nodes: FlowNode[], edges: Fl
       node_count: Array.isArray(nodes) ? nodes.length : 0,
       updated_at: new Date().toISOString(),
     }).eq('id', flowId);
+    console.log('[Supabase] Grafo do fluxo gravado com sucesso no banco:', flowId, `(Nós: ${nodes.length})`);
   } catch (err) {
     console.warn('[Supabase] saveFlowGraph warning:', err);
   }

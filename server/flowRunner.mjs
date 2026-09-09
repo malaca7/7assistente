@@ -1967,10 +1967,11 @@ function parseCustomDateString(input) {
     else if (nodeType === 'message') {
       const text = replaceVars(config.text || 'Olá!', session.variables, botProfile);
       if (text) {
-        const lastReply = replies[replies.length - 1];
-        if (typeof lastReply !== 'string' || lastReply.trim() !== text.trim()) {
-          replies.push(text);
-        }
+        replies.push({
+          type: 'text',
+          text,
+          replyMode: config.replyMode || 'send',
+        });
       }
     }
 
@@ -1991,6 +1992,7 @@ function parseCustomDateString(input) {
         body,
         footer,
         buttons: rawButtons,
+        replyMode: config.replyMode || 'send',
       });
       break;
     }
@@ -1998,7 +2000,11 @@ function parseCustomDateString(input) {
     // 3. Question Node
     else if (nodeType === 'question') {
       const qText = replaceVars(config.questionText || 'Por favor, informe seu dado:', session.variables, botProfile);
-      replies.push(qText);
+      replies.push({
+        type: 'text',
+        text: qText,
+        replyMode: config.replyMode || 'send',
+      });
       session.currentNodeId = currentNode.id;
       session.waitingForVar = config.variableName || 'resposta_usuario';
       break;

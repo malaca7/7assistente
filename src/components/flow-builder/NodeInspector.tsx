@@ -38,7 +38,9 @@ import {
   UserCheck,
   Link2,
   User,
-  Phone
+  Phone,
+  MessageSquare,
+  Send
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { VariableBadge } from './ui/VariableBadge';
@@ -308,6 +310,54 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
           onChange={(e) => handleLabelChange(e.target.value)}
           placeholder="Ex: Mensagem de Boas-Vindas"
         />
+
+        {/* Modo de Envio no WhatsApp: Responder/Citar vs Apenas Enviar */}
+        {nodeType !== 'trigger' && (
+          <div className="p-3.5 rounded-2xl bg-dark-950/80 border border-white/10 space-y-2.5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                <MessageSquare className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Envio no WhatsApp</span>
+              </label>
+              <span className="text-[9.5px] font-mono px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-300">
+                {config.replyMode === 'reply' ? '💬 Citação Ativa' : '📨 Envio Direto'}
+              </span>
+            </div>
+            <p className="text-[10.5px] text-slate-400 leading-tight">
+              Defina se este card responde citando a mensagem recebida ou se envia a mensagem de forma direta:
+            </p>
+            <div className="grid grid-cols-2 gap-2 pt-0.5">
+              <button
+                type="button"
+                onClick={() => handleConfigChange('replyMode', 'reply')}
+                className={cn(
+                  "py-2.5 px-2 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 transition-all active:scale-95",
+                  config.replyMode === 'reply'
+                    ? "bg-purple-950/80 border-purple-400 text-purple-200 shadow-md ring-1 ring-purple-400/50"
+                    : "bg-dark-900/80 border-white/10 text-slate-400 hover:text-white hover:bg-white/5"
+                )}
+              >
+                <span className="text-base">💬</span>
+                <span>Responder / Citar</span>
+                <span className="text-[8.5px] font-normal opacity-70">Cita a mensagem</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleConfigChange('replyMode', 'send')}
+                className={cn(
+                  "py-2.5 px-2 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 transition-all active:scale-95",
+                  config.replyMode !== 'reply'
+                    ? "bg-sky-950/80 border-sky-400 text-sky-200 shadow-md ring-1 ring-sky-400/50"
+                    : "bg-dark-900/80 border-white/10 text-slate-400 hover:text-white hover:bg-white/5"
+                )}
+              >
+                <span className="text-base">📨</span>
+                <span>Apenas Enviar</span>
+                <span className="text-[8.5px] font-normal opacity-70">Direto sem citação</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Dynamic fields based on node type */}
         {/* 1. Trigger */}

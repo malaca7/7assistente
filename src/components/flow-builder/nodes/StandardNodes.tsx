@@ -103,6 +103,7 @@ export const MessageNode: React.FC<NodeProps> = ({ id, selected, data }) => {
       hasInput={true}
       hasOutput={true}
       isConfigured={Boolean(config.text)}
+      replyMode={config.replyMode || 'send'}
     >
       {/* WhatsApp-Style Chat Bubble */}
       <div className="relative p-3 rounded-2xl rounded-tl-none bg-dark-950/90 border border-slate-800/80 text-[11px] text-slate-200 shadow-inner">
@@ -145,6 +146,7 @@ export const ButtonsNode: React.FC<NodeProps> = ({ id, selected, data }) => {
       hasOutput={false}
       customOutputs={outputs}
       isConfigured={buttons.length > 0}
+      replyMode={config.replyMode || 'send'}
     >
       <div className="space-y-2">
         {/* WhatsApp Message Body */}
@@ -185,6 +187,7 @@ export const QuestionNode: React.FC<NodeProps> = ({ id, selected, data }) => {
       hasInput={true}
       hasOutput={true}
       isConfigured={Boolean(config.questionText)}
+      replyMode={config.replyMode || 'send'}
     >
       <div className="space-y-2">
         <div className="p-2.5 rounded-xl bg-dark-950/80 border border-slate-800 text-[11px] text-slate-200 line-clamp-2">
