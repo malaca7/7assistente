@@ -1218,18 +1218,13 @@ export const StorageService = {
   },
 
   async toggleFlowStatus(id: string): Promise<Flow | null> {
-    const flows = getItem<Flow[]>(STORAGE_KEYS.FLOWS, sampleFlows);
+    const flows = await this.getFlows();
     const target = flows.find(f => f.id === id);
     if (!target) return null;
 
-    const newActive = !target.is_active && target.status !== 'published';
-    if (newActive) {
-      target.is_active = true;
-      target.status = 'published';
-    } else {
-      target.is_active = false;
-      target.status = 'draft';
-    }
+    const newActive = !target.is_active || target.status !== 'published';
+    target.is_active = newActive;
+    target.status = newActive ? 'published' : 'draft';
     target.updated_at = new Date().toISOString();
     setItem(STORAGE_KEYS.FLOWS, flows);
 

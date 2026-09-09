@@ -357,7 +357,7 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
 
   // Alternar Ativar / Desativar (Suporta múltiplos fluxos ativos independentes)
   const handleToggleFlowStatus = async (flow: Flow) => {
-    const nextActive = !flow.is_active;
+    const nextActive = !flow.is_active || flow.status !== 'published';
     // 1. Atualização otimista na interface (mantém os outros fluxos exatamente como estão)
     setFlows(prev => prev.map(f => f.id === flow.id ? { ...f, is_active: nextActive, status: nextActive ? 'published' : 'draft' } : f));
 
@@ -367,12 +367,13 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
         setFlows(prev => prev.map(f => f.id === flow.id ? { ...f, is_active: updated.is_active, status: updated.status } : f));
         const actionText = updated.is_active ? 'ativado e publicado' : 'pausado / desativado';
         success(`Fluxo "${updated.name}" ${actionText}!`);
-        loadData(true);
+        await loadData(true);
       }
     } catch (err: any) {
       // Reverter em caso de erro
       setFlows(prev => prev.map(f => f.id === flow.id ? { ...f, is_active: flow.is_active, status: flow.status } : f));
       toastError('Erro ao alternar status do fluxo', err.message);
+      await loadData(true);
     }
   };
 
@@ -537,9 +538,15 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
           />
         </div>
 
-        <span className="text-xs text-slate-400">
-          Mostrando <strong className="text-white">{filteredFlows.length}</strong> fluxo(s) cadastrado(s)
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            {flows.filter(f => f.is_active || f.status === 'published').length} Ativos no WhatsApp
+          </span>
+          <span className="text-xs text-slate-400">
+            Total: <strong className="text-white">{filteredFlows.length}</strong> fluxo(s)
+          </span>
+        </div>
       </div>
 
       {/* Lista Principal de Fluxos com Suporte a Drag & Drop */}

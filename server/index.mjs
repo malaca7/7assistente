@@ -178,16 +178,25 @@ async function startWhatsApp() {
         console.log(`📩 [WhatsApp Recebido] ${clientPhone} (${clientName}) [${remoteJid}]: "${text}"`);
         await recordMessageLocallyAndSupabase(clientPhone, clientName, 'inbound', text);
 
-        // 🛡️ BLINDAGEM DE ATENDIMENTO HUMANO:
-        // Se a conversa estiver assumida por um atendente ('human') ou tiver operador atribuído,
-        // o robô NÃO deve interferir, NÃO deve responder e NÃO deve resetar a conversa!
+        // 🛡️ BLINDAGEM DE ATENDIMENTO HUMANO & COMANDOS DE RETORNO AO ROBÔ
+        const cleanInputLower = text.toLowerCase().trim();
+        const isBotResetCmd = ['#bot', '#robo', '#robô', '#sair', '#reiniciar', '#reset', '#menu', '#inicio', '/bot', '/sair', '/menu', 'reiniciar'].includes(cleanInputLower);
+
         const dbCheck = loadDb();
         const convCheck = dbCheck.conversations?.[`conv-${clientPhone}`] || 
                           Object.values(dbCheck.conversations || {}).find(c => 
                             String(c?.phone || c?.contact_phone || '').replace(/\D/g, '') === clientPhone
                           );
 
-        if (convCheck && (convCheck.status === 'human' || convCheck.status === 'waiting_human')) {
+        if (isBotResetCmd && convCheck) {
+          console.log(`🤖 [Atendimento Robô] Comando "${text}" recebido. Devolvendo ${clientPhone} para o fluxo do robô.`);
+          convCheck.status = 'bot';
+          convCheck.assigned_to = null;
+          convCheck.assigned_attendant_name = null;
+          convCheck.assigned_attendant_id = null;
+          if (dbCheck.sessions?.[clientPhone]) delete dbCheck.sessions[clientPhone];
+          saveDb(dbCheck);
+        } else if (convCheck && convCheck.status === 'human') {
           console.log(`🛡️ [Atendimento Humano Ativo] Cliente ${clientPhone} está em atendimento humano ("${convCheck.assigned_to || convCheck.assigned_attendant_name || 'Atendente'}"). Robô pausado.`);
           continue;
         }
@@ -1463,7 +1472,7 @@ app.patch('/api/flows/:id/toggle', (req, res) => {
     const flow = (db.flows || []).find(f => f.id === id);
     if (!flow) return res.status(404).json({ error: 'Fluxo não encontrado' });
 
-    const newActive = !flow.is_active && flow.status !== 'published';
+    const newActive = !flow.is_active || flow.status !== 'published';
     flow.status = newActive ? 'published' : 'draft';
     flow.is_active = newActive;
     flow.updated_at = new Date().toISOString();

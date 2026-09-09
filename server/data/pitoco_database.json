@@ -223,15 +223,6 @@
   ],
   "flows": [
     {
-      "id": "flow-test-backend-1788909946259",
-      "name": "Teste Discloud",
-      "description": "Teste",
-      "status": "draft",
-      "is_active": false,
-      "created_at": "2026-09-08T23:25:51.092Z",
-      "updated_at": "2026-09-08T23:25:51.092Z"
-    },
-    {
       "id": "flow-pitoco-001",
       "name": "Atendimento ao cliente Principal",
       "description": "Atendimento ao cliente Principal",
@@ -259,15 +250,15 @@
         }
       ],
       "created_at": "2026-09-08T20:00:48.042417+00:00",
-      "updated_at": "2026-09-08T23:22:33.601Z",
-      "color": "#10b981",
-      "order_index": 0
+      "updated_at": "2026-09-08T23:35:25.251+00:00",
+      "color": "#10b981"
     }
   ],
   "nodes": {
     "flow-1788033465058": [
       {
         "id": "node-trigger-1788033748050",
+        "flow_id": "flow-1788033465058",
         "type": "trigger",
         "position": {
           "x": 315,
@@ -275,18 +266,19 @@
         },
         "data": {
           "label": "Gatilho",
+          "config": {
+            "keywords": "",
+            "eventType": "any_message",
+            "matchType": "contains"
+          },
           "nodeType": "trigger",
           "description": "Inicia o fluxo ao receber mensagens ou eventos.",
-          "isConfigured": true,
-          "config": {
-            "eventType": "any_message",
-            "keywords": "",
-            "matchType": "contains"
-          }
+          "isConfigured": true
         }
       },
       {
         "id": "node-check_contact-1788102919201",
+        "flow_id": "flow-1788033465058",
         "type": "check_contact",
         "position": {
           "x": 315,
@@ -294,14 +286,15 @@
         },
         "data": {
           "label": "Verificar Contato (Novo vs Salvo)",
+          "config": {},
           "nodeType": "check_contact",
           "description": "Verifica se é o primeiro contato do cliente ou contato existente e cria variáveis.",
-          "isConfigured": true,
-          "config": {}
+          "isConfigured": true
         }
       },
       {
         "id": "node-message-1788033773183",
+        "flow_id": "flow-1788033465058",
         "type": "message",
         "position": {
           "x": 100,
@@ -309,17 +302,18 @@
         },
         "data": {
           "label": "Enviar Mensagem",
-          "nodeType": "message",
-          "description": "Envia texto com suporte a variáveis dinâmicas.",
-          "isConfigured": true,
           "config": {
             "text": "Olá, me chamo *{{bot_nome}}*. e sou assistente de atendimento da *{{empresa}}*! e vou lhe auxiliar para ter um melhor atendimento",
             "previewUrl": false
-          }
+          },
+          "nodeType": "message",
+          "description": "Envia texto com suporte a variáveis dinâmicas.",
+          "isConfigured": true
         }
       },
       {
         "id": "node-question-1788033927695",
+        "flow_id": "flow-1788033465058",
         "type": "question",
         "position": {
           "x": 100,
@@ -327,18 +321,19 @@
         },
         "data": {
           "label": "Pergunta & Resposta",
+          "config": {
+            "expectedType": "text",
+            "questionText": "Por favor, informe seu nome:",
+            "variableName": "nome_cliente"
+          },
           "nodeType": "question",
           "description": "Faz uma pergunta e armazena a resposta em variável.",
-          "isConfigured": true,
-          "config": {
-            "questionText": "Por favor, informe seu nome:",
-            "expectedType": "text",
-            "variableName": "nome_cliente"
-          }
+          "isConfigured": true
         }
       },
       {
         "id": "node-update_contact-1788041687381",
+        "flow_id": "flow-1788033465058",
         "type": "update_contact",
         "position": {
           "x": 100,
@@ -346,19 +341,20 @@
         },
         "data": {
           "label": "Salvar / Vincular Dados",
-          "nodeType": "update_contact",
-          "description": "Salva nome, tags e campos personalizados direto no WhatsApp do cliente.",
-          "isConfigured": true,
           "config": {
-            "contactName": "nome_cliente",
             "tags": "Cliente",
+            "contactName": "nome_cliente",
             "customFieldKey": "interesse_principal",
             "customFieldValue": "opcao_selecionada"
-          }
+          },
+          "nodeType": "update_contact",
+          "description": "Salva nome, tags e campos personalizados direto no WhatsApp do cliente.",
+          "isConfigured": true
         }
       },
       {
         "id": "node-message-1788102948794",
+        "flow_id": "flow-1788033465058",
         "type": "message",
         "position": {
           "x": 530,
@@ -366,17 +362,18 @@
         },
         "data": {
           "label": "Enviar Mensagem",
-          "nodeType": "message",
-          "description": "Envia texto com suporte a variáveis dinâmicas.",
-          "isConfigured": true,
           "config": {
             "text": "Olá {{nome_cliente}}, me chamo *{{bot_nome}}*. e sou assistente de atendimento da *{{empresa}}*! e vou lhe auxiliar para ter um melhor atendimento",
             "previewUrl": false
-          }
+          },
+          "nodeType": "message",
+          "description": "Envia texto com suporte a variáveis dinâmicas.",
+          "isConfigured": true
         }
       },
       {
         "id": "node-ask_date-1788104674417",
+        "flow_id": "flow-1788033465058",
         "type": "ask_date",
         "position": {
           "x": 315,
@@ -384,18 +381,19 @@
         },
         "data": {
           "label": "1. Escolher Dia do Agendamento",
+          "config": {
+            "dateVariable": "data_agendamento",
+            "questionText": "*{{nome_cliente}}*, para qual dia você gostaria de agendar seu atendimento?",
+            "allowCustomDate": true
+          },
           "nodeType": "ask_date",
           "description": "Oferece botões rápidos (Hoje, Amanhã) ou permite o cliente digitar uma data (ex: 25/08).",
-          "isConfigured": true,
-          "config": {
-            "questionText": "*{{nome_cliente}}*, para qual dia você gostaria de agendar seu atendimento?",
-            "dateVariable": "data_agendamento",
-            "allowCustomDate": true
-          }
+          "isConfigured": true
         }
       },
       {
         "id": "node-services_catalog-1788105189425",
+        "flow_id": "flow-1788033465058",
         "type": "services_catalog",
         "position": {
           "x": 315,
@@ -403,21 +401,22 @@
         },
         "data": {
           "label": "2. Catálogo de Serviços & Preços",
+          "config": {
+            "footerText": "Toque no serviço desejado para agendar:",
+            "introMessage": "*{{nome_cliente}}*, qual serviço você deseja?",
+            "priceVarName": "valor_servico",
+            "displayFormat": "buttons",
+            "serviceVarName": "servico_selecionado",
+            "durationVarName": "duracao_servico"
+          },
           "nodeType": "services_catalog",
           "description": "Puxa serviços e preços da Agenda e envia em botões interativos para escolha.",
-          "isConfigured": true,
-          "config": {
-            "displayFormat": "buttons",
-            "introMessage": "*{{nome_cliente}}*, qual serviço você deseja?",
-            "footerText": "Toque no serviço desejado para agendar:",
-            "serviceVarName": "servico_selecionado",
-            "priceVarName": "valor_servico",
-            "durationVarName": "duracao_servico"
-          }
+          "isConfigured": true
         }
       },
       {
         "id": "node-schedule_contact-1788104743355",
+        "flow_id": "flow-1788033465058",
         "type": "schedule_contact",
         "position": {
           "x": 315,
@@ -425,20 +424,21 @@
         },
         "data": {
           "label": "3. Horários Livres da Agenda",
-          "nodeType": "schedule_contact",
-          "description": "Calcula horários realmente livres para a data e serviço, enviando opções para o cliente.",
-          "isConfigured": true,
           "config": {
             "mode": "show_slots",
             "dateType": "variable",
-            "dateVariable": "data_agendamento",
             "serviceName": "{{servico_selecionado}}",
+            "dateVariable": "data_agendamento",
             "introMessage": "Estes são os horários disponíveis para agendamento. Toque no seu horário preferido:"
-          }
+          },
+          "nodeType": "schedule_contact",
+          "description": "Calcula horários realmente livres para a data e serviço, enviando opções para o cliente.",
+          "isConfigured": true
         }
       },
       {
         "id": "node-confirm_booking-1788104787175",
+        "flow_id": "flow-1788033465058",
         "type": "confirm_booking",
         "position": {
           "x": 315,
@@ -446,18 +446,19 @@
         },
         "data": {
           "label": "4. Confirmar & Gravar Agendamento",
-          "nodeType": "confirm_booking",
-          "description": "Exibe resumo com serviço, valor, data e horário, grava na Agenda e adiciona tag Agendado.",
-          "isConfigured": true,
           "config": {
             "confirmMessage": "✅ Perfeito {{nome_cliente}}! Seu agendamento de *{{servico_selecionado}}* foi confirmado para o dia *{{data_agendamento}}* às *{{horario_agendamento}}*!"
-          }
+          },
+          "nodeType": "confirm_booking",
+          "description": "Exibe resumo com serviço, valor, data e horário, grava na Agenda e adiciona tag Agendado.",
+          "isConfigured": true
         }
       }
     ],
     "flow-1788452126641": [
       {
         "id": "node-trigger-1788453758817",
+        "flow_id": "flow-1788452126641",
         "type": "trigger",
         "position": {
           "x": 315,
@@ -465,24 +466,19 @@
         },
         "data": {
           "label": "Gatilho Inicial",
+          "config": {
+            "keywords": "testedevmlc",
+            "eventType": "keyword",
+            "matchType": "contains"
+          },
           "nodeType": "trigger",
           "description": "Inicia o fluxo ao receber mensagens de texto ou palavras-chave no WhatsApp.",
-          "isConfigured": true,
-          "config": {
-            "eventType": "keyword",
-            "keywords": "testedevmlc",
-            "matchType": "contains"
-          }
-        },
-        "measured": {
-          "width": 330,
-          "height": 181
-        },
-        "selected": false,
-        "dragging": false
+          "isConfigured": true
+        }
       },
       {
         "id": "node-message-1788453762849",
+        "flow_id": "flow-1788452126641",
         "type": "message",
         "position": {
           "x": 315,
@@ -490,23 +486,18 @@
         },
         "data": {
           "label": "Enviar Mensagem",
-          "nodeType": "message",
-          "description": "Envia texto formatado no WhatsApp com variáveis dinâmicas (ex: {{nome_cliente}}).",
-          "isConfigured": true,
           "config": {
             "text": "Oi *{{nome_cliente}}*, Tudo bem?",
             "previewUrl": false
-          }
-        },
-        "measured": {
-          "width": 330,
-          "height": 159
-        },
-        "selected": false,
-        "dragging": false
+          },
+          "nodeType": "message",
+          "description": "Envia texto formatado no WhatsApp com variáveis dinâmicas (ex: {{nome_cliente}}).",
+          "isConfigured": true
+        }
       },
       {
         "id": "node-check_contact-1788454082098",
+        "flow_id": "flow-1788452126641",
         "type": "check_contact",
         "position": {
           "x": 315,
@@ -514,20 +505,15 @@
         },
         "data": {
           "label": "Verificar Contato (Novo vs Salvo)",
+          "config": {},
           "nodeType": "check_contact",
           "description": "Bifurca o fluxo entre Primeiro Contato (1ª Vez) e Contato Salvo (Recorrente).",
-          "isConfigured": true,
-          "config": {}
-        },
-        "measured": {
-          "width": 330,
-          "height": 272
-        },
-        "selected": false,
-        "dragging": false
+          "isConfigured": true
+        }
       },
       {
         "id": "node-message-1788454313555",
+        "flow_id": "flow-1788452126641",
         "type": "message",
         "position": {
           "x": 315,
@@ -535,23 +521,18 @@
         },
         "data": {
           "label": "Enviar Mensagem (Cópia)",
-          "nodeType": "message",
-          "description": "Envia texto formatado no WhatsApp com variáveis dinâmicas (ex: {{nome_cliente}}).",
-          "isConfigured": true,
           "config": {
             "text": "Sou  *{{bot_nome}}* assistente virtual da  *{{empresa}}*...",
             "previewUrl": false
-          }
-        },
-        "measured": {
-          "width": 330,
-          "height": 177
-        },
-        "selected": false,
-        "dragging": false
+          },
+          "nodeType": "message",
+          "description": "Envia texto formatado no WhatsApp com variáveis dinâmicas (ex: {{nome_cliente}}).",
+          "isConfigured": true
+        }
       },
       {
         "id": "node-message-1788454336019",
+        "flow_id": "flow-1788452126641",
         "type": "message",
         "position": {
           "x": 315,
@@ -559,23 +540,18 @@
         },
         "data": {
           "label": "Enviar Mensagem (Cópia) (Cópia)",
-          "nodeType": "message",
-          "description": "Envia texto formatado no WhatsApp com variáveis dinâmicas (ex: {{nome_cliente}}).",
-          "isConfigured": true,
           "config": {
             "text": "Estou aqui para te ajudar!",
             "previewUrl": false
-          }
-        },
-        "measured": {
-          "width": 330,
-          "height": 159
-        },
-        "selected": false,
-        "dragging": false
+          },
+          "nodeType": "message",
+          "description": "Envia texto formatado no WhatsApp com variáveis dinâmicas (ex: {{nome_cliente}}).",
+          "isConfigured": true
+        }
       },
       {
         "id": "node-message-1788454375969",
+        "flow_id": "flow-1788452126641",
         "type": "message",
         "position": {
           "x": 315,
@@ -583,23 +559,18 @@
         },
         "data": {
           "label": "Enviar Mensagem (Cópia)",
-          "nodeType": "message",
-          "description": "Envia texto formatado no WhatsApp com variáveis dinâmicas (ex: {{nome_cliente}}).",
-          "isConfigured": true,
           "config": {
             "text": "Espero que sim ☺️",
             "previewUrl": false
-          }
-        },
-        "measured": {
-          "width": 330,
-          "height": 159
-        },
-        "selected": false,
-        "dragging": false
+          },
+          "nodeType": "message",
+          "description": "Envia texto formatado no WhatsApp com variáveis dinâmicas (ex: {{nome_cliente}}).",
+          "isConfigured": true
+        }
       },
       {
         "id": "node-question-1788454431053",
+        "flow_id": "flow-1788452126641",
         "type": "question",
         "position": {
           "x": 100,
@@ -607,24 +578,19 @@
         },
         "data": {
           "label": "Pergunta & Resposta",
+          "config": {
+            "expectedType": "text",
+            "questionText": "Por favor, me diga o seu nome:",
+            "variableName": "nome_novocliente"
+          },
           "nodeType": "question",
           "description": "Faz uma pergunta ao cliente e salva o texto digitado em uma variável.",
-          "isConfigured": true,
-          "config": {
-            "questionText": "Por favor, me diga o seu nome:",
-            "expectedType": "text",
-            "variableName": "nome_novocliente"
-          }
-        },
-        "measured": {
-          "width": 330,
-          "height": 165
-        },
-        "selected": false,
-        "dragging": false
+          "isConfigured": true
+        }
       },
       {
         "id": "node-update_contact-1788454454642",
+        "flow_id": "flow-1788452126641",
         "type": "update_contact",
         "position": {
           "x": 100,
@@ -632,26 +598,21 @@
         },
         "data": {
           "label": "Salvar / Vincular Dados",
-          "nodeType": "update_contact",
-          "description": "Salva nome, foto oficial, tags e campos customizados direto no perfil do WhatsApp.",
-          "isConfigured": true,
           "config": {
-            "phoneVarName": "telefone_whatsapp",
-            "contactName": "nome_novocliente",
             "tags": "Novo Cliente",
+            "contactName": "nome_novocliente",
+            "phoneVarName": "telefone_whatsapp",
             "customFieldKey": "interesse_principal",
             "customFieldValue": "servico_selecionado"
-          }
-        },
-        "measured": {
-          "width": 330,
-          "height": 180
-        },
-        "selected": false,
-        "dragging": false
+          },
+          "nodeType": "update_contact",
+          "description": "Salva nome, foto oficial, tags e campos customizados direto no perfil do WhatsApp.",
+          "isConfigured": true
+        }
       },
       {
         "id": "node-variable-1788482057050",
+        "flow_id": "flow-1788452126641",
         "type": "variable",
         "position": {
           "x": 100,
@@ -659,34 +620,29 @@
         },
         "data": {
           "label": "Definir Variável",
-          "nodeType": "variable",
-          "description": "Armazena valores ou dados calculados em variáveis de contexto.",
-          "isConfigured": true,
           "config": {
             "varName": "nome_liente",
             "varValue": "nome_novocliente",
+            "operation": "copy_var",
             "assignments": [
               {
+                "value": "nome_novocliente",
                 "varName": "nome_liente",
                 "operation": "copy_var",
-                "value": "nome_novocliente",
-                "contactField": "first_name",
                 "sourceVar": "nome_novocliente",
-                "mathAmount": 1
+                "mathAmount": 1,
+                "contactField": "first_name"
               }
-            ],
-            "operation": "copy_var"
-          }
-        },
-        "measured": {
-          "width": 330,
-          "height": 131
-        },
-        "selected": false,
-        "dragging": false
+            ]
+          },
+          "nodeType": "variable",
+          "description": "Armazena valores ou dados calculados em variáveis de contexto.",
+          "isConfigured": true
+        }
       },
       {
         "id": "node-buttons-1788485584016",
+        "flow_id": "flow-1788452126641",
         "type": "buttons",
         "position": {
           "x": 315,
@@ -694,12 +650,7 @@
         },
         "data": {
           "label": "Botões Interativos WhatsApp",
-          "nodeType": "buttons",
-          "description": "Envia menu com opções clicáveis com saídas individuais para cada botão.",
-          "isConfigured": true,
           "config": {
-            "bodyText": "Escolha uma das opções abaixo para continuarmos:",
-            "footerText": "",
             "buttons": [
               {
                 "id": "btn_1",
@@ -713,18 +664,18 @@
                 "id": "btn_3",
                 "title": "3. Falar com Atendente"
               }
-            ]
-          }
-        },
-        "measured": {
-          "width": 330,
-          "height": 216
-        },
-        "selected": false,
-        "dragging": false
+            ],
+            "bodyText": "Escolha uma das opções abaixo para continuarmos:",
+            "footerText": ""
+          },
+          "nodeType": "buttons",
+          "description": "Envia menu com opções clicáveis com saídas individuais para cada botão.",
+          "isConfigured": true
+        }
       },
       {
         "id": "node-show_services-1788485638335",
+        "flow_id": "flow-1788452126641",
         "type": "show_services",
         "position": {
           "x": 745,
@@ -732,23 +683,18 @@
         },
         "data": {
           "label": "1. Exibir Catálogo de Serviços",
+          "config": {
+            "footerText": "Consulte os serviços disponíveis acima.",
+            "headerText": "💈 *Catálogo de Serviços & Preços*"
+          },
           "nodeType": "show_services",
           "description": "Envia uma mensagem com todos os serviços, descrições e valores cadastrados (Apenas Leitura).",
-          "isConfigured": true,
-          "config": {
-            "headerText": "💈 *Catálogo de Serviços & Preços*",
-            "footerText": "Consulte os serviços disponíveis acima."
-          }
-        },
-        "measured": {
-          "width": 330,
-          "height": 174
-        },
-        "selected": false,
-        "dragging": false
+          "isConfigured": true
+        }
       },
       {
         "id": "node-delay-1788485675993",
+        "flow_id": "flow-1788452126641",
         "type": "delay",
         "position": {
           "x": 745,
@@ -756,20 +702,14 @@
         },
         "data": {
           "label": "Aguardar / Espera",
+          "config": {
+            "unit": "segundos",
+            "amount": 5
+          },
           "nodeType": "delay",
           "description": "Pausa a execução do fluxo por alguns segundos para simular digitação humana.",
-          "isConfigured": true,
-          "config": {
-            "amount": 5,
-            "unit": "segundos"
-          }
-        },
-        "measured": {
-          "width": 330,
-          "height": 129
-        },
-        "selected": false,
-        "dragging": false
+          "isConfigured": true
+        }
       }
     ],
     "flow-pitoco-001": [
@@ -897,328 +837,181 @@
     "flow-1788033465058": [
       {
         "id": "xy-edge__node-trigger-1788033748050-node-check_contact-1788102919201",
+        "flow_id": "flow-1788033465058",
         "source": "node-trigger-1788033748050",
         "target": "node-check_contact-1788102919201",
-        "type": "smoothstep",
-        "animated": true,
-        "style": {
-          "stroke": "#06b6d4",
-          "strokeWidth": 2.5
-        }
+        "data": {}
       },
       {
         "id": "xy-edge__node-check_contact-1788102919201is_new-node-message-1788033773183",
+        "flow_id": "flow-1788033465058",
         "source": "node-check_contact-1788102919201",
-        "sourceHandle": "is_new",
         "target": "node-message-1788033773183",
-        "type": "smoothstep",
-        "animated": true,
-        "style": {
-          "stroke": "#06b6d4",
-          "strokeWidth": 2.5
-        }
+        "sourceHandle": "is_new",
+        "data": {}
       },
       {
         "id": "xy-edge__node-check_contact-1788102919201is_existing-node-message-1788102948794",
+        "flow_id": "flow-1788033465058",
         "source": "node-check_contact-1788102919201",
-        "sourceHandle": "is_existing",
         "target": "node-message-1788102948794",
-        "type": "smoothstep",
-        "animated": true,
-        "style": {
-          "stroke": "#06b6d4",
-          "strokeWidth": 2.5
-        }
+        "sourceHandle": "is_existing",
+        "data": {}
       },
       {
         "id": "xy-edge__node-message-1788033773183-node-question-1788033927695",
+        "flow_id": "flow-1788033465058",
         "source": "node-message-1788033773183",
         "target": "node-question-1788033927695",
-        "animated": true,
-        "style": {
-          "stroke": "#6366f1",
-          "strokeWidth": 2.5
-        }
+        "data": {}
       },
       {
         "id": "xy-edge__node-question-1788033927695-node-update_contact-1788041687381",
+        "flow_id": "flow-1788033465058",
         "source": "node-question-1788033927695",
         "target": "node-update_contact-1788041687381",
-        "animated": true,
-        "style": {
-          "stroke": "#6366f1",
-          "strokeWidth": 2.5
-        }
+        "data": {}
       },
       {
         "id": "xy-edge__node-update_contact-1788041687381-node-ask_date-1788104674417",
+        "flow_id": "flow-1788033465058",
         "source": "node-update_contact-1788041687381",
         "target": "node-ask_date-1788104674417",
-        "type": "smoothstep",
-        "animated": true,
-        "style": {
-          "stroke": "#06b6d4",
-          "strokeWidth": 2.5
-        }
+        "data": {}
       },
       {
         "id": "xy-edge__node-message-1788102948794-node-ask_date-1788104674417",
+        "flow_id": "flow-1788033465058",
         "source": "node-message-1788102948794",
         "target": "node-ask_date-1788104674417",
-        "type": "smoothstep",
-        "animated": true,
-        "style": {
-          "stroke": "#06b6d4",
-          "strokeWidth": 2.5
-        }
+        "data": {}
       },
       {
         "id": "xy-edge__node-ask_date-1788104674417-node-services_catalog-1788105189425",
+        "flow_id": "flow-1788033465058",
         "source": "node-ask_date-1788104674417",
         "target": "node-services_catalog-1788105189425",
-        "type": "smoothstep",
-        "animated": true,
-        "style": {
-          "stroke": "#06b6d4",
-          "strokeWidth": 2.5
-        }
+        "data": {}
       },
       {
         "id": "xy-edge__node-services_catalog-1788105189425-node-schedule_contact-1788104743355",
+        "flow_id": "flow-1788033465058",
         "source": "node-services_catalog-1788105189425",
         "target": "node-schedule_contact-1788104743355",
-        "type": "smoothstep",
-        "animated": true,
-        "style": {
-          "stroke": "#06b6d4",
-          "strokeWidth": 2.5
-        }
+        "data": {}
       },
       {
         "id": "xy-edge__node-schedule_contact-1788104743355-node-confirm_booking-1788104787175",
+        "flow_id": "flow-1788033465058",
         "source": "node-schedule_contact-1788104743355",
         "target": "node-confirm_booking-1788104787175",
-        "type": "smoothstep",
-        "animated": true,
-        "style": {
-          "stroke": "#06b6d4",
-          "strokeWidth": 2.5
-        }
+        "data": {}
       }
     ],
     "flow-1788452126641": [
       {
-        "type": "smoothstep",
-        "animated": true,
-        "style": {
-          "stroke": "#06b6d4",
-          "strokeWidth": 2.5
-        },
-        "pathOptions": {
-          "offset": 35,
-          "borderRadius": 20
-        },
+        "id": "xy-edge__node-trigger-1788453758817-node-check_contact-1788454082098",
+        "flow_id": "flow-1788452126641",
         "source": "node-trigger-1788453758817",
         "target": "node-check_contact-1788454082098",
-        "id": "xy-edge__node-trigger-1788453758817-node-check_contact-1788454082098",
-        "targetHandle": null
+        "data": {}
       },
       {
-        "type": "smoothstep",
-        "animated": true,
-        "style": {
-          "stroke": "#06b6d4",
-          "strokeWidth": 2.5
-        },
-        "pathOptions": {
-          "offset": 35,
-          "borderRadius": 20
-        },
-        "source": "node-check_contact-1788454082098",
-        "sourceHandle": "is_existing",
-        "target": "node-message-1788453762849",
         "id": "xy-edge__node-check_contact-1788454082098is_existing-node-message-1788453762849",
-        "targetHandle": null
+        "flow_id": "flow-1788452126641",
+        "source": "node-check_contact-1788454082098",
+        "target": "node-message-1788453762849",
+        "sourceHandle": "is_existing",
+        "data": {}
       },
       {
-        "type": "smoothstep",
-        "animated": true,
-        "style": {
-          "stroke": "#06b6d4",
-          "strokeWidth": 2.5
-        },
-        "pathOptions": {
-          "offset": 35,
-          "borderRadius": 20
-        },
+        "id": "xy-edge__node-message-1788454313555-node-message-1788454336019",
+        "flow_id": "flow-1788452126641",
         "source": "node-message-1788454313555",
         "target": "node-message-1788454336019",
-        "id": "xy-edge__node-message-1788454313555-node-message-1788454336019",
-        "targetHandle": null
+        "data": {}
       },
       {
-        "type": "smoothstep",
-        "animated": true,
-        "style": {
-          "stroke": "#06b6d4",
-          "strokeWidth": 2.5
-        },
-        "pathOptions": {
-          "offset": 35,
-          "borderRadius": 20
-        },
+        "id": "xy-edge__node-message-1788453762849-node-message-1788454375969",
+        "flow_id": "flow-1788452126641",
         "source": "node-message-1788453762849",
         "target": "node-message-1788454375969",
-        "id": "xy-edge__node-message-1788453762849-node-message-1788454375969",
-        "targetHandle": null
+        "data": {}
       },
       {
-        "type": "smoothstep",
-        "animated": true,
-        "style": {
-          "stroke": "#06b6d4",
-          "strokeWidth": 2.5
-        },
-        "pathOptions": {
-          "offset": 35,
-          "borderRadius": 20
-        },
+        "id": "xy-edge__node-message-1788454375969-node-message-1788454313555",
+        "flow_id": "flow-1788452126641",
         "source": "node-message-1788454375969",
         "target": "node-message-1788454313555",
-        "id": "xy-edge__node-message-1788454375969-node-message-1788454313555",
-        "targetHandle": null
+        "data": {}
       },
       {
-        "type": "smoothstep",
-        "animated": true,
-        "style": {
-          "stroke": "#06b6d4",
-          "strokeWidth": 2.5
-        },
-        "pathOptions": {
-          "offset": 35,
-          "borderRadius": 20
-        },
+        "id": "xy-edge__node-question-1788454431053-node-update_contact-1788454454642",
+        "flow_id": "flow-1788452126641",
         "source": "node-question-1788454431053",
         "target": "node-update_contact-1788454454642",
-        "id": "xy-edge__node-question-1788454431053-node-update_contact-1788454454642",
-        "targetHandle": null
+        "data": {}
       },
       {
-        "type": "smoothstep",
-        "animated": true,
-        "style": {
-          "stroke": "#06b6d4",
-          "strokeWidth": 2.5
-        },
-        "pathOptions": {
-          "offset": 35,
-          "borderRadius": 20
-        },
-        "source": "node-check_contact-1788454082098",
-        "sourceHandle": "is_new",
-        "target": "node-question-1788454431053",
         "id": "xy-edge__node-check_contact-1788454082098is_new-node-question-1788454431053",
-        "targetHandle": null
+        "flow_id": "flow-1788452126641",
+        "source": "node-check_contact-1788454082098",
+        "target": "node-question-1788454431053",
+        "sourceHandle": "is_new",
+        "data": {}
       },
       {
-        "type": "smoothstep",
-        "animated": true,
-        "style": {
-          "stroke": "#06b6d4",
-          "strokeWidth": 2.5
-        },
-        "pathOptions": {
-          "offset": 35,
-          "borderRadius": 20
-        },
+        "id": "xy-edge__node-update_contact-1788454454642-node-variable-1788482057050",
+        "flow_id": "flow-1788452126641",
         "source": "node-update_contact-1788454454642",
         "target": "node-variable-1788482057050",
-        "id": "xy-edge__node-update_contact-1788454454642-node-variable-1788482057050",
-        "targetHandle": null
+        "data": {}
       },
       {
-        "type": "smoothstep",
-        "animated": true,
-        "style": {
-          "stroke": "#06b6d4",
-          "strokeWidth": 2.5
-        },
-        "pathOptions": {
-          "offset": 35,
-          "borderRadius": 20
-        },
+        "id": "xy-edge__node-variable-1788482057050-node-message-1788453762849",
+        "flow_id": "flow-1788452126641",
         "source": "node-variable-1788482057050",
         "target": "node-message-1788453762849",
-        "id": "xy-edge__node-variable-1788482057050-node-message-1788453762849",
-        "targetHandle": null
+        "data": {}
       },
       {
-        "type": "smoothstep",
-        "animated": true,
-        "style": {
-          "stroke": "#06b6d4",
-          "strokeWidth": 2.5
-        },
-        "pathOptions": {
-          "offset": 35,
-          "borderRadius": 20
-        },
+        "id": "xy-edge__node-message-1788454336019-node-buttons-1788485584016",
+        "flow_id": "flow-1788452126641",
         "source": "node-message-1788454336019",
         "target": "node-buttons-1788485584016",
-        "id": "xy-edge__node-message-1788454336019-node-buttons-1788485584016",
-        "targetHandle": null
+        "data": {}
       },
       {
-        "type": "smoothstep",
-        "animated": true,
-        "style": {
-          "stroke": "#06b6d4",
-          "strokeWidth": 2.5
-        },
-        "pathOptions": {
-          "offset": 35,
-          "borderRadius": 20
-        },
-        "source": "node-buttons-1788485584016",
-        "sourceHandle": "btn_2",
-        "target": "node-show_services-1788485638335",
         "id": "xy-edge__node-buttons-1788485584016btn_2-node-show_services-1788485638335",
-        "targetHandle": null
+        "flow_id": "flow-1788452126641",
+        "source": "node-buttons-1788485584016",
+        "target": "node-show_services-1788485638335",
+        "sourceHandle": "btn_2",
+        "data": {}
       },
       {
-        "type": "smoothstep",
-        "animated": true,
-        "style": {
-          "stroke": "#06b6d4",
-          "strokeWidth": 2.5
-        },
-        "pathOptions": {
-          "offset": 35,
-          "borderRadius": 20
-        },
+        "id": "xy-edge__node-delay-1788485675993-node-buttons-1788485584016",
+        "flow_id": "flow-1788452126641",
         "source": "node-delay-1788485675993",
         "target": "node-buttons-1788485584016",
-        "id": "xy-edge__node-delay-1788485675993-node-buttons-1788485584016",
-        "targetHandle": null
+        "data": {}
       },
       {
-        "type": "smoothstep",
-        "animated": true,
-        "style": {
-          "stroke": "#06b6d4",
-          "strokeWidth": 2.5
-        },
-        "pathOptions": {
-          "offset": 35,
-          "borderRadius": 20
-        },
+        "id": "xy-edge__node-show_services-1788485638335-node-delay-1788485675993",
+        "flow_id": "flow-1788452126641",
         "source": "node-show_services-1788485638335",
         "target": "node-delay-1788485675993",
-        "id": "xy-edge__node-show_services-1788485638335-node-delay-1788485675993"
+        "data": {}
       }
     ],
     "flow-pitoco-001": [
+      {
+        "id": "xy-edge__node-question-1788893542405-node-update_contact-1788906881259",
+        "flow_id": "flow-pitoco-001",
+        "source": "node-question-1788893542405",
+        "target": "node-update_contact-1788906881259",
+        "data": {}
+      },
       {
         "id": "xy-edge__node-message-1788908658917-node-message-1788908698448",
         "flow_id": "flow-pitoco-001",
@@ -1232,13 +1025,6 @@
         "source": "node-check_contact-1788893686878",
         "target": "node-message-1788908658917",
         "sourceHandle": "is_existing",
-        "data": {}
-      },
-      {
-        "id": "xy-edge__node-question-1788893542405-node-update_contact-1788906881259",
-        "flow_id": "flow-pitoco-001",
-        "source": "node-question-1788893542405",
-        "target": "node-update_contact-1788906881259",
         "data": {}
       },
       {
@@ -1349,6 +1135,27 @@
       "last_interaction": "2026-09-08T23:35:56.207Z",
       "updated_at": "2026-09-08T23:35:56.544Z",
       "whatsapp_pushname": "Lucas Silva"
+    },
+    "168650497613858": {
+      "id": "contact-168650497613858",
+      "name": "Rogerio",
+      "phone": "168650497613858",
+      "tags": [
+        "Lead",
+        "Cliente",
+        "Cliente WhatsApp",
+        "Bot"
+      ],
+      "status": "active",
+      "notes": "Cadastrado e atualizado pelo fluxo do bot",
+      "custom_fields": {
+        "nome_cliente": "Rogerio"
+      },
+      "is_registered": true,
+      "created_at": "2026-09-09T00:01:00.751Z",
+      "last_interaction": "2026-09-09T00:01:18.583Z",
+      "updated_at": "2026-09-09T00:01:18.870Z",
+      "whatsapp_pushname": "Rogerio"
     }
   },
   "conversations": {
@@ -1359,40 +1166,28 @@
       "phone": "168650497613858",
       "last_message": "oi",
       "last_message_at": "2026-09-08T22:24:46.277Z",
-      "status": "human",
+      "status": "bot",
       "store_name": "Pitoco de Gente",
       "contact_id": "contact-558196138924",
-      "assigned_to": "Atendente Pitoco",
+      "assigned_to": null,
       "updated_at": "2026-09-08T22:48:44.979Z",
       "assigned_attendant_id": null,
-      "assigned_attendant_name": "Atendente Pitoco"
+      "assigned_attendant_name": null
     },
     "conv-168650497613858": {
       "id": "conv-168650497613858",
-      "contact_name": "rogerio mlc",
+      "contact_name": "Rogerio",
       "contact_phone": "168650497613858",
       "phone": "168650497613858",
-      "last_message": "oi",
-      "last_message_at": "2026-09-08T23:25:05.048Z",
-      "status": "waiting_human",
-      "store_name": "Pitoco de Gente",
-      "assigned_attendant_id": "user-1788477817013",
-      "assigned_to": "Jefferson",
-      "updated_at": "2026-09-08T23:25:05.048Z"
-    },
-    "conv-5581987654321": {
-      "id": "conv-5581987654321",
-      "contact_id": "contact-5581987654321",
-      "contact_name": "Lucas",
-      "contact_phone": "5581987654321",
+      "last_message": "Me chamo *Victoria*, e sou assistente virtual. É um prazer atender você...",
+      "last_message_at": "2026-09-09T00:01:18.870Z",
       "status": "bot",
       "store_name": "Pitoco de Gente",
-      "started_at": "2026-09-08T23:35:55.155Z",
+      "updated_at": "2026-09-09T00:01:18.870Z",
+      "contact_id": "contact-168650497613858",
+      "started_at": "2026-09-09T00:01:00.751Z",
       "unread_count": 0,
-      "created_at": "2026-09-08T23:35:55.155Z",
-      "last_message": "Me chamo *Victoria*, e sou assistente virtual. É um prazer atender você...",
-      "last_message_at": "2026-09-08T23:35:56.544Z",
-      "updated_at": "2026-09-08T23:35:56.544Z"
+      "created_at": "2026-09-09T00:01:00.751Z"
     }
   },
   "messages": {
@@ -1638,35 +1433,33 @@
         "sender": "user",
         "author_name": "rogerio mlc",
         "created_at": "2026-09-08T23:25:05.049Z"
-      }
-    ],
-    "conv-5581987654321": [
+      },
       {
-        "id": "msg-1788910555155-nbwzg",
-        "conversation_id": "conv-5581987654321",
+        "id": "msg-1788912060751-zaoye",
+        "conversation_id": "conv-168650497613858",
         "direction": "outbound",
         "message_type": "text",
         "content": "Por favor, informe seu *Nome*:",
         "status": "delivered",
-        "created_at": "2026-09-08T23:35:55.155Z"
+        "created_at": "2026-09-09T00:01:00.751Z"
       },
       {
-        "id": "msg-1788910556530-896ur",
-        "conversation_id": "conv-5581987654321",
+        "id": "msg-1788912078858-9as2b",
+        "conversation_id": "conv-168650497613858",
         "direction": "outbound",
         "message_type": "text",
-        "content": "👶✨ Olá *Lucas*! Seja muito bem-vindo(a) à *Pitoco de Gente*!",
+        "content": "👶✨ Olá *Rogerio*! Seja muito bem-vindo(a) à *Pitoco de Gente*!",
         "status": "delivered",
-        "created_at": "2026-09-08T23:35:56.530Z"
+        "created_at": "2026-09-09T00:01:18.858Z"
       },
       {
-        "id": "msg-1788910556544-zlwwa",
-        "conversation_id": "conv-5581987654321",
+        "id": "msg-1788912078870-7hpv9",
+        "conversation_id": "conv-168650497613858",
         "direction": "outbound",
         "message_type": "text",
         "content": "Me chamo *Victoria*, e sou assistente virtual. É um prazer atender você...",
         "status": "delivered",
-        "created_at": "2026-09-08T23:35:56.544Z"
+        "created_at": "2026-09-09T00:01:18.870Z"
       }
     ]
   },
@@ -2232,28 +2025,26 @@
     },
     "168650497613858": {
       "step": "MAIN_MENU",
-      "userName": "rogerio mlc"
-    },
-    "5581987654321": {
+      "userName": "rogerio mlc",
       "flowId": "flow-pitoco-001",
       "currentNodeId": "node-message-1788908698448",
       "variables": {
-        "whatsapp_pushname": "Lucas Silva",
-        "telefone_cliente": "5581987654321",
-        "telefone_whatsapp": "5581987654321",
-        "ultima_mensagem": "Lucas",
-        "nome_cliente": "Lucas",
+        "whatsapp_pushname": "Rogerio",
+        "telefone_cliente": "168650497613858",
+        "telefone_whatsapp": "168650497613858",
+        "ultima_mensagem": "Rogerio",
+        "nome_cliente": "Rogerio",
         "is_primeiro_contato": true,
         "is_novo_contato": true,
         "tipo_cliente": "novo",
-        "{{nome_cliente}}": "Lucas",
-        "resposta_usuario": "Lucas",
-        "cliente_nome": "Lucas",
-        "nome": "Lucas",
-        "cliente_telefone": "5581987654321",
+        "{{nome_cliente}}": "Rogerio",
+        "resposta_usuario": "Rogerio",
+        "cliente_nome": "Rogerio",
+        "nome": "Rogerio",
+        "cliente_telefone": "168650497613858",
         "cliente_salvo": true,
-        "cliente_id": "contact-5581987654321",
-        "primeiro_nome": "Lucas",
+        "cliente_id": "contact-168650497613858",
+        "primeiro_nome": "Rogerio",
         "cliente_foto": "",
         "foto_cliente": ""
       },
@@ -2263,17 +2054,17 @@
   "rolePermissions": {},
   "logs": [
     {
-      "id": "log-1788910556549-o5fl1",
+      "id": "log-1788912078875-n1pfs",
       "type": "message_outbound",
-      "title": "Resposta para Lucas Silva",
+      "title": "Resposta para Rogerio",
       "description": "Me chamo *Victoria*, e sou assistente virtual. É um prazer atender você...",
-      "contact_phone": "5581987654321",
-      "contact_name": "Lucas Silva",
+      "contact_phone": "168650497613858",
+      "contact_name": "Rogerio",
       "details": {
         "direction": "outbound",
-        "messageId": "msg-1788910556544-zlwwa"
+        "messageId": "msg-1788912078870-7hpv9"
       },
-      "created_at": "2026-09-08T23:35:56.549Z"
+      "created_at": "2026-09-09T00:01:18.875Z"
     }
   ]
 }

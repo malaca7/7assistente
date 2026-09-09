@@ -1209,12 +1209,7 @@ export async function syncFlowToSupabase(flow) {
   if (!supabaseClient || !flow || !flow.id) return;
   try {
     const isPublishing = flow.status === 'published' || flow.is_active === true;
-    if (isPublishing) {
-      await supabaseClient
-        .from('flows')
-        .update({ status: 'draft', is_active: false, updated_at: new Date().toISOString() })
-        .neq('id', flow.id);
-    }
+    // Permite múltiplos fluxos ativos: não desativa outros fluxos no Supabase!
     await supabaseClient.from('flows').upsert({
       id: flow.id,
       name: flow.name || 'Fluxo',
@@ -1296,11 +1291,11 @@ export async function syncFlowGraphToSupabase(flowId, nodes, edges) {
   }
 }
 
-// Function to fetch latest active flow, nodes, and edges dynamically with Supabase priority
+// Obter dinamicamente os fluxos e nós publicados diretamente do Supabase em tempo real
 export async function getActiveFlowAndGraph(db, preferredFlowId = null, incomingText = '') {
   let activeFlows = [];
 
-  // 1. Consultar diretamente os fluxos com status ATIVO no Supabase
+  // 1. Consultar diretamente TODOS os fluxos com status ATIVO no Supabase
   if (supabaseClient && supabaseHasFlowsTable !== false) {
     try {
       const { data, error } = await supabaseClient
@@ -1313,7 +1308,6 @@ export async function getActiveFlowAndGraph(db, preferredFlowId = null, incoming
       } else if (!error && Array.isArray(data)) {
         supabaseHasFlowsTable = true;
         activeFlows = data.filter((f) => f.is_active === true || f.status === 'published');
-        // Regra estrita: se a tabela existe no Supabase e não há nenhum fluxo ativo, NÃO rodar nenhum fluxo!
         if (activeFlows.length === 0) {
           console.log('[FlowRunner] ⏸️ Nenhum fluxo ativo no Supabase (status=published ou is_active=true). O bot não executará fluxos inativos.');
           return { publishedFlow: null, nodes: [], edges: [] };
@@ -1329,7 +1323,6 @@ export async function getActiveFlowAndGraph(db, preferredFlowId = null, incoming
     activeFlows = (db.flows || []).filter((f) => f.status === 'published' || f.is_active === true);
   }
 
-  // Se não houver NENHUM fluxo ativo, encerra (NUNCA faz fallback para fluxos desativados ou rascunhos)
   if (activeFlows.length === 0) {
     console.log('[FlowRunner] ⏸️ Nenhum fluxo ativo configurado no sistema. Robô aguardando ativação.');
     return { publishedFlow: null, nodes: [], edges: [] };
@@ -1343,46 +1336,86 @@ export async function getActiveFlowAndGraph(db, preferredFlowId = null, incoming
     return (a.name || '').localeCompare(b.name || '');
   });
 
-  // Priorizar fluxo que o cliente já estava conversando na sessão atual, caso ainda ativo
-  const candidateFlow = (preferredFlowId && activeFlows.find(f => f.id === preferredFlowId)) || activeFlows[0];
+  const activeFlowIds = activeFlows.map(f => f.id);
+
+  // 3. Carregar nós e arestas de todos os fluxos ativos para conferir palavras-chave e disparos
+  let allActiveNodes = [];
+  let allActiveEdges = [];
+  if (supabaseClient && supabaseHasFlowsTable !== false) {
+    try {
+      const [nodesRes, edgesRes] = await Promise.all([
+        supabaseClient.from('flow_nodes').select('*').in('flow_id', activeFlowIds),
+        supabaseClient.from('flow_edges').select('*').in('flow_id', activeFlowIds),
+      ]);
+      if (Array.isArray(nodesRes.data)) allActiveNodes = nodesRes.data;
+      if (Array.isArray(edgesRes.data)) allActiveEdges = edgesRes.data;
+    } catch (e) {}
+  }
+
+  // 4. Selecionar o melhor fluxo para a mensagem recebida:
+  let candidateFlow = null;
+  const cleanIncoming = (incomingText || '').toLowerCase().trim();
+
+  // A) Verificar se a mensagem bate com palavras-chave de algum fluxo específico
+  if (cleanIncoming) {
+    for (const flow of activeFlows) {
+      const flowNodes = allActiveNodes.filter(n => n.flow_id === flow.id);
+      const trig = flowNodes.find(n => (n.data?.nodeType || n.type) === 'trigger') ||
+                   (db.nodes?.[flow.id] || []).find(n => (n.data?.nodeType || n.type) === 'trigger');
+      const trigConfig = trig?.data?.config || {};
+      const kws = (trigConfig.keywords || '').split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
+      if (kws.length > 0) {
+        const matches = kws.some(k => cleanIncoming.includes(k));
+        if (matches) {
+          candidateFlow = flow;
+          console.log(`[FlowRunner] 🎯 Mensagem "${incomingText}" ativou fluxo específico por palavra-chave: "${flow.name}" (${flow.id})`);
+          break;
+        }
+      }
+    }
+  }
+
+  // B) Se não bateu palavra-chave específica, manter o fluxo em andamento do usuário se ainda ativo
+  if (!candidateFlow && preferredFlowId) {
+    candidateFlow = activeFlows.find(f => f.id === preferredFlowId) || null;
+  }
+
+  // C) Caso contrário, disparar o primeiro fluxo ativo (ordem prioritária)
+  if (!candidateFlow) {
+    candidateFlow = activeFlows[0];
+  }
+
   const flowId = candidateFlow.id;
   let nodes = [];
   let edges = [];
 
-  // Buscar nós e arestas diretamente no Supabase
-  if (supabaseClient && supabaseHasFlowsTable !== false) {
-    try {
-      const [nodesRes, edgesRes] = await Promise.all([
-        supabaseClient.from('flow_nodes').select('*').eq('flow_id', flowId),
-        supabaseClient.from('flow_edges').select('*').eq('flow_id', flowId),
-      ]);
+  const rawFlowNodes = allActiveNodes.filter(n => n.flow_id === flowId);
+  const rawFlowEdges = allActiveEdges.filter(e => e.flow_id === flowId);
 
-      if (nodesRes.data && Array.isArray(nodesRes.data) && nodesRes.data.length > 0) {
-        nodes = nodesRes.data.map((d) => ({
-          id: d.id,
-          flow_id: d.flow_id,
-          type: d.type || d.node_type || 'message',
-          position: d.position || { x: Number(d.position_x || 0), y: Number(d.position_y || 0) },
-          data: d.data || { label: d.label, nodeType: d.type, config: {} },
-        }));
-        if (!db.nodes) db.nodes = {};
-        db.nodes[flowId] = nodes;
-      }
+  if (rawFlowNodes.length > 0) {
+    nodes = rawFlowNodes.map((d) => ({
+      id: d.id,
+      flow_id: d.flow_id,
+      type: d.type || d.node_type || 'message',
+      position: d.position || { x: Number(d.position_x || 0), y: Number(d.position_y || 0) },
+      data: d.data || { label: d.label, nodeType: d.type, config: {} },
+    }));
+    if (!db.nodes) db.nodes = {};
+    db.nodes[flowId] = nodes;
+  }
 
-      if (edgesRes.data && Array.isArray(edgesRes.data) && edgesRes.data.length > 0) {
-        edges = edgesRes.data.map((e) => ({
-          id: e.id,
-          flow_id: e.flow_id,
-          source: e.source || e.source_node_id,
-          target: e.target || e.target_node_id,
-          sourceHandle: e.source_handle || e.sourceHandle,
-          targetHandle: e.target_handle || e.targetHandle,
-          data: e.data || e.condition || {},
-        }));
-        if (!db.edges) db.edges = {};
-        db.edges[flowId] = edges;
-      }
-    } catch (e) {}
+  if (rawFlowEdges.length > 0) {
+    edges = rawFlowEdges.map((e) => ({
+      id: e.id,
+      flow_id: e.flow_id,
+      source: e.source || e.source_node_id,
+      target: e.target || e.target_node_id,
+      sourceHandle: e.source_handle || e.sourceHandle,
+      targetHandle: e.target_handle || e.targetHandle,
+      data: e.data || e.condition || {},
+    }));
+    if (!db.edges) db.edges = {};
+    db.edges[flowId] = edges;
   }
 
   // Fallback para cache local de nós/arestas caso a rede falhe
@@ -1418,13 +1451,22 @@ export async function executePublishedFlow(senderJid, messageText, pushName, rea
   recordRealMessage(cleanPhone, senderName, 'inbound', cleanInput, null, profilePicUrl);
 
   // 🛡️ BLINDAGEM DE ATENDIMENTO HUMANO: Se a conversa estiver assumida por um atendente humano,
-  // o robô JAMAIS deve responder e JAMAIS deve alterar o status para bot!
+  // o robô NÃO deve interferir, a menos que o cliente envie um comando de retorno ao bot (#bot, #reiniciar, menu)
+  const isBotResetCmd = ['#bot', '#robo', '#robô', '#sair', '#reiniciar', '#reset', '#menu', '#inicio', '/bot', '/sair', '/menu', 'reiniciar'].includes(cleanInput.toLowerCase());
+
   const convId = `conv-${cleanPhone}`;
   const currentConv = db.conversations?.[convId] || Object.values(db.conversations || {}).find(c => 
     String(c?.phone || c?.contact_phone || '').replace(/\D/g, '') === cleanPhone
   );
 
-  if (currentConv && (currentConv.status === 'human' || currentConv.status === 'waiting_human')) {
+  if (isBotResetCmd && currentConv) {
+    console.log(`🤖 [FlowRunner] Comando "${cleanInput}" recebido. Devolvendo conversa ${cleanPhone} ao robô.`);
+    currentConv.status = 'bot';
+    currentConv.assigned_to = null;
+    currentConv.assigned_attendant_name = null;
+    currentConv.assigned_attendant_id = null;
+    if (db.sessions?.[cleanPhone]) delete db.sessions[cleanPhone];
+  } else if (currentConv && currentConv.status === 'human') {
     console.log(`🛡️ [FlowRunner] Conversa ${cleanPhone} está em Atendimento Humano ("${currentConv.assigned_to || currentConv.assigned_attendant_name || 'Atendente'}"). O fluxo do robô não responderá.`);
     return [];
   }
