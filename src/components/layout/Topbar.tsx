@@ -3,7 +3,8 @@ import {
   Bell, 
   ExternalLink,
   QrCode,
-  Palette
+  Palette,
+  ShieldCheck
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { useAuth } from '../../contexts/AuthContext';
