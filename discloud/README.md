@@ -37,11 +37,14 @@ NEXT_PUBLIC_BOT_URL=https://pitoco.discloud.app
 | :--- | :--- | :--- |
 | `GET` | `/` | Informações da aplicação e status de conexão |
 | `GET` | `/health` | Healthcheck para monitoramento de liveness |
-| `GET` | `/api/whatsapp/qr` | Retorna status do WhatsApp, QR Code (texto e Base64 DataURL) |
-| `POST` | `/api/whatsapp/qr` | Força reinicialização do socket e geração de novo QR Code |
-| `POST` | `/api/send-message` | Envia mensagem de texto/mídia para um número de WhatsApp |
+| `GET` | `/api/webhook` | Handshake de Verificação do Webhook da Meta (`hub.verify_token` & `hub.challenge`) |
+| `POST` | `/api/webhook` | Receptor Oficial de Mensagens e Eventos da Meta WhatsApp Cloud API |
+| `GET` | `/api/whatsapp/status` | Retorna status oficial da Meta Cloud API (Qualidade, Tier, Número Verificado) |
+| `POST` | `/api/whatsapp/config` | Salva e valida credenciais da Meta Cloud API no banco central |
+| `POST` | `/api/whatsapp/test-connection` | Validação ao vivo com a Graph API da Meta |
+| `POST` | `/api/send-message` | Envia mensagem oficial (texto, botões interativos ou mídia) via Meta Cloud API |
 | `GET` | `/api/stores` | Lista as lojas ativas da rede (Centro, Ipojuca, E-commerce) |
-| `POST` | `/api/whatsapp/disconnect` | Desconecta a sessão do WhatsApp de forma limpa |
+| `POST` | `/api/whatsapp/disconnect` | Limpa credenciais da sessão do WhatsApp |
 
 ---
 

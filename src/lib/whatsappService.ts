@@ -1,14 +1,33 @@
-// Official WhatsApp Service connecting Frontend to Discloud Baileys Microservice
+// Official WhatsApp Service connecting Frontend to Meta WhatsApp Business Cloud API & Backend Microservice
 export interface WhatsAppStatusResponse {
   status: 'disconnected' | 'connecting' | 'qrcode' | 'connected' | 'error';
+  provider?: 'meta_cloud_api' | 'baileys' | 'none';
+  configured?: boolean;
+  connected?: boolean;
   phone?: string;
   name?: string;
+  verified_name?: string;
+  quality_rating?: string;
+  code_verification_status?: string;
+  messaging_limit?: string;
+  phone_number_id?: string;
+  waba_id?: string;
+  webhook_url?: string;
+  verify_token?: string;
+  error?: string | null;
   batteryLevel?: number;
   connectedAt?: string;
   qr?: string;
   qrDataUrl?: string;
   qrExpiresAt?: string;
   message?: string;
+}
+
+export interface MetaWhatsAppConfigPayload {
+  accessToken?: string;
+  phoneNumberId?: string;
+  wabaId?: string;
+  verifyToken?: string;
 }
 
 export interface SendMessagePayload {
@@ -176,11 +195,42 @@ export const whatsappService = {
     }
   },
 
-  // 6. Test message helper
+  // 6. POST /api/whatsapp/config (Salvar credenciais da Meta Cloud API)
+  async saveMetaConfig(config: MetaWhatsAppConfigPayload): Promise<any> {
+    const base = getWhatsAppBackendUrl();
+    try {
+      const res = await fetch(`${base}/api/whatsapp/config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config),
+      });
+      return await res.json();
+    } catch (err: any) {
+      console.error('[whatsappService] Error saving Meta config:', err);
+      return { success: false, error: err?.message || 'Erro ao conectar ao servidor' };
+    }
+  },
+
+  // 7. POST /api/whatsapp/test-connection (Testar conexão ao vivo com a Graph API da Meta)
+  async testMetaConnection(): Promise<any> {
+    const base = getWhatsAppBackendUrl();
+    try {
+      const res = await fetch(`${base}/api/whatsapp/test-connection`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      return await res.json();
+    } catch (err: any) {
+      console.error('[whatsappService] Error testing Meta connection:', err);
+      return { success: false, error: err?.message || 'Erro ao testar com a Meta' };
+    }
+  },
+
+  // 8. Test message helper
   async sendTestMessage(phone: string): Promise<SendMessageResponse> {
     return this.sendMessage({
       phone,
-      text: '👶 Olá! Esta é uma mensagem de teste oficial enviada pelo sistema Pitoco de Gente via WhatsApp Baileys na Discloud! ✨🛍️',
+      text: '🍼 Olá! Esta é uma mensagem de teste oficial enviada pelo sistema Pitoco de Gente via Meta WhatsApp Business Cloud API! ✨🛍️',
     });
   },
 };

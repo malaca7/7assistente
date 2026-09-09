@@ -19,7 +19,8 @@ import {
   PanelLeftOpen,
   Maximize2,
   Minimize2,
-  Palette
+  Palette,
+  Smartphone
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWhatsApp } from '../../contexts/WhatsAppContext';
@@ -136,6 +137,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
           label: 'Logs & Auditoria',
           path: '/logs',
           icon: Sparkles,
+          roles: ['ceo', 'admin'],
+        },
+        {
+          id: 'whatsapp',
+          label: 'Meta WhatsApp API',
+          path: '/whatsapp',
+          icon: Smartphone,
+          badge: isConnected ? 'OFICIAL' : 'CONFIG',
+          badgeColor: isConnected ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
           roles: ['ceo', 'admin'],
         },
         {

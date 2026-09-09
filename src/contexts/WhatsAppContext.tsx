@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { WhatsAppSession } from '../types';
-import { whatsappService, OFFICIAL_DISCLOUD_URL } from '../lib/whatsappService';
+import { whatsappService, OFFICIAL_DISCLOUD_URL, MetaWhatsAppConfigPayload } from '../lib/whatsappService';
 import { useToast } from './ToastContext';
 import QRCode from 'qrcode';
 
@@ -17,6 +17,8 @@ interface WhatsAppContextType {
   refreshStatus: () => Promise<void>;
   setCustomBackendUrl: (url: string) => Promise<void>;
   sendTestMessage: (phone: string) => Promise<{ success: boolean; error?: string }>;
+  saveMetaConfig: (config: MetaWhatsAppConfigPayload) => Promise<{ success: boolean; error?: string; message?: string }>;
+  testMetaConnection: () => Promise<any>;
 }
 
 const defaultSession: WhatsAppSession = {
@@ -57,14 +59,23 @@ export const WhatsAppProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setSession({
         status: newStatus,
         phone: data.phone || '81996138924',
-        name: data.name || 'Pitoco de Gente WhatsApp',
+        name: data.name || data.verified_name || 'Pitoco de Gente WhatsApp',
         connectedAt: data.connectedAt,
         batteryLevel: data.batteryLevel || 98,
         qrCode: data.qr,
+        provider: data.provider || (data.configured ? 'meta_cloud_api' : 'baileys'),
+        verified_name: data.verified_name,
+        quality_rating: data.quality_rating,
+        messaging_limit: data.messaging_limit,
+        phone_number_id: data.phone_number_id,
+        waba_id: data.waba_id,
+        webhook_url: data.webhook_url,
+        verify_token: data.verify_token,
+        error: data.error,
       });
 
       if (prevStatusRef.current !== 'connected' && newStatus === 'connected') {
-        success('WhatsApp conectado com sucesso!', 'Pronto para atendimento');
+        success('WhatsApp conectado com sucesso!', 'Pronto para atendimento oficial');
       }
       prevStatusRef.current = newStatus;
     } catch (err) {
@@ -75,7 +86,7 @@ export const WhatsAppProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Initial load & periodic polling
   useEffect(() => {
     refreshStatus();
-    const interval = setInterval(refreshStatus, 4000);
+    const interval = setInterval(refreshStatus, 5000);
     return () => clearInterval(interval);
   }, [refreshStatus]);
 
@@ -90,13 +101,7 @@ export const WhatsAppProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setSession(prev => ({ ...prev, status: 'qrcode', qrCode: data.qr }));
         return url;
       }
-      // Client-side emergency QR simulator if backend is offline
-      const mockPayload = `2@pitocodegente,${Date.now()},38bdf8,f472b6,10b981`;
-      setRawQR(mockPayload);
-      const fallbackUrl = await QRCode.toDataURL(mockPayload, { margin: 2, scale: 8 });
-      setQrDataUrl(fallbackUrl);
-      setSession(prev => ({ ...prev, status: 'qrcode', qrCode: mockPayload }));
-      return fallbackUrl;
+      return '';
     } catch (err: any) {
       toastError('Erro ao gerar QR Code', err?.message);
       return '';
@@ -138,6 +143,23 @@ export const WhatsAppProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return { success: false, error: res.error };
   };
 
+  const saveMetaConfig = async (config: MetaWhatsAppConfigPayload) => {
+    const res = await whatsappService.saveMetaConfig(config);
+    if (res.success) {
+      success('Credenciais da Meta salvas com sucesso!');
+      await refreshStatus();
+      return { success: true, message: res.message };
+    }
+    toastError('Falha ao salvar credenciais da Meta', res.error);
+    return { success: false, error: res.error };
+  };
+
+  const testMetaConnection = async () => {
+    const res = await whatsappService.testMetaConnection();
+    await refreshStatus();
+    return res;
+  };
+
   return (
     <WhatsAppContext.Provider
       value={{
@@ -153,6 +175,8 @@ export const WhatsAppProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         refreshStatus,
         setCustomBackendUrl,
         sendTestMessage,
+        saveMetaConfig,
+        testMetaConnection,
       }}
     >
       {children}

@@ -66,13 +66,13 @@ export const Topbar: React.FC<TopbarProps> = ({
         ) : (
           <div 
             onClick={() => onNavigate('/whatsapp')}
-            className="flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 cursor-pointer hover:border-rose-500/40 transition-all group animate-pulse"
-            title="Clique para escanear o QR Code e conectar o WhatsApp"
+            className="flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 cursor-pointer hover:border-amber-500/40 transition-all group"
+            title="Clique para configurar a Meta WhatsApp Cloud API"
           >
-            <span className="w-2 h-2 rounded-full bg-rose-500" />
-            <span className="text-xs font-semibold text-rose-400 flex items-center gap-1.5">
-              <QrCode className="w-3.5 h-3.5 text-rose-400" />
-              Desconectado (QR)
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            <span className="text-xs font-semibold text-amber-400 flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+              Meta Cloud API (Configurar)
             </span>
           </div>
         )}

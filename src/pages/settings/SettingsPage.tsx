@@ -31,6 +31,7 @@ import { Input, Textarea } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { QRCodeView } from '../../components/ui/QRCodeView';
+import { WhatsappConnectView } from '../../components/WhatsappConnectView';
 import { useToast } from '../../contexts/ToastContext';
 import { useWhatsApp } from '../../contexts/WhatsAppContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -589,17 +590,17 @@ export const SettingsPage: React.FC = () => {
           <span>Tema & Aparência</span>
         </button>
 
-        {/* Conexão WhatsApp AGORA É A ÚLTIMA ABA */}
+        {/* Conexão WhatsApp Meta Cloud API AGORA É A ÚLTIMA ABA */}
         <button
           onClick={() => setActiveTab('whatsapp_qr')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
             activeTab === 'whatsapp_qr'
-              ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
+              ? 'bg-emerald-500 text-slate-950 font-bold shadow-lg shadow-emerald-500/20'
               : 'text-slate-400 hover:text-white hover:bg-white/5'
           }`}
         >
-          <QrCode className="w-4 h-4" />
-          <span>Conexão WhatsApp</span>
+          <Smartphone className="w-4 h-4 text-emerald-400" />
+          <span>Meta WhatsApp Cloud API</span>
         </button>
       </div>
 
@@ -1340,88 +1341,11 @@ export const SettingsPage: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 5: WHATSAPP QR CODE & DISCLOUD CONNECTION (ÚLTIMA ABA DA PÁGINA) */}
+      {/* TAB 5: META WHATSAPP BUSINESS PLATFORM / CLOUD API (ÚLTIMA ABA DA PÁGINA) */}
       {/* ========================================================================= */}
       {activeTab === 'whatsapp_qr' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in">
-          <div className="lg:col-span-2 space-y-6">
-            <QRCodeView
-              value={rawQR || session.qrCode || ''}
-              qrDataUrl={qrDataUrl}
-              onRefresh={generateQRCode}
-              onRequestPairingCode={requestPairingCode}
-              isLoading={isConnecting}
-            />
-
-            {/* Backend URL Configuration */}
-            <Card className="p-6 rounded-3xl bg-dark-900/70 border-white/10 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <Server className="w-4 h-4 text-brand-400" />
-                    Servidor WhatsApp (Discloud / Baileys)
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    URL do serviço WebSocket e API REST onde o robô está hospedado e persistido no banco
-                  </p>
-                </div>
-                <Badge variant="brand" className="text-[10px]">Persistido no Banco</Badge>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Input
-                  value={customServerInput}
-                  onChange={(e) => setCustomServerInput(e.target.value)}
-                  placeholder="https://pitoco.discloud.app"
-                  className="font-mono text-xs flex-1"
-                />
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleTestBackend}
-                    disabled={isTestingServer}
-                    className="text-xs"
-                  >
-                    {isTestingServer ? 'Testando...' : 'Testar Conexão'}
-                  </Button>
-                  <Button
-                    variant="brand"
-                    size="sm"
-                    onClick={handleSaveBackendUrl}
-                    disabled={isTestingServer}
-                    leftIcon={<Save className="w-3.5 h-3.5" />}
-                    className="text-xs font-bold shadow-glow-brand"
-                  >
-                    Salvar no Banco
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          <div className="space-y-4">
-            <Card className="p-5 rounded-3xl bg-dark-900/60 border-white/5 space-y-3">
-              <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                <Smartphone className="w-4 h-4 text-emerald-400" />
-                Dicas de Estabilidade
-              </h4>
-              <ul className="text-xs text-slate-300 space-y-2 leading-relaxed">
-                <li className="flex items-start gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                  Mantenha o celular com internet ativa para a sincronização inicial.
-                </li>
-                <li className="flex items-start gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                  A sessão é persistida em nuvem no Discloud com reconexão automática.
-                </li>
-                <li className="flex items-start gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                  Caso queira trocar de aparelho, clique em <strong>Desconectar</strong> para gerar um novo QR Code.
-                </li>
-              </ul>
-            </Card>
-          </div>
+        <div className="animate-in fade-in space-y-6">
+          <WhatsappConnectView />
         </div>
       )}
 

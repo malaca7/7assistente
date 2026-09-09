@@ -258,6 +258,22 @@ export interface WhatsAppSession {
   connectedAt?: string;
   qrCode?: string;
   qrExpiresAt?: string;
+  provider?: 'meta_cloud_api' | 'baileys' | 'none';
+  verified_name?: string;
+  quality_rating?: string;
+  messaging_limit?: string;
+  phone_number_id?: string;
+  waba_id?: string;
+  webhook_url?: string;
+  verify_token?: string;
+  error?: string | null;
+}
+
+export interface MetaWhatsAppConfig {
+  accessToken: string;
+  phoneNumberId: string;
+  wabaId?: string;
+  verifyToken?: string;
 }
 
 export interface CustomVariable {

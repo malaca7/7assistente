@@ -152,8 +152,8 @@ export const App: React.FC = () => {
     subtitle = 'Árvores de automação e nós de atendimento no WhatsApp';
     pageContent = <FlowBuilderView onNavigate={navigate} />;
   } else if (currentPath === '/whatsapp' || currentPath === '/qrcode') {
-    title = 'Conexão WhatsApp Baileys';
-    subtitle = 'Gerenciamento de sessão, QR Code e status do microsserviço Discloud';
+    title = 'Conexão WhatsApp Meta Cloud API';
+    subtitle = 'Integração Oficial com a Meta WhatsApp Business Platform e Webhooks';
     pageContent = <WhatsappConnectView />;
   } else if (currentPath === '/acessos' || currentPath === '/usuarios') {
     title = 'Gestão de Acessos';

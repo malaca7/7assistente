@@ -36,6 +36,16 @@ import {
 } from './flowRunner.mjs';
 import { processAdminBotMessage } from './botEngine.mjs';
 import { syncToSupabase } from './syncSupabase.mjs';
+import {
+  getMetaConfig,
+  updateMetaConfig,
+  testMetaConnection,
+  verifyMetaWebhook,
+  sendMetaMessage,
+  markMetaMessageAsRead,
+  parseMetaWebhook,
+  formatPhoneForMeta
+} from './metaWhatsAppService.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -488,35 +498,160 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
 });
 
+// ==============================================================================
+// 0. META WHATSAPP CLOUD API & WEBHOOKS OFICIAIS (GRAPH API)
+// ==============================================================================
+
+// 0.1 Handshake de Verificação do Webhook da Meta (GET /api/webhook)
+app.get(['/api/webhook', '/api/whatsapp/webhook'], (req, res) => {
+  const result = verifyMetaWebhook(req.query);
+  if (result.success) {
+    res.status(200).send(result.challenge);
+  } else {
+    res.status(403).send('Forbidden');
+  }
+});
+
+// 0.2 Receptor Oficial de Mensagens e Status da Meta (POST /api/webhook)
+app.post(['/api/webhook', '/api/whatsapp/webhook'], async (req, res) => {
+  // A Meta exige resposta 200 rápida para confirmar o recebimento
+  res.status(200).send('EVENT_RECEIVED');
+
+  try {
+    const parsed = parseMetaWebhook(req.body);
+
+    for (const msg of parsed.messages) {
+      const clientPhone = String(msg.from).replace(/\D/g, '');
+      const clientName = msg.senderName || 'Cliente Pitoco';
+      const text = msg.text || '';
+
+      console.log(`📩 [Meta Cloud API Recebido] ${clientPhone} (${clientName}): "${text}"`);
+      
+      // 1. Marca como lida na Meta (Duplo Check Azul Oficial)
+      await markMetaMessageAsRead(msg.id);
+
+      // 2. Grava histórico na base local e Supabase
+      await recordMessageLocallyAndSupabase(clientPhone, clientName, 'inbound', text);
+
+      // 3. Comandos de reset e transbordo
+      const cleanInputLower = text.toLowerCase().trim();
+      const isBotResetCmd = ['#bot', '#robo', '#robô', '#sair', '#reiniciar', '#reset', '#menu', '#inicio', '/bot', '/sair', '/menu', 'reiniciar'].includes(cleanInputLower);
+
+      const dbCheck = loadDb();
+      const convCheck = dbCheck.conversations?.[`conv-${clientPhone}`] || 
+                        Object.values(dbCheck.conversations || {}).find(c => 
+                          String(c?.phone || c?.contact_phone || '').replace(/\D/g, '') === clientPhone
+                        );
+
+      if (isBotResetCmd && convCheck) {
+        console.log(`🤖 [Atendimento Robô] Comando "${text}" recebido. Devolvendo ${clientPhone} para o fluxo do robô.`);
+        convCheck.status = 'bot';
+        convCheck.assigned_to = null;
+        convCheck.assigned_attendant_name = null;
+        convCheck.assigned_attendant_id = null;
+        if (dbCheck.sessions?.[clientPhone]) delete dbCheck.sessions[clientPhone];
+        saveDb(dbCheck);
+      } else if (convCheck && convCheck.status === 'human') {
+        console.log(`🛡️ [Atendimento Humano Ativo] Cliente ${clientPhone} está em atendimento humano ("${convCheck.assigned_to || convCheck.assigned_attendant_name || 'Atendente'}"). Robô pausado.`);
+        continue;
+      }
+
+      // 4. Executar fluxo ativo no bot
+      try {
+        console.log(`⚙️ [Flow Execution] Executando fluxo via Meta Cloud API para ${clientPhone} (${clientName})...`);
+        const remoteJid = `${clientPhone}@s.whatsapp.net`;
+        const replies = await executePublishedFlow(remoteJid, text, clientName, clientPhone);
+
+        if (Array.isArray(replies) && replies.length > 0) {
+          for (let i = 0; i < replies.length; i++) {
+            const reply = replies[i];
+            const sendResult = await sendMetaMessage(clientPhone, reply);
+            const replyText = typeof reply === 'string' ? reply : (reply?.body || reply?.text || (reply?.type === 'media' ? `[Mídia: ${reply?.mediaType}]` : '[Mensagem com Opções]'));
+            await recordMessageLocallyAndSupabase(clientPhone, 'Pitoco Bot', 'outbound', replyText);
+          }
+        }
+      } catch (botErr) {
+        console.error(`❌ [Bot Engine Error] Erro ao processar mensagem Meta para ${clientPhone}:`, botErr);
+        await sendMetaMessage(clientPhone, `Olá, *${clientName}*! Recebemos sua mensagem na *Pitoco de Gente*. Como podemos te ajudar?`);
+      }
+    }
+  } catch (err) {
+    console.error('❌ [Meta Webhook Error]:', err.message);
+  }
+});
+
+// 0.3 Status da Conexão WhatsApp (Oficial Meta Cloud API com fallback para Baileys)
+app.get('/api/whatsapp/status', async (req, res) => {
+  const metaConfig = getMetaConfig();
+  let metaTest = { connected: false, configured: metaConfig.isConfigured };
+
+  if (metaConfig.isConfigured) {
+    metaTest = await testMetaConnection();
+  }
+
+  const isConnected = metaTest.connected || connectionStatus === 'connected';
+
+  res.json({
+    provider: metaConfig.isConfigured ? 'meta_cloud_api' : (connectionStatus === 'connected' ? 'baileys' : 'none'),
+    configured: metaConfig.isConfigured,
+    connected: isConnected,
+    status: metaTest.connected ? 'connected' : (metaConfig.isConfigured ? 'error' : connectionStatus),
+    phone: metaTest.display_phone_number || connectedPhone || '81996138924',
+    name: metaTest.verified_name || connectedName || 'Pitoco de Gente',
+    verified_name: metaTest.verified_name || 'Pitoco de Gente',
+    quality_rating: metaTest.quality_rating || 'GREEN',
+    code_verification_status: metaTest.code_verification_status || 'VERIFIED',
+    messaging_limit: metaTest.messaging_limit || 'TIER_1K',
+    phone_number_id: metaConfig.phoneNumberId,
+    waba_id: metaConfig.wabaId,
+    webhook_url: 'https://pitoco.discloud.app/api/webhook',
+    verify_token: metaConfig.verifyToken,
+    error: metaTest.error || null,
+    // Compatibilidade com QR
+    qr: currentQR,
+    qrDataUrl: currentQRDataUrl,
+  });
+});
+
 app.get('/api/whatsapp/qr', (req, res) => {
-  res.json({
-    status: connectionStatus,
-    phone: connectedPhone,
-    name: connectedName,
-    connectedAt,
-    qr: currentQR,
-    qrDataUrl: currentQRDataUrl,
-  });
+  res.redirect(307, '/api/whatsapp/status');
 });
 
-app.get('/api/whatsapp/status', (req, res) => {
-  res.json({
-    status: connectionStatus,
-    phone: connectedPhone,
-    name: connectedName,
-    connectedAt,
-    qr: currentQR,
-    qrDataUrl: currentQRDataUrl,
-  });
+// 0.4 Salvar Credenciais da Meta Cloud API
+app.post('/api/whatsapp/config', async (req, res) => {
+  try {
+    const updated = updateMetaConfig(req.body);
+    const test = await testMetaConnection();
+    res.json({
+      success: true,
+      message: 'Configurações da Meta Cloud API atualizadas com sucesso',
+      config: {
+        phoneNumberId: updated.phoneNumberId,
+        wabaId: updated.wabaId,
+        verifyToken: updated.verifyToken,
+        isConfigured: updated.isConfigured,
+      },
+      validation: test,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
-app.post('/api/whatsapp/qr', async (req, res) => {
-  if (connectionStatus !== 'connected') startWhatsApp();
-  res.json({ success: true, status: connectionStatus, qr: currentQR, qrDataUrl: currentQRDataUrl });
+// 0.5 Teste de Conexão ao Vivo com a Graph API da Meta
+app.post('/api/whatsapp/test-connection', async (req, res) => {
+  try {
+    const test = await testMetaConnection();
+    res.json({ success: test.connected, result: test });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
+// 0.6 Desconectar / Limpar Credenciais
 app.post('/api/whatsapp/disconnect', async (req, res) => {
   try {
+    updateMetaConfig({ accessToken: '', phoneNumberId: '', wabaId: '' });
     if (sock) {
       await sock.logout().catch(() => {});
       sock = null;
@@ -525,7 +660,7 @@ app.post('/api/whatsapp/disconnect', async (req, res) => {
     currentQR = null;
     currentQRDataUrl = null;
     connectedPhone = null;
-    res.json({ success: true, message: 'WhatsApp desconectado com sucesso' });
+    res.json({ success: true, message: 'WhatsApp desconectado e credenciais removidas com sucesso' });
   } catch (err) {
     res.status(500).json({ success: false, error: err?.message || err });
   }
@@ -1869,18 +2004,46 @@ app.delete('/api/custom-variables/:id', (req, res) => {
 // 14. ENVIO DE MENSAGENS WHATSAPP
 // ==============================================================================
 app.post('/api/send-message', async (req, res) => {
-  const { phone, text, message, skipRecord } = req.body;
+  const { phone, text, message, skipRecord, mediaUrl, mediaType, caption } = req.body;
   const bodyText = text || message;
-  if (!phone || !bodyText) return res.status(400).json({ success: false, error: 'phone e text são obrigatórios' });
-  const cleanPhone = String(phone).replace(/\D/g, '');
-  // Por padrão, chamadas diretas de atendimento humano do painel passam skipRecord=true para não duplicar com addMessage
-  const shouldSkipRecord = skipRecord !== undefined ? Boolean(skipRecord) : true;
-  const success = await sendWhatsAppMessage(`${cleanPhone}@s.whatsapp.net`, bodyText, null, shouldSkipRecord);
-  if (success) {
-    res.json({ success: true, messageId: `msg-${Date.now()}`, status: 'sent' });
-  } else {
-    res.status(500).json({ success: false, error: 'Falha no envio via Baileys', status: connectionStatus });
+  if (!phone || (!bodyText && !mediaUrl)) {
+    return res.status(400).json({ success: false, error: 'phone e texto ou mídia são obrigatórios' });
   }
+
+  const cleanPhone = String(phone).replace(/\D/g, '');
+  const shouldSkipRecord = skipRecord !== undefined ? Boolean(skipRecord) : false;
+
+  // 1. Tentar envio pela Meta WhatsApp Business Cloud API Oficial
+  const metaConfig = getMetaConfig();
+  if (metaConfig.isConfigured) {
+    let replyPayload = bodyText;
+    if (mediaUrl) {
+      replyPayload = { type: 'media', mediaUrl, mediaType: mediaType || 'image', caption: caption || bodyText };
+    }
+    const metaRes = await sendMetaMessage(cleanPhone, replyPayload);
+    if (metaRes.success) {
+      if (!shouldSkipRecord) {
+        await recordMessageLocallyAndSupabase(cleanPhone, 'Pitoco Atendente', 'outbound', bodyText || `[Mídia: ${mediaType || 'arquivo'}]`);
+      }
+      return res.json({ success: true, messageId: metaRes.messageId, status: 'sent', provider: 'meta_cloud_api' });
+    }
+  }
+
+  // 2. Fallback para Baileys se conectado
+  if (connectionStatus === 'connected') {
+    const success = await sendWhatsAppMessage(`${cleanPhone}@s.whatsapp.net`, bodyText, null, shouldSkipRecord);
+    if (success) {
+      return res.json({ success: true, messageId: `msg-${Date.now()}`, status: 'sent', provider: 'baileys' });
+    }
+  }
+
+  res.status(500).json({
+    success: false,
+    error: metaConfig.isConfigured
+      ? 'Falha ao enviar mensagem pela Meta Cloud API. Verifique seu Access Token e Phone Number ID.'
+      : 'WhatsApp desconectado. Configure o token da Meta Cloud API em Conexão WhatsApp.',
+    provider: metaConfig.isConfigured ? 'meta_cloud_api' : 'none',
+  });
 });
 
 // ==============================================================================
@@ -1955,9 +2118,27 @@ app.get('*', (req, res, next) => {
   });
 });
 
-app.listen(PORT, HOST, () => {
+app.listen(PORT, HOST, async () => {
   console.log(`🚀 [Pitoco Server] Rodando em http://${HOST}:${PORT}`);
-  startWhatsApp();
+
+  const metaConfig = getMetaConfig();
+  if (metaConfig.isConfigured) {
+    console.log('🌐 [Pitoco Server] Meta WhatsApp Business Cloud API ativa!');
+    testMetaConnection()
+      .then((res) => {
+        if (res.connected) {
+          console.log(`✅ [Meta API] Conexão oficial validada com a Meta! Número: ${res.display_phone_number} (${res.verified_name || 'Pitoco de Gente'}) - Tier: ${res.messaging_limit}`);
+        } else {
+          console.warn(`⚠️ [Meta API] Credenciais da Meta configuradas, mas verificação falhou: ${res.error}`);
+        }
+      })
+      .catch((err) => console.warn('[Meta API] Erro ao testar conexão:', err.message));
+  } else {
+    console.log('ℹ️ [Pitoco Server] Meta Cloud API aguardando credenciais. Acesse o painel em Conexão WhatsApp para configurar.');
+    if (process.env.ENABLE_BAILEYS === 'true') {
+      startWhatsApp();
+    }
+  }
 
   // Sincronização automática em segundo plano contínua com o Supabase (a cada 60s)
   setTimeout(() => {
