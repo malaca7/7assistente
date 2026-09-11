@@ -502,14 +502,41 @@ app.get('/health', (req, res) => {
 // 0. META WHATSAPP CLOUD API & WEBHOOKS OFICIAIS (GRAPH API)
 // ==============================================================================
 
-// 0.1 Handshake de Verificação do Webhook da Meta (GET /api/webhook)
+// Redireciona /webhook para /api/webhook caso seja chamado sem o prefixo /api
+app.all('/webhook', (req, res) => res.redirect(307, '/api/webhook'));
+
+// 0.1 Handshake de Verificação do Webhook da Meta e Status da Rota (GET /api/webhook)
 app.get(['/api/webhook', '/api/whatsapp/webhook'], (req, res) => {
-  const result = verifyMetaWebhook(req.query);
-  if (result.success) {
-    res.status(200).send(result.challenge);
-  } else {
-    res.status(403).send('Forbidden');
+  // Se for handshake de verificação da Meta (requisição oficial com hub.mode)
+  if (req.query['hub.mode']) {
+    const result = verifyMetaWebhook(req.query);
+    if (result.success) {
+      return res.status(200).send(result.challenge);
+    } else {
+      return res.status(403).send('Forbidden: Token de verificação inválido.');
+    }
   }
+
+  // Se for acesso direto via GET (navegador, healthcheck, teste de rota ou diagnóstico)
+  const metaConfig = getMetaConfig();
+  return res.status(200).json({
+    status: 'online',
+    endpoint: '/api/webhook',
+    service: 'Pitoco Bot — Webhook Gateway Oficial',
+    message: 'A rota do Webhook está online, ativa e pronta para receber eventos da Meta WhatsApp Cloud API e integrações externas.',
+    timestamp: new Date().toISOString(),
+    webhook_url: 'https://pitoco.discloud.app/api/webhook',
+    meta_setup: {
+      callback_url: 'https://pitoco.discloud.app/api/webhook',
+      verify_token: metaConfig.verifyToken || 'pitoco_meta_token_2026',
+      supported_tokens: [
+        metaConfig.verifyToken,
+        'pitoco_meta_token_2026',
+        '7assistente_meta_webhook_token_2026'
+      ].filter(Boolean),
+      fields_to_subscribe: ['messages']
+    }
+  });
 });
 
 // 0.2 Receptor Oficial de Mensagens e Status da Meta (POST /api/webhook)
@@ -518,61 +545,87 @@ app.post(['/api/webhook', '/api/whatsapp/webhook'], async (req, res) => {
   res.status(200).send('EVENT_RECEIVED');
 
   try {
-    const parsed = parseMetaWebhook(req.body);
+    const body = req.body || {};
 
-    for (const msg of parsed.messages) {
-      const clientPhone = String(msg.from).replace(/\D/g, '');
-      const clientName = msg.senderName || 'Cliente Pitoco';
-      const text = msg.text || '';
+    // Caso 1: Evento oficial da Meta Cloud API (WhatsApp Business Account)
+    if (body.object === 'whatsapp_business_account' || Array.isArray(body.entry)) {
+      const parsed = parseMetaWebhook(body);
 
-      console.log(`📩 [Meta Cloud API Recebido] ${clientPhone} (${clientName}): "${text}"`);
-      
-      // 1. Marca como lida na Meta (Duplo Check Azul Oficial)
-      await markMetaMessageAsRead(msg.id);
+      for (const msg of parsed.messages) {
+        const clientPhone = String(msg.from).replace(/\D/g, '');
+        const clientName = msg.senderName || 'Cliente Pitoco';
+        const text = msg.text || '';
 
-      // 2. Grava histórico na base local e Supabase
+        console.log(`📩 [Meta Cloud API Recebido] ${clientPhone} (${clientName}): "${text}"`);
+        
+        // 1. Marca como lida na Meta (Duplo Check Azul Oficial)
+        await markMetaMessageAsRead(msg.id);
+
+        // 2. Grava histórico na base local e Supabase
+        await recordMessageLocallyAndSupabase(clientPhone, clientName, 'inbound', text);
+
+        // 3. Comandos de reset e transbordo
+        const cleanInputLower = text.toLowerCase().trim();
+        const isBotResetCmd = ['#bot', '#robo', '#robô', '#sair', '#reiniciar', '#reset', '#menu', '#inicio', '/bot', '/sair', '/menu', 'reiniciar'].includes(cleanInputLower);
+
+        const dbCheck = loadDb();
+        const convCheck = dbCheck.conversations?.[`conv-${clientPhone}`] || 
+                          Object.values(dbCheck.conversations || {}).find(c => 
+                            String(c?.phone || c?.contact_phone || '').replace(/\D/g, '') === clientPhone
+                          );
+
+        if (isBotResetCmd && convCheck) {
+          console.log(`🤖 [Atendimento Robô] Comando "${text}" recebido. Devolvendo ${clientPhone} para o fluxo do robô.`);
+          convCheck.status = 'bot';
+          convCheck.assigned_to = null;
+          convCheck.assigned_attendant_name = null;
+          convCheck.assigned_attendant_id = null;
+          if (dbCheck.sessions?.[clientPhone]) delete dbCheck.sessions[clientPhone];
+          saveDb(dbCheck);
+        } else if (convCheck && convCheck.status === 'human') {
+          console.log(`🛡️ [Atendimento Humano Ativo] Cliente ${clientPhone} está em atendimento humano ("${convCheck.assigned_to || convCheck.assigned_attendant_name || 'Atendente'}"). Robô pausado.`);
+          continue;
+        }
+
+        // 4. Executar fluxo ativo no bot
+        try {
+          console.log(`⚙️ [Flow Execution] Executando fluxo via Meta Cloud API para ${clientPhone} (${clientName})...`);
+          const remoteJid = `${clientPhone}@s.whatsapp.net`;
+          const replies = await executePublishedFlow(remoteJid, text, clientName, clientPhone);
+
+          if (Array.isArray(replies) && replies.length > 0) {
+            for (let i = 0; i < replies.length; i++) {
+              const reply = replies[i];
+              await sendMetaMessage(clientPhone, reply);
+              const replyText = typeof reply === 'string' ? reply : (reply?.body || reply?.text || (reply?.type === 'media' ? `[Mídia: ${reply?.mediaType}]` : '[Mensagem com Opções]'));
+              await recordMessageLocallyAndSupabase(clientPhone, 'Pitoco Bot', 'outbound', replyText);
+            }
+          }
+        } catch (botErr) {
+          console.error(`❌ [Bot Engine Error] Erro ao processar mensagem Meta para ${clientPhone}:`, botErr);
+          await sendMetaMessage(clientPhone, `Olá, *${clientName}*! Recebemos sua mensagem na *Pitoco de Gente*. Como podemos te ajudar?`);
+        }
+      }
+    }
+    // Caso 2: Disparo de Webhook externo (CRM, Kiwify, Hotmart, n8n, Lead)
+    else if (body.phone && (body.text || body.message)) {
+      const clientPhone = String(body.phone).replace(/\D/g, '');
+      const clientName = body.name || body.clientName || 'Lead Externo';
+      const text = body.text || body.message || '';
+
+      console.log(`📩 [Webhook Externo Recebido] ${clientPhone} (${clientName}): "${text}"`);
       await recordMessageLocallyAndSupabase(clientPhone, clientName, 'inbound', text);
 
-      // 3. Comandos de reset e transbordo
-      const cleanInputLower = text.toLowerCase().trim();
-      const isBotResetCmd = ['#bot', '#robo', '#robô', '#sair', '#reiniciar', '#reset', '#menu', '#inicio', '/bot', '/sair', '/menu', 'reiniciar'].includes(cleanInputLower);
+      const remoteJid = `${clientPhone}@s.whatsapp.net`;
+      const replies = await executePublishedFlow(remoteJid, text, clientName, clientPhone);
 
-      const dbCheck = loadDb();
-      const convCheck = dbCheck.conversations?.[`conv-${clientPhone}`] || 
-                        Object.values(dbCheck.conversations || {}).find(c => 
-                          String(c?.phone || c?.contact_phone || '').replace(/\D/g, '') === clientPhone
-                        );
-
-      if (isBotResetCmd && convCheck) {
-        console.log(`🤖 [Atendimento Robô] Comando "${text}" recebido. Devolvendo ${clientPhone} para o fluxo do robô.`);
-        convCheck.status = 'bot';
-        convCheck.assigned_to = null;
-        convCheck.assigned_attendant_name = null;
-        convCheck.assigned_attendant_id = null;
-        if (dbCheck.sessions?.[clientPhone]) delete dbCheck.sessions[clientPhone];
-        saveDb(dbCheck);
-      } else if (convCheck && convCheck.status === 'human') {
-        console.log(`🛡️ [Atendimento Humano Ativo] Cliente ${clientPhone} está em atendimento humano ("${convCheck.assigned_to || convCheck.assigned_attendant_name || 'Atendente'}"). Robô pausado.`);
-        continue;
-      }
-
-      // 4. Executar fluxo ativo no bot
-      try {
-        console.log(`⚙️ [Flow Execution] Executando fluxo via Meta Cloud API para ${clientPhone} (${clientName})...`);
-        const remoteJid = `${clientPhone}@s.whatsapp.net`;
-        const replies = await executePublishedFlow(remoteJid, text, clientName, clientPhone);
-
-        if (Array.isArray(replies) && replies.length > 0) {
-          for (let i = 0; i < replies.length; i++) {
-            const reply = replies[i];
-            const sendResult = await sendMetaMessage(clientPhone, reply);
-            const replyText = typeof reply === 'string' ? reply : (reply?.body || reply?.text || (reply?.type === 'media' ? `[Mídia: ${reply?.mediaType}]` : '[Mensagem com Opções]'));
-            await recordMessageLocallyAndSupabase(clientPhone, 'Pitoco Bot', 'outbound', replyText);
-          }
+      if (Array.isArray(replies) && replies.length > 0) {
+        for (let i = 0; i < replies.length; i++) {
+          const reply = replies[i];
+          await sendMetaMessage(clientPhone, reply);
+          const replyText = typeof reply === 'string' ? reply : (reply?.body || reply?.text || '[Opções]');
+          await recordMessageLocallyAndSupabase(clientPhone, 'Pitoco Bot', 'outbound', replyText);
         }
-      } catch (botErr) {
-        console.error(`❌ [Bot Engine Error] Erro ao processar mensagem Meta para ${clientPhone}:`, botErr);
-        await sendMetaMessage(clientPhone, `Olá, *${clientName}*! Recebemos sua mensagem na *Pitoco de Gente*. Como podemos te ajudar?`);
       }
     }
   } catch (err) {
