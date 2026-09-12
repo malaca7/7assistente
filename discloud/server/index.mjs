@@ -32,7 +32,8 @@ import {
   getDatabaseStats,
   syncFlowToSupabase,
   deleteFlowFromSupabase,
-  syncFlowGraphToSupabase
+  syncFlowGraphToSupabase,
+  cleanButtonTitle
 } from './flowRunner.mjs';
 import { processAdminBotMessage } from './botEngine.mjs';
 import { syncToSupabase } from './syncSupabase.mjs';
@@ -390,7 +391,8 @@ async function sendBotReply(remoteJid, reply, quotedMsg = null, skipRecord = fal
       let formatted = `${body}\n\n`;
       buttons.forEach((btn, idx) => {
         const numEmoji = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'][idx] || `*${idx + 1}.*`;
-        const title = btn.title || btn.id;
+        const rawTitle = btn.title || btn.text || btn.id || `Opção ${idx + 1}`;
+        const title = cleanButtonTitle(rawTitle);
         formatted += `${numEmoji} ${title}\n`;
       });
       if (footer) {
@@ -1266,18 +1268,133 @@ app.post('/api/conversations', (req, res) => {
   }
 });
 
-app.delete('/api/conversations/:id', (req, res) => {
+app.delete('/api/conversations/:id', async (req, res) => {
   try {
     const db = loadDb();
     const id = req.params.id;
-    if (db.conversations && db.conversations[id]) {
-      delete db.conversations[id];
+    const cleanId = String(id).replace(/\D/g, '');
+
+    // 1. Delete from db.conversations (matching key, id, phone, or cleanId)
+    if (db.conversations) {
+      const keysToDelete = Object.keys(db.conversations).filter(k => 
+        k === id || 
+        db.conversations[k]?.id === id || 
+        db.conversations[k]?.phone === id || 
+        db.conversations[k]?.contact_phone === id ||
+        (cleanId && (
+          String(db.conversations[k]?.phone || '').replace(/\D/g, '') === cleanId ||
+          String(db.conversations[k]?.contact_phone || '').replace(/\D/g, '') === cleanId ||
+          String(k).replace(/\D/g, '') === cleanId
+        ))
+      );
+      for (const k of keysToDelete) {
+        delete db.conversations[k];
+      }
     }
-    if (db.messages && db.messages[id]) {
+
+    // 2. Delete messages
+    if (db.messages) {
       delete db.messages[id];
+      if (cleanId) {
+        delete db.messages[cleanId];
+        delete db.messages[`conv-${cleanId}`];
+      }
     }
+
+    // 3. Reset bot session if active for this contact
+    if (db.sessions && cleanId) {
+      delete db.sessions[cleanId];
+      delete db.sessions[`55${cleanId}`];
+    }
+
     saveDb(db);
-    res.json({ success: true, message: `Conversa ${id} removida` });
+
+    // 4. Delete from Supabase if connected
+    if (supabaseServer) {
+      try {
+        await supabaseServer.from('chat_messages').delete().or(`conversation_id.eq.${id},conversation_id.eq.conv-${cleanId}`);
+        await supabaseServer.from('conversations').delete().or(`id.eq.${id},id.eq.conv-${cleanId}${cleanId ? `,phone.eq.${cleanId}` : ''}`);
+      } catch (e) {
+        console.warn('[Server] Falha ao deletar do Supabase:', e.message);
+      }
+    }
+
+    console.log(`[Conversations API] 🗑️ Conversa "${id}" apagada com sucesso`);
+    res.json({ success: true, message: `Conversa ${id} removida com sucesso` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Fallback POST route for deleting conversations
+app.post('/api/conversations/:id/delete', async (req, res) => {
+  try {
+    const db = loadDb();
+    const id = req.params.id;
+    const cleanId = String(id).replace(/\D/g, '');
+
+    if (db.conversations) {
+      const keysToDelete = Object.keys(db.conversations).filter(k => 
+        k === id || 
+        db.conversations[k]?.id === id || 
+        db.conversations[k]?.phone === id || 
+        db.conversations[k]?.contact_phone === id ||
+        (cleanId && (
+          String(db.conversations[k]?.phone || '').replace(/\D/g, '') === cleanId ||
+          String(db.conversations[k]?.contact_phone || '').replace(/\D/g, '') === cleanId ||
+          String(k).replace(/\D/g, '') === cleanId
+        ))
+      );
+      for (const k of keysToDelete) {
+        delete db.conversations[k];
+      }
+    }
+
+    if (db.messages) {
+      delete db.messages[id];
+      if (cleanId) {
+        delete db.messages[cleanId];
+        delete db.messages[`conv-${cleanId}`];
+      }
+    }
+
+    if (db.sessions && cleanId) {
+      delete db.sessions[cleanId];
+      delete db.sessions[`55${cleanId}`];
+    }
+
+    saveDb(db);
+
+    if (supabaseServer) {
+      try {
+        await supabaseServer.from('chat_messages').delete().or(`conversation_id.eq.${id},conversation_id.eq.conv-${cleanId}`);
+        await supabaseServer.from('conversations').delete().or(`id.eq.${id},id.eq.conv-${cleanId}${cleanId ? `,phone.eq.${cleanId}` : ''}`);
+      } catch (e) {}
+    }
+
+    res.json({ success: true, message: `Conversa ${id} removida com sucesso` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Purge / Clear all trash conversations
+app.delete('/api/conversations', async (req, res) => {
+  try {
+    const db = loadDb();
+    if (req.query.trash === 'true') {
+      const trashKeys = Object.keys(db.conversations || {}).filter(k => db.conversations[k]?.is_deleted);
+      for (const k of trashKeys) {
+        delete db.conversations[k];
+        if (db.messages) delete db.messages[k];
+      }
+      saveDb(db);
+      return res.json({ success: true, message: `${trashKeys.length} conversas da lixeira removidas` });
+    }
+    db.conversations = {};
+    db.messages = {};
+    saveDb(db);
+    res.json({ success: true, message: 'Todas as conversas foram removidas' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

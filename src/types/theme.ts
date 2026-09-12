@@ -1,4 +1,5 @@
 export type ThemeMode = 
+  | 'dark-abyss'    // 0. Super Blackout / Abismo OLED (#000000 Total)
   | 'dark-midnight' // 1. Escuro Ônix Puro (Midnight OLED)
   | 'dark-slate'    // 2. Escuro Carvão & Ardósia (Slate)
   | 'dark-violet'   // 3. Escuro Cyber Roxo (Deep Nebula)
@@ -16,9 +17,10 @@ export type AccentColor =
 
 export interface UserThemeConfig {
   mode: ThemeMode;
-  brightness: number; // 70 a 130 (padrão 100)
-  contrast: number;   // 80 a 140 (padrão 100)
+  brightness: number; // 25 a 200 (padrão 100)
+  contrast: number;   // 35 a 220 (padrão 100)
   accent: AccentColor;
+  ultraDark?: boolean; // Modo Blackout Extremo / Super Escuro
   updatedAt?: string;
 }
 
@@ -43,7 +45,18 @@ export interface AccentOption {
 }
 
 export const THEME_OPTIONS: ThemeOption[] = [
-  // 3 TEMAS ESCUROS
+  // 4 TEMAS ESCUROS
+  {
+    id: 'dark-abyss',
+    name: 'Abismo Blackout',
+    category: 'dark',
+    description: 'Preto 100% puro absoluto (#000000), sem brilho reflexivo, para máximo descanso visual.',
+    badge: 'Super Escuro',
+    bgHex: '#000000',
+    cardHex: '#040405',
+    borderHex: '#141416',
+    textHex: '#ffffff',
+  },
   {
     id: 'dark-midnight',
     name: 'Ônix Midnight',
@@ -159,4 +172,5 @@ export const DEFAULT_THEME_CONFIG: UserThemeConfig = {
   brightness: 100,
   contrast: 100,
   accent: 'emerald',
+  ultraDark: false,
 };

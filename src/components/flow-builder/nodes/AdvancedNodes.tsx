@@ -702,12 +702,12 @@ export const StoreSelectorNode: React.FC<NodeProps> = ({ id, selected, data }) =
   // Gera saídas dinamicamente a partir das lojas reais cadastradas no painel admin
   const outputs = effectiveStores.length > 0 ? effectiveStores.map((st, idx) => ({
     id: st.id || `store_${st.slug || idx}`,
-    label: `${idx + 1}. ${st.name}`,
+    label: st.name,
     color: colors[idx % colors.length],
   })) : [
-    { id: 'store-001', label: '1. Loja Matriz Centro', color: '!bg-amber-400' },
-    { id: 'store-002', label: '2. Loja Ipojuca - Filial', color: '!bg-cyan-400' },
-    { id: 'store-003', label: '3. Atendimento Geral / E-commerce', color: '!bg-emerald-400' },
+    { id: 'store-001', label: 'Loja Matriz Centro', color: '!bg-amber-400' },
+    { id: 'store-002', label: 'Loja Ipojuca - Filial', color: '!bg-cyan-400' },
+    { id: 'store-003', label: 'Atendimento Geral / E-commerce', color: '!bg-emerald-400' },
   ];
 
   return (
@@ -747,7 +747,7 @@ export const StoreSelectorNode: React.FC<NodeProps> = ({ id, selected, data }) =
             ]).map((st: any, idx: number) => (
               <div key={st.id || idx} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/5 border border-white/5 text-[10.5px] text-slate-200">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                <span className="font-semibold text-white truncate flex-1">{idx + 1}. {st.name}</span>
+                <span className="font-semibold text-white truncate flex-1">{st.name}</span>
                 {st.city && <span className="text-[9px] text-slate-400 ml-auto shrink-0 font-mono">{st.city.split('-')[0].trim()}</span>}
               </div>
             ))}
@@ -853,9 +853,9 @@ export const ShippingCalculatorNode: React.FC<NodeProps> = ({ id, selected, data
   const config = nodeData.config || {};
 
   const outputs = [
-    { id: 'shipping_motoboy', label: '1. Motoboy Express (Recife)', color: '!bg-amber-400' },
-    { id: 'shipping_correios', label: '2. Correios SEDEX / PAC', color: '!bg-zinc-400' },
-    { id: 'shipping_pickup', label: '3. Retirada Grátis em Loja', color: '!bg-emerald-400' },
+    { id: 'shipping_motoboy', label: 'Motoboy Express (Recife)', color: '!bg-amber-400' },
+    { id: 'shipping_correios', label: 'Correios SEDEX / PAC', color: '!bg-zinc-400' },
+    { id: 'shipping_pickup', label: 'Retirada Grátis em Loja', color: '!bg-emerald-400' },
   ];
 
   return (
@@ -901,8 +901,8 @@ export const PixPaymentNode: React.FC<NodeProps> = ({ id, selected, data }) => {
   const config = nodeData.config || {};
 
   const outputs = [
-    { id: 'pix_paid', label: '1. Comprovante Enviado', color: '!bg-emerald-400' },
-    { id: 'pix_help', label: '2. Dúvida / Outra Forma', color: '!bg-amber-400' },
+    { id: 'pix_paid', label: 'Comprovante Enviado', color: '!bg-emerald-400' },
+    { id: 'pix_help', label: 'Dúvida / Outra Forma', color: '!bg-amber-400' },
   ];
 
   return (
@@ -1053,8 +1053,8 @@ export const VipConsultationNode: React.FC<NodeProps> = ({ id, selected, data })
   const config = nodeData.config || {};
 
   const outputs = [
-    { id: 'consult_online', label: '1. Online (WhatsApp / Vídeo)', color: '!bg-pink-400' },
-    { id: 'consult_store', label: '2. Presencial na Loja Física', color: '!bg-purple-400' },
+    { id: 'consult_online', label: 'Online (WhatsApp / Vídeo)', color: '!bg-pink-400' },
+    { id: 'consult_store', label: 'Presencial na Loja Física', color: '!bg-purple-400' },
   ];
 
   return (
@@ -1132,8 +1132,8 @@ export const PromotionalCouponNode: React.FC<NodeProps> = ({ id, selected, data 
   const config = nodeData.config || {};
 
   const outputs = [
-    { id: 'coupon_valid', label: '1. Cupom Válido (Aplicado)', color: '!bg-emerald-400' },
-    { id: 'coupon_invalid', label: '2. Cupom Inválido / Expirado', color: '!bg-rose-400' },
+    { id: 'coupon_valid', label: 'Cupom Válido (Aplicado)', color: '!bg-emerald-400' },
+    { id: 'coupon_invalid', label: 'Cupom Inválido / Expirado', color: '!bg-rose-400' },
   ];
 
   return (

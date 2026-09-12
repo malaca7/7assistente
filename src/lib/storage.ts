@@ -558,19 +558,39 @@ export const StorageService = {
   },
 
   async clearMessages(convId: string): Promise<boolean> {
+    try {
+      await fetch(`${API_BASE}/api/conversations/${encodeURIComponent(convId)}/messages`, {
+        method: 'DELETE',
+      }).catch(() => {});
+    } catch {}
+
+    if (SupabaseService.isSupabaseReady) {
+      await SupabaseService.clearConversationMessages(convId).catch(() => {});
+    }
+
     setItem(`${STORAGE_KEYS.MESSAGES_PREFIX}${convId}`, []);
     return true;
   },
 
-  // Mover para Lixeira (ao invés de apagar definitivamente)
+  // Apagar conversa do Atendimento (Sincronizado com Servidor e Supabase)
   async deleteConversation(convId: string): Promise<boolean> {
-    const convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, []);
-    const target = convs.find(c => c.id === convId);
-    if (target) {
-      target.is_deleted = true;
-      target.deleted_at = new Date().toISOString();
-      setItem(STORAGE_KEYS.CONVERSATIONS, convs);
+    try {
+      await fetch(`${API_BASE}/api/conversations/${encodeURIComponent(convId)}`, {
+        method: 'DELETE',
+      }).catch(() => {});
+      await fetch(`${API_BASE}/api/conversations/${encodeURIComponent(convId)}/delete`, {
+        method: 'POST',
+      }).catch(() => {});
+    } catch {}
+
+    if (SupabaseService.isSupabaseReady) {
+      await SupabaseService.deleteConversation(convId).catch(() => {});
     }
+
+    setItem(`${STORAGE_KEYS.MESSAGES_PREFIX}${convId}`, []);
+    const convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, []);
+    const filtered = convs.filter(c => c.id !== convId && c.phone !== convId && `conv-${c.phone}` !== convId);
+    setItem(STORAGE_KEYS.CONVERSATIONS, filtered);
     return true;
   },
 
@@ -586,18 +606,39 @@ export const StorageService = {
     return true;
   },
 
-  // Exclusão Permanente (Esvaziar da Lixeira)
+  // Exclusão Permanente Definitiva
   async purgeConversation(convId: string): Promise<boolean> {
     try {
-      await fetch(`${API_BASE}/api/conversations/${convId}`, {
+      await fetch(`${API_BASE}/api/conversations/${encodeURIComponent(convId)}`, {
+        method: 'DELETE',
+      }).catch(() => {});
+      await fetch(`${API_BASE}/api/conversations/${encodeURIComponent(convId)}/delete`, {
+        method: 'POST',
+      }).catch(() => {});
+    } catch {}
+
+    if (SupabaseService.isSupabaseReady) {
+      await SupabaseService.deleteConversation(convId).catch(() => {});
+    }
+
+    setItem(`${STORAGE_KEYS.MESSAGES_PREFIX}${convId}`, []);
+    const convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, []);
+    const filtered = convs.filter(c => c.id !== convId && c.phone !== convId && `conv-${c.phone}` !== convId);
+    setItem(STORAGE_KEYS.CONVERSATIONS, filtered);
+    return true;
+  },
+
+  // Esvaziar todas as conversas da lixeira
+  async purgeAllTrashConversations(): Promise<boolean> {
+    try {
+      await fetch(`${API_BASE}/api/conversations?trash=true`, {
         method: 'DELETE',
       }).catch(() => {});
     } catch {}
 
-    setItem(`${STORAGE_KEYS.MESSAGES_PREFIX}${convId}`, []);
     const convs = getItem<Conversation[]>(STORAGE_KEYS.CONVERSATIONS, []);
-    const filtered = convs.filter(c => c.id !== convId);
-    setItem(STORAGE_KEYS.CONVERSATIONS, filtered);
+    const activeOnes = convs.filter(c => !c.is_deleted);
+    setItem(STORAGE_KEYS.CONVERSATIONS, activeOnes);
     return true;
   },
 

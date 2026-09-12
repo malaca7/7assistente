@@ -4,7 +4,7 @@
  * Documentação: https://developers.facebook.com/docs/whatsapp/cloud-api
  */
 
-import { loadDb, saveDb } from './flowRunner.mjs';
+import { loadDb, saveDb, cleanButtonTitle } from './flowRunner.mjs';
 
 const GRAPH_API_VERSION = 'v20.0';
 const GRAPH_API_BASE = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
@@ -206,7 +206,8 @@ export async function sendMetaMessage(to, reply) {
           footer: footerText ? { text: footerText } : undefined,
           action: {
             buttons: rawButtons.map((btn, idx) => {
-              const cleanTitle = (btn.title || btn.text || `Opção ${idx + 1}`).replace(/^\d+[\.\-\)]\s*/, '').trim();
+              const rawTitle = btn.title || btn.text || `Opção ${idx + 1}`;
+              const cleanTitle = cleanButtonTitle(rawTitle);
               return {
                 type: 'reply',
                 reply: {
@@ -230,7 +231,8 @@ export async function sendMetaMessage(to, reply) {
               {
                 title: 'Opções Disponíveis',
                 rows: rawButtons.slice(0, 10).map((btn, idx) => {
-                  const cleanTitle = (btn.title || btn.text || `Opção ${idx + 1}`).trim();
+                  const rawTitle = btn.title || btn.text || `Opção ${idx + 1}`;
+                  const cleanTitle = cleanButtonTitle(rawTitle);
                   return {
                     id: String(btn.id || `opt_${idx + 1}`).slice(0, 200),
                     title: cleanTitle.slice(0, 24), // Limite da Meta: 24 caracteres

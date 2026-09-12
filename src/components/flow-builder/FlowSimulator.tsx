@@ -397,7 +397,7 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
         let content = `✂️ *Escolha o Serviço:*\n${intro}`;
         if (currentServices.length > 3) {
           const listLines = currentServices
-            .map((s, idx) => `*${idx + 1}️⃣* *${s.name}* (R$ ${Number(s.price || 0).toFixed(2).replace('.', ',')})`)
+            .map((s) => `• *${s.name}* (R$ ${Number(s.price || 0).toFixed(2).replace('.', ',')})`)
             .join('\n');
           content += `\n\n${listLines}`;
         }
@@ -531,10 +531,9 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
             { id: 'store-003', name: 'Atendimento Geral / E-commerce' },
           ];
         }
-        const numEmojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'];
         const buttons = loadedStores.map((st: any, i: number) => ({
           id: st.id || `store_${st.slug || i}`,
-          title: `${numEmojis[i] || `${i + 1}.`} ${st.name.replace(/Loja\s*/i, '').slice(0, 18)}`
+          title: st.name.replace(/^Loja\s*/i, '').slice(0, 20)
         }));
 
         setMessages((prev) => [
@@ -556,10 +555,10 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
         const footer = substituteVariables(config.footerText || '✨ Trabalhamos do RN ao 3 anos. Peças 100% algodão suedine e tricot antialérgico.', activeVars, p || undefined);
 
         const catalogContent = `${header}\n\n` +
-          `*1️⃣ Body Suedine 100% Algodão*\n   💰 R$ 49,90 • 👶 RN a GG (Cores Lisas & Estampadas)\n\n` +
-          `*2️⃣ Macacão Confort Zíper Duplo*\n   💰 R$ 89,90 • 👶 RN ao 3 Anos (Proteção no Queixo)\n\n` +
-          `*3️⃣ Saída Maternidade Tricot Luxo (5 Peças)*\n   💰 R$ 199,90 • 👶 RN e P (Macacão + Manta + Body + Faixinha)\n\n` +
-          `*4️⃣ Kit de Berço 9 Peças 200 Fios*\n   💰 R$ 389,00 • 🛏️ Padrão Americano (100% Algodão Hipoalergênico)\n\n` +
+          `• *Body Suedine 100% Algodão*\n   💰 R$ 49,90 • 👶 RN a GG (Cores Lisas & Estampadas)\n\n` +
+          `• *Macacão Confort Zíper Duplo*\n   💰 R$ 89,90 • 👶 RN ao 3 Anos (Proteção no Queixo)\n\n` +
+          `• *Saída Maternidade Tricot Luxo (5 Peças)*\n   💰 R$ 199,90 • 👶 RN e P (Macacão + Manta + Body + Faixinha)\n\n` +
+          `• *Kit de Berço 9 Peças 200 Fios*\n   💰 R$ 389,00 • 🛏️ Padrão Americano (100% Algodão Hipoalergênico)\n\n` +
           `_${footer}_`;
 
         activeVars.catalogo_produtos = catalogContent;
@@ -602,9 +601,9 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
       else if (type === 'shipping_calculator') {
         const intro = substituteVariables(config.introMessage || 'Como você prefere receber seu pedido da Pitoco de Gente?', activeVars, p || undefined);
         const buttons = [
-          { id: 'shipping_motoboy', title: '1️⃣ Motoboy Recife (R$ 15)' },
-          { id: 'shipping_correios', title: '2️⃣ Correios Brasil (R$ 25)' },
-          { id: 'shipping_pickup', title: '3️⃣ Retirar na Loja (Grátis)' },
+          { id: 'shipping_motoboy', title: 'Motoboy Express (R$ 15)' },
+          { id: 'shipping_correios', title: 'Correios SEDEX/PAC (R$ 25)' },
+          { id: 'shipping_pickup', title: 'Retirar na Loja (Grátis)' },
         ];
 
         setMessages((prev) => [

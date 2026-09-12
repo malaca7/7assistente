@@ -23,7 +23,11 @@ import {
   Upload,
   User,
   Info,
-  X
+  X,
+  Sun,
+  Moon,
+  Contrast,
+  Sliders
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -170,9 +174,14 @@ export const SettingsPage: React.FC = () => {
     brightness, 
     contrast, 
     accentColor, 
+    ultraDark,
     openThemeModal, 
     setThemeMode, 
+    setBrightness,
+    setContrast,
     setAccentColor, 
+    setUltraDark,
+    resetTheme,
     currentUserIdentifier 
   } = useTheme();
 
@@ -1269,12 +1278,25 @@ export const SettingsPage: React.FC = () => {
               </div>
 
               <div className="bg-dark-950/60 p-4 rounded-xl border border-white/5">
-                <span className="text-[11px] font-semibold text-slate-400 block uppercase">Contraste</span>
-                <span className="text-base font-bold text-white mt-1 block font-mono">
-                  {contrast}%
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-slate-400 block uppercase">Modo Super Escuro</span>
+                  <button
+                    type="button"
+                    onClick={() => setUltraDark(!ultraDark)}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-all ${
+                      ultraDark
+                        ? 'bg-amber-500 text-dark-950'
+                        : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                    }`}
+                  >
+                    {ultraDark ? 'Ativo' : 'Ativar'}
+                  </button>
+                </div>
+                <span className="text-sm font-bold text-white mt-1 block">
+                  {ultraDark ? '🌙 Blackout Total' : 'Inativo'}
                 </span>
                 <span className="text-xs text-slate-500 mt-0.5 block">
-                  {contrast === 100 ? 'Contraste balanceado' : contrast > 100 ? 'Alto contraste' : 'Suave'}
+                  Fundo 100% preto OLED puro
                 </span>
               </div>
             </div>
@@ -1282,7 +1304,7 @@ export const SettingsPage: React.FC = () => {
             {/* Quick switcher buttons */}
             <div className="mt-6 pt-6 border-t border-white/5">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
-                Seleção Rápida de Tema (3 Escuros e 2 Claros)
+                Seleção de Tema (4 Escuros e 2 Claros)
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 {THEME_OPTIONS.map(opt => (
@@ -1334,6 +1356,138 @@ export const SettingsPage: React.FC = () => {
                     <span className="text-zinc-200">{acc.name}</span>
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Ajuste Óptico Avançado de Brilho & Contraste Extremo */}
+            <div className="mt-6 pt-6 border-t border-white/5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                  <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+                  Ajuste Óptico de Brilho & Contraste Extremo
+                </h4>
+                <div className="flex items-center gap-2">
+                  {(brightness !== 100 || contrast !== 100) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBrightness(100);
+                        setContrast(100);
+                      }}
+                      className="text-[11px] text-zinc-400 hover:text-white underline font-medium"
+                    >
+                      Redefinir 100%
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-dark-950/60 p-4 rounded-xl border border-white/5">
+                {/* Brilho Extremo (20% a 200%) */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-zinc-300 flex items-center gap-1.5 font-medium">
+                      <Sun className="w-3.5 h-3.5 text-amber-400" />
+                      Brilho da Tela
+                    </span>
+                    <span className="font-mono font-bold text-white text-xs bg-white/10 px-2 py-0.5 rounded">
+                      {brightness}%
+                    </span>
+                  </div>
+
+                  <input
+                    type="range"
+                    min="20"
+                    max="200"
+                    step="1"
+                    value={brightness}
+                    onChange={(e) => setBrightness(Number(e.target.value))}
+                    className="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-white"
+                  />
+
+                  <div className="flex justify-between text-[9.5px] text-zinc-500 font-mono">
+                    <span>20% (Mínimo Noturno)</span>
+                    <span>100% (Padrão)</span>
+                    <span>200% (Super Claro)</span>
+                  </div>
+
+                  {/* Presets Rápidos */}
+                  <div className="flex items-center gap-1 pt-1">
+                    {[
+                      { label: '25% Noturno', val: 25 },
+                      { label: '50% Suave', val: 50 },
+                      { label: '100% Normal', val: 100 },
+                      { label: '150% Claro', val: 150 },
+                      { label: '200% Máx', val: 200 },
+                    ].map((b) => (
+                      <button
+                        key={b.val}
+                        type="button"
+                        onClick={() => setBrightness(b.val)}
+                        className={`flex-1 py-1 rounded text-[9.5px] font-semibold transition-all border ${
+                          brightness === b.val
+                            ? 'bg-white/20 text-white border-white/40 font-bold'
+                            : 'bg-white/5 text-zinc-400 border-white/5 hover:bg-white/10 hover:text-zinc-200'
+                        }`}
+                      >
+                        {b.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Contraste Extremo (30% a 220%) */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-zinc-300 flex items-center gap-1.5 font-medium">
+                      <Contrast className="w-3.5 h-3.5 text-blue-400" />
+                      Contraste Geral
+                    </span>
+                    <span className="font-mono font-bold text-white text-xs bg-white/10 px-2 py-0.5 rounded">
+                      {contrast}%
+                    </span>
+                  </div>
+
+                  <input
+                    type="range"
+                    min="30"
+                    max="220"
+                    step="1"
+                    value={contrast}
+                    onChange={(e) => setContrast(Number(e.target.value))}
+                    className="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-white"
+                  />
+
+                  <div className="flex justify-between text-[9.5px] text-zinc-500 font-mono">
+                    <span>30% (Baixo Suave)</span>
+                    <span>100% (Padrão)</span>
+                    <span>220% (Ultra Alto)</span>
+                  </div>
+
+                  {/* Presets Rápidos */}
+                  <div className="flex items-center gap-1 pt-1">
+                    {[
+                      { label: '35% Mín', val: 35 },
+                      { label: '70% Suave', val: 70 },
+                      { label: '100% Normal', val: 100 },
+                      { label: '150% Alto', val: 150 },
+                      { label: '200% Máx', val: 200 },
+                    ].map((c) => (
+                      <button
+                        key={c.val}
+                        type="button"
+                        onClick={() => setContrast(c.val)}
+                        className={`flex-1 py-1 rounded text-[9.5px] font-semibold transition-all border ${
+                          contrast === c.val
+                            ? 'bg-white/20 text-white border-white/40 font-bold'
+                            : 'bg-white/5 text-zinc-400 border-white/5 hover:bg-white/10 hover:text-zinc-200'
+                        }`}
+                      >
+                        {c.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </Card>

@@ -373,6 +373,36 @@ export async function assignConversationAttendant(
   }
 }
 
+export async function deleteConversation(id: string): Promise<boolean> {
+  try {
+    const cleanPhone = String(id).replace(/\D/g, '');
+    let query = supabase.from('conversations').delete();
+    if (cleanPhone) {
+      query = query.or(`id.eq.${id},id.eq.conv-${cleanPhone},phone.eq.${cleanPhone}`);
+    } else {
+      query = query.eq('id', id);
+    }
+    await query.catch(() => {});
+
+    await supabase.from('chat_messages').delete().or(`conversation_id.eq.${id},conversation_id.eq.conv-${cleanPhone}`).catch(() => {});
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] deleteConversation error:', err);
+    return false;
+  }
+}
+
+export async function clearConversationMessages(id: string): Promise<boolean> {
+  try {
+    const cleanPhone = String(id).replace(/\D/g, '');
+    await supabase.from('chat_messages').delete().or(`conversation_id.eq.${id},conversation_id.eq.conv-${cleanPhone}`).catch(() => {});
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] clearConversationMessages error:', err);
+    return false;
+  }
+}
+
 // ==========================================
 // 6. SUPPORT TICKETS
 // ==========================================

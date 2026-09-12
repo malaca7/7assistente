@@ -97,10 +97,10 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
   const { success, warning, error: toastError, info } = useToast();
 
   // Controle de permissões estrito para os 3 painéis
-  const isAttendantMode = portalMode === 'atendimento' || (!hasAdminAccess && !isCEO && !isManager && user?.role === 'attendant');
-  const isAdmin = portalMode === 'admin' || isCEO || user?.role === 'admin' || user?.panels?.includes('admin');
-  const canAdminDestructive = !isAttendantMode && (isCEO || isManager || isAdmin);
-  const canEditClient = !isAttendantMode && canAdminDestructive;
+  const isAdmin = portalMode === 'admin' || isCEO || user?.role === 'admin' || user?.panels?.includes('admin') || Boolean(hasAdminAccess);
+  const canAdminDestructive = isCEO || isManager || isAdmin || Boolean(hasAdminAccess) || portalMode === 'admin';
+  const isAttendantMode = !canAdminDestructive && (portalMode === 'atendimento' || user?.role === 'attendant');
+  const canEditClient = canAdminDestructive;
 
   const [stores, setStores] = useState<Store[]>([]);
   const [attendants, setAttendants] = useState<SystemUser[]>([]);
@@ -432,19 +432,29 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
     success('Histórico de mensagens limpo com sucesso');
   };
 
-  // 3. Mover Conversa para a Lixeira (Apenas Admin/Gerente)
-  const handleDeleteConversation = async () => {
-    if (!activeConv) return;
+  // 3. Apagar Conversa Definitivamente
+  const handleDeleteConversation = async (targetConv?: Conversation) => {
+    const conv = targetConv || activeConv;
+    if (!conv) return;
     if (!canAdminDestructive) {
-      warning('Ação Restrita', 'O painel de atendimento não tem permissão para apagar conversas.');
+      warning('Ação Restrita', 'O painel de atendimento requer permissão de administrador para apagar conversas.');
       return;
     }
-    if (!window.confirm(`Deseja mover a conversa com ${activeConv.contact_name || activeConv.phone} para a Lixeira?`)) return;
-    const convId = activeConv.id;
-    await StorageService.deleteConversation(convId);
-    setConversations(prev => prev.map(c => c.id === convId ? { ...c, is_deleted: true, deleted_at: new Date().toISOString() } : c));
-    setActiveConv(prev => prev ? { ...prev, is_deleted: true, deleted_at: new Date().toISOString() } : null);
-    success('Conversa movida para a Lixeira');
+    const clientName = conv.contact_name || conv.phone || 'Cliente';
+    if (!window.confirm(`Tem certeza que deseja apagar a conversa com ${clientName}? Todas as mensagens e histórico serão removidos definitivamente do sistema.`)) return;
+    
+    const convId = conv.id;
+    try {
+      await StorageService.purgeConversation(convId);
+      setConversations(prev => prev.filter(c => c.id !== convId && c.phone !== conv.phone && `conv-${c.phone}` !== convId));
+      if (activeConv?.id === convId || activeConv?.phone === conv.phone) {
+        setActiveConv(null);
+        setMessages([]);
+      }
+      success('Conversa apagada com sucesso!');
+    } catch (err: any) {
+      toastError('Erro ao apagar conversa', err?.message || 'Falha ao remover.');
+    }
   };
 
   // 4. Restaurar Conversa da Lixeira (Apenas Admin)
@@ -462,13 +472,17 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
   const handlePurgeConversation = async (convId: string) => {
     if (!canAdminDestructive) return;
     if (!window.confirm('Atenção: Esta ação é definitiva e removerá permanentemente todos os dados desta conversa. Continuar?')) return;
-    await StorageService.purgeConversation(convId);
-    setConversations(prev => prev.filter(c => c.id !== convId));
-    if (activeConv?.id === convId) {
-      setActiveConv(null);
-      setMessages([]);
+    try {
+      await StorageService.purgeConversation(convId);
+      setConversations(prev => prev.filter(c => c.id !== convId && `conv-${c.phone}` !== convId));
+      if (activeConv?.id === convId) {
+        setActiveConv(null);
+        setMessages([]);
+      }
+      success('Conversa excluída permanentemente.');
+    } catch (err: any) {
+      toastError('Erro ao excluir', err?.message || 'Falha ao remover.');
     }
-    success('Conversa excluída permanentemente.');
   };
 
   // 6. Transferir Atendimento para Atendente / Filial
@@ -959,6 +973,25 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
               ))}
             </div>
 
+            {/* Ação de Esvaziar Lixeira */}
+            {statusFilter === 'trash' && canAdminDestructive && filteredConversations.length > 0 && (
+              <div className="p-2 bg-red-950/30 border border-red-500/20 rounded-lg flex items-center justify-between text-xs text-red-300">
+                <span>{filteredConversations.length} na lixeira</span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!window.confirm('Deseja excluir permanentemente todas as conversas da lixeira?')) return;
+                    await StorageService.purgeAllTrashConversations();
+                    setConversations(prev => prev.filter(c => !c.is_deleted));
+                    success('Lixeira esvaziada com sucesso!');
+                  }}
+                  className="px-2 py-0.5 rounded bg-red-900 hover:bg-red-800 text-white text-[11px] font-bold transition-all"
+                >
+                  Esvaziar Lixeira
+                </button>
+              </div>
+            )}
+
             {/* Alternador de Ordenação da Fila (Mais antiga para mais nova vs Recente) */}
             <div className="flex items-center justify-between pt-1 border-t border-white/5 text-[10.5px]">
               <span className="text-slate-400 font-medium">
@@ -1100,6 +1133,21 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                           Assumir
                         </button>
                       )}
+
+                      {/* Botão Rápido de Apagar Conversa */}
+                      {canAdminDestructive && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteConversation(conv);
+                          }}
+                          className="p-1 rounded text-slate-500 hover:text-red-400 hover:bg-red-500/15 transition-all shrink-0 ml-auto"
+                          title="Apagar esta conversa permanentemente"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -1235,7 +1283,7 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                         Transcrição
                       </Button>
 
-                      {/* Ações Destrutivas: Limpar Histórico e Mover para Lixeira (Apenas Admin/Gerente) */}
+                      {/* Ações Destrutivas: Limpar Histórico e Apagar Conversa (Apenas Admin/Gerente) */}
                       {canAdminDestructive && (
                         <>
                           <Button
@@ -1243,19 +1291,21 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                             variant="outline"
                             onClick={handleClearHistory}
                             className="text-xs border-white/10 hover:bg-amber-500/10 text-amber-400 border-amber-500/20 h-8 px-2"
-                            title="Limpar todas as mensagens desta conversa (Apenas Administrador)"
+                            title="Limpar histórico de mensagens desta conversa"
                           >
                             <Eraser className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline ml-1">Limpar Chat</span>
                           </Button>
 
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={handleDeleteConversation}
-                            className="text-xs border-red-500/30 hover:bg-red-500/10 text-red-400 h-8 px-2"
-                            title="Mover conversa para a Lixeira (Apenas Administrador)"
+                            onClick={() => handleDeleteConversation(activeConv)}
+                            className="text-xs border-red-500/30 hover:bg-red-500/15 text-red-400 h-8 px-2.5 flex items-center gap-1 font-semibold"
+                            title="Apagar permanentemente esta conversa do sistema"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Apagar Conversa</span>
                           </Button>
                         </>
                       )}
@@ -1268,15 +1318,24 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
               <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-dark-950/60">
                 {activeConv.is_deleted && (
                   <div className="p-3 rounded-lg bg-red-950/40 border border-red-500/30 text-xs text-red-300 flex items-center justify-between">
-                    <span>⚠️ Esta conversa está na <strong>Lixeira</strong>. Restaure para enviar novas mensagens.</span>
+                    <span>⚠️ Esta conversa está na <strong>Lixeira</strong>. Restaure para enviar novas mensagens ou exclua permanentemente.</span>
                     {canAdminDestructive && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleRestoreConversation(activeConv.id)}
-                        className="text-xs bg-red-800 hover:bg-red-700 text-white h-6 px-2"
-                      >
-                        Restaurar
-                      </Button>
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          size="sm"
+                          onClick={() => handleRestoreConversation(activeConv.id)}
+                          className="text-xs bg-red-800 hover:bg-red-700 text-white h-6 px-2"
+                        >
+                          Restaurar
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handlePurgeConversation(activeConv.id)}
+                          className="text-xs bg-red-950 hover:bg-red-900 text-red-200 border border-red-500/40 h-6 px-2"
+                        >
+                          Excluir Definitivo
+                        </Button>
+                      </div>
                     )}
                   </div>
                 )}

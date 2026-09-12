@@ -28,14 +28,62 @@
 }
 
 /* ==============================================================================
-   5 TEMAS (3 ESCUROS + 2 CLAROS)
+   TEMAS (4 ESCUROS + 2 CLAROS) & MODO ULTRA ESCURO BLACKOUT
    ============================================================================== */
+
+/* 0. DARK ABYSS (Super Blackout / Abismo OLED 100% Preto Puro) */
+[data-theme="dark-abyss"] {
+  --bg-main: #000000;
+  --card-bg: #030304;
+  --border-color: rgba(255, 255, 255, 0.03);
+}
+[data-theme="dark-abyss"] body,
+[data-theme="dark-abyss"] .bg-black {
+  background-color: #000000 !important;
+}
+[data-theme="dark-abyss"] .bg-\[\#09090b\],
+[data-theme="dark-abyss"] .bg-dark-900,
+[data-theme="dark-abyss"] .bg-dark-950,
+[data-theme="dark-abyss"] .bg-zinc-900 {
+  background-color: #040405 !important;
+}
+[data-theme="dark-abyss"] .bg-\[\#141416\],
+[data-theme="dark-abyss"] .bg-dark-850,
+[data-theme="dark-abyss"] .bg-dark-800,
+[data-theme="dark-abyss"] .bg-zinc-800 {
+  background-color: #08080a !important;
+}
 
 /* 1. DARK MIDNIGHT (Preto Puro OLED) */
 [data-theme="dark-midnight"] {
   --bg-main: #000000;
   --card-bg: #080809;
   --border-color: rgba(255, 255, 255, 0.05);
+}
+
+/* MODO ULTRA ESCURO / BLACKOUT FORÇADO GLOBAL */
+[data-ultra-dark="true"] {
+  --bg-main: #000000 !important;
+  --card-bg: #030304 !important;
+}
+[data-ultra-dark="true"] body,
+[data-ultra-dark="true"] .bg-black {
+  background-color: #000000 !important;
+}
+[data-ultra-dark="true"] .bg-\[\#09090b\],
+[data-ultra-dark="true"] .bg-dark-900,
+[data-ultra-dark="true"] .bg-dark-950,
+[data-ultra-dark="true"] .bg-zinc-900 {
+  background-color: #040405 !important;
+}
+[data-ultra-dark="true"] .bg-\[\#141416\],
+[data-ultra-dark="true"] .bg-dark-850,
+[data-ultra-dark="true"] .bg-dark-800,
+[data-ultra-dark="true"] .bg-zinc-800 {
+  background-color: #08080b !important;
+}
+[data-ultra-dark="true"] * {
+  border-color: rgba(255, 255, 255, 0.04) !important;
 }
 
 /* 2. DARK SLATE (Carvão & Ardósia) */

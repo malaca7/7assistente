@@ -460,10 +460,13 @@ export const ConversationsPage: React.FC<{ onNavigate?: (path: string) => void }
   // Delete Conversation
   const handleDeleteConversation = async () => {
     if (!selectedConv) return;
+    const targetId = selectedConv.id;
+    const targetPhone = selectedConv.phone;
     try {
-      await StorageService.deleteConversation(selectedConv.id);
+      await StorageService.purgeConversation(targetId);
       setIsDeleteModalOpen(false);
       setSelectedConv(null);
+      setConversations((prev) => prev.filter(c => c.id !== targetId && c.phone !== targetPhone && `conv-${c.phone}` !== targetId));
       await loadData(false);
       success('Conversa Excluída', 'Histórico apagado com sucesso.');
     } catch (err: any) {

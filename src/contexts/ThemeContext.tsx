@@ -15,10 +15,12 @@ interface ThemeContextType {
   brightness: number;
   contrast: number;
   accentColor: AccentColor;
+  ultraDark: boolean;
   setThemeMode: (mode: ThemeMode) => void;
   setBrightness: (val: number) => void;
   setContrast: (val: number) => void;
   setAccentColor: (accent: AccentColor) => void;
+  setUltraDark: (val: boolean) => void;
   resetTheme: () => void;
   isThemeModalOpen: boolean;
   openThemeModal: () => void;
@@ -46,6 +48,7 @@ function loadConfigFromStorage(storageKey: string): UserThemeConfig {
         brightness: typeof parsed.brightness === 'number' ? parsed.brightness : DEFAULT_THEME_CONFIG.brightness,
         contrast: typeof parsed.contrast === 'number' ? parsed.contrast : DEFAULT_THEME_CONFIG.contrast,
         accent: parsed.accent || DEFAULT_THEME_CONFIG.accent,
+        ultraDark: Boolean(parsed.ultraDark),
       };
     }
   } catch (err) {
@@ -62,10 +65,13 @@ function applyThemeToDOM(config: UserThemeConfig) {
   // 1. Data attributes
   root.setAttribute('data-theme', config.mode);
   root.setAttribute('data-accent', config.accent);
+  root.setAttribute('data-ultra-dark', config.ultraDark ? 'true' : 'false');
 
-  // 2. Brightness & Contrast via CSS variables
-  const bVal = (config.brightness / 100).toFixed(2);
-  const cVal = (config.contrast / 100).toFixed(2);
+  // 2. Brightness & Contrast via CSS variables (clamped smoothly)
+  const safeBrightness = Math.min(200, Math.max(20, config.brightness || 100));
+  const safeContrast = Math.min(220, Math.max(30, config.contrast || 100));
+  const bVal = (safeBrightness / 100).toFixed(2);
+  const cVal = (safeContrast / 100).toFixed(2);
   root.style.setProperty('--theme-brightness', bVal);
   root.style.setProperty('--theme-contrast', cVal);
 
@@ -123,17 +129,21 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [persistConfig, themeConfig]);
 
   const setBrightness = useCallback((val: number) => {
-    const clamped = Math.min(130, Math.max(70, Math.round(val)));
+    const clamped = Math.min(200, Math.max(20, Math.round(val)));
     persistConfig({ ...themeConfig, brightness: clamped });
   }, [persistConfig, themeConfig]);
 
   const setContrast = useCallback((val: number) => {
-    const clamped = Math.min(140, Math.max(80, Math.round(val)));
+    const clamped = Math.min(220, Math.max(30, Math.round(val)));
     persistConfig({ ...themeConfig, contrast: clamped });
   }, [persistConfig, themeConfig]);
 
   const setAccentColor = useCallback((accent: AccentColor) => {
     persistConfig({ ...themeConfig, accent });
+  }, [persistConfig, themeConfig]);
+
+  const setUltraDark = useCallback((val: boolean) => {
+    persistConfig({ ...themeConfig, ultraDark: val });
   }, [persistConfig, themeConfig]);
 
   const resetTheme = useCallback(() => {
@@ -151,10 +161,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         brightness: themeConfig.brightness,
         contrast: themeConfig.contrast,
         accentColor: themeConfig.accent,
+        ultraDark: Boolean(themeConfig.ultraDark),
         setThemeMode,
         setBrightness,
         setContrast,
         setAccentColor,
+        setUltraDark,
         resetTheme,
         isThemeModalOpen,
         openThemeModal,

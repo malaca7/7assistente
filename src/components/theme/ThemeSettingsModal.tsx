@@ -24,10 +24,12 @@ export const ThemeSettingsModal: React.FC = () => {
     brightness,
     contrast,
     accentColor,
+    ultraDark,
     setThemeMode,
     setBrightness,
     setContrast,
     setAccentColor,
+    setUltraDark,
     resetTheme,
     currentUserIdentifier,
   } = useTheme();
@@ -299,19 +301,61 @@ export const ThemeSettingsModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Seção 4: Ajuste Fino de Brilho & Contraste */}
+          {/* Seção 4: Modo Super Escuro & Ajuste Óptico de Brilho e Contraste */}
           <div className="space-y-4 pt-2 border-t border-white/10">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
                 <Sliders className="w-3.5 h-3.5 text-cyan-400" />
-                Ajuste Óptico (Brilho & Contraste)
+                Ajuste Óptico Avançado (Brilho & Contraste Extremo)
               </label>
-              <span className="text-[11px] text-zinc-500">Adaptação à iluminação do seu ambiente</span>
+              <span className="text-[11px] text-zinc-500">Controle completo de iluminação para qualquer ambiente</span>
+            </div>
+
+            {/* Banner / Opção de Modo Super Escuro Blackout */}
+            <div className={`p-3.5 rounded-xl border transition-all ${
+              ultraDark 
+                ? 'bg-amber-500/10 border-amber-500/40 shadow-lg ring-1 ring-amber-500/30' 
+                : 'bg-white/[0.02] border-white/10 hover:border-white/20'
+            } flex items-center justify-between gap-3`}>
+              <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                  ultraDark 
+                    ? 'bg-amber-500 text-dark-950 font-bold shadow-md' 
+                    : 'bg-white/5 text-zinc-400 border border-white/5'
+                }`}>
+                  <Moon className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-white">Modo Super Escuro (Blackout Total)</span>
+                    <span className={`text-[9px] px-2 py-0.2 rounded-full font-bold uppercase ${
+                      ultraDark ? 'bg-amber-500/20 text-amber-300' : 'bg-white/10 text-zinc-400'
+                    }`}>
+                      {ultraDark ? 'Ativado' : 'Opcional'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">
+                    Força fundo 100% preto puro (#000000) e atenua brilho de painéis e bordas para máximo descanso ocular.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setUltraDark(!ultraDark)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border shrink-0 ${
+                  ultraDark
+                    ? 'bg-amber-500 text-dark-950 border-amber-400 shadow-md hover:bg-amber-400'
+                    : 'bg-white/5 text-zinc-300 border-white/10 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                {ultraDark ? '✓ Super Escuro Ativo' : 'Deixar Muito Mais Escuro'}
+              </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white/[0.02] p-4 rounded-xl border border-white/10">
-              {/* Slider de Brilho */}
-              <div className="space-y-2">
+              {/* Slider de Brilho Extremo (20% a 200%) */}
+              <div className="space-y-2.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-zinc-300 flex items-center gap-1.5 font-medium">
                     <Sun className="w-3.5 h-3.5 text-amber-400" />
@@ -327,29 +371,55 @@ export const ThemeSettingsModal: React.FC = () => {
                         onClick={() => setBrightness(100)}
                         className="text-[10px] text-zinc-400 hover:text-white underline"
                       >
-                        100%
+                        Reset 100%
                       </button>
                     )}
                   </div>
                 </div>
+
                 <input
                   type="range"
-                  min="70"
-                  max="130"
+                  min="20"
+                  max="200"
                   step="1"
                   value={brightness}
                   onChange={(e) => setBrightness(Number(e.target.value))}
-                  className="w-full h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-white"
+                  className="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-white"
                 />
-                <div className="flex justify-between text-[10px] text-zinc-500 font-mono">
-                  <span>70% (Escuro)</span>
+
+                <div className="flex justify-between text-[9.5px] text-zinc-500 font-mono">
+                  <span>20% (Mínimo)</span>
                   <span>100% (Padrão)</span>
-                  <span>130% (Intenso)</span>
+                  <span>200% (Máximo)</span>
+                </div>
+
+                {/* Presets Rápidos de Brilho */}
+                <div className="flex items-center gap-1 pt-1">
+                  {[
+                    { label: '25% Noturno', val: 25 },
+                    { label: '50% Suave', val: 50 },
+                    { label: '100% Padrão', val: 100 },
+                    { label: '150% Claro', val: 150 },
+                    { label: '200% Máx', val: 200 },
+                  ].map((b) => (
+                    <button
+                      key={b.val}
+                      type="button"
+                      onClick={() => setBrightness(b.val)}
+                      className={`flex-1 py-1 rounded text-[9.5px] font-semibold transition-all border ${
+                        brightness === b.val
+                          ? 'bg-white/20 text-white border-white/40 font-bold'
+                          : 'bg-white/5 text-zinc-400 border-white/5 hover:bg-white/10 hover:text-zinc-200'
+                      }`}
+                    >
+                      {b.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* Slider de Contraste */}
-              <div className="space-y-2">
+              {/* Slider de Contraste Extremo (30% a 220%) */}
+              <div className="space-y-2.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-zinc-300 flex items-center gap-1.5 font-medium">
                     <Contrast className="w-3.5 h-3.5 text-blue-400" />
@@ -365,24 +435,50 @@ export const ThemeSettingsModal: React.FC = () => {
                         onClick={() => setContrast(100)}
                         className="text-[10px] text-zinc-400 hover:text-white underline"
                       >
-                        100%
+                        Reset 100%
                       </button>
                     )}
                   </div>
                 </div>
+
                 <input
                   type="range"
-                  min="80"
-                  max="140"
+                  min="30"
+                  max="220"
                   step="1"
                   value={contrast}
                   onChange={(e) => setContrast(Number(e.target.value))}
-                  className="w-full h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-white"
+                  className="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-white"
                 />
-                <div className="flex justify-between text-[10px] text-zinc-500 font-mono">
-                  <span>80% (Suave)</span>
+
+                <div className="flex justify-between text-[9.5px] text-zinc-500 font-mono">
+                  <span>30% (Baixo)</span>
                   <span>100% (Padrão)</span>
-                  <span>140% (Alto)</span>
+                  <span>220% (Ultra Alto)</span>
+                </div>
+
+                {/* Presets Rápidos de Contraste */}
+                <div className="flex items-center gap-1 pt-1">
+                  {[
+                    { label: '35% Fosco', val: 35 },
+                    { label: '70% Suave', val: 70 },
+                    { label: '100% Padrão', val: 100 },
+                    { label: '150% Alto', val: 150 },
+                    { label: '200% Ultra', val: 200 },
+                  ].map((c) => (
+                    <button
+                      key={c.val}
+                      type="button"
+                      onClick={() => setContrast(c.val)}
+                      className={`flex-1 py-1 rounded text-[9.5px] font-semibold transition-all border ${
+                        contrast === c.val
+                          ? 'bg-white/20 text-white border-white/40 font-bold'
+                          : 'bg-white/5 text-zinc-400 border-white/5 hover:bg-white/10 hover:text-zinc-200'
+                      }`}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>

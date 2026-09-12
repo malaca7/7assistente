@@ -628,6 +628,24 @@ export function getNextAvailableSlot(dateStr, requestedTime, db, duration = 30) 
   return null;
 }
 
+// Remove duplicate numbers, emojis and prefixes from button/option texts
+export function cleanButtonTitle(title) {
+  let res = String(title || '').trim();
+  let prev = '';
+  while (res !== prev) {
+    prev = res;
+    res = res
+      .replace(/^[0-9]+[️⃣\ufe0f\u20e3]+/g, '')
+      .replace(/^([1-9]|10)️⃣\s*/g, '')
+      .replace(/^[0-9]+[\.\-\)\:\s]+/g, '')
+      .replace(/^\[[0-9]+\]\s*/g, '')
+      .replace(/^\([0-9]+\)\s*/g, '')
+      .replace(/^[0-9]+\s+/g, '')
+      .trim();
+  }
+  return res || String(title || '').trim();
+}
+
 // Substitute template variables {{var_name}}
 export function replaceVars(text, vars = {}, botProfile = {}, customVariables = []) {
   if (!text) return '';
@@ -1746,8 +1764,9 @@ function parseCustomDateString(input) {
       if (matchedBtnIndex === -1) {
         for (let i = 0; i < buttons.length; i++) {
           const b = buttons[i];
-          const normTitle = normalize(b.title || b.text || '');
-          const cleanTitle = normalize(normTitle.replace(/^\d+[\.\-\)]\s*/, ''));
+          const rawTitle = b.title || b.text || '';
+          const normTitle = normalize(rawTitle);
+          const cleanTitle = normalize(cleanButtonTitle(rawTitle));
 
           if (normInput === normTitle || normInput === cleanTitle) {
             matchedBtnIndex = i;
@@ -1932,7 +1951,7 @@ function parseCustomDateString(input) {
         // If user typed something unrelated while on buttons node
         const retryLines = buttons.map((b, i) => {
           const numEmoji = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'][i] || `*${i + 1}*`;
-          const cleanTitle = (b.title || b.text || `Opção ${i + 1}`).replace(/^\d+[\.\-\)]\s*/, '').trim();
+          const cleanTitle = cleanButtonTitle(b.title || b.text || `Opção ${i + 1}`);
           return `${numEmoji} *${cleanTitle}*`;
         }).join('\n\n');
 
@@ -2000,14 +2019,19 @@ function parseCustomDateString(input) {
       ];
       const footer = config.footerText ? replaceVars(config.footerText, session.variables, botProfile) : '';
 
-      session.activeButtons = rawButtons;
+      const sanitizedButtons = rawButtons.map((btn) => ({
+        ...btn,
+        title: cleanButtonTitle(btn.title || btn.text || btn.id),
+      }));
+
+      session.activeButtons = sanitizedButtons;
       session.currentNodeId = currentNode.id;
 
       replies.push({
         type: 'buttons',
         body,
         footer,
-        buttons: rawButtons,
+        buttons: sanitizedButtons,
         replyMode: config.replyMode || 'send',
       });
       break;
@@ -2390,21 +2414,21 @@ function parseCustomDateString(input) {
           footer,
           buttons: serviceButtons.map((b) => ({
             id: b.id,
-            title: b.title.length > 20 ? b.title.substring(0, 20) : b.title,
+            title: cleanButtonTitle(b.title).slice(0, 20),
           })),
         });
       } else {
         const listLines = services
-          .map((s, idx) => `*${idx + 1}️⃣* *${s.name}*\n   💰 R$ ${Number(s.price || 0).toFixed(2).replace('.', ',')} • ⏱️ ${s.duration_minutes || 30} min`)
+          .map((s) => `• *${s.name}*\n   💰 R$ ${Number(s.price || 0).toFixed(2).replace('.', ',')} • ⏱️ ${s.duration_minutes || 30} min`)
           .join('\n\n');
 
         replies.push({
           type: 'buttons',
           body: `🍼 *Escolha o Produto / Atendimento:*\n\n${intro}\n\n${listLines}`,
-          footer: '👉 Toque no botão ou digite o número correspondente:',
+          footer: '👉 Toque no botão ou digite a opção desejada:',
           buttons: serviceButtons.slice(0, 3).map((b) => ({
             id: b.id,
-            title: b.title.length > 20 ? b.title.substring(0, 20) : b.title,
+            title: cleanButtonTitle(b.title).slice(0, 20),
           })),
         });
       }
@@ -2616,13 +2640,12 @@ function parseCustomDateString(input) {
             { id: 'store-003', name: 'Atendimento Geral / E-commerce', slug: 'ecommerce' },
           ];
 
-      const emojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣'];
-      const storeButtons = activeStores.slice(0, 3).map((st, idx) => {
+      const storeButtons = activeStores.slice(0, 3).map((st) => {
         const cleanName = st.name.replace(/^Loja\s+/i, '').trim();
-        const shortName = cleanName.length > 15 ? cleanName.slice(0, 15) : cleanName;
+        const shortName = cleanName.length > 20 ? cleanName.slice(0, 20) : cleanName;
         return {
           id: st.id,
-          title: `${emojis[idx] || `${idx + 1}️⃣`} ${shortName}`,
+          title: cleanButtonTitle(shortName),
           storeId: st.id,
           slug: st.slug,
           storeName: st.name,
@@ -2633,13 +2656,13 @@ function parseCustomDateString(input) {
       session.currentNodeId = currentNode.id;
 
       const storesListText = activeStores
-        .map((st, idx) => `• *${idx + 1}.* ${st.name}${st.city ? ` (${st.city})` : ''}`)
+        .map((st) => `• *${st.name}*${st.city ? ` (${st.city})` : ''}`)
         .join('\n');
 
       replies.push({
         type: 'buttons',
         body: `🏬 *Escolha de Filial / Loja:*\n\n${intro}\n\n${storesListText}`,
-        footer: 'Toque no botão ou digite o número correspondente:',
+        footer: 'Toque no botão ou digite a opção desejada:',
         buttons: storeButtons,
       });
       break;
@@ -2655,10 +2678,10 @@ function parseCustomDateString(input) {
         : '\n\n_✨ Trabalhamos do RN ao 3 anos. Peças 100% algodão suedine e tricot antialérgico._';
 
       const catalogBody = `${header}\n\n` +
-        `*1️⃣ Body Suedine 100% Algodão*\n   💰 R$ 49,90 • 👶 RN a GG (Cores Lisas & Estampadas)\n\n` +
-        `*2️⃣ Macacão Confort Zíper Duplo*\n   💰 R$ 89,90 • 👶 RN ao 3 Anos (Proteção no Queixo)\n\n` +
-        `*3️⃣ Saída Maternidade Tricot Luxo (5 Peças)*\n   💰 R$ 199,90 • 👶 RN e P (Macacão + Manta + Body + Faixinha)\n\n` +
-        `*4️⃣ Kit de Berço 9 Peças 200 Fios*\n   💰 R$ 389,00 • 🛏️ Padrão Americano (100% Algodão Hipoalergênico)` +
+        `• *Body Suedine 100% Algodão*\n   💰 R$ 49,90 • 👶 RN a GG (Cores Lisas & Estampadas)\n\n` +
+        `• *Macacão Confort Zíper Duplo*\n   💰 R$ 89,90 • 👶 RN ao 3 Anos (Proteção no Queixo)\n\n` +
+        `• *Saída Maternidade Tricot Luxo (5 Peças)*\n   💰 R$ 199,90 • 👶 RN e P (Macacão + Manta + Body + Faixinha)\n\n` +
+        `• *Kit de Berço 9 Peças 200 Fios*\n   💰 R$ 389,00 • 🛏️ Padrão Americano (100% Algodão Hipoalergênico)` +
         `${footer}`;
 
       session.variables['catalogo_produtos'] = catalogBody;
@@ -2682,9 +2705,9 @@ function parseCustomDateString(input) {
         : 'Qual peça da Pitoco de Gente você gostaria de escolher agora?';
 
       const prodButtons = [
-        { id: 'prod_body', title: 'Body Suedine (R$49)' },
-        { id: 'prod_macacao', title: 'Macacão Zíper(R$89)' },
-        { id: 'prod_saida', title: 'Saída Luxo (R$199)' },
+        { id: 'prod_body', title: 'Body Suedine (R$ 49)' },
+        { id: 'prod_macacao', title: 'Macacão Zíper (R$ 89)' },
+        { id: 'prod_saida', title: 'Saída Luxo (R$ 199)' },
       ];
 
       session.activeButtons = prodButtons;
@@ -2692,8 +2715,8 @@ function parseCustomDateString(input) {
 
       replies.push({
         type: 'buttons',
-        body: `🛍️ *Escolha seu Produto Pitoco de Gente:*\n\n${intro}\n\n1️⃣ Body Suedine Algodão (R$ 49,90)\n2️⃣ Macacão Confort Zíper (R$ 89,90)\n3️⃣ Saída Maternidade Luxo (R$ 199,90)`,
-        footer: 'Toque na opção ou envie o número:',
+        body: `🛍️ *Escolha seu Produto Pitoco de Gente:*\n\n${intro}\n\n• Body Suedine Algodão (R$ 49,90)\n• Macacão Confort Zíper (R$ 89,90)\n• Saída Maternidade Luxo (R$ 199,90)`,
+        footer: 'Toque na opção desejada:',
         buttons: prodButtons,
       });
       break;
@@ -2709,9 +2732,9 @@ function parseCustomDateString(input) {
       const correiosPrice = Number(config.correiosPrice || 24.90).toFixed(2).replace('.', ',');
 
       const shipButtons = [
-        { id: 'shipping_motoboy', title: `1️⃣ Motoboy R$${motoboyPrice}` },
-        { id: 'shipping_correios', title: `2️⃣ Correios R$${correiosPrice}` },
-        { id: 'shipping_pickup', title: '3️⃣ Retirada Grátis' },
+        { id: 'shipping_motoboy', title: `Motoboy (R$ ${motoboyPrice})` },
+        { id: 'shipping_correios', title: `Correios (R$ ${correiosPrice})` },
+        { id: 'shipping_pickup', title: 'Retirada em Loja (Grátis)' },
       ];
 
       session.activeButtons = shipButtons;
@@ -2719,8 +2742,8 @@ function parseCustomDateString(input) {
 
       replies.push({
         type: 'buttons',
-        body: `🚚 *Calculadora de Frete & Entrega:*\n\n${intro}\n\n• *1. Motoboy Express:* R$ ${motoboyPrice} (Recife e RMR - Chega hoje)\n• *2. Correios PAC/SEDEX:* R$ ${correiosPrice} (Todo o Brasil)\n• *3. Retirada em Loja:* Grátis (Matriz Centro ou Loja Ipojuca)`,
-        footer: 'Toque em uma opção ou digite 1, 2 ou 3:',
+        body: `🚚 *Calculadora de Frete & Entrega:*\n\n${intro}\n\n• *Motoboy Express:* R$ ${motoboyPrice} (Recife e RMR - Chega hoje)\n• *Correios PAC/SEDEX:* R$ ${correiosPrice} (Todo o Brasil)\n• *Retirada em Loja:* Grátis (Matriz Centro ou Loja Ipojuca)`,
+        footer: 'Toque em uma opção ou envie sua preferência:',
         buttons: shipButtons,
       });
       break;

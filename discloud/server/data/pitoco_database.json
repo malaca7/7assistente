@@ -701,15 +701,15 @@
             "buttons": [
               {
                 "id": "btn_1",
-                "title": "1. Agendar Horário"
+                "title": "Agendar Horário"
               },
               {
                 "id": "btn_2",
-                "title": "2. Consultar Preços"
+                "title": "Consultar Preços"
               },
               {
                 "id": "btn_3",
-                "title": "3. Falar com Atendente"
+                "title": "Falar com Atendente"
               }
             ],
             "bodyText": "Escolha uma das opções abaixo para continuarmos:",
@@ -945,15 +945,15 @@
             "buttons": [
               {
                 "id": "btn_1",
-                "title": "1. Ver Catálogo Bebê"
+                "title": "Ver Catálogo Bebê"
               },
               {
                 "id": "btn_2",
-                "title": "2. Consultoria Enxoval"
+                "title": "Consultoria Enxoval"
               },
               {
                 "id": "btn_3",
-                "title": "3. Falar com Atendente"
+                "title": "Falar com Atendente"
               }
             ]
           }
@@ -2016,15 +2016,15 @@
       "activeButtons": [
         {
           "id": "btn_1",
-          "title": "1. Agendar Horário"
+          "title": "Agendar Horário"
         },
         {
           "id": "btn_2",
-          "title": "2. Consultar Preços"
+          "title": "Consultar Preços"
         },
         {
           "id": "btn_3",
-          "title": "3. Falar com Atendente"
+          "title": "Falar com Atendente"
         }
       ]
     },
@@ -2056,15 +2056,15 @@
       "activeButtons": [
         {
           "id": "btn_1",
-          "title": "1. Agendar Horário"
+          "title": "Agendar Horário"
         },
         {
           "id": "btn_2",
-          "title": "2. Consultar Preços"
+          "title": "Consultar Preços"
         },
         {
           "id": "btn_3",
-          "title": "3. Falar com Atendente"
+          "title": "Falar com Atendente"
         }
       ]
     },
@@ -2085,15 +2085,15 @@
       "activeButtons": [
         {
           "id": "btn_catalogo",
-          "title": "1. Ver Catálogo Bebê"
+          "title": "Ver Catálogo Bebê"
         },
         {
           "id": "btn_enxoval",
-          "title": "2. Consultoria de Enxoval"
+          "title": "Consultoria de Enxoval"
         },
         {
           "id": "btn_atendente",
-          "title": "3. Falar com Atendente"
+          "title": "Falar com Atendente"
         }
       ]
     },
@@ -2114,15 +2114,15 @@
       "activeButtons": [
         {
           "id": "btn_catalogo",
-          "title": "1. Ver Catálogo Bebê"
+          "title": "Ver Catálogo Bebê"
         },
         {
           "id": "btn_enxoval",
-          "title": "2. Consultoria de Enxoval"
+          "title": "Consultoria de Enxoval"
         },
         {
           "id": "btn_atendente",
-          "title": "3. Falar com Atendente"
+          "title": "Falar com Atendente"
         }
       ]
     },
@@ -2143,15 +2143,15 @@
       "activeButtons": [
         {
           "id": "btn_catalogo",
-          "title": "1. Ver Catálogo Bebê"
+          "title": "Ver Catálogo Bebê"
         },
         {
           "id": "btn_enxoval",
-          "title": "2. Consultoria de Enxoval"
+          "title": "Consultoria de Enxoval"
         },
         {
           "id": "btn_atendente",
-          "title": "3. Falar com Atendente"
+          "title": "Falar com Atendente"
         }
       ]
     },
@@ -2172,15 +2172,15 @@
       "activeButtons": [
         {
           "id": "btn_catalogo",
-          "title": "1. Ver Catálogo Bebê"
+          "title": "Ver Catálogo Bebê"
         },
         {
           "id": "btn_enxoval",
-          "title": "2. Consultoria de Enxoval"
+          "title": "Consultoria de Enxoval"
         },
         {
           "id": "btn_atendente",
-          "title": "3. Falar com Atendente"
+          "title": "Falar com Atendente"
         }
       ]
     },

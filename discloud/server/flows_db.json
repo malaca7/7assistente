@@ -2,13 +2,13 @@
   "stores": [
     {
       "id": "store-001",
-      "name": "Loja Matriz \u2014 Centro",
+      "name": "Loja Matriz — Centro",
       "slug": "matriz",
-      "address": "R. Vig. Jo\u00e3o Batista, 93 - Centro, Cabo de Santo Agostinho - PE, 54505-470",
+      "address": "R. Vig. João Batista, 93 - Centro, Cabo de Santo Agostinho - PE, 54505-470",
       "phone": "",
       "whatsapp_number": "81987300915",
       "is_active": true,
-      "business_hours": "Seg a Sex: 08:00 \u00e0s 18:00 | S\u00e1b: 08:00 \u00e0s 12:00",
+      "business_hours": "Seg a Sex: 08:00 às 18:00 | Sáb: 08:00 às 12:00",
       "city": "Cabo - PE",
       "manager_name": "Gerente",
       "monthly_revenue": 0,
@@ -20,11 +20,11 @@
       "id": "store-002",
       "name": "Loja Ipojuca - Filial",
       "slug": "ipojuca",
-      "address": "R. Crist\u00f3v\u00e3o Jos\u00e9 da Silva, 114 - Centro, Ipojuca - PE, 54590-000",
+      "address": "R. Cristóvão José da Silva, 114 - Centro, Ipojuca - PE, 54590-000",
       "phone": "",
       "whatsapp_number": "81987300915",
       "is_active": true,
-      "business_hours": "Seg a Sex: 08:00 \u00e0s 18:00 | S\u00e1b: 08:00 \u00e0s 12:00",
+      "business_hours": "Seg a Sex: 08:00 às 18:00 | Sáb: 08:00 às 12:00",
       "city": "Ipojuca - PE",
       "manager_name": "Gerente",
       "monthly_revenue": 0,
@@ -36,41 +36,41 @@
   "categories": [
     {
       "id": "cat-001",
-      "name": "Bodies & Roupinhas B\u00e1sicas",
+      "name": "Bodies & Roupinhas Básicas",
       "slug": "bodies-roupinhas",
-      "description": "Bodies em algod\u00e3o suedine 100% Pima, mij\u00f5es e kits essenciais",
+      "description": "Bodies em algodão suedine 100% Pima, mijões e kits essenciais",
       "sort_order": 1,
       "is_active": true
     },
     {
       "id": "cat-002",
-      "name": "Macac\u00f5es com Z\u00edper Duplo",
+      "name": "Macacões com Zíper Duplo",
       "slug": "macacoes-ziper",
-      "description": "Macac\u00f5es pr\u00e1ticos com duplo cursor que facilitam a troca de fraldas",
+      "description": "Macacões práticos com duplo cursor que facilitam a troca de fraldas",
       "sort_order": 2,
       "is_active": true
     },
     {
       "id": "cat-003",
-      "name": "Sa\u00eddas de Maternidade",
+      "name": "Saídas de Maternidade",
       "slug": "saidas-maternidade",
-      "description": "Conjuntos luxo em tricot antial\u00e9rgico com manta coordenada",
+      "description": "Conjuntos luxo em tricot antialérgico com manta coordenada",
       "sort_order": 3,
       "is_active": true
     },
     {
       "id": "cat-004",
-      "name": "Kits de Ber\u00e7o & Quarto",
+      "name": "Kits de Berço & Quarto",
       "slug": "kits-berco",
-      "description": "Kits de ber\u00e7o 400 fios, tran\u00e7as, ninhos redutores e len\u00e7\u00f3is acetinados",
+      "description": "Kits de berço 400 fios, tranças, ninhos redutores e lençóis acetinados",
       "sort_order": 4,
       "is_active": true
     },
     {
       "id": "cat-005",
-      "name": "Mala & Acess\u00f3rios Maternidade",
+      "name": "Mala & Acessórios Maternidade",
       "slug": "malas-acessorios",
-      "description": "Malas t\u00e9rmicas imperme\u00e1veis e kits organizadores de maternidade",
+      "description": "Malas térmicas impermeáveis e kits organizadores de maternidade",
       "sort_order": 5,
       "is_active": true
     }
@@ -80,8 +80,8 @@
       "id": "prod-001",
       "category_id": "cat-001",
       "category_name": "Roupas & Enxovais",
-      "name": "Body Manga Longa Algod\u00e3o Suedine 100% Pima",
-      "description": "Puro algod\u00e3o suedine 100% eg\u00edpcio com toque sedoso e gola envelope que n\u00e3o aperta a cabe\u00e7a do beb\u00ea.",
+      "name": "Body Manga Longa Algodão Suedine 100% Pima",
+      "description": "Puro algodão suedine 100% egípcio com toque sedoso e gola envelope que não aperta a cabeça do bebê.",
       "price": 49.9,
       "promotional_price": 39.9,
       "sizes": [
@@ -93,12 +93,12 @@
       ],
       "colors": [
         "Branco Puro",
-        "Azul Beb\u00ea"
+        "Azul Bebê"
       ],
       "stock_quantity": 120,
       "is_featured": true,
       "is_active": true,
-      "material": "Algod\u00e3o Suedine 100% Pima",
+      "material": "Algodão Suedine 100% Pima",
       "image_url": "https://images.unsplash.com/photo-1522771930-78848d9293e8?w=500&auto=format&fit=crop",
       "store_id": "store-001",
       "created_at": "2026-09-08T19:11:28.344Z",
@@ -111,8 +111,8 @@
       "id": "prod-002",
       "category_id": "cat-001",
       "category_name": "Roupas & Enxovais",
-      "name": "Macac\u00e3o Canelado com Z\u00edper Duplo Soft",
-      "description": "Possui z\u00edper com cursor duplo que abre por cima e por baixo, prote\u00e7\u00e3o interna de z\u00edper e pezinho revers\u00edvel.",
+      "name": "Macacão Canelado com Zíper Duplo Soft",
+      "description": "Possui zíper com cursor duplo que abre por cima e por baixo, proteção interna de zíper e pezinho reversível.",
       "price": 79.9,
       "promotional_price": 69.9,
       "sizes": [
@@ -124,12 +124,12 @@
       ],
       "colors": [
         "Branco Puro",
-        "Azul Beb\u00ea"
+        "Azul Bebê"
       ],
       "stock_quantity": 85,
       "is_featured": true,
       "is_active": true,
-      "material": "Algod\u00e3o Canelado Premium",
+      "material": "Algodão Canelado Premium",
       "image_url": "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=500&auto=format&fit=crop",
       "store_id": "store-002",
       "created_at": "2026-09-08T19:11:35.036Z",
@@ -141,9 +141,9 @@
     {
       "id": "prod-003",
       "category_id": "cat-003",
-      "category_name": "Sa\u00eddas de Maternidade",
-      "name": "Sa\u00edda de Maternidade Tricot Luxo Realeza 4 Pe\u00e7as",
-      "description": "Conjunto completo para o grande dia: Macac\u00e3o bordado, manta aconchegante coordenada, touquinha e luvinhas.",
+      "category_name": "Saídas de Maternidade",
+      "name": "Saída de Maternidade Tricot Luxo Realeza 4 Peças",
+      "description": "Conjunto completo para o grande dia: Macacão bordado, manta aconchegante coordenada, touquinha e luvinhas.",
       "price": 189.9,
       "promotional_price": 169.9,
       "sizes": [
@@ -153,21 +153,21 @@
       "colors": [
         "Branco Puro",
         "Rosa Seco",
-        "Azul Beb\u00ea",
+        "Azul Bebê",
         "Amarelo Manteiga"
       ],
       "stock_quantity": 45,
       "is_featured": true,
       "is_active": true,
-      "material": "Tricot Luxo 50% Algod\u00e3o 50% Acr\u00edlico Antial\u00e9rgico",
+      "material": "Tricot Luxo 50% Algodão 50% Acrílico Antialérgico",
       "image_url": "https://images.unsplash.com/photo-1596870230751-ebdfce98ec42?w=500&auto=format&fit=crop"
     },
     {
       "id": "prod-004",
       "category_id": "cat-001",
       "category_name": "Roupas & Enxovais",
-      "name": "Kit Ber\u00e7o Algod\u00e3o 400 Fios Tran\u00e7a Nuvem",
-      "description": "Lateral em tran\u00e7a macia, cabeceira nuvem, len\u00e7ol com el\u00e1stico 400 fios e fronha delicada antissufocante.",
+      "name": "Kit Berço Algodão 400 Fios Trança Nuvem",
+      "description": "Lateral em trança macia, cabeceira nuvem, lençol com elástico 400 fios e fronha delicada antissufocante.",
       "price": 289.9,
       "promotional_price": 259.9,
       "sizes": [
@@ -178,12 +178,12 @@
       ],
       "colors": [
         "Branco Puro",
-        "Azul Beb\u00ea"
+        "Azul Bebê"
       ],
       "stock_quantity": 30,
       "is_featured": true,
       "is_active": true,
-      "material": "Algod\u00e3o Percal 400 Fios Acetinado",
+      "material": "Algodão Percal 400 Fios Acetinado",
       "image_url": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=500&auto=format&fit=crop",
       "store_id": "store-002",
       "created_at": "2026-09-08T19:11:43.522Z",
@@ -196,8 +196,8 @@
       "id": "prod-005",
       "category_id": "cat-001",
       "category_name": "Roupas & Enxovais",
-      "name": "Mala Maternidade T\u00e9rmica Master Imperme\u00e1vel",
-      "description": "Compartimento amplo com divis\u00f3rias para as roupinhas das primeiras 48h, forro t\u00e9rmico f\u00e1cil de limpar e bolsos externos.",
+      "name": "Mala Maternidade Térmica Master Impermeável",
+      "description": "Compartimento amplo com divisórias para as roupinhas das primeiras 48h, forro térmico fácil de limpar e bolsos externos.",
       "price": 219.9,
       "promotional_price": 199.9,
       "sizes": [
@@ -206,12 +206,12 @@
       ],
       "colors": [
         "Branco Puro",
-        "Azul Beb\u00ea"
+        "Azul Bebê"
       ],
       "stock_quantity": 40,
       "is_featured": false,
       "is_active": true,
-      "material": "Couro Ecol\u00f3gico Imperme\u00e1vel Soft",
+      "material": "Couro Ecológico Impermeável Soft",
       "image_url": "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=500&auto=format&fit=crop",
       "store_id": "store-002",
       "created_at": "2026-09-08T19:11:50.506Z",
@@ -238,7 +238,7 @@
           "id": "step-1788911025425-1",
           "type": "trigger",
           "title": "Gatilho de Mensagem Recebida",
-          "category": "In\u00edcio",
+          "category": "Início",
           "description": "Dispara quando o cliente envia qualquer texto."
         },
         {
@@ -246,21 +246,21 @@
           "type": "message",
           "title": "Boas-Vindas Pitoco de Gente",
           "category": "Atendimento",
-          "description": "Sauda\u00e7\u00e3o com menu de op\u00e7\u00f5es de 1 a 7."
+          "description": "Saudação com menu de opções de 1 a 7."
         },
         {
           "id": "step-1788911025425-3",
           "type": "show_catalog",
-          "title": "Cat\u00e1logo de Beb\u00eas & Enxoval",
+          "title": "Catálogo de Bebês & Enxoval",
           "category": "Vendas",
-          "description": "Exibe bodies, macac\u00f5es e sa\u00eddas de maternidade."
+          "description": "Exibe bodies, macacões e saídas de maternidade."
         },
         {
           "id": "step-1788911025425-4",
           "type": "human_handoff",
           "title": "Transbordo Humano por Filial",
           "category": "Multi-Lojas",
-          "description": "Direciona conversa para a equipe da loja f\u00edsica."
+          "description": "Direciona conversa para a equipe da loja física."
         }
       ],
       "color": "#10b981",
@@ -284,7 +284,7 @@
           "id": "step-1",
           "type": "trigger",
           "title": "Gatilho Inicial",
-          "category": "In\u00edcio",
+          "category": "Início",
           "description": "Disparo do fluxo"
         },
         {
@@ -292,7 +292,7 @@
           "type": "message",
           "title": "Mensagem de Atendimento",
           "category": "Atendimento",
-          "description": "Apresenta\u00e7\u00e3o do menu"
+          "description": "Apresentação do menu"
         }
       ],
       "created_at": "2026-09-08T20:00:48.042417+00:00",
@@ -335,7 +335,7 @@
           "label": "Verificar Contato (Novo vs Salvo)",
           "config": {},
           "nodeType": "check_contact",
-          "description": "Verifica se \u00e9 o primeiro contato do cliente ou contato existente e cria vari\u00e1veis.",
+          "description": "Verifica se é o primeiro contato do cliente ou contato existente e cria variáveis.",
           "isConfigured": true
         }
       },
@@ -350,11 +350,11 @@
         "data": {
           "label": "Enviar Mensagem",
           "config": {
-            "text": "Ol\u00e1, me chamo *{{bot_nome}}*. e sou assistente de atendimento da *{{empresa}}*! e vou lhe auxiliar para ter um melhor atendimento",
+            "text": "Olá, me chamo *{{bot_nome}}*. e sou assistente de atendimento da *{{empresa}}*! e vou lhe auxiliar para ter um melhor atendimento",
             "previewUrl": false
           },
           "nodeType": "message",
-          "description": "Envia texto com suporte a vari\u00e1veis din\u00e2micas.",
+          "description": "Envia texto com suporte a variáveis dinâmicas.",
           "isConfigured": true
         }
       },
@@ -374,7 +374,7 @@
             "variableName": "nome_cliente"
           },
           "nodeType": "question",
-          "description": "Faz uma pergunta e armazena a resposta em vari\u00e1vel.",
+          "description": "Faz uma pergunta e armazena a resposta em variável.",
           "isConfigured": true
         }
       },
@@ -410,11 +410,11 @@
         "data": {
           "label": "Enviar Mensagem",
           "config": {
-            "text": "Ol\u00e1 {{nome_cliente}}, me chamo *{{bot_nome}}*. e sou assistente de atendimento da *{{empresa}}*! e vou lhe auxiliar para ter um melhor atendimento",
+            "text": "Olá {{nome_cliente}}, me chamo *{{bot_nome}}*. e sou assistente de atendimento da *{{empresa}}*! e vou lhe auxiliar para ter um melhor atendimento",
             "previewUrl": false
           },
           "nodeType": "message",
-          "description": "Envia texto com suporte a vari\u00e1veis din\u00e2micas.",
+          "description": "Envia texto com suporte a variáveis dinâmicas.",
           "isConfigured": true
         }
       },
@@ -430,11 +430,11 @@
           "label": "1. Escolher Dia do Agendamento",
           "config": {
             "dateVariable": "data_agendamento",
-            "questionText": "*{{nome_cliente}}*, para qual dia voc\u00ea gostaria de agendar seu atendimento?",
+            "questionText": "*{{nome_cliente}}*, para qual dia você gostaria de agendar seu atendimento?",
             "allowCustomDate": true
           },
           "nodeType": "ask_date",
-          "description": "Oferece bot\u00f5es r\u00e1pidos (Hoje, Amanh\u00e3) ou permite o cliente digitar uma data (ex: 25/08).",
+          "description": "Oferece botões rápidos (Hoje, Amanhã) ou permite o cliente digitar uma data (ex: 25/08).",
           "isConfigured": true
         }
       },
@@ -447,17 +447,17 @@
           "y": 1490
         },
         "data": {
-          "label": "2. Cat\u00e1logo de Servi\u00e7os & Pre\u00e7os",
+          "label": "2. Catálogo de Serviços & Preços",
           "config": {
-            "footerText": "Toque no servi\u00e7o desejado para agendar:",
-            "introMessage": "*{{nome_cliente}}*, qual servi\u00e7o voc\u00ea deseja?",
+            "footerText": "Toque no serviço desejado para agendar:",
+            "introMessage": "*{{nome_cliente}}*, qual serviço você deseja?",
             "priceVarName": "valor_servico",
             "displayFormat": "buttons",
             "serviceVarName": "servico_selecionado",
             "durationVarName": "duracao_servico"
           },
           "nodeType": "services_catalog",
-          "description": "Puxa servi\u00e7os e pre\u00e7os da Agenda e envia em bot\u00f5es interativos para escolha.",
+          "description": "Puxa serviços e preços da Agenda e envia em botões interativos para escolha.",
           "isConfigured": true
         }
       },
@@ -470,16 +470,16 @@
           "y": 1740
         },
         "data": {
-          "label": "3. Hor\u00e1rios Livres da Agenda",
+          "label": "3. Horários Livres da Agenda",
           "config": {
             "mode": "show_slots",
             "dateType": "variable",
             "serviceName": "{{servico_selecionado}}",
             "dateVariable": "data_agendamento",
-            "introMessage": "Estes s\u00e3o os hor\u00e1rios dispon\u00edveis para agendamento. Toque no seu hor\u00e1rio preferido:"
+            "introMessage": "Estes são os horários disponíveis para agendamento. Toque no seu horário preferido:"
           },
           "nodeType": "schedule_contact",
-          "description": "Calcula hor\u00e1rios realmente livres para a data e servi\u00e7o, enviando op\u00e7\u00f5es para o cliente.",
+          "description": "Calcula horários realmente livres para a data e serviço, enviando opções para o cliente.",
           "isConfigured": true
         }
       },
@@ -494,10 +494,10 @@
         "data": {
           "label": "4. Confirmar & Gravar Agendamento",
           "config": {
-            "confirmMessage": "\u2705 Perfeito {{nome_cliente}}! Seu agendamento de *{{servico_selecionado}}* foi confirmado para o dia *{{data_agendamento}}* \u00e0s *{{horario_agendamento}}*!"
+            "confirmMessage": "✅ Perfeito {{nome_cliente}}! Seu agendamento de *{{servico_selecionado}}* foi confirmado para o dia *{{data_agendamento}}* às *{{horario_agendamento}}*!"
           },
           "nodeType": "confirm_booking",
-          "description": "Exibe resumo com servi\u00e7o, valor, data e hor\u00e1rio, grava na Agenda e adiciona tag Agendado.",
+          "description": "Exibe resumo com serviço, valor, data e horário, grava na Agenda e adiciona tag Agendado.",
           "isConfigured": true
         }
       }
@@ -538,7 +538,7 @@
             "previewUrl": false
           },
           "nodeType": "message",
-          "description": "Envia texto formatado no WhatsApp com vari\u00e1veis din\u00e2micas (ex: {{nome_cliente}}).",
+          "description": "Envia texto formatado no WhatsApp com variáveis dinâmicas (ex: {{nome_cliente}}).",
           "isConfigured": true
         }
       },
@@ -554,7 +554,7 @@
           "label": "Verificar Contato (Novo vs Salvo)",
           "config": {},
           "nodeType": "check_contact",
-          "description": "Bifurca o fluxo entre Primeiro Contato (1\u00aa Vez) e Contato Salvo (Recorrente).",
+          "description": "Bifurca o fluxo entre Primeiro Contato (1ª Vez) e Contato Salvo (Recorrente).",
           "isConfigured": true
         }
       },
@@ -567,13 +567,13 @@
           "y": 1670
         },
         "data": {
-          "label": "Enviar Mensagem (C\u00f3pia)",
+          "label": "Enviar Mensagem (Cópia)",
           "config": {
             "text": "Sou  *{{bot_nome}}* assistente virtual da  *{{empresa}}*...",
             "previewUrl": false
           },
           "nodeType": "message",
-          "description": "Envia texto formatado no WhatsApp com vari\u00e1veis din\u00e2micas (ex: {{nome_cliente}}).",
+          "description": "Envia texto formatado no WhatsApp com variáveis dinâmicas (ex: {{nome_cliente}}).",
           "isConfigured": true
         }
       },
@@ -586,13 +586,13 @@
           "y": 1890
         },
         "data": {
-          "label": "Enviar Mensagem (C\u00f3pia) (C\u00f3pia)",
+          "label": "Enviar Mensagem (Cópia) (Cópia)",
           "config": {
             "text": "Estou aqui para te ajudar!",
             "previewUrl": false
           },
           "nodeType": "message",
-          "description": "Envia texto formatado no WhatsApp com vari\u00e1veis din\u00e2micas (ex: {{nome_cliente}}).",
+          "description": "Envia texto formatado no WhatsApp com variáveis dinâmicas (ex: {{nome_cliente}}).",
           "isConfigured": true
         }
       },
@@ -605,13 +605,13 @@
           "y": 1450
         },
         "data": {
-          "label": "Enviar Mensagem (C\u00f3pia)",
+          "label": "Enviar Mensagem (Cópia)",
           "config": {
-            "text": "Espero que sim \u263a\ufe0f",
+            "text": "Espero que sim ☺️",
             "previewUrl": false
           },
           "nodeType": "message",
-          "description": "Envia texto formatado no WhatsApp com vari\u00e1veis din\u00e2micas (ex: {{nome_cliente}}).",
+          "description": "Envia texto formatado no WhatsApp com variáveis dinâmicas (ex: {{nome_cliente}}).",
           "isConfigured": true
         }
       },
@@ -631,7 +631,7 @@
             "variableName": "nome_novocliente"
           },
           "nodeType": "question",
-          "description": "Faz uma pergunta ao cliente e salva o texto digitado em uma vari\u00e1vel.",
+          "description": "Faz uma pergunta ao cliente e salva o texto digitado em uma variável.",
           "isConfigured": true
         }
       },
@@ -666,7 +666,7 @@
           "y": 1000
         },
         "data": {
-          "label": "Definir Vari\u00e1vel",
+          "label": "Definir Variável",
           "config": {
             "varName": "nome_liente",
             "varValue": "nome_novocliente",
@@ -683,7 +683,7 @@
             ]
           },
           "nodeType": "variable",
-          "description": "Armazena valores ou dados calculados em vari\u00e1veis de contexto.",
+          "description": "Armazena valores ou dados calculados em variáveis de contexto.",
           "isConfigured": true
         }
       },
@@ -696,27 +696,27 @@
           "y": 2110
         },
         "data": {
-          "label": "Bot\u00f5es Interativos WhatsApp",
+          "label": "Botões Interativos WhatsApp",
           "config": {
             "buttons": [
               {
                 "id": "btn_1",
-                "title": "1. Agendar Hor\u00e1rio"
+                "title": "Agendar Horário"
               },
               {
                 "id": "btn_2",
-                "title": "2. Consultar Pre\u00e7os"
+                "title": "Consultar Preços"
               },
               {
                 "id": "btn_3",
-                "title": "3. Falar com Atendente"
+                "title": "Falar com Atendente"
               }
             ],
-            "bodyText": "Escolha uma das op\u00e7\u00f5es abaixo para continuarmos:",
+            "bodyText": "Escolha uma das opções abaixo para continuarmos:",
             "footerText": ""
           },
           "nodeType": "buttons",
-          "description": "Envia menu com op\u00e7\u00f5es clic\u00e1veis com sa\u00eddas individuais para cada bot\u00e3o.",
+          "description": "Envia menu com opções clicáveis com saídas individuais para cada botão.",
           "isConfigured": true
         }
       },
@@ -729,13 +729,13 @@
           "y": 2426
         },
         "data": {
-          "label": "1. Exibir Cat\u00e1logo de Servi\u00e7os",
+          "label": "1. Exibir Catálogo de Serviços",
           "config": {
-            "footerText": "Consulte os servi\u00e7os dispon\u00edveis acima.",
-            "headerText": "\ud83d\udc88 *Cat\u00e1logo de Servi\u00e7os & Pre\u00e7os*"
+            "footerText": "Consulte os serviços disponíveis acima.",
+            "headerText": "💈 *Catálogo de Serviços & Preços*"
           },
           "nodeType": "show_services",
-          "description": "Envia uma mensagem com todos os servi\u00e7os, descri\u00e7\u00f5es e valores cadastrados (Apenas Leitura).",
+          "description": "Envia uma mensagem com todos os serviços, descrições e valores cadastrados (Apenas Leitura).",
           "isConfigured": true
         }
       },
@@ -754,7 +754,7 @@
             "amount": 5
           },
           "nodeType": "delay",
-          "description": "Pausa a execu\u00e7\u00e3o do fluxo por alguns segundos para simular digita\u00e7\u00e3o humana.",
+          "description": "Pausa a execução do fluxo por alguns segundos para simular digitação humana.",
           "isConfigured": true
         }
       }
@@ -772,7 +772,7 @@
           "label": "Verificar Contato (Novo vs Salvo)",
           "config": {},
           "nodeType": "check_contact",
-          "description": "Bifurca o fluxo entre Primeiro Contato (1\u00aa Vez) e Contato Salvo (Recorrente).",
+          "description": "Bifurca o fluxo entre Primeiro Contato (1ª Vez) e Contato Salvo (Recorrente).",
           "isConfigured": true
         },
         "measured": {
@@ -820,7 +820,7 @@
             "variableName": "nome_cliente"
           },
           "nodeType": "question",
-          "description": "Faz uma pergunta ao cliente e salva o texto digitado em uma vari\u00e1vel.",
+          "description": "Faz uma pergunta ao cliente e salva o texto digitado em uma variável.",
           "isConfigured": true
         },
         "measured": {
@@ -848,7 +848,7 @@
             "updateActiveConversation": true
           },
           "nodeType": "update_contact",
-          "description": "Salva nome (digitado ou vari\u00e1vel), WhatsApp, foto oficial do WhatsApp e campos do CRM no banco.",
+          "description": "Salva nome (digitado ou variável), WhatsApp, foto oficial do WhatsApp e campos do CRM no banco.",
           "isConfigured": true
         },
         "measured": {
@@ -867,11 +867,11 @@
         "data": {
           "label": "Enviar Mensagem",
           "config": {
-            "text": "\ud83d\udc76\u2728 Ol\u00e1 *{{nome_cliente}}*! Seja muito bem-vindo(a) \u00e0 *{{empresa}}*!",
+            "text": "👶✨ Olá *{{nome_cliente}}*! Seja muito bem-vindo(a) à *{{empresa}}*!",
             "previewUrl": false
           },
           "nodeType": "message",
-          "description": "Envia texto formatado no WhatsApp com vari\u00e1veis din\u00e2micas (ex: {{nome_cliente}}).",
+          "description": "Envia texto formatado no WhatsApp com variáveis dinâmicas (ex: {{nome_cliente}}).",
           "isConfigured": true
         },
         "measured": {
@@ -891,11 +891,11 @@
         "data": {
           "label": "Enviar Mensagem",
           "config": {
-            "text": "Me chamo *{{bot_nome}}*, e sou assistente virtual. \u00c9 um prazer atender voc\u00ea...",
+            "text": "Me chamo *{{bot_nome}}*, e sou assistente virtual. É um prazer atender você...",
             "previewUrl": false
           },
           "nodeType": "message",
-          "description": "Envia texto formatado no WhatsApp com vari\u00e1veis din\u00e2micas (ex: {{nome_cliente}}).",
+          "description": "Envia texto formatado no WhatsApp com variáveis dinâmicas (ex: {{nome_cliente}}).",
           "isConfigured": true
         },
         "measured": {
@@ -913,10 +913,10 @@
         "data": {
           "label": "Escolha de Loja / Filial",
           "nodeType": "store_selector",
-          "description": "Apresenta as lojas f\u00edsicas e online (Matriz, Shopping Boulevard, E-commerce) com 3 sa\u00eddas.",
+          "description": "Apresenta as lojas físicas e online (Matriz, Shopping Boulevard, E-commerce) com 3 saídas.",
           "isConfigured": true,
           "config": {
-            "introMessage": "\ud83c\udfec *PITOCO DE GENTE \u2014 Escolha sua Loja de Prefer\u00eancia:*\n\nQual de nossas lojas voc\u00ea deseja falar hoje?",
+            "introMessage": "🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?",
             "footerText": "Toque na loja desejada:"
           }
         },
@@ -935,25 +935,25 @@
           "y": 100
         },
         "data": {
-          "label": "Bot\u00f5es Interativos WhatsApp",
+          "label": "Botões Interativos WhatsApp",
           "nodeType": "buttons",
-          "description": "Envia menu com op\u00e7\u00f5es clic\u00e1veis com sa\u00eddas individuais para cada bot\u00e3o.",
+          "description": "Envia menu com opções clicáveis com saídas individuais para cada botão.",
           "isConfigured": true,
           "config": {
-            "bodyText": "Voc\u00ea ",
-            "footerText": "Pitoco de Gente \u2022 Atendimento Oficial",
+            "bodyText": "Você ",
+            "footerText": "Pitoco de Gente • Atendimento Oficial",
             "buttons": [
               {
                 "id": "btn_1",
-                "title": "1. Ver Cat\u00e1logo Beb\u00ea"
+                "title": "Ver Catálogo Bebê"
               },
               {
                 "id": "btn_2",
-                "title": "2. Consultoria Enxoval"
+                "title": "Consultoria Enxoval"
               },
               {
                 "id": "btn_3",
-                "title": "3. Falar com Atendente"
+                "title": "Falar com Atendente"
               }
             ]
           }
@@ -1001,10 +1001,10 @@
         "data": {
           "label": "Boas-Vindas",
           "nodeType": "message",
-          "description": "Mensagem de recep\u00e7\u00e3o do cliente",
+          "description": "Mensagem de recepção do cliente",
           "isConfigured": true,
           "config": {
-            "text": "\ud83d\udc76\u2728 Ol\u00e1! Seja muito bem-vindo(a) \u00e0 {{empresa}}!\nComo podemos te ajudar hoje?",
+            "text": "👶✨ Olá! Seja muito bem-vindo(a) à {{empresa}}!\nComo podemos te ajudar hoje?",
             "previewUrl": false,
             "replyMode": "reply"
           }
@@ -1298,7 +1298,7 @@
         "id": "msg-1788906013306-al3m8",
         "conversation_id": "conv-558196138924",
         "direction": "outbound",
-        "content": "\ud83d\udcb3 *PAGAMENTO INSTANT\u00c2NEO VIA PIX*\n\nReferente a: *Body Manga Longa Algod\u00e3o Suedine 100% Pima*\n\ud83d\udcb0 Valor: *R$ 39,90*\n\ud83d\udd11 Chave PIX (E-mail): *81996138924*\n\ud83d\udc64 Favorecido: *Pitoco de Gente Artigos Infantis LTDA*\n\ud83c\udfe6 Banco: *Banco Inter / Ef\u00ed*\n\n\ud83d\udccb *C\u00f3digo Copia e Cola:*\n```00020126580014BR.GOV.BCB.PIX01368199613892452040000530398654039.905802BR5925Pitoco de Gente Artigos6006Recife62070503***6304```\n\n\u2728 Ap\u00f3s realizar a transfer\u00eancia, envie o comprovante por aqui mesmo. Nossa equipe confirmar\u00e1 o pedido imediatamente!\n\n_Digite *0* para voltar ao Menu Principal._",
+        "content": "💳 *PAGAMENTO INSTANTÂNEO VIA PIX*\n\nReferente a: *Body Manga Longa Algodão Suedine 100% Pima*\n💰 Valor: *R$ 39,90*\n🔑 Chave PIX (E-mail): *81996138924*\n👤 Favorecido: *Pitoco de Gente Artigos Infantis LTDA*\n🏦 Banco: *Banco Inter / Efí*\n\n📋 *Código Copia e Cola:*\n```00020126580014BR.GOV.BCB.PIX01368199613892452040000530398654039.905802BR5925Pitoco de Gente Artigos6006Recife62070503***6304```\n\n✨ Após realizar a transferência, envie o comprovante por aqui mesmo. Nossa equipe confirmará o pedido imediatamente!\n\n_Digite *0* para voltar ao Menu Principal._",
         "sender": "bot",
         "author_name": "Pitoco Bot",
         "created_at": "2026-09-08T22:20:13.306Z"
@@ -1319,7 +1319,7 @@
         "conversation_id": "conv-5581999991234",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Ol\u00e1, me chamo *Pitoco Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
+        "content": "Olá, me chamo *Pitoco Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
         "status": "delivered",
         "created_at": "2026-09-03T17:17:27.494Z"
       },
@@ -1337,7 +1337,7 @@
         "conversation_id": "conv-5581999991234",
         "direction": "outbound",
         "message_type": "button",
-        "content": "\ud83d\udcc5 *Escolha a Data do Agendamento*\n\n*Carlos Silva*, para qual dia voc\u00ea gostaria de agendar seu atendimento?",
+        "content": "📅 *Escolha a Data do Agendamento*\n\n*Carlos Silva*, para qual dia você gostaria de agendar seu atendimento?",
         "status": "delivered",
         "created_at": "2026-09-03T17:17:28.410Z"
       },
@@ -1346,7 +1346,7 @@
         "conversation_id": "conv-5581999991234",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Ol\u00e1 Carlos Silva, me chamo *Pitoco Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
+        "content": "Olá Carlos Silva, me chamo *Pitoco Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
         "status": "delivered",
         "created_at": "2026-09-03T17:17:28.900Z"
       },
@@ -1355,7 +1355,7 @@
         "conversation_id": "conv-5581999991234",
         "direction": "outbound",
         "message_type": "button",
-        "content": "\ud83d\udcc5 *Escolha a Data do Agendamento*\n\n*Carlos Silva*, para qual dia voc\u00ea gostaria de agendar seu atendimento?",
+        "content": "📅 *Escolha a Data do Agendamento*\n\n*Carlos Silva*, para qual dia você gostaria de agendar seu atendimento?",
         "status": "delivered",
         "created_at": "2026-09-03T17:17:28.901Z"
       }
@@ -1366,7 +1366,7 @@
         "conversation_id": "conv-5581999995555",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Ol\u00e1, me chamo *Pitoco Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
+        "content": "Olá, me chamo *Pitoco Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
         "status": "delivered",
         "created_at": "2026-09-03T17:17:47.612Z"
       },
@@ -1384,7 +1384,7 @@
         "conversation_id": "conv-5581999995555",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Ol\u00e1, me chamo *Pitoco Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
+        "content": "Olá, me chamo *Pitoco Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
         "status": "delivered",
         "created_at": "2026-09-03T17:17:49.123Z"
       },
@@ -1404,7 +1404,7 @@
         "conversation_id": "conv-5581988880001",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Ol\u00e1, me chamo *Pitoco Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
+        "content": "Olá, me chamo *Pitoco Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
         "status": "delivered",
         "created_at": "2026-09-03T17:20:52.144Z"
       },
@@ -1422,7 +1422,7 @@
         "conversation_id": "conv-5581988880001",
         "direction": "outbound",
         "message_type": "button",
-        "content": "\ud83d\udcc5 *Escolha a Data do Agendamento*\n\n*Matheus Silva*, para qual dia voc\u00ea gostaria de agendar seu atendimento?",
+        "content": "📅 *Escolha a Data do Agendamento*\n\n*Matheus Silva*, para qual dia você gostaria de agendar seu atendimento?",
         "status": "delivered",
         "created_at": "2026-09-03T17:20:53.044Z"
       },
@@ -1431,7 +1431,7 @@
         "conversation_id": "conv-5581988880001",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Ol\u00e1 Me chamo Matheus Silva, me chamo *Pitoco Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
+        "content": "Olá Me chamo Matheus Silva, me chamo *Pitoco Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
         "status": "delivered",
         "created_at": "2026-09-03T17:20:53.872Z"
       },
@@ -1440,7 +1440,7 @@
         "conversation_id": "conv-5581988880001",
         "direction": "outbound",
         "message_type": "button",
-        "content": "\ud83d\udcc5 *Escolha a Data do Agendamento*\n\n*Me chamo Matheus Silva*, para qual dia voc\u00ea gostaria de agendar seu atendimento?",
+        "content": "📅 *Escolha a Data do Agendamento*\n\n*Me chamo Matheus Silva*, para qual dia você gostaria de agendar seu atendimento?",
         "status": "delivered",
         "created_at": "2026-09-03T17:20:53.873Z"
       },
@@ -1449,7 +1449,7 @@
         "conversation_id": "conv-5581988880001",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Ol\u00e1 Matheus Silva, me chamo *Pitoco Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
+        "content": "Olá Matheus Silva, me chamo *Pitoco Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
         "status": "delivered",
         "created_at": "2026-09-03T17:21:42.320Z"
       },
@@ -1458,7 +1458,7 @@
         "conversation_id": "conv-5581988880001",
         "direction": "outbound",
         "message_type": "button",
-        "content": "\ud83d\udcc5 *Escolha a Data do Agendamento*\n\n*Matheus Silva*, para qual dia voc\u00ea gostaria de agendar seu atendimento?",
+        "content": "📅 *Escolha a Data do Agendamento*\n\n*Matheus Silva*, para qual dia você gostaria de agendar seu atendimento?",
         "status": "delivered",
         "created_at": "2026-09-03T17:21:42.321Z"
       },
@@ -1467,7 +1467,7 @@
         "conversation_id": "conv-5581988880001",
         "direction": "outbound",
         "message_type": "button",
-        "content": "\u2702\ufe0f *Escolha o Servi\u00e7o:*\n\n*Matheus Silva*, qual servi\u00e7o voc\u00ea deseja?",
+        "content": "✂️ *Escolha o Serviço:*\n\n*Matheus Silva*, qual serviço você deseja?",
         "status": "delivered",
         "created_at": "2026-09-03T17:21:42.859Z"
       },
@@ -1476,7 +1476,7 @@
         "conversation_id": "conv-5581988880001",
         "direction": "outbound",
         "message_type": "text",
-        "content": "Ol\u00e1 Matheus Silva, me chamo *Pitoco Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
+        "content": "Olá Matheus Silva, me chamo *Pitoco Bot*. e sou assistente de atendimento da *Pitoco de Gente*! e vou lhe auxiliar para ter um melhor atendimento",
         "status": "delivered",
         "created_at": "2026-09-03T17:21:43.361Z"
       },
@@ -1485,7 +1485,7 @@
         "conversation_id": "conv-5581988880001",
         "direction": "outbound",
         "message_type": "button",
-        "content": "\ud83d\udcc5 *Escolha a Data do Agendamento*\n\n*Matheus Silva*, para qual dia voc\u00ea gostaria de agendar seu atendimento?",
+        "content": "📅 *Escolha a Data do Agendamento*\n\n*Matheus Silva*, para qual dia você gostaria de agendar seu atendimento?",
         "status": "delivered",
         "created_at": "2026-09-03T17:21:43.363Z"
       }
@@ -1495,7 +1495,7 @@
         "id": "msg-1788906287084-j37un",
         "conversation_id": "conv-168650497613858",
         "direction": "outbound",
-        "content": "\ud83d\udc76\u2728 *PITOCO DE GENTE \u2014 Roupas de Beb\u00ea & Enxovais*\nOl\u00e1, *rogerio mlc*! Bem-vindo(a) \u00e0 nossa loja oficial! Como podemos te ajudar hoje?\n\nDigite o n\u00famero da op\u00e7\u00e3o desejada:\n\n1\ufe0f\u20e3 *Ver Cat\u00e1logo de Produtos* (Bodies, Macac\u00f5es, Sa\u00eddas, Ber\u00e7o)\n2\ufe0f\u20e3 *Guia de Medidas* (RN ao 3 anos com peso e altura)\n3\ufe0f\u20e3 *Checklist da Mala de Maternidade*\n4\ufe0f\u20e3 *Consultoria VIP de Enxoval* (Agendamento personalizado)\n5\ufe0f\u20e3 *C\u00e1lculo de Frete & Formas de Entrega* (Motoboy/Correios/Retirada)\n6\ufe0f\u20e3 *Pagamento via PIX* (Chave & QR Code Copia e Cola)\n7\ufe0f\u20e3 *Falar com Atendente Humana* (Escolha sua loja f\u00edsica ou online)\n\n_Responda apenas com o n\u00famero de 1 a 7._",
+        "content": "👶✨ *PITOCO DE GENTE — Roupas de Bebê & Enxovais*\nOlá, *rogerio mlc*! Bem-vindo(a) à nossa loja oficial! Como podemos te ajudar hoje?\n\nDigite o número da opção desejada:\n\n1️⃣ *Ver Catálogo de Produtos* (Bodies, Macacões, Saídas, Berço)\n2️⃣ *Guia de Medidas* (RN ao 3 anos com peso e altura)\n3️⃣ *Checklist da Mala de Maternidade*\n4️⃣ *Consultoria VIP de Enxoval* (Agendamento personalizado)\n5️⃣ *Cálculo de Frete & Formas de Entrega* (Motoboy/Correios/Retirada)\n6️⃣ *Pagamento via PIX* (Chave & QR Code Copia e Cola)\n7️⃣ *Falar com Atendente Humana* (Escolha sua loja física ou online)\n\n_Responda apenas com o número de 1 a 7._",
         "sender": "bot",
         "author_name": "Pitoco Bot",
         "created_at": "2026-09-08T22:24:47.084Z"
@@ -1627,12 +1627,12 @@
     {
       "id": "tkt-1",
       "store_id": "store-001",
-      "store_name": "Loja Matriz \u2014 Centro",
+      "store_name": "Loja Matriz — Centro",
       "client_id": "client-81991234567",
-      "client_name": "Mariana Silva (Mam\u00e3e do Theo)",
+      "client_name": "Mariana Silva (Mamãe do Theo)",
       "client_phone": "81991234567",
       "protocol": "PTC-849102",
-      "subject": "Solicita\u00e7\u00e3o de retirada de Sa\u00edda Maternidade",
+      "subject": "Solicitação de retirada de Saída Maternidade",
       "status": "open",
       "priority": "high",
       "created_at": "2026-09-07T22:04:29.143Z",
@@ -1644,7 +1644,7 @@
       "id": "apt-1788468016809",
       "contact_name": "Julio",
       "contact_phone": "81999999999",
-      "service_name": "Consultoria VIP + Kit Sa\u00edda Maternidade (Promo\u00e7\u00e3o)",
+      "service_name": "Consultoria VIP + Kit Saída Maternidade (Promoção)",
       "duration_minutes": 50,
       "price": 45,
       "appointment_date": "2026-09-03",
@@ -1658,7 +1658,7 @@
       "id": "apt-1788469977786",
       "contact_name": "Leo",
       "contact_phone": "81900000003",
-      "service_name": "Consultoria VIP + Kit Sa\u00edda Maternidade (Promo\u00e7\u00e3o)",
+      "service_name": "Consultoria VIP + Kit Saída Maternidade (Promoção)",
       "duration_minutes": 50,
       "end_time": "20:20",
       "slots_count": 4,
@@ -1689,35 +1689,35 @@
         "name": "Consultoria VIP de Enxoval (Online ou Loja)",
         "duration_minutes": 45,
         "price": 0,
-        "description": "Atendimento exclusivo com especialista para montar a lista ideal do beb\u00ea"
+        "description": "Atendimento exclusivo com especialista para montar a lista ideal do bebê"
       },
       {
         "id": "srv-2",
-        "name": "Kit Sa\u00edda de Maternidade Tricot Realeza",
+        "name": "Kit Saída de Maternidade Tricot Realeza",
         "duration_minutes": 30,
         "price": 199.9,
-        "description": "Macac\u00e3o bordado + manta antial\u00e9rgica 100% algod\u00e3o"
+        "description": "Macacão bordado + manta antialérgica 100% algodão"
       },
       {
         "id": "srv-3",
-        "name": "Kit Bodies Suedine Pima (3 Pe\u00e7as)",
+        "name": "Kit Bodies Suedine Pima (3 Peças)",
         "duration_minutes": 30,
         "price": 89.9,
-        "description": "Toque macio, gola americana facilitada e bot\u00f5es de press\u00e3o"
+        "description": "Toque macio, gola americana facilitada e botões de pressão"
       },
       {
         "id": "srv-4",
-        "name": "Macac\u00e3o Z\u00edper Duplo Termo Confort",
+        "name": "Macacão Zíper Duplo Termo Confort",
         "duration_minutes": 30,
         "price": 79.9,
-        "description": "Praticidade nas trocas noturnas sem despir o beb\u00ea"
+        "description": "Praticidade nas trocas noturnas sem despir o bebê"
       },
       {
         "id": "srv-5",
-        "name": "Kit Ninho Redutor + Almofada Amamenta\u00e7\u00e3o",
+        "name": "Kit Ninho Redutor + Almofada Amamentação",
         "duration_minutes": 30,
         "price": 189,
-        "description": "Aconchego e seguran\u00e7a para os primeiros meses do rec\u00e9m-nascido"
+        "description": "Aconchego e segurança para os primeiros meses do recém-nascido"
       }
     ],
     "updated_at": "2026-09-04T00:25:31.358Z"
@@ -1725,7 +1725,7 @@
   "systemUsers": [
     {
       "id": "user-talvane",
-      "name": "Rog\u00e9rio Malaquias",
+      "name": "Rogério Malaquias",
       "username": "malaca",
       "password": "199425",
       "role": "admin",
@@ -1790,28 +1790,28 @@
       "id": "canned-1",
       "label": "Boas-vindas Consultoria",
       "cmd": "/bemvindo",
-      "text": "Ol\u00e1, mam\u00e3e! \u00c9 uma alegria enorme poder te ajudar a escolher o enxoval mais especial para o seu beb\u00ea! \ud83d\udc95",
+      "text": "Olá, mamãe! É uma alegria enorme poder te ajudar a escolher o enxoval mais especial para o seu bebê! 💕",
       "category": "Atendimento"
     },
     {
       "id": "canned-2",
       "label": "Tamanhos RN vs P",
       "cmd": "/tamanhos",
-      "text": "O tamanho RN veste beb\u00eas de at\u00e9 4kg (ideal para os primeiros 20 a 30 dias). O tamanho P veste de 4 a 6kg (de 1 a 3 meses com folguinha). Recomendamos ter pelo menos 4 a 6 pe\u00e7as RN e 6 a 8 pe\u00e7as P!",
-      "category": "D\u00favidas"
+      "text": "O tamanho RN veste bebês de até 4kg (ideal para os primeiros 20 a 30 dias). O tamanho P veste de 4 a 6kg (de 1 a 3 meses com folguinha). Recomendamos ter pelo menos 4 a 6 peças RN e 6 a 8 peças P!",
+      "category": "Dúvidas"
     },
     {
       "id": "canned-3",
       "label": "Dados PIX",
       "cmd": "/pix",
-      "text": "Nossa chave PIX oficial \u00e9 financeiro@pitocodegente.com.br (Banco Inter / Pitoco de Gente Artigos Infantis LTDA). Ao efetuar o pagamento, basta nos enviar o comprovante!",
+      "text": "Nossa chave PIX oficial é financeiro@pitocodegente.com.br (Banco Inter / Pitoco de Gente Artigos Infantis LTDA). Ao efetuar o pagamento, basta nos enviar o comprovante!",
       "category": "Pagamento"
     },
     {
       "id": "canned-4",
       "label": "Retirada em Loja",
       "cmd": "/retirada",
-      "text": "Seu pedido j\u00e1 foi separado com muito carinho e est\u00e1 pronto para retirada no balc\u00e3o da loja selecionada! Basta informar seu nome e n\u00famero de telefone.",
+      "text": "Seu pedido já foi separado com muito carinho e está pronto para retirada no balcão da loja selecionada! Basta informar seu nome e número de telefone.",
       "category": "Entrega"
     }
   ],
@@ -1819,15 +1819,15 @@
     "name": "Victoria",
     "company_name": "Pitoco de Gente",
     "gender": "female",
-    "tone": "Amig\u00e1vel e Profissional",
+    "tone": "Amigável e Profissional",
     "avatar_url": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&auto=format&fit=crop&q=80",
-    "company_segment": "Barbearia e Est\u00e9tica Masculina",
+    "company_segment": "Barbearia e Estética Masculina",
     "support_email": "contato@pitocodegente.com.br",
     "support_phone": "81987300915",
-    "business_hours": "08:00 \u00e0s 19:00",
+    "business_hours": "08:00 às 19:00",
     "website_url": "https://pitoco.malaca.com.br",
-    "welcome_message": "\ud83d\udc76\u2728 *PITOCO DE GENTE \u2014 Roupas de Beb\u00ea & Enxovais*\nOl\u00e1, *{clientName}*! Bem-vindo(a) \u00e0 nossa loja oficial! Como podemos te ajudar hoje?",
-    "company_address": "R. Vig. Jo\u00e3o Batista, 93 - Centro, Cabo de Santo Agostinho - PE, 54505-470",
+    "welcome_message": "👶✨ *PITOCO DE GENTE — Roupas de Bebê & Enxovais*\nOlá, *{clientName}*! Bem-vindo(a) à nossa loja oficial! Como podemos te ajudar hoje?",
+    "company_address": "R. Vig. João Batista, 93 - Centro, Cabo de Santo Agostinho - PE, 54505-470",
     "pix_key": "81996138924",
     "pix_owner": "Pitoco de Gente LTDA",
     "shipping_motoboy": 15,
@@ -1858,15 +1858,15 @@
       "name": "Victoria",
       "company_name": "Pitoco de Gente",
       "gender": "female",
-      "tone": "Amig\u00e1vel e Profissional",
+      "tone": "Amigável e Profissional",
       "avatar_url": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&auto=format&fit=crop&q=80",
-      "company_segment": "Barbearia e Est\u00e9tica Masculina",
+      "company_segment": "Barbearia e Estética Masculina",
       "support_email": "contato@pitocodegente.com.br",
       "support_phone": "81987300915",
-      "business_hours": "08:00 \u00e0s 19:00",
+      "business_hours": "08:00 às 19:00",
       "website_url": "https://pitoco.malaca.com.br",
-      "welcome_message": "\ud83d\udc76\u2728 *PITOCO DE GENTE \u2014 Roupas de Beb\u00ea & Enxovais*\nOl\u00e1, *{clientName}*! Bem-vindo(a) \u00e0 nossa loja oficial! Como podemos te ajudar hoje?",
-      "company_address": "R. Vig. Jo\u00e3o Batista, 93 - Centro, Cabo de Santo Agostinho - PE, 54505-470",
+      "welcome_message": "👶✨ *PITOCO DE GENTE — Roupas de Bebê & Enxovais*\nOlá, *{clientName}*! Bem-vindo(a) à nossa loja oficial! Como podemos te ajudar hoje?",
+      "company_address": "R. Vig. João Batista, 93 - Centro, Cabo de Santo Agostinho - PE, 54505-470",
       "pix_key": "81996138924",
       "pix_owner": "Pitoco de Gente LTDA",
       "shipping_motoboy": 15,
@@ -1926,7 +1926,7 @@
       "name": "{{frete_gratis_valor}}",
       "key": "frete_gratis_valor",
       "value": "120.00",
-      "description": "Valor m\u00ednimo frete gr\u00e1tis"
+      "description": "Valor mínimo frete grátis"
     },
     {
       "id": "var-artigo_assistente",
@@ -1954,14 +1954,14 @@
       "key": "saudacao_assistente",
       "name": "{{saudacao_assistente}}",
       "value": "bem-vinda",
-      "description": "Sauda\u00e7\u00e3o do assistente (ex: \"bem-vinda\")"
+      "description": "Saudação do assistente (ex: \"bem-vinda\")"
     },
     {
       "id": "var-termo_assistente",
       "key": "termo_assistente",
       "name": "{{termo_assistente}}",
       "value": "assistente",
-      "description": "Classifica\u00e7\u00e3o do assistente (ex: \"assistente\")"
+      "description": "Classificação do assistente (ex: \"assistente\")"
     }
   ],
   "auditLogs": [],
@@ -2007,23 +2007,23 @@
         "nome": "Carlos",
         "interesse_principal": "servico_selecionado",
         "nome_liente": "Carlos",
-        "opcao_selecionada": "2. Consultar Pre\u00e7os",
+        "opcao_selecionada": "2. Consultar Preços",
         "botao_id": "btn_2",
-        "catalogo_servicos_texto": "\ud83d\udc88 *Cat\u00e1logo de Servi\u00e7os & Pre\u00e7os*\n\n*1\ufe0f\u20e3* *Consultoria VIP de Enxoval*\n   \ud83d\udcb0 R$ 30,00 \u2022 \u23f1\ufe0f 45 min\n\n*2\ufe0f\u20e3* *Kit Sa\u00edda de Maternidade Tricot*\n   \ud83d\udcb0 R$ 20,00 \u2022 \u23f1\ufe0f 20 min\n\n*3\ufe0f\u20e3* *Consultoria VIP + Kit Sa\u00edda Maternidade (Promo\u00e7\u00e3o)*\n   \ud83d\udcb0 R$ 45,00 \u2022 \u23f1\ufe0f 50 min\n\n*4\ufe0f\u20e3* *Kit Bodies Suedine Pima*\n   \ud83d\udcb0 R$ 10,00 \u2022 \u23f1\ufe0f 12 min\n\n*5\ufe0f\u20e3* *Consultoria VIP + Kit Sa\u00edda Maternidade + Kit Bodies Suedine Pima (Promo\u00e7\u00e3o)*\n   \ud83d\udcb0 R$ 60,00 \u2022 \u23f1\ufe0f 10 min\n\n_Consulte os servi\u00e7os dispon\u00edveis acima._"
+        "catalogo_servicos_texto": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Consultoria VIP de Enxoval*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Kit Saída de Maternidade Tricot*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Consultoria VIP + Kit Saída Maternidade (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Kit Bodies Suedine Pima*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Consultoria VIP + Kit Saída Maternidade + Kit Bodies Suedine Pima (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._"
       },
       "waitingForVar": null,
       "activeButtons": [
         {
           "id": "btn_1",
-          "title": "1. Agendar Hor\u00e1rio"
+          "title": "Agendar Horário"
         },
         {
           "id": "btn_2",
-          "title": "2. Consultar Pre\u00e7os"
+          "title": "Consultar Preços"
         },
         {
           "id": "btn_3",
-          "title": "3. Falar com Atendente"
+          "title": "Falar com Atendente"
         }
       ]
     },
@@ -2046,24 +2046,24 @@
         "nome": "Carlos Silva",
         "interesse_principal": "servico_selecionado",
         "nome_liente": "Carlos Silva",
-        "opcao_selecionada": "2. Consultar Pre\u00e7os",
+        "opcao_selecionada": "2. Consultar Preços",
         "botao_id": "btn_2",
-        "catalogo_servicos_texto": "\ud83d\udc88 *Cat\u00e1logo de Servi\u00e7os & Pre\u00e7os*\n\n*1\ufe0f\u20e3* *Consultoria VIP de Enxoval*\n   \ud83d\udcb0 R$ 30,00 \u2022 \u23f1\ufe0f 45 min\n\n*2\ufe0f\u20e3* *Kit Sa\u00edda de Maternidade Tricot*\n   \ud83d\udcb0 R$ 20,00 \u2022 \u23f1\ufe0f 20 min\n\n*3\ufe0f\u20e3* *Consultoria VIP + Kit Sa\u00edda Maternidade (Promo\u00e7\u00e3o)*\n   \ud83d\udcb0 R$ 45,00 \u2022 \u23f1\ufe0f 50 min\n\n*4\ufe0f\u20e3* *Kit Bodies Suedine Pima*\n   \ud83d\udcb0 R$ 10,00 \u2022 \u23f1\ufe0f 12 min\n\n*5\ufe0f\u20e3* *Consultoria VIP + Kit Sa\u00edda Maternidade + Kit Bodies Suedine Pima (Promo\u00e7\u00e3o)*\n   \ud83d\udcb0 R$ 60,00 \u2022 \u23f1\ufe0f 10 min\n\n_Consulte os servi\u00e7os dispon\u00edveis acima._",
-        "catalogo_servicos": "\ud83d\udc88 *Cat\u00e1logo de Servi\u00e7os & Pre\u00e7os*\n\n*1\ufe0f\u20e3* *Consultoria VIP de Enxoval*\n   \ud83d\udcb0 R$ 30,00 \u2022 \u23f1\ufe0f 45 min\n\n*2\ufe0f\u20e3* *Kit Sa\u00edda de Maternidade Tricot*\n   \ud83d\udcb0 R$ 20,00 \u2022 \u23f1\ufe0f 20 min\n\n*3\ufe0f\u20e3* *Consultoria VIP + Kit Sa\u00edda Maternidade (Promo\u00e7\u00e3o)*\n   \ud83d\udcb0 R$ 45,00 \u2022 \u23f1\ufe0f 50 min\n\n*4\ufe0f\u20e3* *Kit Bodies Suedine Pima*\n   \ud83d\udcb0 R$ 10,00 \u2022 \u23f1\ufe0f 12 min\n\n*5\ufe0f\u20e3* *Consultoria VIP + Kit Sa\u00edda Maternidade + Kit Bodies Suedine Pima (Promo\u00e7\u00e3o)*\n   \ud83d\udcb0 R$ 60,00 \u2022 \u23f1\ufe0f 10 min\n\n_Consulte os servi\u00e7os dispon\u00edveis acima._"
+        "catalogo_servicos_texto": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Consultoria VIP de Enxoval*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Kit Saída de Maternidade Tricot*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Consultoria VIP + Kit Saída Maternidade (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Kit Bodies Suedine Pima*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Consultoria VIP + Kit Saída Maternidade + Kit Bodies Suedine Pima (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._",
+        "catalogo_servicos": "💈 *Catálogo de Serviços & Preços*\n\n*1️⃣* *Consultoria VIP de Enxoval*\n   💰 R$ 30,00 • ⏱️ 45 min\n\n*2️⃣* *Kit Saída de Maternidade Tricot*\n   💰 R$ 20,00 • ⏱️ 20 min\n\n*3️⃣* *Consultoria VIP + Kit Saída Maternidade (Promoção)*\n   💰 R$ 45,00 • ⏱️ 50 min\n\n*4️⃣* *Kit Bodies Suedine Pima*\n   💰 R$ 10,00 • ⏱️ 12 min\n\n*5️⃣* *Consultoria VIP + Kit Saída Maternidade + Kit Bodies Suedine Pima (Promoção)*\n   💰 R$ 60,00 • ⏱️ 10 min\n\n_Consulte os serviços disponíveis acima._"
       },
       "waitingForVar": null,
       "activeButtons": [
         {
           "id": "btn_1",
-          "title": "1. Agendar Hor\u00e1rio"
+          "title": "Agendar Horário"
         },
         {
           "id": "btn_2",
-          "title": "2. Consultar Pre\u00e7os"
+          "title": "Consultar Preços"
         },
         {
           "id": "btn_3",
-          "title": "3. Falar com Atendente"
+          "title": "Falar com Atendente"
         }
       ]
     },
@@ -2078,21 +2078,21 @@
         "nome_cliente": "",
         "opcao_selecionada": "3. Falar com Atendente",
         "botao_id": "btn_atendente",
-        "catalogo_servicos_texto": "\ud83c\udf7c *DESTAQUES PITOCO DE GENTE*\nConfira nossas pe\u00e7as queridinhas do momento:\n\n*1\ufe0f\u20e3* *Consultoria VIP de Enxoval (Online ou Loja)*\n   \ud83d\udcb0 R$ 0,00 \u2022 \u23f1\ufe0f 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do beb\u00ea_\n\n*2\ufe0f\u20e3* *Kit Sa\u00edda de Maternidade Tricot Realeza*\n   \ud83d\udcb0 R$ 199,90 \u2022 \u23f1\ufe0f 30 min\n   _Macac\u00e3o bordado + manta antial\u00e9rgica 100% algod\u00e3o_\n\n*3\ufe0f\u20e3* *Kit Bodies Suedine Pima (3 Pe\u00e7as)*\n   \ud83d\udcb0 R$ 89,90 \u2022 \u23f1\ufe0f 30 min\n   _Toque macio, gola americana facilitada e bot\u00f5es de press\u00e3o_\n\n*4\ufe0f\u20e3* *Macac\u00e3o Z\u00edper Duplo Termo Confort*\n   \ud83d\udcb0 R$ 79,90 \u2022 \u23f1\ufe0f 30 min\n   _Praticidade nas trocas noturnas sem despir o beb\u00ea_\n\n*5\ufe0f\u20e3* *Kit Ninho Redutor + Almofada Amamenta\u00e7\u00e3o*\n   \ud83d\udcb0 R$ 189,00 \u2022 \u23f1\ufe0f 30 min\n   _Aconchego e seguran\u00e7a para os primeiros meses do rec\u00e9m-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
-        "catalogo_servicos": "\ud83c\udf7c *DESTAQUES PITOCO DE GENTE*\nConfira nossas pe\u00e7as queridinhas do momento:\n\n*1\ufe0f\u20e3* *Consultoria VIP de Enxoval (Online ou Loja)*\n   \ud83d\udcb0 R$ 0,00 \u2022 \u23f1\ufe0f 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do beb\u00ea_\n\n*2\ufe0f\u20e3* *Kit Sa\u00edda de Maternidade Tricot Realeza*\n   \ud83d\udcb0 R$ 199,90 \u2022 \u23f1\ufe0f 30 min\n   _Macac\u00e3o bordado + manta antial\u00e9rgica 100% algod\u00e3o_\n\n*3\ufe0f\u20e3* *Kit Bodies Suedine Pima (3 Pe\u00e7as)*\n   \ud83d\udcb0 R$ 89,90 \u2022 \u23f1\ufe0f 30 min\n   _Toque macio, gola americana facilitada e bot\u00f5es de press\u00e3o_\n\n*4\ufe0f\u20e3* *Macac\u00e3o Z\u00edper Duplo Termo Confort*\n   \ud83d\udcb0 R$ 79,90 \u2022 \u23f1\ufe0f 30 min\n   _Praticidade nas trocas noturnas sem despir o beb\u00ea_\n\n*5\ufe0f\u20e3* *Kit Ninho Redutor + Almofada Amamenta\u00e7\u00e3o*\n   \ud83d\udcb0 R$ 189,00 \u2022 \u23f1\ufe0f 30 min\n   _Aconchego e seguran\u00e7a para os primeiros meses do rec\u00e9m-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_"
+        "catalogo_servicos_texto": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
+        "catalogo_servicos": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_"
       },
       "activeButtons": [
         {
           "id": "btn_catalogo",
-          "title": "1. Ver Cat\u00e1logo Beb\u00ea"
+          "title": "Ver Catálogo Bebê"
         },
         {
           "id": "btn_enxoval",
-          "title": "2. Consultoria de Enxoval"
+          "title": "Consultoria de Enxoval"
         },
         {
           "id": "btn_atendente",
-          "title": "3. Falar com Atendente"
+          "title": "Falar com Atendente"
         }
       ]
     },
@@ -2105,23 +2105,23 @@
         "telefone_whatsapp": "558199999999",
         "ultima_mensagem": "1",
         "nome_cliente": "",
-        "opcao_selecionada": "1. Ver Cat\u00e1logo Beb\u00ea",
+        "opcao_selecionada": "1. Ver Catálogo Bebê",
         "botao_id": "btn_catalogo",
-        "catalogo_servicos_texto": "\ud83c\udf7c *DESTAQUES PITOCO DE GENTE*\nConfira nossas pe\u00e7as queridinhas do momento:\n\n*1\ufe0f\u20e3* *Consultoria VIP de Enxoval (Online ou Loja)*\n   \ud83d\udcb0 R$ 0,00 \u2022 \u23f1\ufe0f 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do beb\u00ea_\n\n*2\ufe0f\u20e3* *Kit Sa\u00edda de Maternidade Tricot Realeza*\n   \ud83d\udcb0 R$ 199,90 \u2022 \u23f1\ufe0f 30 min\n   _Macac\u00e3o bordado + manta antial\u00e9rgica 100% algod\u00e3o_\n\n*3\ufe0f\u20e3* *Kit Bodies Suedine Pima (3 Pe\u00e7as)*\n   \ud83d\udcb0 R$ 89,90 \u2022 \u23f1\ufe0f 30 min\n   _Toque macio, gola americana facilitada e bot\u00f5es de press\u00e3o_\n\n*4\ufe0f\u20e3* *Macac\u00e3o Z\u00edper Duplo Termo Confort*\n   \ud83d\udcb0 R$ 79,90 \u2022 \u23f1\ufe0f 30 min\n   _Praticidade nas trocas noturnas sem despir o beb\u00ea_\n\n*5\ufe0f\u20e3* *Kit Ninho Redutor + Almofada Amamenta\u00e7\u00e3o*\n   \ud83d\udcb0 R$ 189,00 \u2022 \u23f1\ufe0f 30 min\n   _Aconchego e seguran\u00e7a para os primeiros meses do rec\u00e9m-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
-        "catalogo_servicos": "\ud83c\udf7c *DESTAQUES PITOCO DE GENTE*\nConfira nossas pe\u00e7as queridinhas do momento:\n\n*1\ufe0f\u20e3* *Consultoria VIP de Enxoval (Online ou Loja)*\n   \ud83d\udcb0 R$ 0,00 \u2022 \u23f1\ufe0f 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do beb\u00ea_\n\n*2\ufe0f\u20e3* *Kit Sa\u00edda de Maternidade Tricot Realeza*\n   \ud83d\udcb0 R$ 199,90 \u2022 \u23f1\ufe0f 30 min\n   _Macac\u00e3o bordado + manta antial\u00e9rgica 100% algod\u00e3o_\n\n*3\ufe0f\u20e3* *Kit Bodies Suedine Pima (3 Pe\u00e7as)*\n   \ud83d\udcb0 R$ 89,90 \u2022 \u23f1\ufe0f 30 min\n   _Toque macio, gola americana facilitada e bot\u00f5es de press\u00e3o_\n\n*4\ufe0f\u20e3* *Macac\u00e3o Z\u00edper Duplo Termo Confort*\n   \ud83d\udcb0 R$ 79,90 \u2022 \u23f1\ufe0f 30 min\n   _Praticidade nas trocas noturnas sem despir o beb\u00ea_\n\n*5\ufe0f\u20e3* *Kit Ninho Redutor + Almofada Amamenta\u00e7\u00e3o*\n   \ud83d\udcb0 R$ 189,00 \u2022 \u23f1\ufe0f 30 min\n   _Aconchego e seguran\u00e7a para os primeiros meses do rec\u00e9m-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_"
+        "catalogo_servicos_texto": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
+        "catalogo_servicos": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_"
       },
       "activeButtons": [
         {
           "id": "btn_catalogo",
-          "title": "1. Ver Cat\u00e1logo Beb\u00ea"
+          "title": "Ver Catálogo Bebê"
         },
         {
           "id": "btn_enxoval",
-          "title": "2. Consultoria de Enxoval"
+          "title": "Consultoria de Enxoval"
         },
         {
           "id": "btn_atendente",
-          "title": "3. Falar com Atendente"
+          "title": "Falar com Atendente"
         }
       ]
     },
@@ -2136,21 +2136,21 @@
         "nome_cliente": "",
         "opcao_selecionada": "3. Falar com Atendente",
         "botao_id": "btn_atendente",
-        "catalogo_servicos_texto": "\ud83c\udf7c *DESTAQUES PITOCO DE GENTE*\nConfira nossas pe\u00e7as queridinhas do momento:\n\n*1\ufe0f\u20e3* *Consultoria VIP de Enxoval (Online ou Loja)*\n   \ud83d\udcb0 R$ 0,00 \u2022 \u23f1\ufe0f 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do beb\u00ea_\n\n*2\ufe0f\u20e3* *Kit Sa\u00edda de Maternidade Tricot Realeza*\n   \ud83d\udcb0 R$ 199,90 \u2022 \u23f1\ufe0f 30 min\n   _Macac\u00e3o bordado + manta antial\u00e9rgica 100% algod\u00e3o_\n\n*3\ufe0f\u20e3* *Kit Bodies Suedine Pima (3 Pe\u00e7as)*\n   \ud83d\udcb0 R$ 89,90 \u2022 \u23f1\ufe0f 30 min\n   _Toque macio, gola americana facilitada e bot\u00f5es de press\u00e3o_\n\n*4\ufe0f\u20e3* *Macac\u00e3o Z\u00edper Duplo Termo Confort*\n   \ud83d\udcb0 R$ 79,90 \u2022 \u23f1\ufe0f 30 min\n   _Praticidade nas trocas noturnas sem despir o beb\u00ea_\n\n*5\ufe0f\u20e3* *Kit Ninho Redutor + Almofada Amamenta\u00e7\u00e3o*\n   \ud83d\udcb0 R$ 189,00 \u2022 \u23f1\ufe0f 30 min\n   _Aconchego e seguran\u00e7a para os primeiros meses do rec\u00e9m-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
-        "catalogo_servicos": "\ud83c\udf7c *DESTAQUES PITOCO DE GENTE*\nConfira nossas pe\u00e7as queridinhas do momento:\n\n*1\ufe0f\u20e3* *Consultoria VIP de Enxoval (Online ou Loja)*\n   \ud83d\udcb0 R$ 0,00 \u2022 \u23f1\ufe0f 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do beb\u00ea_\n\n*2\ufe0f\u20e3* *Kit Sa\u00edda de Maternidade Tricot Realeza*\n   \ud83d\udcb0 R$ 199,90 \u2022 \u23f1\ufe0f 30 min\n   _Macac\u00e3o bordado + manta antial\u00e9rgica 100% algod\u00e3o_\n\n*3\ufe0f\u20e3* *Kit Bodies Suedine Pima (3 Pe\u00e7as)*\n   \ud83d\udcb0 R$ 89,90 \u2022 \u23f1\ufe0f 30 min\n   _Toque macio, gola americana facilitada e bot\u00f5es de press\u00e3o_\n\n*4\ufe0f\u20e3* *Macac\u00e3o Z\u00edper Duplo Termo Confort*\n   \ud83d\udcb0 R$ 79,90 \u2022 \u23f1\ufe0f 30 min\n   _Praticidade nas trocas noturnas sem despir o beb\u00ea_\n\n*5\ufe0f\u20e3* *Kit Ninho Redutor + Almofada Amamenta\u00e7\u00e3o*\n   \ud83d\udcb0 R$ 189,00 \u2022 \u23f1\ufe0f 30 min\n   _Aconchego e seguran\u00e7a para os primeiros meses do rec\u00e9m-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_"
+        "catalogo_servicos_texto": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
+        "catalogo_servicos": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_"
       },
       "activeButtons": [
         {
           "id": "btn_catalogo",
-          "title": "1. Ver Cat\u00e1logo Beb\u00ea"
+          "title": "Ver Catálogo Bebê"
         },
         {
           "id": "btn_enxoval",
-          "title": "2. Consultoria de Enxoval"
+          "title": "Consultoria de Enxoval"
         },
         {
           "id": "btn_atendente",
-          "title": "3. Falar com Atendente"
+          "title": "Falar com Atendente"
         }
       ]
     },
@@ -2158,28 +2158,28 @@
       "flowId": "flow-pitoco-001",
       "currentNodeId": "node-catalog-pitoco",
       "variables": {
-        "whatsapp_pushname": "Mam\u00e3e Teste",
+        "whatsapp_pushname": "Mamãe Teste",
         "telefone_cliente": "5581999991111",
         "telefone_whatsapp": "5581999991111",
         "ultima_mensagem": "1",
         "nome_cliente": "",
-        "opcao_selecionada": "1. Ver Cat\u00e1logo Beb\u00ea",
+        "opcao_selecionada": "1. Ver Catálogo Bebê",
         "botao_id": "btn_catalogo",
-        "catalogo_servicos_texto": "\ud83c\udf7c *DESTAQUES PITOCO DE GENTE*\nConfira nossas pe\u00e7as queridinhas do momento:\n\n*1\ufe0f\u20e3* *Consultoria VIP de Enxoval (Online ou Loja)*\n   \ud83d\udcb0 R$ 0,00 \u2022 \u23f1\ufe0f 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do beb\u00ea_\n\n*2\ufe0f\u20e3* *Kit Sa\u00edda de Maternidade Tricot Realeza*\n   \ud83d\udcb0 R$ 199,90 \u2022 \u23f1\ufe0f 30 min\n   _Macac\u00e3o bordado + manta antial\u00e9rgica 100% algod\u00e3o_\n\n*3\ufe0f\u20e3* *Kit Bodies Suedine Pima (3 Pe\u00e7as)*\n   \ud83d\udcb0 R$ 89,90 \u2022 \u23f1\ufe0f 30 min\n   _Toque macio, gola americana facilitada e bot\u00f5es de press\u00e3o_\n\n*4\ufe0f\u20e3* *Macac\u00e3o Z\u00edper Duplo Termo Confort*\n   \ud83d\udcb0 R$ 79,90 \u2022 \u23f1\ufe0f 30 min\n   _Praticidade nas trocas noturnas sem despir o beb\u00ea_\n\n*5\ufe0f\u20e3* *Kit Ninho Redutor + Almofada Amamenta\u00e7\u00e3o*\n   \ud83d\udcb0 R$ 189,00 \u2022 \u23f1\ufe0f 30 min\n   _Aconchego e seguran\u00e7a para os primeiros meses do rec\u00e9m-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
-        "catalogo_servicos": "\ud83c\udf7c *DESTAQUES PITOCO DE GENTE*\nConfira nossas pe\u00e7as queridinhas do momento:\n\n*1\ufe0f\u20e3* *Consultoria VIP de Enxoval (Online ou Loja)*\n   \ud83d\udcb0 R$ 0,00 \u2022 \u23f1\ufe0f 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do beb\u00ea_\n\n*2\ufe0f\u20e3* *Kit Sa\u00edda de Maternidade Tricot Realeza*\n   \ud83d\udcb0 R$ 199,90 \u2022 \u23f1\ufe0f 30 min\n   _Macac\u00e3o bordado + manta antial\u00e9rgica 100% algod\u00e3o_\n\n*3\ufe0f\u20e3* *Kit Bodies Suedine Pima (3 Pe\u00e7as)*\n   \ud83d\udcb0 R$ 89,90 \u2022 \u23f1\ufe0f 30 min\n   _Toque macio, gola americana facilitada e bot\u00f5es de press\u00e3o_\n\n*4\ufe0f\u20e3* *Macac\u00e3o Z\u00edper Duplo Termo Confort*\n   \ud83d\udcb0 R$ 79,90 \u2022 \u23f1\ufe0f 30 min\n   _Praticidade nas trocas noturnas sem despir o beb\u00ea_\n\n*5\ufe0f\u20e3* *Kit Ninho Redutor + Almofada Amamenta\u00e7\u00e3o*\n   \ud83d\udcb0 R$ 189,00 \u2022 \u23f1\ufe0f 30 min\n   _Aconchego e seguran\u00e7a para os primeiros meses do rec\u00e9m-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_"
+        "catalogo_servicos_texto": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_",
+        "catalogo_servicos": "🍼 *DESTAQUES PITOCO DE GENTE*\nConfira nossas peças queridinhas do momento:\n\n*1️⃣* *Consultoria VIP de Enxoval (Online ou Loja)*\n   💰 R$ 0,00 • ⏱️ 45 min\n   _Atendimento exclusivo com especialista para montar a lista ideal do bebê_\n\n*2️⃣* *Kit Saída de Maternidade Tricot Realeza*\n   💰 R$ 199,90 • ⏱️ 30 min\n   _Macacão bordado + manta antialérgica 100% algodão_\n\n*3️⃣* *Kit Bodies Suedine Pima (3 Peças)*\n   💰 R$ 89,90 • ⏱️ 30 min\n   _Toque macio, gola americana facilitada e botões de pressão_\n\n*4️⃣* *Macacão Zíper Duplo Termo Confort*\n   💰 R$ 79,90 • ⏱️ 30 min\n   _Praticidade nas trocas noturnas sem despir o bebê_\n\n*5️⃣* *Kit Ninho Redutor + Almofada Amamentação*\n   💰 R$ 189,00 • ⏱️ 30 min\n   _Aconchego e segurança para os primeiros meses do recém-nascido_\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_"
       },
       "activeButtons": [
         {
           "id": "btn_catalogo",
-          "title": "1. Ver Cat\u00e1logo Beb\u00ea"
+          "title": "Ver Catálogo Bebê"
         },
         {
           "id": "btn_enxoval",
-          "title": "2. Consultoria de Enxoval"
+          "title": "Consultoria de Enxoval"
         },
         {
           "id": "btn_atendente",
-          "title": "3. Falar com Atendente"
+          "title": "Falar com Atendente"
         }
       ]
     },

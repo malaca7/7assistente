@@ -1828,7 +1828,7 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
                         </div>
                         <div className="min-w-0">
                           <span className="font-bold text-white block truncate">
-                            {idx + 1}️⃣ {st.name}
+                            {st.name}
                           </span>
                           <p className="text-[10px] text-slate-400 truncate">{st.address || st.city || 'Filial Oficial'}</p>
                         </div>

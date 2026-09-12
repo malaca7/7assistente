@@ -134,9 +134,9 @@ export const NODE_DEFINITIONS: NodeDefinition[] = [
       bodyText: 'Como podemos te ajudar hoje? Escolha uma das opções:',
       footerText: 'Pitoco de Gente • Atendimento Oficial',
       buttons: [
-        { id: 'btn_1', title: '1. Ver Catálogo Bebê' },
-        { id: 'btn_2', title: '2. Consultoria Enxoval' },
-        { id: 'btn_3', title: '3. Falar com Atendente' },
+        { id: 'btn_1', title: 'Ver Catálogo Bebê' },
+        { id: 'btn_2', title: 'Consultoria Enxoval' },
+        { id: 'btn_3', title: 'Falar com Atendente' },
       ],
     },
   },
