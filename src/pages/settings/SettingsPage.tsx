@@ -590,7 +590,7 @@ export const SettingsPage: React.FC = () => {
           <span>Tema & Aparência</span>
         </button>
 
-        {/* Conexão WhatsApp Meta Cloud API AGORA É A ÚLTIMA ABA */}
+        {/* Conexão WhatsApp Meta Cloud API & QR Code AGORA É A ÚLTIMA ABA */}
         <button
           onClick={() => setActiveTab('whatsapp_qr')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
@@ -600,7 +600,7 @@ export const SettingsPage: React.FC = () => {
           }`}
         >
           <Smartphone className="w-4 h-4 text-emerald-400" />
-          <span>Meta WhatsApp Cloud API</span>
+          <span>Conexão WhatsApp (QR Code & Meta)</span>
         </button>
       </div>
 

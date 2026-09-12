@@ -11,9 +11,9 @@ interface WhatsAppContextType {
   qrDataUrl: string | null;
   rawQR: string | null;
   backendUrl: string;
-  generateQRCode: () => Promise<string>;
+  generateQRCode: (clearAuth?: boolean) => Promise<string>;
   connectDevice: () => Promise<void>;
-  disconnect: () => Promise<void>;
+  disconnect: (provider?: 'baileys' | 'meta' | 'all') => Promise<void>;
   refreshStatus: () => Promise<void>;
   setCustomBackendUrl: (url: string) => Promise<void>;
   sendTestMessage: (phone: string) => Promise<{ success: boolean; error?: string }>;
@@ -90,10 +90,10 @@ export const WhatsAppProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return () => clearInterval(interval);
   }, [refreshStatus]);
 
-  const generateQRCode = async (): Promise<string> => {
+  const generateQRCode = async (clearAuth: boolean = false): Promise<string> => {
     setIsConnecting(true);
     try {
-      const data = await whatsappService.generateQRCode();
+      const data = await whatsappService.generateQRCode(clearAuth);
       if (data.qr) {
         setRawQR(data.qr);
         const url = data.qrDataUrl || (await QRCode.toDataURL(data.qr, { margin: 2, scale: 8 }));
@@ -111,16 +111,21 @@ export const WhatsAppProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const connectDevice = async () => {
-    await generateQRCode();
+    await generateQRCode(false);
   };
 
-  const disconnect = async () => {
+  const disconnect = async (provider?: 'baileys' | 'meta' | 'all') => {
     try {
-      await whatsappService.disconnect();
-      setSession({ ...defaultSession, status: 'disconnected' });
+      await whatsappService.disconnect(provider);
+      setSession(prev => ({
+        ...prev,
+        status: 'disconnected',
+        provider: provider === 'baileys' ? (prev.provider === 'baileys' ? 'none' : prev.provider) : 'none'
+      }));
       setRawQR(null);
       setQrDataUrl(null);
-      warning('WhatsApp desconectado');
+      await refreshStatus();
+      warning('WhatsApp desconectado com sucesso');
     } catch (e) {
       console.error(e);
     }

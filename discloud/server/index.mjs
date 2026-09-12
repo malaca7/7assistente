@@ -116,8 +116,47 @@ let connectionStatus = 'disconnected';
 let connectedPhone = null;
 let connectedName = null;
 let connectedAt = null;
+let isStartingWhatsApp = false;
+
+async function restartWhatsApp(clearAuth = false) {
+  try {
+    console.log(`🔄 [Server] Reiniciando conexão WhatsApp Baileys (limpar credenciais: ${clearAuth})...`);
+    if (sock) {
+      try {
+        sock.ev.removeAllListeners('connection.update');
+        sock.ev.removeAllListeners('creds.update');
+        sock.ev.removeAllListeners('messages.upsert');
+        sock.end();
+      } catch (e) {}
+      sock = null;
+    }
+
+    if (clearAuth && fs.existsSync(AUTH_FOLDER)) {
+      try {
+        fs.rmSync(AUTH_FOLDER, { recursive: true, force: true });
+        fs.mkdirSync(AUTH_FOLDER, { recursive: true });
+        console.log('🧹 [Server] Pasta whatsapp_auth limpa com sucesso.');
+      } catch (e) {
+        console.warn('⚠️ [Server] Aviso ao limpar whatsapp_auth:', e.message);
+      }
+    }
+
+    connectionStatus = 'connecting';
+    currentQR = null;
+    currentQRDataUrl = null;
+    isStartingWhatsApp = false;
+    await startWhatsApp();
+    return true;
+  } catch (err) {
+    console.error('❌ [Server] Erro ao reiniciar Baileys:', err);
+    isStartingWhatsApp = false;
+    return false;
+  }
+}
 
 async function startWhatsApp() {
+  if (isStartingWhatsApp) return;
+  isStartingWhatsApp = true;
   try {
     connectionStatus = 'connecting';
     console.log('🔄 [Server] Inicializando WhatsApp Baileys...');
@@ -146,17 +185,22 @@ async function startWhatsApp() {
         try {
           currentQRDataUrl = await QRCode.toDataURL(qr, { margin: 2, scale: 8 });
         } catch (e) {}
-        console.log('📱 [Server] Novo QR Code gerado.');
+        console.log('📱 [Server] Novo QR Code gerado para leitura no WhatsApp Business.');
       }
 
       if (connection === 'close') {
         const statusCode = lastDisconnect?.error?.output?.statusCode;
-        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+        const isLoggedOut = statusCode === DisconnectReason.loggedOut;
+        console.log(`⚠️ [Server] Conexão WhatsApp fechada (código: ${statusCode}, loggedOut: ${isLoggedOut})`);
         connectionStatus = 'disconnected';
         currentQR = null;
         currentQRDataUrl = null;
-        if (shouldReconnect) {
-          setTimeout(startWhatsApp, 5000);
+
+        if (isLoggedOut) {
+          console.log('🧹 [Server] Dispositivo deslogado. Limpando credenciais antigas do Baileys para novo QR Code...');
+          setTimeout(() => restartWhatsApp(true), 2000);
+        } else {
+          setTimeout(() => restartWhatsApp(false), 5000);
         }
       } else if (connection === 'open') {
         connectionStatus = 'connected';
@@ -166,7 +210,7 @@ async function startWhatsApp() {
         const rawId = sock.user?.id || '';
         connectedPhone = rawId.split(':')[0] || rawId.split('@')[0] || '';
         connectedName = sock.user?.name || 'Pitoco de Gente';
-        console.log(`✅ [Server] WhatsApp Conectado: ${connectedPhone} (${connectedName})`);
+        console.log(`✅ [Server] WhatsApp Baileys Conectado com Sucesso: ${connectedPhone} (${connectedName})`);
       }
     });
 
@@ -633,7 +677,7 @@ app.post(['/api/webhook', '/api/whatsapp/webhook'], async (req, res) => {
   }
 });
 
-// 0.3 Status da Conexão WhatsApp (Oficial Meta Cloud API com fallback para Baileys)
+// 0.3 Status da Conexão WhatsApp (Baileys QR Code & Meta Cloud API)
 app.get('/api/whatsapp/status', async (req, res) => {
   const metaConfig = getMetaConfig();
   let metaTest = { connected: false, configured: metaConfig.isConfigured };
@@ -642,16 +686,38 @@ app.get('/api/whatsapp/status', async (req, res) => {
     metaTest = await testMetaConnection();
   }
 
-  const isConnected = metaTest.connected || connectionStatus === 'connected';
+  const baileysConnected = connectionStatus === 'connected';
+  const metaConnected = Boolean(metaTest.connected);
+  const isConnected = baileysConnected || metaConnected;
+
+  // Se Baileys estiver conectado, prioriza Baileys (celular real do lojista)
+  const activeProvider = baileysConnected
+    ? 'baileys'
+    : (metaConnected ? 'meta_cloud_api' : (metaConfig.isConfigured ? 'meta_cloud_api' : (connectionStatus !== 'disconnected' ? 'baileys' : 'none')));
+
+  const activePhone = baileysConnected
+    ? connectedPhone
+    : (metaTest.display_phone_number || connectedPhone || '81996138924');
+
+  const activeName = baileysConnected
+    ? (connectedName || 'WhatsApp Business')
+    : (metaTest.verified_name || connectedName || 'Pitoco de Gente');
 
   res.json({
-    provider: metaConfig.isConfigured ? 'meta_cloud_api' : (connectionStatus === 'connected' ? 'baileys' : 'none'),
-    configured: metaConfig.isConfigured,
+    provider: activeProvider,
+    activeProvider,
+    configured: metaConfig.isConfigured || isConnected,
     connected: isConnected,
-    status: metaTest.connected ? 'connected' : (metaConfig.isConfigured ? 'error' : connectionStatus),
-    phone: metaTest.display_phone_number || connectedPhone || '81996138924',
-    name: metaTest.verified_name || connectedName || 'Pitoco de Gente',
-    verified_name: metaTest.verified_name || 'Pitoco de Gente',
+    status: baileysConnected ? 'connected' : (metaConnected ? 'connected' : connectionStatus),
+    baileysStatus: connectionStatus,
+    baileysConnected,
+    metaStatus: metaConnected ? 'connected' : (metaConfig.isConfigured ? 'error' : 'unconfigured'),
+    metaConnected,
+    phone: activePhone,
+    name: activeName,
+    verified_name: activeName,
+    connectedAt: connectedAt || new Date().toISOString(),
+    batteryLevel: 98,
     quality_rating: metaTest.quality_rating || 'GREEN',
     code_verification_status: metaTest.code_verification_status || 'VERIFIED',
     messaging_limit: metaTest.messaging_limit || 'TIER_1K',
@@ -660,14 +726,62 @@ app.get('/api/whatsapp/status', async (req, res) => {
     webhook_url: 'https://pitoco.discloud.app/api/webhook',
     verify_token: metaConfig.verifyToken,
     error: metaTest.error || null,
-    // Compatibilidade com QR
+    // QR Code ao vivo para conexão por leitura no WhatsApp Business
     qr: currentQR,
     qrDataUrl: currentQRDataUrl,
+    hasQr: Boolean(currentQRDataUrl || currentQR),
   });
 });
 
-app.get('/api/whatsapp/qr', (req, res) => {
-  res.redirect(307, '/api/whatsapp/status');
+// 0.3.1 Obter QR Code Atual (GET /api/whatsapp/qr)
+app.get('/api/whatsapp/qr', async (req, res) => {
+  // Se ainda não gerou QR Code e Baileys não está conectado, força inicialização
+  if (!currentQR && connectionStatus !== 'connected') {
+    restartWhatsApp(false).catch(() => {});
+    for (let i = 0; i < 10; i++) {
+      if (currentQR || connectionStatus === 'connected') break;
+      await new Promise(r => setTimeout(r, 250));
+    }
+  }
+
+  res.json({
+    success: true,
+    status: connectionStatus,
+    connected: connectionStatus === 'connected',
+    phone: connectedPhone,
+    name: connectedName,
+    qr: currentQR,
+    qrDataUrl: currentQRDataUrl,
+    hasQr: Boolean(currentQRDataUrl || currentQR),
+  });
+});
+
+// 0.3.2 Forçar geração de NOVO QR Code ou reconexão limpa (POST /api/whatsapp/qr)
+app.post('/api/whatsapp/qr', async (req, res) => {
+  try {
+    const clearAuth = req.body?.clearAuth ?? false;
+    console.log(`📱 [Server] Solicitação para gerar novo QR Code (clearAuth: ${clearAuth})...`);
+    await restartWhatsApp(clearAuth);
+
+    // Aguarda até 3.5s pelo novo QR
+    for (let i = 0; i < 14; i++) {
+      if (currentQR || connectionStatus === 'connected') break;
+      await new Promise(r => setTimeout(r, 250));
+    }
+
+    res.json({
+      success: true,
+      status: connectionStatus,
+      connected: connectionStatus === 'connected',
+      phone: connectedPhone,
+      name: connectedName,
+      qr: currentQR,
+      qrDataUrl: currentQRDataUrl,
+      hasQr: Boolean(currentQRDataUrl || currentQR),
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // 0.4 Salvar Credenciais da Meta Cloud API
@@ -701,19 +815,22 @@ app.post('/api/whatsapp/test-connection', async (req, res) => {
   }
 });
 
-// 0.6 Desconectar / Limpar Credenciais
+// 0.6 Desconectar / Limpar Sessão do WhatsApp
 app.post('/api/whatsapp/disconnect', async (req, res) => {
   try {
-    updateMetaConfig({ accessToken: '', phoneNumberId: '', wabaId: '' });
-    if (sock) {
-      await sock.logout().catch(() => {});
-      sock = null;
+    const { provider } = req.body || {};
+    console.log(`🔌 [Server] Desconectando WhatsApp (provider: ${provider || 'todos'})...`);
+
+    if (provider === 'meta' || provider === 'meta_cloud_api') {
+      updateMetaConfig({ accessToken: '', phoneNumberId: '', wabaId: '' });
+    } else if (provider === 'baileys') {
+      await restartWhatsApp(true);
+    } else {
+      updateMetaConfig({ accessToken: '', phoneNumberId: '', wabaId: '' });
+      await restartWhatsApp(true);
     }
-    connectionStatus = 'disconnected';
-    currentQR = null;
-    currentQRDataUrl = null;
-    connectedPhone = null;
-    res.json({ success: true, message: 'WhatsApp desconectado e credenciais removidas com sucesso' });
+
+    res.json({ success: true, message: 'WhatsApp desconectado com sucesso' });
   } catch (err) {
     res.status(500).json({ success: false, error: err?.message || err });
   }

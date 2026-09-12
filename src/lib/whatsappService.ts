@@ -117,12 +117,13 @@ export const whatsappService = {
   },
 
   // 2. POST /api/whatsapp/qr (Trigger generation / reconnect)
-  async generateQRCode(): Promise<WhatsAppStatusResponse> {
+  async generateQRCode(clearAuth: boolean = false): Promise<WhatsAppStatusResponse> {
     const base = getWhatsAppBackendUrl();
     try {
       const res = await fetch(`${base}/api/whatsapp/qr`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clearAuth }),
       });
       if (res.ok) {
         return await res.json();
@@ -148,15 +149,14 @@ export const whatsappService = {
         body: JSON.stringify({
           phone: cleanPhone,
           text: payload.text,
-          message: payload.text,
-          type: payload.type || 'text',
+          type: payload.type,
           mediaUrl: payload.mediaUrl,
           caption: payload.caption,
         }),
       });
       const data = await res.json();
-      if (res.ok && (data.success || data.status === 'ok' || data.messageId)) {
-        return { success: true, messageId: data.messageId, status: data.status || 'sent' };
+      if (res.ok && data.success) {
+        return { success: true, messageId: data.messageId, status: data.status };
       }
       return { success: false, error: data.error || data.message || 'Falha no envio' };
     } catch (err: any) {
@@ -185,10 +185,14 @@ export const whatsappService = {
   },
 
   // 5. POST /api/whatsapp/disconnect
-  async disconnect(): Promise<boolean> {
+  async disconnect(provider?: 'baileys' | 'meta' | 'all'): Promise<boolean> {
     const base = getWhatsAppBackendUrl();
     try {
-      const res = await fetch(`${base}/api/whatsapp/disconnect`, { method: 'POST' });
+      const res = await fetch(`${base}/api/whatsapp/disconnect`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider }),
+      });
       return res.ok;
     } catch {
       return false;
