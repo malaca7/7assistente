@@ -245,6 +245,7 @@ export interface BotProfile {
   notify_phone?: string;
   play_audio_alerts?: boolean;
   handoff_message?: string;
+  flow_cooldown_minutes?: number;
   [key: string]: any;
 }
 

@@ -27,7 +27,8 @@ import {
   Sun,
   Moon,
   Contrast,
-  Sliders
+  Sliders,
+  Clock
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -202,6 +203,7 @@ export const SettingsPage: React.FC = () => {
   const [supportEmail, setSupportEmail] = useState(defaultBotProfile.support_email);
   const [businessHours, setBusinessHours] = useState(defaultBotProfile.business_hours);
   const [websiteUrl, setWebsiteUrl] = useState(defaultBotProfile.website_url);
+  const [flowCooldownMinutes, setFlowCooldownMinutes] = useState<number>(defaultBotProfile.flow_cooldown_minutes ?? 60);
 
   // Upload Avatar State
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -310,6 +312,11 @@ export const SettingsPage: React.FC = () => {
           if (typeof savedProfile.notify_new_bookings === 'boolean') setNotifyNewBookings(savedProfile.notify_new_bookings);
           if (savedProfile.notify_phone) setNotifyPhone(savedProfile.notify_phone);
           if (typeof savedProfile.play_audio_alerts === 'boolean') setPlayAudioAlerts(savedProfile.play_audio_alerts);
+          if (typeof savedProfile.flow_cooldown_minutes === 'number') {
+            setFlowCooldownMinutes(savedProfile.flow_cooldown_minutes);
+          } else if (typeof savedSettings?.flow_cooldown_minutes === 'number') {
+            setFlowCooldownMinutes(savedSettings.flow_cooldown_minutes);
+          }
 
           // Inicializar variáveis de gênero caso ainda não existam
           syncGenderVariables(currentGender);
@@ -317,13 +324,16 @@ export const SettingsPage: React.FC = () => {
 
         if (savedSettings) {
           if (savedSettings.backend_url) setCustomServerInput(savedSettings.backend_url);
+          if (typeof savedSettings.flow_cooldown_minutes === 'number' && !savedProfile?.flow_cooldown_minutes) {
+            setFlowCooldownMinutes(savedSettings.flow_cooldown_minutes);
+          }
         }
 
         if (savedVars) {
           setCustomVariables(savedVars);
         }
-      } catch (e) {
-        console.error('Error loading configuration data:', e);
+      } catch (err: any) {
+        toastError('Erro ao carregar dados', err.message || 'Falha ao sincronizar');
       }
     };
 
@@ -408,13 +418,15 @@ export const SettingsPage: React.FC = () => {
         notify_new_bookings: notifyNewBookings,
         notify_phone: notifyPhone,
         play_audio_alerts: playAudioAlerts,
+        flow_cooldown_minutes: Number(flowCooldownMinutes),
         updated_at: new Date().toISOString(),
       };
 
       await StorageService.updateBotProfile(updated);
+      await StorageService.updateSettings({ flow_cooldown_minutes: Number(flowCooldownMinutes) });
       await syncGenderVariables(gender);
 
-      success('Perfil Atualizado com Sucesso', 'Identidade do assistente e variáveis de gênero gravadas no banco de dados.');
+      success('Perfil Atualizado com Sucesso', 'Identidade do assistente, tempo de delay dos fluxos e dados gravados no banco.');
     } catch (err: any) {
       toastError('Erro ao salvar', err.message || 'Falha ao gravar configurações');
     } finally {
@@ -865,6 +877,92 @@ export const SettingsPage: React.FC = () => {
                     </button>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* Configuração de Delay / Cooldown dos Fluxos do Bot */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/30 via-dark-900/80 to-dark-950/80 border border-amber-500/25 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white flex items-center gap-2">
+                      Tempo de Espera para Reativar Fluxos (Cooldown do Robô)
+                      <Badge variant="warning" className="text-[9px] py-0 px-2 font-bold">Anti-Loop Inteligente</Badge>
+                    </h4>
+                    <p className="text-[11px] text-slate-400">
+                      Define quanto tempo o mesmo número no WhatsApp aguarda para reiniciar os fluxos de saudação geral
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                <div>
+                  <span className="text-xs font-semibold text-slate-200 block">
+                    Intervalo de Espera Atual:
+                  </span>
+                  <span className="text-xs text-amber-300 font-medium">
+                    {flowCooldownMinutes === 0
+                      ? '⚡ 0 min (Sempre Responder a cada nova mensagem enviada)'
+                      : `⏳ ${flowCooldownMinutes} minuto${flowCooldownMinutes > 1 ? 's' : ''} ${
+                          flowCooldownMinutes >= 60 ? `(${Math.floor(flowCooldownMinutes / 60)}h${flowCooldownMinutes % 60 ? ` ${flowCooldownMinutes % 60}m` : ''})` : ''
+                        } de pausa antes de reenviar saudações gerais.`}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min="0"
+                    max="10080"
+                    value={flowCooldownMinutes}
+                    onChange={(e) => setFlowCooldownMinutes(Math.max(0, parseInt(e.target.value) || 0))}
+                    className="w-24 text-center font-bold font-mono text-sm bg-dark-800 border-white/10"
+                  />
+                  <span className="text-xs text-slate-400 font-medium">minutos</span>
+                </div>
+              </div>
+
+              {/* Presets Rápidos */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-white/5">
+                <span className="text-[10.5px] text-slate-500 font-medium mr-1">Atalhos rápidos:</span>
+                {[
+                  { label: 'Sempre Ativo (0m)', val: 0 },
+                  { label: '5 min', val: 5 },
+                  { label: '15 min', val: 15 },
+                  { label: '30 min', val: 30 },
+                  { label: '1 hora (Padrão)', val: 60 },
+                  { label: '2 horas', val: 120 },
+                  { label: '24 horas', val: 1440 },
+                ].map((preset) => (
+                  <button
+                    key={preset.val}
+                    type="button"
+                    onClick={() => setFlowCooldownMinutes(preset.val)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all border ${
+                      flowCooldownMinutes === preset.val
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm font-bold'
+                        : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-amber-950/20 border border-amber-500/15 text-[11px] text-amber-200/90 flex items-start gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-0.5 leading-snug">
+                  <p>
+                    <strong>🎯 Prioridade Absoluta para Palavras-Chave:</strong> Se o cliente enviar qualquer palavra-chave configurada (ex: <code className="bg-dark-900 px-1 py-0.2 rounded text-amber-300">#enxoval</code>, <code className="bg-dark-900 px-1 py-0.2 rounded text-amber-300">catalogo</code>), o fluxo específico <strong>dispara imediatamente a qualquer instante</strong>, ignorando este tempo de espera!
+                  </p>
+                  <p className="text-slate-400">
+                    O cooldown atua apenas para mensagens comuns/genéricas, impedindo que o robô envie o menu ou saudação repetidamente para quem já está conversando.
+                  </p>
+                </div>
               </div>
             </div>
 

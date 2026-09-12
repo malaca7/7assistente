@@ -308,6 +308,7 @@ export const defaultBotProfile = {
   shipping_motoboy: 15.00,
   shipping_correios: 24.90,
   free_shipping_min: 250.00,
+  flow_cooldown_minutes: 60,
 };
 
 export const initialSettings = {

@@ -70,6 +70,7 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
   const [flowName, setFlowName] = useState('');
   const [flowDescription, setFlowDescription] = useState('');
   const [flowTrigger, setFlowTrigger] = useState('Qualquer Mensagem Recebida');
+  const [flowKeywords, setFlowKeywords] = useState('');
   const [flowStoreId, setFlowStoreId] = useState<string>('all');
   const [flowActive, setFlowActive] = useState(true);
   const [flowSteps, setFlowSteps] = useState<FlowStep[]>([]);
@@ -237,6 +238,7 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
     setFlowName('');
     setFlowDescription('');
     setFlowTrigger('Qualquer Mensagem Recebida');
+    setFlowKeywords('');
     setFlowStoreId('all');
     setFlowActive(true);
     setFlowColor('#10b981');
@@ -255,6 +257,8 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
     setFlowName(flow.name);
     setFlowDescription(flow.description);
     setFlowTrigger(flow.trigger_type || 'Qualquer Mensagem Recebida');
+    const existingKw = (flow as any).keywords || (flow as any).trigger_keywords || '';
+    setFlowKeywords(Array.isArray(existingKw) ? existingKw.join(', ') : String(existingKw));
     setFlowStoreId(flow.store_id || 'all');
     setFlowActive(flow.is_active !== false);
     setFlowColor(flow.color || '#10b981');
@@ -278,6 +282,7 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
       const assignedStore = stores.find(s => s.id === flowStoreId);
       const storeName = flowStoreId === 'all' ? 'Toda a Rede (Global)' : assignedStore?.name;
       const newFlowId = editingFlow?.id || `flow-${Date.now()}`;
+      const isKeywordTrigger = flowTrigger.toLowerCase().includes('palavra') || flowKeywords.trim().length > 0;
 
       // Se for criação de novo fluxo, inicializar nós iniciais no Studio imediatamente
       if (!editingFlow) {
@@ -289,11 +294,13 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
             data: {
               label: 'Gatilho Inicial',
               nodeType: 'trigger',
-              description: 'Dispara quando o cliente envia qualquer mensagem no WhatsApp',
+              description: isKeywordTrigger 
+                ? `Dispara com palavras-chave: ${flowKeywords.trim() || 'configuradas'}` 
+                : 'Dispara quando o cliente envia qualquer mensagem no WhatsApp',
               isConfigured: true,
               config: {
-                eventType: flowTrigger.toLowerCase().includes('palavra') ? 'keyword' : 'any_message',
-                keywords: '',
+                eventType: isKeywordTrigger ? 'keyword' : 'any_message',
+                keywords: flowKeywords.trim(),
                 matchType: 'contains',
               },
             },
@@ -323,6 +330,21 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
           },
         ];
         await StorageService.saveFlowGraph(newFlowId, initialNodes, initialEdges);
+      } else {
+        // Se estiver editando fluxo existente, sincroniza as palavras-chave no nó de gatilho
+        try {
+          const [nodes, edges] = await StorageService.getFlowGraph(editingFlow.id);
+          const triggerNode = nodes.find(n => (n.data?.nodeType || n.type) === 'trigger');
+          if (triggerNode) {
+            if (!triggerNode.data) triggerNode.data = {} as any;
+            if (!triggerNode.data.config) triggerNode.data.config = {};
+            triggerNode.data.config.eventType = isKeywordTrigger ? 'keyword' : 'any_message';
+            triggerNode.data.config.keywords = flowKeywords.trim();
+            await StorageService.saveFlowGraph(editingFlow.id, nodes, edges);
+          }
+        } catch (graphErr) {
+          console.warn('Aviso ao sincronizar nós do gatilho:', graphErr);
+        }
       }
 
       const flowPayload: Partial<Flow> = {
@@ -330,6 +352,8 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
         name: flowName.trim(),
         description: flowDescription.trim(),
         trigger_type: flowTrigger,
+        keywords: flowKeywords.trim(),
+        trigger_keywords: flowKeywords.trim(),
         store_id: flowStoreId === 'all' ? null : flowStoreId,
         store_name: storeName,
         is_active: flowActive,
@@ -666,6 +690,24 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
                 </div>
               </div>
 
+              {/* Palavras-chave em destaque no card */}
+              {Boolean((flow as any).keywords || (flow as any).trigger_keywords) && (
+                <div className="flex items-center gap-2 px-3 py-1.5 mb-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs">
+                  <span className="text-[10px] uppercase font-bold text-amber-400 shrink-0">Palavras-chave:</span>
+                  <div className="flex flex-wrap gap-1">
+                    {String((flow as any).keywords || (flow as any).trigger_keywords)
+                      .split(',')
+                      .map(k => k.trim())
+                      .filter(Boolean)
+                      .map((kw, idx) => (
+                        <span key={idx} className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-200 text-[10.5px] font-mono font-semibold">
+                          {kw}
+                        </span>
+                      ))}
+                  </div>
+                </div>
+              )}
+
               {/* Botões de Ação do Card */}
               <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-white/5">
                 <div className="flex items-center gap-2">
@@ -818,6 +860,25 @@ export const FlowBuilderView: React.FC<FlowBuilderViewProps> = ({ onNavigate }) 
               </select>
             </div>
           </div>
+
+          {/* Palavras-chave do Gatilho */}
+          {(flowTrigger.toLowerCase().includes('palavra') || flowKeywords.trim().length > 0) && (
+            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1.5 animate-in fade-in">
+              <label className="text-xs font-bold text-amber-300 flex items-center justify-between">
+                <span>Palavras-chave do Gatilho (separadas por vírgula):</span>
+                <span className="text-[10px] text-amber-400 font-semibold uppercase">Prioridade Total</span>
+              </label>
+              <Input
+                value={flowKeywords}
+                onChange={e => setFlowKeywords(e.target.value)}
+                placeholder="Ex: #enxoval, enxoval, catalogo, preco, ajuda"
+                className="bg-dark-900 border-amber-500/30 text-white placeholder-slate-500"
+              />
+              <p className="text-[11px] text-amber-200/80 leading-tight">
+                ⚡ Quando o cliente enviar qualquer uma destas palavras, este fluxo será executado <strong>imediatamente</strong> em vez do fluxo de qualquer mensagem.
+              </p>
+            </div>
+          )}
 
           {/* Status Inicial */}
           <div>

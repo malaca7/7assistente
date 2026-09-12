@@ -549,6 +549,16 @@ export const FlowListPage: React.FC<FlowListPageProps> = ({ onNavigate }) => {
                   <p className="text-xs text-slate-400 line-clamp-2 mt-1 leading-relaxed">
                     {flow.description || 'Sem descrição informada.'}
                   </p>
+
+                  {/* Palavras-chave do Fluxo */}
+                  {Boolean((flow as any).keywords || (flow as any).trigger_keywords) && (
+                    <div className="flex items-center gap-1.5 pt-2">
+                      <span className="text-[10px] uppercase font-bold text-amber-400">Palavras-chave:</span>
+                      <span className="text-amber-300 font-mono text-[11px] font-semibold truncate bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                        {String((flow as any).keywords || (flow as any).trigger_keywords)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 

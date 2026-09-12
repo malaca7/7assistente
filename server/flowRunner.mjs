@@ -1309,6 +1309,76 @@ export async function syncFlowGraphToSupabase(flowId, nodes, edges) {
   }
 }
 
+export function normalizeText(str) {
+  return String(str || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
+export function extractFlowKeywords(flow, flowNodes = [], dbNodes = []) {
+  const keywordsSet = new Set();
+
+  // 1. Dos nós do fluxo (trigger node)
+  const allNodes = [...(flowNodes || []), ...(dbNodes || [])];
+  for (const n of allNodes) {
+    const nType = n.data?.nodeType || n.type || n.node_type;
+    if (nType === 'trigger') {
+      let nodeData = n.data;
+      if (typeof nodeData === 'string') {
+        try { nodeData = JSON.parse(nodeData); } catch {}
+      }
+      const cfg = nodeData?.config || n.config || {};
+      const kwString = cfg.keywords || nodeData?.keywords || '';
+      if (kwString) {
+        String(kwString).split(',').forEach(k => {
+          const clean = normalizeText(k);
+          if (clean) keywordsSet.add(clean);
+        });
+      }
+    }
+  }
+
+  // 2. Do próprio objeto do fluxo: flow.keywords ou flow.trigger_keywords
+  if (flow.keywords) {
+    const raw = Array.isArray(flow.keywords) ? flow.keywords.join(',') : String(flow.keywords);
+    raw.split(',').forEach(k => {
+      const clean = normalizeText(k);
+      if (clean) keywordsSet.add(clean);
+    });
+  }
+  if (flow.trigger_keywords) {
+    const raw = Array.isArray(flow.trigger_keywords) ? flow.trigger_keywords.join(',') : String(flow.trigger_keywords);
+    raw.split(',').forEach(k => {
+      const clean = normalizeText(k);
+      if (clean) keywordsSet.add(clean);
+    });
+  }
+
+  // 3. Se trigger_type contiver palavras entre parênteses ou após dois pontos
+  // Ex: "Palavra-Chave / Menu (#enxoval, menu, etc.)" ou "Palavra-Chave: enxoval, berco"
+  if (flow.trigger_type) {
+    const trigType = String(flow.trigger_type);
+    const parensMatch = trigType.match(/\(([^)]+)\)/);
+    if (parensMatch && parensMatch[1]) {
+      parensMatch[1].split(',').forEach(k => {
+        const clean = normalizeText(k.replace(/etc\.?|e outros|outros/gi, ''));
+        if (clean && clean.length >= 2) keywordsSet.add(clean);
+      });
+    }
+    const colonMatch = trigType.split(':')[1];
+    if (colonMatch) {
+      colonMatch.split(',').forEach(k => {
+        const clean = normalizeText(k);
+        if (clean && clean.length >= 2) keywordsSet.add(clean);
+      });
+    }
+  }
+
+  return Array.from(keywordsSet);
+}
+
 // Obter dinamicamente os fluxos e nós publicados diretamente do Supabase em tempo real
 export async function getActiveFlowAndGraph(db, preferredFlowId = null, incomingText = '') {
   let activeFlows = [];
@@ -1328,7 +1398,7 @@ export async function getActiveFlowAndGraph(db, preferredFlowId = null, incoming
         activeFlows = data.filter((f) => f.is_active === true || f.status === 'published');
         if (activeFlows.length === 0) {
           console.log('[FlowRunner] ⏸️ Nenhum fluxo ativo no Supabase (status=published ou is_active=true). O bot não executará fluxos inativos.');
-          return { publishedFlow: null, nodes: [], edges: [] };
+          return { publishedFlow: null, nodes: [], edges: [], isKeywordMatch: false };
         }
       }
     } catch (e) {
@@ -1343,7 +1413,7 @@ export async function getActiveFlowAndGraph(db, preferredFlowId = null, incoming
 
   if (activeFlows.length === 0) {
     console.log('[FlowRunner] ⏸️ Nenhum fluxo ativo configurado no sistema. Robô aguardando ativação.');
-    return { publishedFlow: null, nodes: [], edges: [] };
+    return { publishedFlow: null, nodes: [], edges: [], isKeywordMatch: false };
   }
 
   // Ordenar pela ordem configurada dos cards (order_index estável)
@@ -1372,35 +1442,77 @@ export async function getActiveFlowAndGraph(db, preferredFlowId = null, incoming
 
   // 4. Selecionar o melhor fluxo para a mensagem recebida:
   let candidateFlow = null;
-  const cleanIncoming = (incomingText || '').toLowerCase().trim();
+  let isKeywordMatch = false;
+  const normIncoming = normalizeText(incomingText);
 
-  // A) Verificar se a mensagem bate com palavras-chave de algum fluxo específico
-  if (cleanIncoming) {
+  // A) PRIORIDADE ABSOLUTA: Verificar se a mensagem bate com palavras-chave de algum fluxo específico!
+  if (normIncoming) {
     for (const flow of activeFlows) {
       const flowNodes = allActiveNodes.filter(n => n.flow_id === flow.id);
-      const trig = flowNodes.find(n => (n.data?.nodeType || n.type) === 'trigger') ||
-                   (db.nodes?.[flow.id] || []).find(n => (n.data?.nodeType || n.type) === 'trigger');
-      const trigConfig = trig?.data?.config || {};
-      const kws = (trigConfig.keywords || '').split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
-      if (kws.length > 0) {
-        const matches = kws.some(k => cleanIncoming.includes(k));
-        if (matches) {
-          candidateFlow = flow;
-          console.log(`[FlowRunner] 🎯 Mensagem "${incomingText}" ativou fluxo específico por palavra-chave: "${flow.name}" (${flow.id})`);
-          break;
-        }
+      const kws = extractFlowKeywords(flow, flowNodes, db.nodes?.[flow.id]);
+      if (kws.length === 0) continue;
+
+      const matched = kws.some(kw => {
+        if (!kw) return false;
+        // Bate exato
+        if (normIncoming === kw) return true;
+        // Se a palavra-chave tiver hashtag (ex: #enxoval), busca direta
+        if (kw.startsWith('#') && normIncoming.includes(kw)) return true;
+        // Se for número curto (ex: opção "1", "2") ou código
+        if (/^\d+$/.test(kw) && normIncoming === kw) return true;
+        // Busca por palavra inteira isolada com regex
+        try {
+          const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const wordRegex = new RegExp(`(^|\\s|[.,!?;])${escaped}(\\s|[.,!?;]|$)`, 'i');
+          if (wordRegex.test(normIncoming)) return true;
+        } catch {}
+        // Se a keyword tiver tamanho significativo (>= 4 letras), aceita substring
+        if (kw.length >= 4 && normIncoming.includes(kw)) return true;
+        return false;
+      });
+
+      if (matched) {
+        candidateFlow = flow;
+        isKeywordMatch = true;
+        console.log(`[FlowRunner] 🎯 [PRIORIDADE PALAVRA-CHAVE] Mensagem "${incomingText}" ativou fluxo de palavra-chave: "${flow.name}" (${flow.id})`);
+        break;
       }
     }
   }
 
-  // B) Se não bateu palavra-chave específica, manter o fluxo em andamento do usuário se ainda ativo
+  // B) Se não bateu palavra-chave, manter o fluxo em andamento do usuário se ainda ativo
   if (!candidateFlow && preferredFlowId) {
-    candidateFlow = activeFlows.find(f => f.id === preferredFlowId) || null;
+    const prefFlow = activeFlows.find(f => f.id === preferredFlowId);
+    if (prefFlow) {
+      // Se o fluxo preferido era exclusivo por palavra-chave, não mantém se não bateu
+      const prefKws = extractFlowKeywords(prefFlow, allActiveNodes.filter(n => n.flow_id === prefFlow.id), db.nodes?.[prefFlow.id]);
+      const isExclusivelyKeyword = prefKws.length > 0 && !(prefFlow.trigger_type || '').toLowerCase().includes('qualquer');
+      if (!isExclusivelyKeyword) {
+        candidateFlow = prefFlow;
+      }
+    }
   }
 
-  // C) Caso contrário, disparar o primeiro fluxo ativo (ordem prioritária)
+  // C) Caso contrário, disparar o fluxo de "Qualquer Mensagem Recebida"
   if (!candidateFlow) {
-    candidateFlow = activeFlows[0];
+    // Procura primeiro explicitamente um fluxo cujo gatilho seja "Qualquer Mensagem"
+    candidateFlow = activeFlows.find(f => {
+      const trigType = (f.trigger_type || '').toLowerCase();
+      return trigType.includes('qualquer') || trigType.includes('mensagem recebida') || trigType === 'any_message';
+    });
+
+    // Se não encontrou por nome do gatilho, seleciona o primeiro que NÃO tenha palavras-chave obrigatórias
+    if (!candidateFlow) {
+      candidateFlow = activeFlows.find(f => {
+        const kws = extractFlowKeywords(f, allActiveNodes.filter(n => n.flow_id === f.id), db.nodes?.[f.id]);
+        return kws.length === 0;
+      });
+    }
+
+    // Último fallback seguro
+    if (!candidateFlow) {
+      candidateFlow = activeFlows[0];
+    }
   }
 
   const flowId = candidateFlow.id;
@@ -1416,7 +1528,7 @@ export async function getActiveFlowAndGraph(db, preferredFlowId = null, incoming
       flow_id: d.flow_id,
       type: d.type || d.node_type || 'message',
       position: d.position || { x: Number(d.position_x || 0), y: Number(d.position_y || 0) },
-      data: d.data || { label: d.label, nodeType: d.type, config: {} },
+      data: typeof d.data === 'string' ? JSON.parse(d.data) : (d.data || { label: d.label, nodeType: d.type, config: {} }),
     }));
     if (!db.nodes) db.nodes = {};
     db.nodes[flowId] = nodes;
@@ -1430,7 +1542,7 @@ export async function getActiveFlowAndGraph(db, preferredFlowId = null, incoming
       target: e.target || e.target_node_id,
       sourceHandle: e.source_handle || e.sourceHandle,
       targetHandle: e.target_handle || e.targetHandle,
-      data: e.data || e.condition || {},
+      data: typeof e.data === 'string' ? JSON.parse(e.data) : (e.data || e.condition || {}),
     }));
     if (!db.edges) db.edges = {};
     db.edges[flowId] = edges;
@@ -1444,17 +1556,8 @@ export async function getActiveFlowAndGraph(db, preferredFlowId = null, incoming
     edges = db.edges[flowId];
   }
 
-  // Garantir que se o gatilho inicial estiver com keywords legadas de teste (ex: "mlc"), trate como any_message
-  const triggerNode = nodes.find(n => (n.data?.nodeType || n.type) === 'trigger');
-  if (triggerNode && triggerNode.data?.config) {
-    if (triggerNode.data.config.keywords === 'mlc' || triggerNode.data.config.keywords === 'testedevmlc') {
-      triggerNode.data.config.eventType = 'any_message';
-      triggerNode.data.config.keywords = '';
-    }
-  }
-
-  console.log(`[FlowRunner] 🚀 Rodando fluxo ATIVO do Supabase: "${candidateFlow.name}" (${flowId}) com ${nodes.length} nós e ${edges.length} conexões.`);
-  return { publishedFlow: candidateFlow, nodes, edges };
+  console.log(`[FlowRunner] 🚀 Rodando fluxo ATIVO: "${candidateFlow.name}" (${flowId}) [KeywordMatch: ${isKeywordMatch}] com ${nodes.length} nós e ${edges.length} conexões.`);
+  return { publishedFlow: candidateFlow, nodes, edges, isKeywordMatch };
 }
 
 // Execute published flow
@@ -1493,7 +1596,7 @@ export async function executePublishedFlow(senderJid, messageText, pushName, rea
   const existingSession = db.sessions?.[cleanPhone] || db.sessions?.[rawId];
 
   // Dynamically resolve published flow, nodes, and edges
-  const { publishedFlow, nodes, edges } = await getActiveFlowAndGraph(db, existingSession?.flowId, cleanInput);
+  const { publishedFlow, nodes, edges, isKeywordMatch } = await getActiveFlowAndGraph(db, existingSession?.flowId, cleanInput);
 
   if (!publishedFlow) {
     const defaultReply = `Olá, *${senderName}*! Recebi sua mensagem: "${cleanInput}".\n\nNo momento, não há nenhum fluxo ativo publicado no painel administrativo.`;
@@ -1513,11 +1616,13 @@ export async function executePublishedFlow(senderJid, messageText, pushName, rea
     flowId,
     currentNodeId: null,
     variables: {},
+    lastFlowTriggerAt: null,
   };
 
-  if (session.flowId !== flowId || (session.currentNodeId && !nodes.some(n => n.id === session.currentNodeId))) {
+  if (isKeywordMatch || session.flowId !== flowId || (session.currentNodeId && !nodes.some(n => n.id === session.currentNodeId))) {
     session.flowId = flowId;
     session.currentNodeId = null;
+    session.waitingForVar = null;
   }
 
   session.variables = {
@@ -1596,11 +1701,41 @@ function parseCustomDateString(input) {
     (prevNode && (prevType === 'question' || prevType === 'buttons' || prevType === 'ask_date' || prevType === 'select_date'))
   );
 
+  // -------------------------------------------------------------
+  // ⏳ CONTROLE DE COOLDOWN / DELAY DO ROBÔ PARA O MESMO NÚMERO
+  // -------------------------------------------------------------
+  // Palavras-chave e comandos explícitos de reinício NUNCA sofrem cooldown.
+  // Usuário respondendo a uma pergunta / botão ativo também NÃO sofre cooldown.
+  const shouldBypassCooldown = isKeywordMatch || isExplicitReset || isWaitingForInput;
+
+  if (!shouldBypassCooldown) {
+    const cooldownMinutes = Number(botProfile.flow_cooldown_minutes ?? db.settings?.flow_cooldown_minutes ?? 60);
+    const cooldownMs = cooldownMinutes * 60 * 1000;
+    const lastTrigger = session.lastFlowTriggerAt || 0;
+    const timeSinceLast = Date.now() - lastTrigger;
+
+    if (cooldownMinutes > 0 && lastTrigger > 0 && timeSinceLast < cooldownMs) {
+      const remainingSec = Math.round((cooldownMs - timeSinceLast) / 1000);
+      const remainingMin = Math.ceil(remainingSec / 60);
+      console.log(`⏳ [FlowRunner] Cooldown ativo para ${cleanPhone}. Último disparo foi há ${Math.round(timeSinceLast / 60000)}m (cooldown configurado: ${cooldownMinutes}m, restam ~${remainingMin}m). Robô silenciado para não repetir o fluxo de saudação.`);
+      session.lastInteractionAt = Date.now();
+      if (!db.sessions) db.sessions = {};
+      db.sessions[cleanPhone] = session;
+      db.sessions[rawId] = session;
+      saveDb(db);
+      return [];
+    }
+  }
+
+  // Registra o timestamp deste disparo de fluxo
+  session.lastFlowTriggerAt = Date.now();
+  session.lastInteractionAt = Date.now();
+
   // Se o nó anterior era terminal (sem saídas) e não está aguardando input do usuário,
   // qualquer nova mensagem do cliente reinicia o fluxo a partir do gatilho!
   const isTerminalNode = Boolean(prevNode && !hasOutgoingEdges && !isWaitingForInput);
 
-  const isReset = isExplicitReset || isTerminalNode || (!isWaitingForInput && (isGreeting || !session.currentNodeId));
+  const isReset = isKeywordMatch || isExplicitReset || isTerminalNode || (!isWaitingForInput && (isGreeting || !session.currentNodeId));
 
   let currentNode = null;
 
