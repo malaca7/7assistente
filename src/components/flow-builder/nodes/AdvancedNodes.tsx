@@ -42,8 +42,8 @@ export const ConditionNode: React.FC<NodeProps> = ({ id, selected, data }) => {
   const config = nodeData.config || {};
 
   const outputs = [
-    { id: 'true', label: 'SIM / Verdadeiro', color: '!bg-emerald-400' },
-    { id: 'false', label: 'NÃO / Falso', color: '!bg-rose-400' },
+    { id: 'true', label: '✅ SIM (Verdadeiro)', color: '!bg-emerald-400' },
+    { id: 'false', label: '❌ NÃO (Falso)', color: '!bg-rose-400' },
   ];
 
   return (
@@ -52,7 +52,7 @@ export const ConditionNode: React.FC<NodeProps> = ({ id, selected, data }) => {
       selected={selected}
       title={nodeData.label || 'Condição / IF'}
       subtitle="Desvio Condicional"
-      icon={<GitBranch className="w-4 h-4" />}
+      icon={<GitBranch className="w-4 h-4 text-purple-200" />}
       iconBg="bg-gradient-to-tr from-purple-600 to-indigo-600"
       accentColor="bg-purple-500"
       hasInput={true}
@@ -65,10 +65,10 @@ export const ConditionNode: React.FC<NodeProps> = ({ id, selected, data }) => {
           <>
             <span className="text-[10px] text-slate-400 font-sans">Se:</span>
             <VariableBadge name={config.variable} />
-            <span className="text-purple-400 font-bold px-1 py-0.5 rounded bg-purple-950/80 border border-purple-800/60 text-[10px]">
+            <span className="text-purple-300 font-bold px-1.5 py-0.5 rounded-md bg-purple-950/90 border border-purple-700/60 text-[10px]">
               {config.operator || '=='}
             </span>
-            <span className="text-slate-200 truncate font-sans font-semibold">"{config.value || ''}"</span>
+            <span className="text-slate-100 truncate font-sans font-semibold">"{config.value || ''}"</span>
           </>
         ) : (
           <span className="italic text-slate-500 font-sans text-[10.5px]">Clique para configurar a regra IF...</span>
@@ -87,17 +87,20 @@ export const DelayNode: React.FC<NodeProps> = ({ id, selected, data }) => {
       id={id}
       selected={selected}
       title={nodeData.label || 'Aguardar / Espera'}
-      subtitle="Pausa temporizada"
-      icon={<Clock className="w-4 h-4" />}
-      iconBg="bg-amber-600"
-      accentColor="bg-amber-600"
+      subtitle="Pausa temporizada na conversa"
+      icon={<Clock className="w-4 h-4 text-amber-200" />}
+      iconBg="bg-gradient-to-tr from-amber-600 to-orange-500"
+      accentColor="bg-amber-500"
       hasInput={true}
       hasOutput={true}
       isConfigured={Boolean(config.amount)}
     >
-      <div className="p-2 rounded-lg bg-dark-950/70 border border-slate-800 text-[11px] text-slate-300 flex items-center justify-between">
-        <span>Duração da pausa:</span>
-        <span className="font-bold text-amber-400">
+      <div className="p-2.5 rounded-xl bg-dark-950/80 border border-amber-500/20 text-[11px] text-slate-300 flex items-center justify-between">
+        <span className="text-slate-400 flex items-center gap-1">
+          <Clock className="w-3 h-3 text-amber-400" />
+          Duração da pausa:
+        </span>
+        <span className="font-bold text-amber-300 px-2 py-0.5 rounded-md bg-amber-950/80 border border-amber-500/30 text-[10.5px]">
           {config.amount || 5} {config.unit || 'segundos'}
         </span>
       </div>
@@ -446,14 +449,14 @@ export const CheckContactNode: React.FC<NodeProps> = ({ id, selected, data }) =>
   const nodeData = data as unknown as FlowNodeData;
   const config = nodeData.config || {};
   const criteriaLabel = config.checkCriteria === 'appointment_or_order' 
-    ? 'Agendamento/Pedido' 
+    ? 'Agendamento / Pedido' 
     : config.checkCriteria === 'tag' 
-    ? 'Tag de Cliente' 
-    : 'CRM / Cadastro no Banco';
+    ? 'Tag de Cliente VIP' 
+    : 'CRM / WhatsApp Salvo';
 
   const outputs = [
-    { id: 'is_new', label: 'Novo Contato (1ª Vez)', color: '!bg-emerald-400' },
-    { id: 'is_existing', label: 'Contato Salvo (Recorrente)', color: '!bg-cyan-400' },
+    { id: 'is_new', label: '🟢 1ª Vez (Novo Contato)', color: '!bg-emerald-400' },
+    { id: 'is_existing', label: '🔵 Salvo (Recorrente)', color: '!bg-cyan-400' },
   ];
 
   return (
@@ -461,46 +464,63 @@ export const CheckContactNode: React.FC<NodeProps> = ({ id, selected, data }) =>
       id={id}
       selected={selected}
       title={nodeData.label || 'Verificar Contato (Novo vs Salvo)'}
-      subtitle="Primeiro Contato vs Contato Salvo"
-      icon={<Users className="w-4 h-4" />}
-      iconBg="bg-indigo-600"
-      accentColor="bg-indigo-500"
+      subtitle="Bifurcação inteligente de atendimento"
+      icon={<UserCheck className="w-4 h-4 text-emerald-300" />}
+      iconBg="bg-gradient-to-tr from-indigo-600 via-purple-600 to-emerald-600"
+      accentColor="bg-gradient-to-r from-emerald-500 via-indigo-500 to-cyan-500"
       hasInput={true}
       hasOutput={false}
       customOutputs={outputs}
       isConfigured={true}
     >
-      <div className="p-2.5 rounded-xl bg-dark-950/90 border border-indigo-500/20 text-[10px] text-slate-300 space-y-2">
+      <div className="p-3 rounded-2xl bg-dark-950/90 border border-indigo-500/25 text-[11px] text-slate-300 space-y-2.5 shadow-inner">
+        {/* Detection Criteria Pill */}
         <div className="flex items-center justify-between">
-          <span className="text-indigo-300 font-bold flex items-center gap-1">
-            <UserCheck className="w-3 h-3 text-indigo-400" />
-            Critério:
+          <span className="text-indigo-300 font-bold flex items-center gap-1.5 text-[10px]">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            Critério de Identificação:
           </span>
-          <span className="text-[9px] bg-indigo-950/80 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-800/60 font-medium">
+          <span className="text-[9.5px] bg-indigo-950/90 text-indigo-200 px-2 py-0.5 rounded-full border border-indigo-700/60 font-medium">
             {criteriaLabel}
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-1.5 pt-0.5 text-[9.5px]">
-          <div className="p-1.5 rounded-lg bg-emerald-950/30 border border-emerald-500/30 text-emerald-300">
-            <span className="font-bold block">🟢 1ª Vez (Novo)</span>
-            <span className="text-[8.5px] text-slate-400">Coletar nome e dados</span>
+        {/* Branch Visualization Cards */}
+        <div className="grid grid-cols-2 gap-2 pt-0.5 text-[10px]">
+          <div className="p-2 rounded-xl bg-gradient-to-b from-emerald-950/40 to-emerald-950/20 border border-emerald-500/40 text-emerald-200 space-y-1">
+            <div className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span className="font-bold text-[10px]">1ª Vez (Novo)</span>
+            </div>
+            <p className="text-[8.5px] text-slate-300 leading-tight">
+              Número não cadastrado. Desvia para perguntas e cadastro inicial.
+            </p>
           </div>
-          <div className="p-1.5 rounded-lg bg-cyan-950/30 border border-cyan-500/30 text-cyan-300">
-            <span className="font-bold block">🔵 Salvo (Recorrente)</span>
-            <span className="text-[8.5px] text-slate-400">Saudação com nome</span>
+          <div className="p-2 rounded-xl bg-gradient-to-b from-cyan-950/40 to-cyan-950/20 border border-cyan-500/40 text-cyan-200 space-y-1">
+            <div className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-cyan-400" />
+              <span className="font-bold text-[10px]">Salvo (Recorrente)</span>
+            </div>
+            <p className="text-[8.5px] text-slate-300 leading-tight">
+              Cliente reconhecido. Injeta nome e saúda de forma personalizada.
+            </p>
           </div>
         </div>
 
-        <div className="pt-1 border-t border-white/5 space-y-1">
+        {/* Variables Available in Flow */}
+        <div className="pt-2 border-t border-white/10 space-y-1.5">
           <div className="flex items-center justify-between text-[9px]">
-            <span className="text-slate-400">Variáveis Disponíveis:</span>
-            <span className="text-emerald-400 font-mono">1-Clique Copiar</span>
+            <span className="text-slate-400 font-medium flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-cyan-400" />
+              Variáveis que este card preenche:
+            </span>
+            <span className="text-cyan-400 font-mono text-[8.5px]">Auto-Injetadas</span>
           </div>
           <div className="flex flex-wrap gap-1">
-            <VariableBadge name="is_primeiro_contato" />
             <VariableBadge name="nome_cliente" />
             <VariableBadge name="primeiro_nome" />
+            <VariableBadge name="is_primeiro_contato" />
+            <VariableBadge name="is_existing_contact" />
             <VariableBadge name="telefone_whatsapp" />
           </div>
         </div>
@@ -632,24 +652,34 @@ export const UpdateContactNode: React.FC<NodeProps> = ({ id, selected, data }) =
       id={id}
       selected={selected}
       title={nodeData.label || 'Salvar / Vincular Dados'}
-      subtitle="Cadastra e atualiza cliente no CRM"
-      icon={<Sliders className="w-4 h-4" />}
-      iconBg="bg-cyan-600"
+      subtitle="Cadastra e sincroniza cliente no CRM"
+      icon={<Sliders className="w-4 h-4 text-cyan-200" />}
+      iconBg="bg-gradient-to-tr from-cyan-600 to-teal-500"
       accentColor="bg-cyan-500"
       hasInput={true}
       hasOutput={true}
       isConfigured={Boolean(contactName || config.tags || config.phoneMode || hasPhoto)}
     >
-      <div className="space-y-1.5 p-2.5 rounded-xl bg-dark-950/80 border border-cyan-500/20 text-[11px] text-slate-300">
+      <div className="space-y-2 p-2.5 rounded-xl bg-dark-950/90 border border-cyan-500/25 text-[11px] text-slate-300">
+        <div className="flex items-center justify-between">
+          <span className="text-cyan-300 font-bold flex items-center gap-1 text-[10px]">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            Sincronização CRM:
+          </span>
+          <span className="text-[9px] bg-cyan-950/90 text-cyan-200 px-1.5 py-0.5 rounded border border-cyan-750 font-mono">
+            Auto-Sync
+          </span>
+        </div>
+
         {contactName ? (
-          <div className="flex items-center gap-1.5">
-            <span className="text-cyan-400 font-semibold text-[10px]">Nome: </span>
+          <div className="flex items-center gap-1.5 text-[10px]">
+            <span className="text-cyan-400 font-semibold">Nome: </span>
             <VariableBadge name={contactName} />
           </div>
         ) : (
           <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
             <span className="text-cyan-400 font-semibold">Nome: </span>
-            <span className="text-slate-300">Automático (WhatsApp)</span>
+            <span className="text-slate-300 font-sans">Automático (WhatsApp)</span>
           </div>
         )}
 
@@ -659,23 +689,23 @@ export const UpdateContactNode: React.FC<NodeProps> = ({ id, selected, data }) =
         </div>
 
         {hasPhoto && (
-          <div className="flex items-center gap-1 text-[9.5px] text-purple-300 bg-purple-950/40 px-1.5 py-0.5 rounded border border-purple-500/30">
+          <div className="flex items-center gap-1.5 text-[9.5px] text-purple-200 bg-purple-950/60 px-2 py-0.5 rounded-lg border border-purple-500/30">
             <span>📸</span>
-            <span>Salva Foto do WhatsApp</span>
+            <span className="font-medium">Salva Foto Oficial do WhatsApp</span>
           </div>
         )}
 
         {config.babyNameField && (
-          <div className="flex items-center gap-1 text-[10px] text-pink-300">
+          <div className="flex items-center gap-1.5 text-[10px] text-pink-300">
             <span className="font-semibold text-pink-400">Bebê: </span>
             <VariableBadge name={config.babyNameField} />
           </div>
         )}
 
         {(config.tags || config.tagsField) && (
-          <div className="truncate">
+          <div className="truncate flex items-center gap-1">
             <span className="text-cyan-400 font-semibold text-[10px]">Tags: </span>
-            <span className="text-[9.5px] bg-cyan-950/80 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-800/60 font-sans">
+            <span className="text-[9.5px] bg-cyan-950/80 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-800/60 font-sans truncate">
               {config.tags || config.tagsField}
             </span>
           </div>
@@ -691,8 +721,8 @@ export const UpdateContactNode: React.FC<NodeProps> = ({ id, selected, data }) =
         <div className="pt-1.5 border-t border-white/5 flex items-center justify-between text-[9px] text-slate-400">
           <span>Saída:</span>
           <div className="flex gap-1">
-            <span className="font-mono text-cyan-300 bg-cyan-950/60 px-1 rounded border border-cyan-800/40">is_primeiro_contato=false</span>
-            <span className="font-mono text-emerald-300 bg-emerald-950/60 px-1 rounded border border-emerald-800/40">cliente_salvo</span>
+            <span className="font-mono text-cyan-300 bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-800/40">is_primeiro_contato=false</span>
+            <span className="font-mono text-emerald-300 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/40">cliente_salvo</span>
           </div>
         </div>
       </div>
@@ -925,9 +955,9 @@ export const ShippingCalculatorNode: React.FC<NodeProps> = ({ id, selected, data
   const config = nodeData.config || {};
 
   const outputs = [
-    { id: 'shipping_motoboy', label: 'Motoboy Express (Recife)', color: '!bg-amber-400' },
-    { id: 'shipping_correios', label: 'Correios SEDEX / PAC', color: '!bg-zinc-400' },
-    { id: 'shipping_pickup', label: 'Retirada Grátis em Loja', color: '!bg-emerald-400' },
+    { id: 'shipping_motoboy', label: '🛵 Motoboy Express', color: '!bg-amber-400' },
+    { id: 'shipping_correios', label: '📦 Correios SEDEX/PAC', color: '!bg-sky-400' },
+    { id: 'shipping_pickup', label: '🏬 Retirada em Loja', color: '!bg-emerald-400' },
   ];
 
   return (
@@ -935,27 +965,27 @@ export const ShippingCalculatorNode: React.FC<NodeProps> = ({ id, selected, data
       id={id}
       selected={selected}
       title={nodeData.label || 'Calculadora de Frete & Entrega'}
-      subtitle="Motoboy, Correios ou Retirada"
-      icon={<Truck className="w-4 h-4 text-zinc-100" />}
-      iconBg="bg-zinc-800 border border-zinc-700"
-      accentColor="bg-zinc-500"
+      subtitle="Motoboy, Correios ou Retirada em Loja"
+      icon={<Truck className="w-4 h-4 text-sky-200" />}
+      iconBg="bg-gradient-to-tr from-sky-600 to-teal-600"
+      accentColor="bg-sky-500"
       hasInput={true}
       hasOutput={false}
       customOutputs={outputs}
       isConfigured={true}
     >
-      <div className="space-y-2 p-2.5 rounded-xl bg-dark-950/90 border border-zinc-800 text-[11px]">
+      <div className="space-y-2 p-2.5 rounded-xl bg-dark-950/90 border border-sky-500/20 text-[11px]">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-200 border border-zinc-700">
-            🚚 Logística & Prazo
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-sky-500/15 text-sky-300 border border-sky-500/30">
+            🚚 Logística & Prazos
           </span>
-          <span className="text-[10px] text-slate-400 font-mono">3 Saídas</span>
+          <span className="text-[10px] text-sky-300 font-mono">3 Opções</span>
         </div>
         <p className="text-[10.5px] text-slate-300 leading-snug">
-          Apresenta opções com taxa fixa (Motoboy R$ 15 / Correios R$ 24,90 / Grátis acima de R$ 250).
+          Apresenta opções de frete (Motoboy R$ 15 / Correios R$ 24,90 / Retirada Grátis em Loja).
         </p>
         <div className="border-t border-white/5 pt-1.5 space-y-1">
-          <span className="text-[10px] font-semibold text-zinc-300 block">Variáveis Gravadas:</span>
+          <span className="text-[10px] font-semibold text-sky-300 block">Variáveis Gravadas:</span>
           <div className="flex items-center gap-1.5 flex-wrap">
             <VariableBadge name="tipo_frete" />
             <VariableBadge name="valor_frete" />
@@ -1065,9 +1095,9 @@ export const MeasureGuideNode: React.FC<NodeProps> = ({ id, selected, data }) =>
       selected={selected}
       title={nodeData.label || 'Guia de Medidas (RN a 3 Anos)'}
       subtitle="Tabela de peso, altura e idade"
-      icon={<Ruler className="w-4 h-4 text-cyan-300" />}
-      iconBg="bg-zinc-800 border border-zinc-700"
-      accentColor="bg-zinc-500"
+      icon={<Ruler className="w-4 h-4 text-cyan-200" />}
+      iconBg="bg-gradient-to-tr from-cyan-600 to-blue-600"
+      accentColor="bg-cyan-500"
       hasInput={true}
       hasOutput={true}
       isConfigured={true}

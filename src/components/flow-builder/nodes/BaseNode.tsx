@@ -49,7 +49,7 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
         }
       }}
       className={cn(
-        'w-[310px] sm:w-[330px] rounded-2xl bg-gradient-to-b from-dark-900/95 to-dark-950/95 backdrop-blur-xl border transition-all duration-200 shadow-2xl relative select-none group/node',
+        'w-[340px] rounded-2xl bg-gradient-to-b from-dark-900/95 to-dark-950/95 backdrop-blur-xl border transition-all duration-200 shadow-2xl relative select-none group/node',
         isSource
           ? 'ring-4 ring-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.5)] border-emerald-400 scale-[1.01]'
           : isEligibleTarget
@@ -238,12 +238,12 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
                     id={out.id}
                     type="source"
                     position={Position.Bottom}
-                    style={{ width: isThisBranchSource ? 22 : 18, height: isThisBranchSource ? 22 : 18 }}
+                    style={{ width: isThisBranchSource ? 24 : 20, height: isThisBranchSource ? 24 : 20 }}
                     className={cn(
-                      '!border-2 !border-dark-950 shadow-md -bottom-2 left-1/2 -translate-x-1/2 cursor-crosshair z-30 transition-all rounded-full',
+                      '!border-2 !border-dark-950 shadow-md -bottom-2.5 left-1/2 -translate-x-1/2 cursor-crosshair z-30 transition-all rounded-full',
                       isThisBranchSource
-                        ? '!bg-emerald-300 ring-4 ring-emerald-400 scale-125'
-                        : 'ring-2 ring-white/20 hover:ring-primary-400 hover:scale-110',
+                        ? '!bg-emerald-300 ring-6 ring-emerald-400/80 scale-125'
+                        : 'ring-2 ring-white/30 hover:ring-primary-400 hover:scale-110',
                       out.color || '!bg-emerald-400'
                     )}
                     onClick={(e) => {

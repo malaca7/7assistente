@@ -1337,12 +1337,48 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
                   <h3 className="text-xs font-bold text-white truncate">
                     {simName || 'Cliente'}
                   </h3>
-                  <Badge 
-                    variant={simMode === 'new' ? 'secondary' : 'brand'} 
-                    className="text-[9px] py-0 px-1.5 uppercase font-medium"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextMode = simMode === 'new' ? 'existing' : 'new';
+                      setSimMode(nextMode);
+                      const isNew = nextMode === 'new';
+                      const cleanPhone = (simPhone || '').replace(/\D/g, '') || '81999998888';
+                      const fallbackName = simName && simName !== 'Carlos Silva' ? simName : 'Julio';
+                      const clientName = isNew ? '' : fallbackName;
+                      if (!isNew && (!simName || simName === 'Carlos Silva')) {
+                        setSimName('Julio');
+                      }
+                      const updatedVars: Record<string, any> = {
+                        ...variables,
+                        whatsapp_pushname: clientName || 'Cliente',
+                        telefone_cliente: cleanPhone,
+                        telefone_whatsapp: cleanPhone,
+                        telefone: cleanPhone,
+                        is_novo_contato: isNew,
+                        is_primeiro_contato: isNew,
+                        is_existing_contact: !isNew,
+                        tipo_cliente: isNew ? 'novo' : 'recorrente',
+                        nome_cliente: isNew ? '' : clientName,
+                        cliente_nome: isNew ? '' : clientName,
+                        nome: isNew ? '' : clientName,
+                        primeiro_nome: isNew ? '' : (clientName.split(' ')[0] || clientName),
+                      };
+                      setVariables(updatedVars);
+                      startFlow(botProfile, updatedVars);
+                    }}
+                    className={cn(
+                      "text-[9.5px] py-0.5 px-2 rounded-full font-bold border transition-all cursor-pointer flex items-center gap-1 shadow-xs",
+                      simMode === 'new'
+                        ? "bg-emerald-950/90 text-emerald-300 border-emerald-500/40 hover:bg-emerald-900/90 hover:border-emerald-400"
+                        : "bg-cyan-950/90 text-cyan-300 border-cyan-500/40 hover:bg-cyan-900/90 hover:border-cyan-400"
+                    )}
+                    title="Clique para alternar instantaneamente entre Novo Contato e Cliente Salvo"
                   >
-                    {simMode === 'new' ? 'Novo Contato' : 'Cadastrado'}
-                  </Badge>
+                    <span className={cn("w-1.5 h-1.5 rounded-full", simMode === 'new' ? "bg-emerald-400 animate-pulse" : "bg-cyan-400 animate-pulse")} />
+                    <span>{simMode === 'new' ? '🟢 1ª Vez (Novo)' : '🔵 Salvo (Recorrente)'}</span>
+                    <span className="text-[9px] text-slate-400 ml-0.5">⇄</span>
+                  </button>
                 </div>
                 <p className="text-[10px] text-slate-400 truncate flex items-center gap-1">
                   <span>{simPhone}</span>

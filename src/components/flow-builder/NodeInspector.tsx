@@ -103,8 +103,33 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
   const [stores, setStores] = useState<Store[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [testPhoneInput, setTestPhoneInput] = useState('');
+  const [testContactResult, setTestContactResult] = useState<{ isExisting: boolean; contactName?: string } | null>(null);
   const startXRef = useRef(0);
   const startWidthRef = useRef(localWidth);
+
+  const handleTestContactRecognition = async () => {
+    const rawDigits = (testPhoneInput || '').replace(/\D/g, '');
+    if (!rawDigits) return;
+    try {
+      const contacts = await StorageService.getContacts();
+      const match = (contacts || []).find((c: any) => {
+        if (StorageService.isContactDeleted(c)) return false;
+        const cPhone = (c.phone || '').replace(/\D/g, '');
+        const cClean = cPhone.startsWith('55') && cPhone.length >= 12 ? cPhone.slice(2) : cPhone;
+        const qClean = rawDigits.startsWith('55') && rawDigits.length >= 12 ? rawDigits.slice(2) : rawDigits;
+        return cPhone === rawDigits || cClean === qClean || (cClean.length === 11 && qClean.length === 10 && cClean.slice(0, 2) === qClean.slice(0, 2) && cClean.slice(3) === qClean.slice(2));
+      });
+      const hasRealName = Boolean(match?.name && !['cliente', 'novo contato', 'visitante', 'sem nome'].includes(match.name.toLowerCase().trim()));
+      if (match && hasRealName) {
+        setTestContactResult({ isExisting: true, contactName: match.name });
+      } else {
+        setTestContactResult({ isExisting: false });
+      }
+    } catch {
+      setTestContactResult({ isExisting: false });
+    }
+  };
 
   useEffect(() => {
     Promise.all([
@@ -1714,6 +1739,62 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
               )}
             </div>
 
+            {/* Testador em Tempo Real de Reconhecimento */}
+            <div className="p-3.5 rounded-xl bg-dark-950/80 border border-indigo-500/30 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                  <span>🧪</span>
+                  Testar Reconhecimento de Contato
+                </span>
+                <span className="text-[9px] font-mono text-slate-400">Tempo Real</span>
+              </div>
+              <p className="text-[10.5px] text-slate-400 leading-relaxed">
+                Digite um número de telefone para simular se o robô considerará <strong>Novo</strong> ou <strong>Salvo</strong>:
+              </p>
+              <div className="flex gap-1.5">
+                <input
+                  type="text"
+                  placeholder="Ex: 81996138924 ou 81999998888"
+                  value={testPhoneInput}
+                  onChange={(e) => setTestPhoneInput(e.target.value)}
+                  className="flex-1 bg-dark-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white font-mono placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+                <button
+                  type="button"
+                  onClick={handleTestContactRecognition}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition-all shadow-sm shrink-0"
+                >
+                  Testar
+                </button>
+              </div>
+              {testContactResult && (
+                <div className={cn(
+                  "p-2.5 rounded-xl border text-[11px] space-y-1 transition-all",
+                  testContactResult.isExisting
+                    ? "bg-cyan-950/40 border-cyan-500/40 text-cyan-200"
+                    : "bg-emerald-950/40 border-emerald-500/40 text-emerald-200"
+                )}>
+                  <div className="flex items-center justify-between font-bold">
+                    <span>
+                      {testContactResult.isExisting ? "🔵 Saída 2: Cliente Já Salvo" : "🟢 Saída 1: Novo Cliente (1ª Vez)"}
+                    </span>
+                    <span className="text-[9.5px] font-mono px-1.5 py-0.5 rounded bg-black/40">
+                      {testContactResult.isExisting ? "is_existing" : "is_new"}
+                    </span>
+                  </div>
+                  {testContactResult.contactName ? (
+                    <p className="text-[10px] text-slate-300">
+                      Nome reconhecido: <strong className="text-white">"{testContactResult.contactName}"</strong> (primeiro nome: <strong className="text-cyan-300">"{testContactResult.contactName.split(' ')[0]}"</strong>)
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-slate-400">
+                      Nenhum cadastro prévio encontrado para este número. O robô direcionará para cadastro e pergunta de nome.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Variáveis Geradas */}
             <div className="p-3 rounded-xl bg-dark-950/80 border border-white/5 space-y-2">
               <div className="flex items-center justify-between">
@@ -1724,6 +1805,7 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
               </div>
               <div className="flex flex-wrap gap-1.5 pt-1">
                 <VariableBadge name="is_primeiro_contato" />
+                <VariableBadge name="is_existing_contact" />
                 <VariableBadge name="tipo_cliente" />
                 <VariableBadge name="nome_cliente" />
                 <VariableBadge name="primeiro_nome" />

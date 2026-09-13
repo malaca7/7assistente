@@ -1273,8 +1273,16 @@ export function getLiveContacts() {
 
 // Function to find if a contact is already registered (in Supabase or Local DB)
 export async function findRegisteredContact(cleanPhone, senderName, db, checkCriteria = 'crm_or_name') {
-  const digitsOnly = (cleanPhone || '').replace(/\D/g, '');
+  let digitsOnly = (cleanPhone || '').replace(/\D/g, '');
   if (!digitsOnly) return { isRegistered: false, contact: null };
+
+  // Se o número for um LID (14+ dígitos ou 1686/219), tentar resolver o telefone celular real vinculado
+  if (digitsOnly.length >= 14 || digitsOnly.startsWith('1686') || digitsOnly.startsWith('219')) {
+    const { primaryPhone } = resolveLinkedPhones(digitsOnly, db);
+    if (primaryPhone && primaryPhone.length >= 8 && primaryPhone.length <= 13) {
+      digitsOnly = primaryPhone;
+    }
+  }
 
   // Generate phone variations: with 55, without 55, with/without 9th digit
   const variations = new Set();
@@ -1302,10 +1310,30 @@ export async function findRegisteredContact(cleanPhone, senderName, db, checkCri
   // Helper to determine if contact has verified client status
   const isVerifiedClient = (c) => {
     if (!c) return false;
-    // Explicitly unverified/leads or unregistered contacts are NEVER existing clients
-    if (c.status === 'lead' || c.is_registered === false) return false;
-    if (c.is_registered === true || c.is_verified === true) return true;
-    
+    // Se o contato foi explicitamente registrado no bot
+    if (c.is_registered === true || c.is_verified === true || c.cliente_salvo === true) return true;
+
+    // Verificar se possui nome real cadastrado (que não seja genericamente "Cliente WhatsApp" ou "Lead")
+    const cleanName = String(c.name || '').trim();
+    const isRealName = Boolean(
+      cleanName && 
+      cleanName.toLowerCase() !== 'cliente' && 
+      cleanName.toLowerCase() !== 'cliente whatsapp' && 
+      cleanName.toLowerCase() !== 'cliente pitoco' && 
+      cleanName.toLowerCase() !== 'novo cliente' && 
+      cleanName.toLowerCase() !== 'cliente novo' && 
+      cleanName.toLowerCase() !== 'nome_cliente' && 
+      cleanName.toLowerCase() !== 'undefined' && 
+      cleanName.toLowerCase() !== 'null' && 
+      cleanName.toLowerCase() !== 'lead' &&
+      !cleanName.includes('{{')
+    );
+
+    // Se possui nome real, é cliente existente!
+    if (isRealName) {
+      return true;
+    }
+
     // Check tags: safely parse tags if string or array
     const rawTags = c.tags;
     const tagList = Array.isArray(rawTags)
@@ -1315,7 +1343,7 @@ export async function findRegisteredContact(cleanPhone, senderName, db, checkCri
       : [];
 
     const hasClientTag = tagList.some((t) => 
-      t.includes('cliente') || t.includes('vip') || t.includes('recorrente') || t.includes('mensalista') || t.includes('salvo') || t.includes('cadastrado')
+      t.includes('cliente') || t.includes('bot') || t.includes('vip') || t.includes('recorrente') || t.includes('mensalista') || t.includes('salvo') || t.includes('cadastrado')
     );
 
     if (checkCriteria === 'tag') {
@@ -1333,26 +1361,6 @@ export async function findRegisteredContact(cleanPhone, senderName, db, checkCri
 
     if (checkCriteria === 'appointment_or_order') {
       return false;
-    }
-
-    // Clean Real Name check:
-    const cleanName = String(c.name || '').trim();
-    const isRealName = Boolean(
-      cleanName && 
-      cleanName.toLowerCase() !== 'cliente' && 
-      cleanName.toLowerCase() !== 'cliente whatsapp' && 
-      cleanName.toLowerCase() !== 'cliente pitoco' && 
-      cleanName.toLowerCase() !== 'novo cliente' && 
-      cleanName.toLowerCase() !== 'cliente novo' && 
-      cleanName.toLowerCase() !== 'nome_cliente' && 
-      cleanName.toLowerCase() !== 'undefined' && 
-      cleanName.toLowerCase() !== 'null' && 
-      !cleanName.includes('{{')
-    );
-
-    // If contact has a real name in CRM/Database and status is active (or undefined/not lead), they are a saved contact!
-    if (isRealName && (c.status === 'active' || !c.status)) {
-      return true;
     }
 
     if (c.custom_fields && Object.keys(c.custom_fields).length > 0) {
@@ -2962,7 +2970,13 @@ function parseCustomDateString(input) {
 
     // 4. Check Contact Node (Primeiro Contato vs Contato Salvo / Recorrente)
     else if (nodeType === 'check_contact') {
-      let checkPhone = cleanPhone;
+      // 1. Sempre resolver o telefone real do cliente (evita LID puro 1686...)
+      let checkPhone = targetPhone || cleanPhone;
+      const { primaryPhone } = resolveLinkedPhones(cleanPhone, db);
+      if (primaryPhone && primaryPhone.length >= 8 && primaryPhone.length <= 13) {
+        checkPhone = primaryPhone;
+      }
+
       if (config.phoneMode === 'variable' && config.phoneVariable) {
         const varKey = config.phoneVariable.replace(/[{}]/g, '').trim();
         const extracted = session.variables[varKey] || session.variables[config.phoneVariable] || replaceVars(config.phoneVariable, session.variables, botProfile);
@@ -2970,26 +2984,42 @@ function parseCustomDateString(input) {
         if (cleanExt.length >= 8) checkPhone = cleanExt;
       }
 
-      const contactInfo = await findRegisteredContact(checkPhone, senderName, db, config.checkCriteria || 'crm_or_name');
+      // Se a sessão atual já registrou o cliente (ex: acabou de salvar os dados pelo fluxo)
+      const sessionAlreadyRegistered = Boolean(
+        session.variables['cliente_salvo'] === true ||
+        session.variables['is_existing_contact'] === true ||
+        session.variables['is_primeiro_contato'] === false
+      );
+
+      const contactInfo = sessionAlreadyRegistered
+        ? { isRegistered: true, contact: db.contacts?.[checkPhone] || { name: session.variables['nome_cliente'] || session.variables['cliente_nome'] || senderName } }
+        : await findRegisteredContact(checkPhone, senderName, db, config.checkCriteria || 'crm_or_name');
+
       const isNew = !contactInfo.isRegistered;
       const contact = contactInfo.contact;
 
-      // Populate rich context variables
+      // Popular variáveis no contexto da sessão com todos os aliases
       session.variables['is_primeiro_contato'] = isNew;
       session.variables['is_novo_contato'] = isNew;
       session.variables['is_existing_contact'] = !isNew;
       session.variables['tipo_cliente'] = isNew ? 'novo' : 'recorrente';
       session.variables['telefone_whatsapp'] = checkPhone;
+      session.variables['cliente_telefone'] = checkPhone;
 
       if (contact?.custom_fields) {
         Object.assign(session.variables, contact.custom_fields);
       }
       if (!isNew && contact?.name) {
-        session.variables['nome_cliente'] = contact.name;
-        session.variables['cliente_nome'] = contact.name;
-        session.variables['nome'] = contact.name;
-        const firstName = String(contact.name).trim().split(' ')[0] || contact.name;
+        const resolvedName = contact.name;
+        const firstName = String(resolvedName).trim().split(' ')[0] || resolvedName;
+        session.variables['nome_cliente'] = resolvedName;
+        session.variables['cliente_nome'] = resolvedName;
+        session.variables['nome'] = resolvedName;
         session.variables['primeiro_nome'] = firstName;
+        session.variables['{{nome_cliente}}'] = resolvedName;
+        session.variables['{{cliente_nome}}'] = resolvedName;
+        session.variables['{{nome}}'] = resolvedName;
+        session.variables['{{primeiro_nome}}'] = firstName;
       }
       if (contact?.tags) {
         const rawTags = contact.tags;
@@ -2999,7 +3029,7 @@ function parseCustomDateString(input) {
 
       console.log(`[FlowRunner] 👥 [Check Contact] Verificação para ${checkPhone}: ${isNew ? '🆕 NOVO CONTATO (1ª Vez)' : `✅ CONTATO JÁ CADASTRADO ("${contact?.name || 'Cliente'}")`}`);
 
-      // Follow edge from 'is_new' or 'is_existing' handle
+      // Seguir edge da saída 'is_new' ou 'is_existing'
       const targetHandle = isNew ? 'is_new' : 'is_existing';
       let branchEdge = edges.find((e) => e.source === currentNode.id && e.sourceHandle === targetHandle);
 
@@ -3008,18 +3038,15 @@ function parseCustomDateString(input) {
           (e) =>
             e.source === currentNode.id &&
             (isNew
-              ? e.sourceHandle?.includes('new') || e.sourceHandle?.includes('novo')
-              : e.sourceHandle?.includes('exist') || e.sourceHandle?.includes('salvo') || e.sourceHandle?.includes('recorrente'))
+              ? (e.sourceHandle?.includes('new') || e.sourceHandle?.includes('novo') || e.id?.includes('is_new') || e.id?.includes('new'))
+              : (e.sourceHandle?.includes('exist') || e.sourceHandle?.includes('salvo') || e.sourceHandle?.includes('recorrente') || e.id?.includes('is_existing') || e.id?.includes('exist')))
         );
       }
 
       if (!branchEdge) {
-        const nodeEdges = edges.filter((e) => e.source === currentNode.id);
-        if (nodeEdges.length >= 2) {
-          branchEdge = isNew ? nodeEdges[0] : nodeEdges[1];
-        } else {
-          branchEdge = nodeEdges[0];
-        }
+        const newEdge = edges.find(e => e.source === currentNode.id && (e.sourceHandle === 'is_new' || e.id?.includes('is_new') || e.id?.includes('new')));
+        const existingEdge = edges.find(e => e.source === currentNode.id && (e.sourceHandle === 'is_existing' || e.id?.includes('is_existing') || e.id?.includes('exist')));
+        branchEdge = isNew ? (newEdge || existingEdge) : (existingEdge || newEdge);
       }
 
       if (branchEdge) {
