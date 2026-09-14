@@ -1389,7 +1389,15 @@ app.get('/api/contacts', async (req, res) => {
           validClients.forEach(c => {
             const p = String(c.phone || '').replace(/\D/g, '');
             if (p) {
-              db.contacts[p] = { ...(db.contacts[p] || {}), ...c };
+              const rawTags = c.tags || [];
+              const tagList = Array.isArray(rawTags) ? rawTags.map(t => String(t).toLowerCase().trim()) : [];
+              const isClient = tagList.some(t => t.includes('cliente') || t.includes('vip') || t.includes('cadastrado')) || Boolean(c.name && c.name !== 'Cliente WhatsApp' && c.name !== 'Cliente');
+              db.contacts[p] = {
+                ...(db.contacts[p] || {}),
+                ...c,
+                is_registered: isClient,
+                status: isClient ? 'active' : (c.status || 'lead'),
+              };
             }
           });
           saveDb(db);
@@ -3092,9 +3100,10 @@ app.listen(PORT, HOST, async () => {
   setTimeout(async () => {
     try {
       if (supabaseServer) {
-        const [flowsRes, clientsRes, botRes, setRes, storesRes, prodsRes, catsRes] = await Promise.all([
+        const [flowsRes, clientsRes, contactsRes, botRes, setRes, storesRes, prodsRes, catsRes] = await Promise.all([
           safeSupa(supabaseServer.from('flows').select('*')),
           safeSupa(supabaseServer.from('clients').select('*')),
+          safeSupa(supabaseServer.from('contacts').select('*')),
           safeSupa(supabaseServer.from('bot_config').select('*').eq('id', 'default').maybeSingle()),
           safeSupa(supabaseServer.from('settings').select('*').eq('id', 'default').maybeSingle()),
           safeSupa(supabaseServer.from('stores').select('*').order('slug', { ascending: true })),
@@ -3114,18 +3123,73 @@ app.listen(PORT, HOST, async () => {
         if (Array.isArray(flowsRes.data)) {
           db.flows = flowsRes.data;
         }
+
+        if (!db.contacts || typeof db.contacts !== 'object' || Array.isArray(db.contacts)) {
+          db.contacts = {};
+        }
+        const cloudMap = { ...db.contacts };
+
+        // 1. Processar contatos da tabela contacts do Supabase
+        if (Array.isArray(contactsRes.data)) {
+          contactsRes.data.forEach(co => {
+            const p = String(co.phone || '').replace(/\D/g, '');
+            if (!p || p.length >= 14 || p.startsWith('1686') || p.startsWith('219')) return;
+            const rawTags = co.tags || [];
+            const tagList = Array.isArray(rawTags) ? rawTags.map(t => String(t).toLowerCase().trim()) : [];
+            const hasClientTag = tagList.some(t => t.includes('cliente') || t.includes('vip') || t.includes('cadastrado'));
+            const hasRealName = Boolean(co.name && co.name !== 'Cliente WhatsApp' && co.name !== 'Cliente' && co.name !== 'Lead');
+            const isClient = hasClientTag || hasRealName || co.status === 'active';
+
+            cloudMap[p] = {
+              ...(cloudMap[p] || {}),
+              ...co,
+              phone: p,
+              is_registered: isClient,
+              status: isClient ? 'active' : (co.status || 'lead'),
+              tags: isClient && tagList.length > 0 ? (Array.isArray(co.tags) ? co.tags.filter(t => t.toLowerCase() !== 'lead') : ['Cliente WhatsApp', 'Cliente']) : (co.tags || ['Lead']),
+            };
+          });
+        }
+
+        // 2. Processar tabela clients (fonte mestre de clientes)
         if (Array.isArray(clientsRes.data)) {
-          const cloudMap = {};
           clientsRes.data.forEach(c => {
             const p = String(c.phone || '').replace(/\D/g, '');
-            const rawTags = c.tags || [];
-            const tagList = Array.isArray(rawTags) ? rawTags.map(t => String(t).toLowerCase().trim()) : [];
-            const isLead = tagList.includes('lead') && !tagList.some(t => t.includes('cliente'));
-            if (p && !isLead) {
-              cloudMap[p] = { ...c, is_registered: true, status: 'active' };
-            }
+            if (!p || p.length >= 14 || p.startsWith('1686') || p.startsWith('219')) return;
+            cloudMap[p] = {
+              ...(cloudMap[p] || {}),
+              ...c,
+              phone: p,
+              is_registered: true,
+              status: 'active',
+            };
           });
-          db.contacts = cloudMap;
+        }
+
+        db.contacts = cloudMap;
+
+        // Auto-heal: Garantir que qualquer cliente ativo no cloudMap esteja na tabela clients do Supabase
+        for (const [p, c] of Object.entries(cloudMap)) {
+          if (c.is_registered === true && c.name && c.name !== 'Cliente WhatsApp') {
+            const alreadyInClients = Array.isArray(clientsRes.data) && clientsRes.data.some(cl => String(cl.phone || '').replace(/\D/g, '') === p);
+            if (!alreadyInClients && supabaseServer) {
+              const clientPayload = {
+                id: c.id || `client-${p}`,
+                name: c.name,
+                phone: p,
+                email: c.email || null,
+                store_id: c.store_id || null,
+                store_name: c.store_name || null,
+                notes: c.notes || null,
+                baby_name: c.baby_name || null,
+                due_date: c.due_date || null,
+                tags: Array.isArray(c.tags) && c.tags.length > 0 ? c.tags.filter(t => t.toLowerCase() !== 'lead') : ['Cliente WhatsApp', 'Cliente'],
+                last_interaction: c.last_interaction || new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              };
+              safeSupa(supabaseServer.from('clients').upsert(clientPayload, { onConflict: 'phone' })).catch(() => {});
+            }
+          }
         }
         if (botRes.data || setRes.data?.bot_profile) {
           const bData = botRes.data || {};

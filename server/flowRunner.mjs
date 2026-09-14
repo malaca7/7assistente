@@ -185,7 +185,7 @@ export async function syncContactToSupabase(contact) {
       console.warn(`[Supabase contacts] Erro de rede/conexao:`, errContacts.message);
     }
 
-    // 2. Tabela clients (Tabela mestre do CRM - apenas para clientes registrados)
+    // 2. Tabela clients (Tabela mestre do CRM - upsert se for cliente)
     const rawTags = contact.tags || [];
     const tagList = Array.isArray(rawTags)
       ? rawTags.map(t => String(t).toLowerCase().trim())
@@ -193,9 +193,24 @@ export async function syncContactToSupabase(contact) {
       ? rawTags.split(',').map(t => t.toLowerCase().trim())
       : [];
     const hasLeadTag = tagList.includes('lead');
+    const hasClientTag = tagList.some(t => 
+      t.includes('cliente') || t.includes('vip') || t.includes('recorrente') || t.includes('cadastrado')
+    );
+    const hasRealName = Boolean(
+      formattedName &&
+      formattedName !== 'Cliente WhatsApp' &&
+      formattedName !== 'Cliente' &&
+      formattedName !== 'Lead' &&
+      !formattedName.startsWith('{{')
+    );
+
     const isClient = Boolean(
       contact.is_registered === true ||
-      (contact.status === 'active' && !hasLeadTag && tagList.some(t => t.includes('cliente')))
+      contact.is_verified === true ||
+      contact.cliente_salvo === true ||
+      (contact.status === 'active' && (hasClientTag || hasRealName)) ||
+      (hasRealName && hasClientTag) ||
+      (hasClientTag && !hasLeadTag)
     );
 
     if (isClient) {
@@ -209,7 +224,7 @@ export async function syncContactToSupabase(contact) {
         notes: contact.notes || null,
         baby_name: contact.baby_name || null,
         due_date: contact.due_date || null,
-        tags: contact.tags || ['Cliente WhatsApp'],
+        tags: payload.tags,
         last_interaction: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -218,17 +233,13 @@ export async function syncContactToSupabase(contact) {
         if (clientsErr) {
           console.warn(`[Supabase clients] Aviso ao upsert cliente ${cleanPhone}:`, clientsErr.message);
         } else {
-          console.log(`[Supabase CRM] Sincronizado com sucesso: "${formattedName}" (${cleanPhone}) | Tags: [${(contact.tags || []).join(', ')}]`);
+          console.log(`[Supabase CRM] Sincronizado com sucesso: "${formattedName}" (${cleanPhone}) | Tags: [${payload.tags.join(', ')}]`);
         }
       } catch (errClients) {
         console.warn(`[Supabase clients] Erro de rede/conexao:`, errClients.message);
       }
-    } else {
-      // Se for lead/contato não cadastrado, garantir que NÃO polui a tabela clients
-      try {
-        await supabaseClient.from('clients').delete().eq('phone', cleanPhone);
-      } catch (e) {}
     }
+    // Observação: Nunca deletar registros da tabela clients aqui. Deletes só ocorrem por ação explícita no painel.
   } catch (err) {
     // Non-blocking
   }
@@ -1040,23 +1051,53 @@ export function recordRealMessage(phone, senderName, direction, content, explici
   // 1. Upsert Contact
   let existingContact = null;
   if (!db.contacts) db.contacts = {};
-  existingContact = db.contacts[targetPhone] || {
+  const inDb = db.contacts[targetPhone];
+
+  // Avaliar se o contato já existente é um cliente cadastrado
+  const existingRawTags = inDb?.tags || explicitTags || [];
+  const existingTagList = Array.isArray(existingRawTags)
+    ? existingRawTags.map(t => String(t).toLowerCase().trim())
+    : typeof existingRawTags === 'string'
+    ? existingRawTags.split(',').map(t => t.toLowerCase().trim())
+    : [];
+  const existingHasClientTag = existingTagList.some(t => 
+    t.includes('cliente') || t.includes('vip') || t.includes('recorrente') || t.includes('cadastrado')
+  );
+  const existingHasRealName = Boolean(
+    inDb?.name &&
+    inDb.name !== 'Cliente WhatsApp' &&
+    inDb.name !== 'Cliente' &&
+    inDb.name !== 'Lead' &&
+    !inDb.name.startsWith('{{')
+  );
+  const isAlreadyClient = Boolean(
+    inDb?.is_registered === true ||
+    inDb?.is_verified === true ||
+    inDb?.cliente_salvo === true ||
+    (inDb?.status === 'active' && (existingHasClientTag || existingHasRealName)) ||
+    (existingHasRealName && existingHasClientTag) ||
+    existingHasClientTag
+  );
+
+  existingContact = inDb || {
     id: `contact-${targetPhone}`,
     phone: targetPhone,
     name: safeCustomerName ? formatCustomerName(safeCustomerName) : 'Cliente WhatsApp',
     whatsapp_pushname: safeCustomerName || undefined,
     profile_picture_url: profilePicUrl || undefined,
-    status: 'lead',
-    tags: explicitTags || ['Lead'],
-    is_registered: false,
+    status: isAlreadyClient ? 'active' : 'lead',
+    tags: isAlreadyClient ? ['Cliente WhatsApp', 'Bot', 'Cliente'] : (explicitTags || ['Lead']),
+    is_registered: isAlreadyClient,
     metadata: {},
     created_at: now,
   };
 
   if (safeCustomerName) {
     existingContact.whatsapp_pushname = safeCustomerName;
-    // NUNCA sobrescrever com pushName se o contato já foi registrado com nome real
-    if (!existingContact.is_registered && (!existingContact.name || existingContact.name === 'Cliente WhatsApp' || existingContact.name === 'Cliente')) {
+    // NUNCA sobrescrever se o contato já possui nome real personalizado cadastrado
+    const currentName = existingContact.name || '';
+    const isGenericName = !currentName || currentName === 'Cliente WhatsApp' || currentName === 'Cliente' || currentName === 'Lead' || currentName.startsWith('{{');
+    if (!isAlreadyClient && isGenericName) {
       existingContact.name = formatCustomerName(safeCustomerName) || safeCustomerName;
     }
   }
@@ -1067,14 +1108,17 @@ export function recordRealMessage(phone, senderName, direction, content, explici
     existingContact.tags = explicitTags;
   }
 
-  // Contatos já registrados mantêm status active e removem a tag "Lead"
-  if (existingContact.is_registered) {
+  // Clientes já registrados mantêm status active e removem a tag "Lead"
+  if (isAlreadyClient || existingContact.is_registered) {
+    existingContact.is_registered = true;
     existingContact.status = 'active';
     if (Array.isArray(existingContact.tags)) {
       existingContact.tags = existingContact.tags.filter(t => t.toLowerCase() !== 'lead');
       if (existingContact.tags.length === 0) {
-        existingContact.tags = ['Cliente WhatsApp', 'Bot'];
+        existingContact.tags = ['Cliente WhatsApp', 'Bot', 'Cliente'];
       }
+    } else {
+      existingContact.tags = ['Cliente WhatsApp', 'Bot', 'Cliente'];
     }
   } else {
     existingContact.is_registered = false;
@@ -1335,8 +1379,9 @@ export async function findRegisteredContact(cleanPhone, senderName, db, checkCri
   // Helper to determine if contact has verified client status
   const isVerifiedClient = (c) => {
     if (!c) return false;
-    // Se o contato for explicitamente lead ou não-registrado, NUNCA é cliente cadastrado
-    if (c.status === 'lead' || c.is_registered === false) return false;
+
+    // Se o contato foi explicitamente registrado no bot ou CRM
+    if (c.is_registered === true || c.is_verified === true || c.cliente_salvo === true) return true;
 
     // Check tags: safely parse tags if string or array
     const rawTags = c.tags;
@@ -1346,11 +1391,10 @@ export async function findRegisteredContact(cleanPhone, senderName, db, checkCri
       ? rawTags.split(',').map((t) => t.toLowerCase().trim())
       : [];
 
+    const hasClientTag = tagList.some((t) => 
+      t.includes('cliente') || t.includes('vip') || t.includes('recorrente') || t.includes('mensalista') || t.includes('cadastrado')
+    );
     const hasLeadTag = tagList.includes('lead');
-    if (hasLeadTag && c.is_registered !== true) return false;
-
-    // Se o contato foi explicitamente registrado no bot ou CRM
-    if (c.is_registered === true || c.is_verified === true || c.cliente_salvo === true) return true;
 
     // Check orders / purchases / appointments (histórico comprovado)
     if ((Number(c.total_orders) || 0) > 0 || (Number(c.total_spent) || 0) > 0 || (Number(c.orders_count) || 0) > 0) {
@@ -1361,14 +1405,24 @@ export async function findRegisteredContact(cleanPhone, senderName, db, checkCri
       return false;
     }
 
-    const hasClientTag = tagList.some((t) => 
-      t.includes('cliente') || t.includes('vip') || t.includes('recorrente') || t.includes('mensalista') || t.includes('salvo') || t.includes('cadastrado')
-    );
-
-    // Contato ativo no CRM com tag de cliente e sem tag de lead
-    if (c.status === 'active' && hasClientTag && !hasLeadTag) {
+    // Se tem tag de cliente e NÃO tem tag exclusiva de lead (ou possui múltiplas tags incluindo cliente)
+    if (hasClientTag && (!hasLeadTag || tagList.length > 1)) {
       return true;
     }
+
+    // Se tem nome real personalizado cadastrado (diferente de placeholders)
+    const invalidNames = ['cliente whatsapp', 'cliente', 'lead', 'contato', 'novo contato', 'undefined', 'null', ''];
+    const cName = String(c.name || '').trim().toLowerCase();
+    const hasRealName = Boolean(cName && !invalidNames.includes(cName) && !cName.startsWith('{{') && !/^\d+$/.test(cName));
+
+    if (hasRealName && (c.status === 'active' || hasClientTag || !hasLeadTag)) {
+      return true;
+    }
+
+    // Se o contato for puramente lead sem nome e sem tag de cliente
+    if (c.status === 'lead' || hasLeadTag) return false;
+
+    if (c.status === 'active') return true;
 
     return false;
   };
@@ -1380,6 +1434,8 @@ export async function findRegisteredContact(cleanPhone, senderName, db, checkCri
     for (const v of variations) {
       if (cDigits && (cDigits === v || cDigits.endsWith(v) || v.endsWith(cDigits))) {
         if (isVerifiedClient(c)) {
+          c.is_registered = true;
+          c.status = 'active';
           return { isRegistered: true, contact: c, hasRealName: true };
         }
       }
@@ -1399,11 +1455,16 @@ export async function findRegisteredContact(cleanPhone, senderName, db, checkCri
           .maybeSingle();
 
         if (clientRes.data && !clientRes.error && isVerifiedClient(clientRes.data)) {
+          const clientData = {
+            ...clientRes.data,
+            is_registered: true,
+            status: 'active',
+          };
           if (!db.contacts) db.contacts = {};
-          db.contacts[cleanPhone] = clientRes.data;
-          db.contacts[clientRes.data.phone] = clientRes.data;
+          db.contacts[cleanPhone] = clientData;
+          db.contacts[clientRes.data.phone] = clientData;
           saveDb(db);
-          return { isRegistered: true, contact: clientRes.data, hasRealName: true };
+          return { isRegistered: true, contact: clientData, hasRealName: true };
         }
 
         // Fallback em contacts
@@ -1415,11 +1476,20 @@ export async function findRegisteredContact(cleanPhone, senderName, db, checkCri
           .maybeSingle();
 
         if (contactRes.data && !contactRes.error && isVerifiedClient(contactRes.data)) {
+          const contactData = {
+            ...contactRes.data,
+            is_registered: true,
+            status: 'active',
+          };
           if (!db.contacts) db.contacts = {};
-          db.contacts[cleanPhone] = contactRes.data;
-          db.contacts[contactRes.data.phone] = contactRes.data;
+          db.contacts[cleanPhone] = contactData;
+          db.contacts[contactRes.data.phone] = contactData;
           saveDb(db);
-          return { isRegistered: true, contact: contactRes.data, hasRealName: true };
+
+          // Auto-heal: sincronizar para clients se faltava
+          syncContactToSupabase(contactData);
+
+          return { isRegistered: true, contact: contactData, hasRealName: true };
         }
       }
     } catch (e) {

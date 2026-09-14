@@ -697,15 +697,22 @@ export async function getClients(storeId?: string): Promise<Contact[]> {
       });
     }
 
+    const clientPhoneSet = new Set(
+      Array.isArray(clientsRes.data)
+        ? clientsRes.data.map((c: any) => String(c.phone || '').replace(/\D/g, '')).filter(Boolean)
+        : []
+    );
+
+    const clientList: Contact[] = [];
     if (Array.isArray(clientsRes.data)) {
-      return clientsRes.data
+      clientsRes.data
         .filter((c: any) => {
           const p = String(c.phone || '').replace(/\D/g, '');
           // NUNCA exibir WhatsApp LIDs (>= 14 dígitos ou começando com 1686/219)
           if (!p || p.length >= 14 || p.startsWith('1686') || p.startsWith('219')) return false;
           return true;
         })
-        .map((c: any) => {
+        .forEach((c: any) => {
           const cleanPhone = String(c.phone || '').replace(/\D/g, '');
           const co = contactMap.get(cleanPhone) || {};
           const resolvedName = (co.name && co.name !== 'Cliente WhatsApp' && co.name !== 'Cliente') ? co.name : (c.name || 'Cliente WhatsApp');
@@ -714,7 +721,7 @@ export async function getClients(storeId?: string): Promise<Contact[]> {
           const cTags = Array.isArray(c.tags) ? c.tags : [];
           const resolvedTags = coTags.length > 0 && !coTags.every((t: string) => t === 'Lead') ? coTags : (cTags.length > 0 ? cTags : ['Cliente']);
 
-          return {
+          clientList.push({
             id: c.id,
             name: resolvedName,
             phone: c.phone || '',
@@ -734,9 +741,61 @@ export async function getClients(storeId?: string): Promise<Contact[]> {
             last_interaction: c.last_interaction || c.updated_at || new Date().toISOString(),
             created_at: c.created_at || new Date().toISOString(),
             updated_at: c.updated_at || new Date().toISOString(),
-          };
+          });
         });
     }
+
+    // Auto-incluir contatos registrados da tabela contacts que ainda não estavam na tabela clients
+    if (Array.isArray(contactsRes.data)) {
+      contactsRes.data.forEach((co: any) => {
+        const p = String(co.phone || '').replace(/\D/g, '');
+        if (!p || p.length >= 14 || p.startsWith('1686') || p.startsWith('219')) return;
+        if (!clientPhoneSet.has(p)) {
+          const rawTags = co.tags || [];
+          const tagList = Array.isArray(rawTags) ? rawTags.map((t: string) => String(t).toLowerCase().trim()) : [];
+          const hasClientTag = tagList.some((t: string) => t.includes('cliente') || t.includes('vip') || t.includes('cadastrado'));
+          const hasRealName = Boolean(co.name && co.name !== 'Cliente WhatsApp' && co.name !== 'Cliente' && co.name !== 'Lead');
+          const isClient = hasClientTag || hasRealName || co.status === 'active';
+
+          if (isClient) {
+            const cleanTags = tagList.length > 0 ? (Array.isArray(co.tags) ? co.tags.filter((t: string) => t.toLowerCase() !== 'lead') : ['Cliente']) : ['Cliente'];
+            const newClientItem: Contact = {
+              id: co.id || `client-${p}`,
+              name: co.name || 'Cliente WhatsApp',
+              phone: p,
+              email: co.metadata?.email || undefined,
+              notes: co.metadata?.notes || undefined,
+              baby_name: co.metadata?.baby_name || undefined,
+              due_date: co.metadata?.due_date || undefined,
+              status: 'active',
+              tags: cleanTags.length > 0 ? cleanTags : ['Cliente WhatsApp', 'Cliente'],
+              profile_picture_url: co.profile_picture_url || undefined,
+              total_orders: 0,
+              total_spent: 0,
+              last_interaction: co.updated_at || new Date().toISOString(),
+              created_at: co.created_at || new Date().toISOString(),
+              updated_at: co.updated_at || new Date().toISOString(),
+            };
+            clientList.push(newClientItem);
+
+            // Auto-heal na tabela clients do Supabase
+            supabase.from('clients').upsert({
+              id: newClientItem.id,
+              name: newClientItem.name,
+              phone: p,
+              tags: newClientItem.tags,
+              notes: newClientItem.notes || null,
+              baby_name: newClientItem.baby_name || null,
+              due_date: newClientItem.due_date || null,
+              last_interaction: newClientItem.last_interaction,
+              updated_at: newClientItem.updated_at,
+            }, { onConflict: 'phone' }).then(() => {}).catch(() => {});
+          }
+        }
+      });
+    }
+
+    return clientList;
   } catch (err) {
     console.warn('[Supabase] getClients error:', err);
   }

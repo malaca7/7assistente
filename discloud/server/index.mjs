@@ -36,7 +36,9 @@ import {
   cleanButtonTitle,
   resolveLinkedPhones,
   syncContactToSupabase,
-  recordRealMessage
+  recordRealMessage,
+  isTestOrDummy,
+  setWhatsAppProfilePicGetter
 } from './flowRunner.mjs';
 import { processAdminBotMessage } from './botEngine.mjs';
 import { syncToSupabase } from './syncSupabase.mjs';
@@ -129,6 +131,22 @@ let connectedPhone = null;
 let connectedName = null;
 let connectedAt = null;
 let isStartingWhatsApp = false;
+
+// 📸 Captura oficial da foto de perfil do WhatsApp via Baileys Socket
+export async function getWhatsAppProfilePicture(jidOrPhone) {
+  if (!sock) return null;
+  try {
+    const clean = String(jidOrPhone || '').replace(/\D/g, '');
+    if (!clean) return null;
+    const jid = clean.includes('@') ? clean : `${clean}@s.whatsapp.net`;
+    const url = await sock.profilePictureUrl(jid, 'image');
+    return url || null;
+  } catch (err) {
+    // Foto privada ou não definida no WhatsApp
+    return null;
+  }
+}
+setWhatsAppProfilePicGetter(getWhatsAppProfilePicture);
 
 async function restartWhatsApp(clearAuth = false) {
   try {
@@ -226,6 +244,53 @@ async function startWhatsApp() {
       }
     });
 
+    // 0. Mapeamento bidirecional dinâmico de WhatsApp LIDs <-> Telefones Reais
+    const registerLidMapping = (lid, phone) => {
+      if (!lid || !phone) return;
+      const cleanLid = String(lid).replace(/@lid$/, '').replace(/\D/g, '');
+      const cleanPhone = String(phone).replace(/@s\.whatsapp\.net$/, '').replace(/\D/g, '');
+      if (!cleanLid || !cleanPhone || cleanLid === cleanPhone) return;
+
+      if (cleanPhone.length >= 10 && cleanPhone.length <= 13 && cleanLid.length >= 14) {
+        try {
+          const db = loadDb();
+          if (!db.lid_mappings) db.lid_mappings = {};
+          if (db.lid_mappings[cleanLid] !== cleanPhone || db.lid_mappings[cleanPhone] !== cleanLid) {
+            db.lid_mappings[cleanLid] = cleanPhone;
+            db.lid_mappings[cleanPhone] = cleanLid;
+            saveDb(db);
+            console.log(`[LID Mapping] 🔗 Par mapeado: LID ${cleanLid} <-> Telefone ${cleanPhone}`);
+          }
+        } catch (e) {}
+      }
+    };
+
+    sock.ev.on('contacts.upsert', (contacts) => {
+      try {
+        for (const c of (contacts || [])) {
+          if (!c) continue;
+          if (c.lid && c.id && c.id.includes('@s.whatsapp.net')) {
+            registerLidMapping(c.lid, c.id);
+          } else if (c.phoneNumber && c.id && c.id.includes('@lid')) {
+            registerLidMapping(c.id, c.phoneNumber);
+          }
+        }
+      } catch (e) {}
+    });
+
+    sock.ev.on('contacts.update', (updates) => {
+      try {
+        for (const c of (updates || [])) {
+          if (!c) continue;
+          if (c.lid && c.id && c.id.includes('@s.whatsapp.net')) {
+            registerLidMapping(c.lid, c.id);
+          } else if (c.phoneNumber && c.id && c.id.includes('@lid')) {
+            registerLidMapping(c.id, c.phoneNumber);
+          }
+        }
+      } catch (e) {}
+    });
+
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
       // Aceita mensagens recebidas tanto como 'notify' quanto como 'append'
       for (const msg of (messages || [])) {
@@ -266,8 +331,24 @@ async function startWhatsApp() {
           } catch {}
         }
 
+        // Reconhecer mídias sem legenda para acionar fluxo
+        if (!text) {
+          if (m.audioMessage) text = '[Áudio]';
+          else if (m.imageMessage) text = '[Imagem]';
+          else if (m.videoMessage) text = '[Vídeo]';
+          else if (m.stickerMessage) text = '[Figurinha]';
+          else if (m.documentMessage) text = '[Documento]';
+          else if (m.locationMessage) text = '[Localização]';
+          else if (m.contactMessage || m.contactsArrayMessage) text = '[Contato]';
+        }
+
         const rawPhone = remoteJid.replace('@s.whatsapp.net', '').replace(/@lid$/, '').replace(/\D/g, '');
         const participantPhone = (msg.key.participant || msg.participant || '').replace('@s.whatsapp.net', '').replace(/@lid$/, '').replace(/\D/g, '');
+        
+        if (remoteJid.includes('@lid') && participantPhone && participantPhone.length >= 10 && participantPhone.length <= 13) {
+          registerLidMapping(rawPhone, participantPhone);
+        }
+
         const dbCheck = loadDb();
         const { primaryPhone, allPhones } = resolveLinkedPhones(rawPhone, dbCheck);
 
@@ -288,14 +369,8 @@ async function startWhatsApp() {
           }
         }
 
-        // Se ainda for um LID isolado (sem número de telefone real celular), ignorar para não criar clientes ou chats fantasmas
-        if (clientPhone.length >= 14 || clientPhone.startsWith('1686') || clientPhone.startsWith('219')) {
-          console.warn(`[WhatsApp] ⚠️ Mensagem recebida de WhatsApp LID puro (${remoteJid}). Ignorando para não poluir CRM com chaves efêmeras.`);
-          continue;
-        }
-
-        // JID de destino para envio
-        const destinationJid = `${clientPhone}@s.whatsapp.net`;
+        // JID de destino para envio: SEMPRE responder no chat de onde a mensagem veio (ex: @lid ou @s.whatsapp.net)
+        const destinationJid = remoteJid;
 
         // Identificar se o cliente já tem um nome cadastrado pelo fluxo/CRM
         let registeredName = null;
@@ -319,7 +394,7 @@ async function startWhatsApp() {
           clientName = registeredName || 'Cliente';
         }
 
-        console.log(`📩 [WhatsApp Recebido] ${clientPhone} (${clientName}) [${remoteJid} -> ${destinationJid}]: "${text}"`);
+        console.log(`📩 [WhatsApp Recebido] ${clientPhone} (${clientName}) [${remoteJid}]: "${text}"`);
 
         // 🛡️ BLINDAGEM DE ATENDIMENTO HUMANO & COMANDOS DE RETORNO AO ROBÔ
         const cleanInputLower = (text || '').toLowerCase().trim();
@@ -343,13 +418,14 @@ async function startWhatsApp() {
             saveDb(dbCheck);
           }
 
-          if (convCheck.status === 'human') {
+          if (convCheck.status === 'human' || convCheck.status === 'waiting_human') {
+            const isWaitingHuman = convCheck.status === 'waiting_human';
             const isUnassigned = !convCheck.assigned_to || convCheck.assigned_to === 'undefined' || convCheck.assigned_to === null;
             const lastAttendantTime = new Date(convCheck.last_attendant_message_at || convCheck.updated_at || 0).getTime();
             const isHumanExpired = (Date.now() - lastAttendantTime) > (15 * 60 * 1000);
 
-            if (isBotResetCmd || isUnassigned || isHumanExpired) {
-              console.log(`🤖 [Atendimento Robô] ${isBotResetCmd ? `Comando/saudação "${text}"` : (isUnassigned ? 'Sem atendente atribuído' : 'Inatividade (>15min)')} detectado. Reassumindo atendimento com o robô para ${clientPhone}.`);
+            if (isWaitingHuman || isBotResetCmd || isUnassigned || isHumanExpired) {
+              console.log(`🤖 [Atendimento Robô] ${isBotResetCmd ? `Comando/saudação "${text}"` : (isWaitingHuman ? 'Cliente na fila de espera' : (isUnassigned ? 'Sem atendente atribuído' : 'Inatividade (>15min)'))} detectado. Reassumindo atendimento com o robô para ${clientPhone}.`);
               convCheck.status = 'bot';
               convCheck.assigned_to = null;
               convCheck.assigned_attendant_name = null;
@@ -381,7 +457,11 @@ async function startWhatsApp() {
         // Executar o fluxo publicado no Studio / Painel Admin
         try {
           console.log(`⚙️ [Flow Execution] Executando fluxo ativo no bot para ${clientPhone} (${clientName}) [Destino: ${destinationJid}]...`);
-          const replies = await executePublishedFlow(destinationJid, text, clientName, clientPhone);
+          let profilePicUrl = null;
+          try {
+            profilePicUrl = await getWhatsAppProfilePicture(clientPhone);
+          } catch (picErr) {}
+          const replies = await executePublishedFlow(destinationJid, text, clientName, clientPhone, profilePicUrl);
 
           if (Array.isArray(replies) && replies.length > 0) {
             for (let i = 0; i < replies.length; i++) {
@@ -446,19 +526,14 @@ async function sendBotReply(destinationJid, reply, quotedMsg = null, skipRecord 
   
   // Respeitar a opção do nó: se o card estiver em 'send', desativar citação
   const isSendOnly = (typeof reply === 'object' && reply?.replyMode === 'send');
-  const effectiveQuoted = isSendOnly ? null : quotedMsg;
+  
+  // Só podemos citar se quotedMsg pertencer EXATAMENTE ao mesmo chat destino!
+  const canQuote = quotedMsg && quotedMsg.key?.remoteJid === destinationJid;
+  const effectiveQuoted = isSendOnly ? null : (canQuote ? quotedMsg : null);
   const sendOpts = effectiveQuoted ? { quoted: effectiveQuoted } : {};
 
-  // Se o destino for LID, buscar o telefone real em contatos/conversas
+  // O destino primário é o próprio destinationJid onde o cliente está interagindo
   let targetJid = destinationJid;
-  if (destinationJid.includes('@lid')) {
-    const db = loadDb();
-    const { primaryPhone } = resolveLinkedPhones(cleanPhone, db);
-    if (primaryPhone && primaryPhone.length >= 10 && primaryPhone.length <= 13) {
-      targetJid = `${primaryPhone}@s.whatsapp.net`;
-      console.log(`[SendReply] 🔄 Roteando resposta de LID (${destinationJid}) para Telefone Real: ${targetJid}`);
-    }
-  }
 
   const trySendMessage = async (payload) => {
     try {
@@ -471,15 +546,34 @@ async function sendBotReply(destinationJid, reply, quotedMsg = null, skipRecord 
         return true;
       } catch (err2) {
         console.error(`❌ [SendReply] Falha ao enviar para ${targetJid}:`, err2?.message || err2);
-        if (cleanPhone.length >= 10 && cleanPhone.length <= 13) {
-          const fallbackJid = `${cleanPhone}@s.whatsapp.net`;
-          if (fallbackJid !== targetJid) {
+        
+        // Se for LID e falhou, tentar enviar para o telefone real móvel correspondente se conhecido
+        if (targetJid.includes('@lid')) {
+          const db = loadDb();
+          const { primaryPhone } = resolveLinkedPhones(cleanPhone, db);
+          if (primaryPhone && primaryPhone.length >= 10 && primaryPhone.length <= 13) {
+            const fallbackPhoneJid = `${primaryPhone}@s.whatsapp.net`;
             try {
-              await sock.sendMessage(fallbackJid, payload);
-              console.log(`✅ [SendReply] Sucesso via fallback JID: ${fallbackJid}`);
+              await sock.sendMessage(fallbackPhoneJid, payload);
+              console.log(`✅ [SendReply] Sucesso via fallback JID Celular: ${fallbackPhoneJid}`);
               return true;
             } catch (err3) {
-              console.error(`❌ [SendReply] Fallback JID ${fallbackJid} falhou:`, err3?.message || err3);
+              console.error(`❌ [SendReply] Fallback JID Celular ${fallbackPhoneJid} falhou:`, err3?.message || err3);
+            }
+          }
+        } else if (targetJid.includes('@s.whatsapp.net')) {
+          // Se for telefone móvel e falhou, tentar enviar para o LID correspondente se conhecido
+          const db = loadDb();
+          const { allPhones } = resolveLinkedPhones(cleanPhone, db);
+          const lidPhone = allPhones.find(p => p.length >= 14);
+          if (lidPhone) {
+            const fallbackLidJid = `${lidPhone}@lid`;
+            try {
+              await sock.sendMessage(fallbackLidJid, payload);
+              console.log(`✅ [SendReply] Sucesso via fallback JID LID: ${fallbackLidJid}`);
+              return true;
+            } catch (err4) {
+              console.error(`❌ [SendReply] Fallback JID LID ${fallbackLidJid} falhou:`, err4?.message || err4);
             }
           }
         }
@@ -593,19 +687,16 @@ async function recordMessageInSupabase(phone, name, direction, content) {
   try {
     const cleanPhone = String(phone).replace(/\D/g, '');
     const isLid = cleanPhone.length >= 14 || cleanPhone.startsWith('1686') || cleanPhone.startsWith('219');
+    const convId = `conv-${cleanPhone}`;
 
-    // NUNCA inserir WhatsApp LID na tabela clients
+    // Atualizar last_interaction APENAS se o cliente já existir previamente cadastrado na tabela clients
     if (!isLid) {
-      const clientPayload = {
-        id: `client-${cleanPhone}`,
-        phone: cleanPhone,
-        last_interaction: new Date().toISOString(),
-      };
-      if (name && !['Cliente', 'Cliente Pitoco', 'undefined', 'null', 'Cliente WhatsApp'].includes(name)) {
-        clientPayload.name = name;
-      }
-
-      await safeSupa(supabaseServer.from('clients').upsert(clientPayload, { onConflict: 'phone' }));
+      await safeSupa(
+        supabaseServer
+          .from('clients')
+          .update({ last_interaction: new Date().toISOString() })
+          .eq('phone', cleanPhone)
+      );
     }
 
     await safeSupa(supabaseServer.from('conversations').upsert({
@@ -1099,9 +1190,19 @@ app.post('/api/settings', (req, res) => {
 // ==============================================================================
 // 2. MULTI-LOJAS CRUD
 // ==============================================================================
-app.get('/api/stores', (req, res) => {
+app.get('/api/stores', async (req, res) => {
   try {
     const db = loadDb();
+    if (supabaseServer) {
+      try {
+        const { data } = await safeSupa(supabaseServer.from('stores').select('*').order('slug', { ascending: true }));
+        if (data && data.length > 0) {
+          db.stores = data;
+          saveDb(db);
+          return res.json(data);
+        }
+      } catch (e) {}
+    }
     res.json(db.stores || []);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1120,7 +1221,7 @@ app.get('/api/stores/:id', (req, res) => {
   }
 });
 
-app.post('/api/stores', (req, res) => {
+app.post('/api/stores', async (req, res) => {
   try {
     const db = loadDb();
     if (!db.stores) db.stores = [];
@@ -1155,6 +1256,9 @@ app.post('/api/stores', (req, res) => {
     }
 
     saveDb(db);
+    if (supabaseServer) {
+      safeSupa(supabaseServer.from('stores').upsert(newStore, { onConflict: 'id' })).catch(() => {});
+    }
     console.log(`[Stores API] 🏬 Loja salva: "${newStore.name}" (${newStore.id})`);
     res.json({ success: true, store: newStore });
   } catch (err) {
@@ -1162,7 +1266,7 @@ app.post('/api/stores', (req, res) => {
   }
 });
 
-app.delete('/api/stores/:id', (req, res) => {
+app.delete('/api/stores/:id', async (req, res) => {
   try {
     const db = loadDb();
     const id = req.params.id;
@@ -1170,6 +1274,9 @@ app.delete('/api/stores/:id', (req, res) => {
       db.stores = db.stores.filter(s => s.id !== id && s.slug !== id);
     }
     saveDb(db);
+    if (supabaseServer) {
+      safeSupa(supabaseServer.from('stores').delete().or(`id.eq.${id},slug.eq.${id}`)).catch(() => {});
+    }
     console.log(`[Stores API] 🗑️ Loja removida: ${id}`);
     res.json({ success: true, message: `Loja ${id} removida` });
   } catch (err) {
@@ -1185,31 +1292,117 @@ app.get('/api/contacts', async (req, res) => {
     const db = loadDb();
     let contactsList = [];
 
-    // Prioridade 1: Buscar do Supabase em nuvem
+    // Prioridade 1: Buscar do Supabase em nuvem (merge clients + contacts + cache local)
     if (supabaseServer) {
       try {
-        let query = supabaseServer.from('clients').select('*').order('last_interaction', { ascending: false });
+        let clientsQuery = supabaseServer.from('clients').select('*').order('last_interaction', { ascending: false });
         if (req.query.store_id) {
-          query = query.eq('store_id', req.query.store_id);
+          clientsQuery = clientsQuery.eq('store_id', req.query.store_id);
         }
-        const { data, error } = await query;
-        if (!error && Array.isArray(data)) {
-          // Filtrar WhatsApp LIDs (>= 14 dígitos ou começando com 1686 / 219) e nomes do bot
-          const validClients = data.filter(c => {
+
+        const [clientsRes, contactsRes] = await Promise.allSettled([
+          clientsQuery,
+          supabaseServer.from('contacts').select('*'),
+        ]);
+
+        const clientsData = clientsRes.status === 'fulfilled' && !clientsRes.value.error && Array.isArray(clientsRes.value.data)
+          ? clientsRes.value.data
+          : [];
+        const contactsData = contactsRes.status === 'fulfilled' && !contactsRes.value.error && Array.isArray(contactsRes.value.data)
+          ? contactsRes.value.data
+          : [];
+
+        if (clientsData.length > 0 || contactsData.length > 0) {
+          const contactDetailsMap = new Map();
+          for (const ct of contactsData) {
+            const p = String(ct.phone || '').replace(/\D/g, '');
+            if (p) contactDetailsMap.set(p, ct);
+          }
+
+          const mergedMap = new Map();
+
+          // 1. Processar dados de clients
+          for (const c of clientsData) {
+            const p = String(c.phone || '').replace(/\D/g, '');
+            if (!p || p.length >= 14 || p.startsWith('1686') || p.startsWith('219')) continue;
+            const ct = contactDetailsMap.get(p) || {};
+            const local = (db.contacts && typeof db.contacts === 'object') ? (db.contacts[p] || {}) : {};
+
+            const mergedPhoto = ct.profile_picture_url || local.profile_picture_url || c.profile_picture_url || null;
+            const cleanTags = (c.tags || ct.tags || local.tags || ['Cliente WhatsApp']).filter(t => t.toLowerCase() !== 'lead');
+            const finalTags = cleanTags.length > 0 ? cleanTags : ['Cliente WhatsApp'];
+
+            mergedMap.set(p, {
+              ...local,
+              ...c,
+              id: c.id || ct.id || local.id || `client-${p}`,
+              name: c.name || ct.name || local.name || 'Cliente WhatsApp',
+              phone: p,
+              profile_picture_url: mergedPhoto,
+              tags: finalTags,
+              status: ct.status || local.status || 'active',
+              notes: c.notes || ct.notes || local.notes || null,
+              baby_name: c.baby_name || ct.baby_name || ct.metadata?.baby_name || local.baby_name || null,
+              due_date: c.due_date || ct.due_date || ct.metadata?.due_date || local.due_date || null,
+              last_interaction: c.last_interaction || ct.last_interaction || local.last_interaction || new Date().toISOString(),
+              updated_at: c.updated_at || ct.updated_at || local.updated_at || new Date().toISOString(),
+            });
+          }
+
+          // 2. Se houver contatos em contacts que não estão em clients
+          for (const ct of contactsData) {
+            const p = String(ct.phone || '').replace(/\D/g, '');
+            if (!p || p.length >= 14 || p.startsWith('1686') || p.startsWith('219')) continue;
+            if (!mergedMap.has(p)) {
+              const local = (db.contacts && typeof db.contacts === 'object') ? (db.contacts[p] || {}) : {};
+              const mergedPhoto = ct.profile_picture_url || local.profile_picture_url || null;
+              const cleanTags = (ct.tags || local.tags || ['Cliente WhatsApp']).filter(t => t.toLowerCase() !== 'lead');
+              mergedMap.set(p, {
+                ...local,
+                ...ct,
+                id: ct.id || local.id || `contact-${p}`,
+                name: ct.name || local.name || 'Cliente WhatsApp',
+                phone: p,
+                profile_picture_url: mergedPhoto,
+                tags: cleanTags.length > 0 ? cleanTags : ['Cliente WhatsApp'],
+                status: ct.status || local.status || 'active',
+                notes: ct.notes || local.notes || null,
+                last_interaction: ct.last_interaction || local.last_interaction || new Date().toISOString(),
+                updated_at: ct.updated_at || local.updated_at || new Date().toISOString(),
+              });
+            }
+          }
+
+          const validClients = Array.from(mergedMap.values()).filter(c => {
             const p = String(c.phone || '').replace(/\D/g, '');
             if (!p || p.length >= 14 || p.startsWith('1686') || p.startsWith('219')) return false;
             const name = (c.name || '').toLowerCase().trim();
             if (name === 'pitoco bot' || name === 'bot') return false;
+            if (isTestOrDummy(p, name)) return false;
             return true;
           });
-          // Atualizar cache local do db.contacts para refletir a nuvem
-          const cloudMap = {};
+
+          // Atualizar cache local do db.contacts sem perder campos locais existentes
+          if (!db.contacts || typeof db.contacts !== 'object' || Array.isArray(db.contacts)) {
+            db.contacts = {};
+          }
           validClients.forEach(c => {
             const p = String(c.phone || '').replace(/\D/g, '');
-            if (p) cloudMap[p] = c;
+            if (p) {
+              const rawTags = c.tags || [];
+              const tagList = Array.isArray(rawTags) ? rawTags.map(t => String(t).toLowerCase().trim()) : [];
+              const isClient = tagList.some(t => t.includes('cliente') || t.includes('vip') || t.includes('cadastrado')) || Boolean(c.name && c.name !== 'Cliente WhatsApp' && c.name !== 'Cliente');
+              db.contacts[p] = {
+                ...(db.contacts[p] || {}),
+                ...c,
+                is_registered: isClient,
+                status: isClient ? 'active' : (c.status || 'lead'),
+              };
+            }
           });
-          db.contacts = cloudMap;
           saveDb(db);
+
+          validClients.sort((a, b) => new Date(b.last_interaction || b.updated_at || 0) - new Date(a.last_interaction || a.updated_at || 0));
           return res.json(validClients);
         }
       } catch (cloudErr) {
@@ -1229,6 +1422,7 @@ app.get('/api/contacts', async (req, res) => {
       if (!p || p.length >= 14 || p.startsWith('1686') || p.startsWith('219')) return false;
       const name = (c.name || '').toLowerCase().trim();
       if (name === 'pitoco bot' || name === 'bot') return false;
+      if (isTestOrDummy(p, name)) return false;
       return true;
     });
 
@@ -1252,6 +1446,9 @@ app.post('/api/contacts', async (req, res) => {
     const cleanPhone = String(data.phone || '').replace(/\D/g, '');
     if (!cleanPhone) {
       return res.status(400).json({ error: 'Telefone do contato é obrigatório' });
+    }
+    if (isTestOrDummy(cleanPhone, data.name)) {
+      return res.status(400).json({ error: 'Cadastro de contatos ou números de teste não é permitido.' });
     }
 
     const { primaryPhone, allPhones } = resolveLinkedPhones(cleanPhone, db);
@@ -1308,8 +1505,8 @@ app.post('/api/contacts', async (req, res) => {
         }
         if (db.conversations) delete db.conversations[`conv-${p}`];
         if (supabaseServer) {
-          supabaseServer.from('clients').delete().eq('phone', p).catch(() => {});
-          supabaseServer.from('contacts').delete().eq('phone', p).catch(() => {});
+          Promise.resolve(supabaseServer.from('clients').delete().eq('phone', p)).catch(() => {});
+          Promise.resolve(supabaseServer.from('contacts').delete().eq('phone', p)).catch(() => {});
         }
       }
     }
@@ -1330,6 +1527,9 @@ app.put('/api/contacts/:id', async (req, res) => {
 
     const { primaryPhone, allPhones } = resolveLinkedPhones(cleanPhone, db);
     const targetPhone = (primaryPhone && primaryPhone.length >= 10 && primaryPhone.length <= 13) ? primaryPhone : cleanPhone;
+    if (isTestOrDummy(targetPhone, data.name)) {
+      return res.status(400).json({ error: 'Atualização para dados ou números de teste não é permitida.' });
+    }
     const isTargetLid = targetPhone.length >= 14 || targetPhone.startsWith('1686') || targetPhone.startsWith('219');
     let updatedContact = null;
 
@@ -1367,8 +1567,8 @@ app.put('/api/contacts/:id', async (req, res) => {
         }
         if (db.conversations) delete db.conversations[`conv-${p}`];
         if (supabaseServer) {
-          supabaseServer.from('clients').delete().eq('phone', p).catch(() => {});
-          supabaseServer.from('contacts').delete().eq('phone', p).catch(() => {});
+          Promise.resolve(supabaseServer.from('clients').delete().eq('phone', p)).catch(() => {});
+          Promise.resolve(supabaseServer.from('contacts').delete().eq('phone', p)).catch(() => {});
         }
       }
     }
@@ -1386,6 +1586,7 @@ app.delete('/api/contacts', async (req, res) => {
     db.contacts = {};
     db.conversations = {};
     db.messages = {};
+    db.sessions = {};
     saveDb(db);
 
     if (supabaseServer) {
@@ -1434,7 +1635,7 @@ app.delete('/api/contacts/:id', async (req, res) => {
       }
     }
 
-    // 2. Remover conversas e mensagens vinculadas para evitar ressuscitação
+    // 2. Remover conversas, mensagens e sessões vinculadas
     if (db.conversations && typeof db.conversations === 'object') {
       for (const p of phoneVariants) {
         delete db.conversations[`conv-${p}`];
@@ -1451,6 +1652,14 @@ app.delete('/api/contacts/:id', async (req, res) => {
     if (db.messages && typeof db.messages === 'object') {
       for (const p of phoneVariants) {
         delete db.messages[`conv-${p}`];
+      }
+    }
+
+    if (db.sessions && typeof db.sessions === 'object') {
+      delete db.sessions[id];
+      for (const p of phoneVariants) {
+        delete db.sessions[p];
+        delete db.sessions[`conv-${p}`];
       }
     }
 
@@ -1480,9 +1689,18 @@ app.delete('/api/contacts/:id', async (req, res) => {
 // ==============================================================================
 // 3. CATEGORIAS DO CATÁLOGO CRUD
 // ==============================================================================
-app.get('/api/categories', (req, res) => {
+app.get('/api/categories', async (req, res) => {
   try {
     const db = loadDb();
+    if (supabaseServer) {
+      try {
+        const { data } = await safeSupa(supabaseServer.from('categories').select('*').order('sort_order', { ascending: true }));
+        if (data && data.length > 0) {
+          db.categories = data;
+          saveDb(db);
+        }
+      } catch (e) {}
+    }
     let categories = db.categories || [];
     if (req.query.store_id) {
       categories = categories.filter(c => !c.store_id || c.store_id === req.query.store_id);
@@ -1493,7 +1711,7 @@ app.get('/api/categories', (req, res) => {
   }
 });
 
-app.post('/api/categories', (req, res) => {
+app.post('/api/categories', async (req, res) => {
   try {
     const db = loadDb();
     if (!db.categories) db.categories = [];
@@ -1518,13 +1736,16 @@ app.post('/api/categories', (req, res) => {
     }
 
     saveDb(db);
+    if (supabaseServer) {
+      safeSupa(supabaseServer.from('categories').upsert(newCat, { onConflict: 'id' })).catch(() => {});
+    }
     res.json({ success: true, category: newCat });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.delete('/api/categories/:id', (req, res) => {
+app.delete('/api/categories/:id', async (req, res) => {
   try {
     const db = loadDb();
     const id = req.params.id;
@@ -1532,6 +1753,9 @@ app.delete('/api/categories/:id', (req, res) => {
       db.categories = db.categories.filter(c => c.id !== id && c.slug !== id);
     }
     saveDb(db);
+    if (supabaseServer) {
+      safeSupa(supabaseServer.from('categories').delete().or(`id.eq.${id},slug.eq.${id}`)).catch(() => {});
+    }
     res.json({ success: true, message: `Categoria ${id} removida` });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1541,9 +1765,18 @@ app.delete('/api/categories/:id', (req, res) => {
 // ==============================================================================
 // 4. PRODUTOS DO CATÁLOGO DE BEBÊ CRUD
 // ==============================================================================
-app.get('/api/products', (req, res) => {
+app.get('/api/products', async (req, res) => {
   try {
     const db = loadDb();
+    if (supabaseServer) {
+      try {
+        const { data } = await safeSupa(supabaseServer.from('products').select('*'));
+        if (data && data.length > 0) {
+          db.products = data;
+          saveDb(db);
+        }
+      } catch (e) {}
+    }
     let prods = db.products || [];
     const { store_id, category_id } = req.query;
     if (store_id) {
@@ -1569,7 +1802,7 @@ app.get('/api/products/:id', (req, res) => {
   }
 });
 
-app.post('/api/products', (req, res) => {
+app.post('/api/products', async (req, res) => {
   try {
     const db = loadDb();
     if (!db.products) db.products = [];
@@ -1607,6 +1840,9 @@ app.post('/api/products', (req, res) => {
     }
 
     saveDb(db);
+    if (supabaseServer) {
+      safeSupa(supabaseServer.from('products').upsert(newProd, { onConflict: 'id' })).catch(() => {});
+    }
     console.log(`[Products API] 👶 Produto salvo: "${newProd.name}" (${newProd.id}) - R$ ${newProd.price}`);
     res.json({ success: true, product: newProd });
   } catch (err) {
@@ -1614,7 +1850,7 @@ app.post('/api/products', (req, res) => {
   }
 });
 
-app.delete('/api/products/:id', (req, res) => {
+app.delete('/api/products/:id', async (req, res) => {
   try {
     const db = loadDb();
     const id = req.params.id;
@@ -1622,6 +1858,9 @@ app.delete('/api/products/:id', (req, res) => {
       db.products = db.products.filter(p => p.id !== id);
     }
     saveDb(db);
+    if (supabaseServer) {
+      safeSupa(supabaseServer.from('products').delete().eq('id', id)).catch(() => {});
+    }
     console.log(`[Products API] 🗑️ Produto removido: ${id}`);
     res.json({ success: true, message: `Produto ${id} removido` });
   } catch (err) {
@@ -1638,13 +1877,14 @@ app.get('/api/conversations', (req, res) => {
     const db = loadDb();
     let convs = Object.values(db.conversations || {});
 
-    // 🛡️ FILTRO RIGOROSO: NUNCA retornar conversas com WhatsApp LID ou do próprio robô
+    // 🛡️ FILTRO RIGOROSO: NUNCA retornar conversas com WhatsApp LID, bot ou contatos de teste
     convs = convs.filter(c => {
       const p = String(c.contact_phone || c.phone || '').replace(/\D/g, '');
       if (!p || p.length >= 14 || p.startsWith('1686') || p.startsWith('219')) return false;
       if (c.id && (c.id.includes('1686') || c.id.includes('219') || c.id.length >= 19)) return false;
       const name = (c.contact_name || '').toLowerCase().trim();
       if (name === 'pitoco bot' || name === 'bot') return false;
+      if (isTestOrDummy(p, name)) return false;
       return true;
     });
 
@@ -1662,6 +1902,9 @@ app.post('/api/conversations', (req, res) => {
     const db = loadDb();
     if (!db.conversations) db.conversations = {};
     const convData = req.body;
+    if (isTestOrDummy(convData.contact_phone || convData.phone, convData.contact_name)) {
+      return res.status(400).json({ error: 'Criação de conversas de teste não é permitida.' });
+    }
     const id = convData.id || `conv-${Date.now()}`;
     const newConv = {
       id,
@@ -1858,7 +2101,7 @@ app.patch('/api/conversations/:id/assign', async (req, res) => {
       const convObj = db.conversations[convKey];
       const sRes = await safeSupa(supabaseServer.from('conversations').upsert({
         id: convObj.id || convKey,
-        phone: convObj.phone || convObj.contact_phone || cleanId || '558199999999',
+        phone: convObj.phone || convObj.contact_phone || cleanId || '',
         client_name: convObj.contact_name || 'Cliente WhatsApp',
         assigned_to: finalAttendant,
         status: 'human',
@@ -1924,7 +2167,7 @@ app.patch('/api/conversations/:id/status', async (req, res) => {
       const convObj = db.conversations[convKey];
       const sRes = await safeSupa(supabaseServer.from('conversations').upsert({
         id: convObj.id || convKey,
-        phone: convObj.phone || convObj.contact_phone || cleanId || '558199999999',
+        phone: convObj.phone || convObj.contact_phone || cleanId || '',
         client_name: convObj.contact_name || 'Cliente WhatsApp',
         status: db.conversations[convKey].status,
         assigned_to: db.conversations[convKey].assigned_to || null,
@@ -2232,7 +2475,7 @@ app.post('/api/flows/test-execution', async (req, res) => {
     const testName = name || 'Cliente Teste';
     const testText = message || 'oi';
 
-    const replies = await executePublishedFlow(`${testPhone}@s.whatsapp.net`, testText, testName, testPhone);
+    const replies = await executePublishedFlow(`${testPhone}@s.whatsapp.net`, testText, testName, testPhone, null, true);
     res.json({ success: true, input: testText, phone: testPhone, replies });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -2857,23 +3100,96 @@ app.listen(PORT, HOST, async () => {
   setTimeout(async () => {
     try {
       if (supabaseServer) {
-        const [flowsRes, clientsRes, botRes, setRes] = await Promise.all([
+        const [flowsRes, clientsRes, contactsRes, botRes, setRes, storesRes, prodsRes, catsRes] = await Promise.all([
           safeSupa(supabaseServer.from('flows').select('*')),
           safeSupa(supabaseServer.from('clients').select('*')),
+          safeSupa(supabaseServer.from('contacts').select('*')),
           safeSupa(supabaseServer.from('bot_config').select('*').eq('id', 'default').maybeSingle()),
           safeSupa(supabaseServer.from('settings').select('*').eq('id', 'default').maybeSingle()),
+          safeSupa(supabaseServer.from('stores').select('*').order('slug', { ascending: true })),
+          safeSupa(supabaseServer.from('products').select('*')),
+          safeSupa(supabaseServer.from('categories').select('*').order('sort_order', { ascending: true })),
         ]);
         const db = loadDb();
+        if (Array.isArray(storesRes.data) && storesRes.data.length > 0) {
+          db.stores = storesRes.data;
+        }
+        if (Array.isArray(prodsRes.data) && prodsRes.data.length > 0) {
+          db.products = prodsRes.data;
+        }
+        if (Array.isArray(catsRes.data) && catsRes.data.length > 0) {
+          db.categories = catsRes.data;
+        }
         if (Array.isArray(flowsRes.data)) {
           db.flows = flowsRes.data;
         }
+
+        if (!db.contacts || typeof db.contacts !== 'object' || Array.isArray(db.contacts)) {
+          db.contacts = {};
+        }
+        const cloudMap = { ...db.contacts };
+
+        // 1. Processar contatos da tabela contacts do Supabase
+        if (Array.isArray(contactsRes.data)) {
+          contactsRes.data.forEach(co => {
+            const p = String(co.phone || '').replace(/\D/g, '');
+            if (!p || p.length >= 14 || p.startsWith('1686') || p.startsWith('219')) return;
+            const rawTags = co.tags || [];
+            const tagList = Array.isArray(rawTags) ? rawTags.map(t => String(t).toLowerCase().trim()) : [];
+            const hasClientTag = tagList.some(t => t.includes('cliente') || t.includes('vip') || t.includes('cadastrado'));
+            const hasRealName = Boolean(co.name && co.name !== 'Cliente WhatsApp' && co.name !== 'Cliente' && co.name !== 'Lead');
+            const isClient = hasClientTag || hasRealName || co.status === 'active';
+
+            cloudMap[p] = {
+              ...(cloudMap[p] || {}),
+              ...co,
+              phone: p,
+              is_registered: isClient,
+              status: isClient ? 'active' : (co.status || 'lead'),
+              tags: isClient && tagList.length > 0 ? (Array.isArray(co.tags) ? co.tags.filter(t => t.toLowerCase() !== 'lead') : ['Cliente WhatsApp', 'Cliente']) : (co.tags || ['Lead']),
+            };
+          });
+        }
+
+        // 2. Processar tabela clients (fonte mestre de clientes)
         if (Array.isArray(clientsRes.data)) {
-          const cloudMap = {};
           clientsRes.data.forEach(c => {
             const p = String(c.phone || '').replace(/\D/g, '');
-            if (p) cloudMap[p] = c;
+            if (!p || p.length >= 14 || p.startsWith('1686') || p.startsWith('219')) return;
+            cloudMap[p] = {
+              ...(cloudMap[p] || {}),
+              ...c,
+              phone: p,
+              is_registered: true,
+              status: 'active',
+            };
           });
-          db.contacts = cloudMap;
+        }
+
+        db.contacts = cloudMap;
+
+        // Auto-heal: Garantir que qualquer cliente ativo no cloudMap esteja na tabela clients do Supabase
+        for (const [p, c] of Object.entries(cloudMap)) {
+          if (c.is_registered === true && c.name && c.name !== 'Cliente WhatsApp') {
+            const alreadyInClients = Array.isArray(clientsRes.data) && clientsRes.data.some(cl => String(cl.phone || '').replace(/\D/g, '') === p);
+            if (!alreadyInClients && supabaseServer) {
+              const clientPayload = {
+                id: c.id || `client-${p}`,
+                name: c.name,
+                phone: p,
+                email: c.email || null,
+                store_id: c.store_id || null,
+                store_name: c.store_name || null,
+                notes: c.notes || null,
+                baby_name: c.baby_name || null,
+                due_date: c.due_date || null,
+                tags: Array.isArray(c.tags) && c.tags.length > 0 ? c.tags.filter(t => t.toLowerCase() !== 'lead') : ['Cliente WhatsApp', 'Cliente'],
+                last_interaction: c.last_interaction || new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              };
+              safeSupa(supabaseServer.from('clients').upsert(clientPayload, { onConflict: 'phone' })).catch(() => {});
+            }
+          }
         }
         if (botRes.data || setRes.data?.bot_profile) {
           const bData = botRes.data || {};
@@ -2906,7 +3222,7 @@ app.listen(PORT, HOST, async () => {
           db.customVariables = setRes.data.custom_variables;
         }
         saveDb(db);
-        console.log(`[Startup Sync] ☁️ Sincronização inicial concluída com Supabase: ${db.flows?.length || 0} fluxos, ${Object.keys(db.contacts || {}).length} clientes, perfil do bot ("${db.botProfile?.name || 'Pitoco Bot'}") e ${db.customVariables?.length || 0} variáveis customizadas.`);
+        console.log(`[Startup Sync] ☁️ Sincronização inicial concluída com Supabase: ${db.flows?.length || 0} fluxos, ${db.stores?.length || 0} lojas, ${db.products?.length || 0} produtos, ${Object.keys(db.contacts || {}).length} clientes, perfil do bot ("${db.botProfile?.name || 'Pitoco Bot'}") e ${db.customVariables?.length || 0} variáveis customizadas.`);
       }
     } catch (e) {
       console.warn('[Startup Sync] Aviso ao sincronizar com Supabase no início:', e.message);

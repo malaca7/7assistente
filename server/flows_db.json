@@ -1261,33 +1261,56 @@
   "contacts": {
     "558196138924": {
       "id": "contact-558196138924",
-      "name": "Rogerio Mlc",
       "phone": "558196138924",
-      "status": "lead",
-      "is_registered": false,
+      "name": "Leo",
+      "profile_picture_url": "https://pps.whatsapp.net/v/t61.24694-24/674630155_1633106875192131_9214554452579566382_n.jpg?ccb=11-4&oh=01_Q5Aa5gH2RlLgPFNQx8XjGoUD2IBYKoPr2pWsnRqtTM5Sjsne6A&oe=6AB5A321&_nc_sid=5e03e0&_nc_cat=104",
+      "status": "active",
       "tags": [
-        "Lead"
+        "Cliente WhatsApp",
+        "Bot",
+        "Cliente"
       ],
+      "metadata": {
+        "notes": "Cadastrado e atualizado pelo fluxo do bot",
+        "nome_cliente": "Leo",
+        "nome_clientenovo": "Leo"
+      },
+      "created_at": "2026-09-14T22:36:53.437583+00:00",
+      "updated_at": "2026-09-14T23:26:11.605Z",
       "whatsapp_pushname": "Rogerio Mlc",
-      "metadata": {},
-      "updated_at": "2026-09-14T22:53:43.812Z"
+      "is_registered": true
     }
   },
   "conversations": {
     "conv-558196138924": {
       "id": "conv-558196138924",
-      "contact_name": "Rogerio",
+      "contact_name": "Leo",
       "contact_phone": "558196138924",
       "phone": "558196138924",
-      "last_message": "🏬 *Escolha de Filial / Loja:*\n\n🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?\n\n• *Loja Matriz — Centro* (Cabo - PE)\n• *Loja Ipojuca - Filial* (Ipojuca - PE)",
-      "last_message_at": "2026-09-14T22:53:24.044Z",
+      "last_message": "*Opção não reconhecida.*\n\nPor favor, escolha uma das opções abaixo:\n\n1️⃣ *Matriz — Centro*\n\n2️⃣ *Ipojuca - Filial*\n\n_👉 Digite o número ou o nome da opção desejada:_",
+      "last_message_at": "2026-09-14T23:26:11.605Z",
       "status": "bot",
       "store_name": "Pitoco de Gente",
       "contact_id": "contact-558196138924",
-      "updated_at": "2026-09-14T22:53:24.044Z",
+      "updated_at": "2026-09-14T23:26:11.605Z",
       "started_at": "2026-09-12T23:43:39.112Z",
       "unread_count": 0,
       "created_at": "2026-09-12T23:43:39.112Z"
+    },
+    "conv-5581987654321": {
+      "id": "conv-5581987654321",
+      "contact_id": "contact-5581987654321",
+      "contact_name": "Mariana Silva",
+      "contact_phone": "5581987654321",
+      "phone": "5581987654321",
+      "status": "bot",
+      "store_name": "Pitoco de Gente",
+      "started_at": "2026-09-14T23:27:27.458Z",
+      "unread_count": 0,
+      "created_at": "2026-09-14T23:27:27.458Z",
+      "last_message": "🏬 *Escolha de Filial / Loja:*\n\n🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?\n\n• *Loja Matriz — Centro* (Cabo - PE)\n• *Loja Ipojuca - Filial* (Ipojuca - PE)",
+      "last_message_at": "2026-09-14T23:27:29.199Z",
+      "updated_at": "2026-09-14T23:27:29.199Z"
     }
   },
   "messages": {
@@ -1714,6 +1737,80 @@
         "content": "🏬 *Escolha de Filial / Loja:*\n\n🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?\n\n• *Loja Matriz — Centro* (Cabo - PE)\n• *Loja Ipojuca - Filial* (Ipojuca - PE)",
         "status": "delivered",
         "created_at": "2026-09-14T22:53:24.044Z"
+      },
+      {
+        "id": "msg-1789427569701-sdydi",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Opções Interativas",
+        "status": "delivered",
+        "created_at": "2026-09-14T23:12:49.701Z"
+      },
+      {
+        "id": "msg-1789427569709-n61ot",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Opções Interativas",
+        "status": "delivered",
+        "created_at": "2026-09-14T23:12:49.709Z"
+      },
+      {
+        "id": "msg-1789427569717-25gap",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "🏬 *Escolha de Filial / Loja:*\n\n🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?\n\n• *Loja Matriz — Centro* (Cabo - PE)\n• *Loja Ipojuca - Filial* (Ipojuca - PE)",
+        "status": "delivered",
+        "created_at": "2026-09-14T23:12:49.717Z"
+      },
+      {
+        "id": "msg-1789428371605-f6iip",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "*Opção não reconhecida.*\n\nPor favor, escolha uma das opções abaixo:\n\n1️⃣ *Matriz — Centro*\n\n2️⃣ *Ipojuca - Filial*\n\n_👉 Digite o número ou o nome da opção desejada:_",
+        "status": "delivered",
+        "created_at": "2026-09-14T23:26:11.605Z"
+      }
+    ],
+    "conv-5581987654321": [
+      {
+        "id": "msg-1789428447458-6zco8",
+        "conversation_id": "conv-5581987654321",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Opções Interativas",
+        "status": "delivered",
+        "created_at": "2026-09-14T23:27:27.458Z"
+      },
+      {
+        "id": "msg-1789428449185-iszof",
+        "conversation_id": "conv-5581987654321",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Opções Interativas",
+        "status": "delivered",
+        "created_at": "2026-09-14T23:27:29.185Z"
+      },
+      {
+        "id": "msg-1789428449192-96jjs",
+        "conversation_id": "conv-5581987654321",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Opções Interativas",
+        "status": "delivered",
+        "created_at": "2026-09-14T23:27:29.192Z"
+      },
+      {
+        "id": "msg-1789428449199-6idh1",
+        "conversation_id": "conv-5581987654321",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "🏬 *Escolha de Filial / Loja:*\n\n🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?\n\n• *Loja Matriz — Centro* (Cabo - PE)\n• *Loja Ipojuca - Filial* (Ipojuca - PE)",
+        "status": "delivered",
+        "created_at": "2026-09-14T23:27:29.199Z"
       }
     ]
   },
@@ -2019,20 +2116,5 @@
   "auditLogs": [],
   "sessions": {},
   "rolePermissions": {},
-  "lid_mappings": {},
-  "logs": [
-    {
-      "id": "log-1789426404047-7lfos",
-      "type": "message_outbound",
-      "title": "Resposta para Rogerio Mlc",
-      "description": "Mensagem Interativa",
-      "contact_phone": "558196138924",
-      "contact_name": "Rogerio Mlc",
-      "details": {
-        "direction": "outbound",
-        "messageId": "msg-1789426404044-nr11v"
-      },
-      "created_at": "2026-09-14T22:53:24.047Z"
-    }
-  ]
+  "lid_mappings": {}
 }

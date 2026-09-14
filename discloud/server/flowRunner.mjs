@@ -34,14 +34,19 @@ import {
 } from './defaultData.mjs';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://cbeiguyvoepbcafmxduy.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiZWlndXl2b2VwYmNhZm14ZHV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MzU5NzcsImV4cCI6MjEwNDMxMTk3N30.1XpWL6ns9NlPh4sQ3M8-OJTnKCPH-jf89iFspmBrKxM';
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiZWlndXl2b2VwYmNhZm14ZHV5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4ODczNTk3NywiZXhwIjoyMTA0MzExOTc3fQ.sbB-6Fx4uR61oDin8djrdbpmNSPs2Z8hGdYSoVhIHvw';
 
-export const supabaseClient = (createClient && SUPABASE_URL && SUPABASE_ANON_KEY) 
-  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+export const supabaseClient = (createClient && SUPABASE_URL && SUPABASE_KEY) 
+  ? createClient(SUPABASE_URL, SUPABASE_KEY, {
       auth: { persistSession: false },
       realtime: WebSocketClient ? { transport: WebSocketClient } : undefined
     }) 
   : null;
+
+let whatsAppProfilePicGetter = null;
+export function setWhatsAppProfilePicGetter(fn) {
+  whatsAppProfilePicGetter = fn;
+}
 
 
 // Helper: Resolver correspondência bidirecional entre LID (WhatsApp Privacy ID) e Telefone Real (ex: 558196138924)
@@ -70,6 +75,16 @@ export function resolveLinkedPhones(phone, db) {
       if (p === clean && realP) phones.add(realP);
       if (realP === clean && p) phones.add(p);
     });
+  }
+
+  if (db?.lid_mappings) {
+    if (db.lid_mappings[clean]) phones.add(String(db.lid_mappings[clean]).replace(/\D/g, ''));
+    for (const [k, v] of Object.entries(db.lid_mappings)) {
+      const ck = String(k).replace(/\D/g, '');
+      const cv = String(v).replace(/\D/g, '');
+      if (ck === clean && cv) phones.add(cv);
+      if (cv === clean && ck) phones.add(ck);
+    }
   }
 
   const allPhones = Array.from(phones);
@@ -144,7 +159,7 @@ export async function syncContactToSupabase(contact) {
 
     const formattedName = formatCustomerName(contact.name) || contact.name || 'Cliente WhatsApp';
 
-    // 1. Tabela contacts
+    // 1. Tabela contacts (sem coluna last_interaction)
     const payload = {
       id: contact.id || `contact-${cleanPhone}`,
       name: formattedName,
@@ -152,28 +167,79 @@ export async function syncContactToSupabase(contact) {
       status: contact.status || 'active',
       profile_picture_url: contact.profile_picture_url || null,
       tags: contact.tags || ['Cliente WhatsApp'],
-      metadata: contact.custom_fields || contact.metadata || {},
-      last_interaction: new Date().toISOString(),
+      metadata: {
+        ...(contact.custom_fields || contact.metadata || {}),
+        ...(contact.baby_name ? { baby_name: contact.baby_name } : {}),
+        ...(contact.due_date ? { due_date: contact.due_date } : {}),
+        ...(contact.email ? { email: contact.email } : {}),
+        ...(contact.notes ? { notes: contact.notes } : {}),
+      },
       updated_at: new Date().toISOString(),
     };
-    await supabaseClient.from('contacts').upsert(payload, { onConflict: 'phone' });
+    try {
+      const { error: contactsErr } = await supabaseClient.from('contacts').upsert(payload, { onConflict: 'phone' });
+      if (contactsErr) {
+        console.warn(`[Supabase contacts] Aviso ao upsert contato ${cleanPhone}:`, contactsErr.message);
+      }
+    } catch (errContacts) {
+      console.warn(`[Supabase contacts] Erro de rede/conexao:`, errContacts.message);
+    }
 
-    // 2. Tabela clients (Tabela mestre do CRM - sem coluna status)
-    const clientPayload = {
-      id: contact.id || `client-${cleanPhone}`,
-      name: formattedName,
-      phone: cleanPhone,
-      email: contact.email || null,
-      store_id: contact.store_id || null,
-      store_name: contact.store_name || null,
-      notes: contact.notes || null,
-      baby_name: contact.baby_name || null,
-      due_date: contact.due_date || null,
-      tags: contact.tags || ['Cliente WhatsApp'],
-      last_interaction: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    await supabaseClient.from('clients').upsert(clientPayload, { onConflict: 'phone' });
+    // 2. Tabela clients (Tabela mestre do CRM - upsert se for cliente)
+    const rawTags = contact.tags || [];
+    const tagList = Array.isArray(rawTags)
+      ? rawTags.map(t => String(t).toLowerCase().trim())
+      : typeof rawTags === 'string'
+      ? rawTags.split(',').map(t => t.toLowerCase().trim())
+      : [];
+    const hasLeadTag = tagList.includes('lead');
+    const hasClientTag = tagList.some(t => 
+      t.includes('cliente') || t.includes('vip') || t.includes('recorrente') || t.includes('cadastrado')
+    );
+    const hasRealName = Boolean(
+      formattedName &&
+      formattedName !== 'Cliente WhatsApp' &&
+      formattedName !== 'Cliente' &&
+      formattedName !== 'Lead' &&
+      !formattedName.startsWith('{{')
+    );
+
+    const isClient = Boolean(
+      contact.is_registered === true ||
+      contact.is_verified === true ||
+      contact.cliente_salvo === true ||
+      (contact.status === 'active' && (hasClientTag || hasRealName)) ||
+      (hasRealName && hasClientTag) ||
+      (hasClientTag && !hasLeadTag)
+    );
+
+    if (isClient) {
+      const clientPayload = {
+        id: contact.id || `client-${cleanPhone}`,
+        name: formattedName,
+        phone: cleanPhone,
+        email: contact.email || null,
+        store_id: contact.store_id || null,
+        store_name: contact.store_name || null,
+        notes: contact.notes || null,
+        baby_name: contact.baby_name || null,
+        due_date: contact.due_date || null,
+        tags: payload.tags,
+        last_interaction: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      try {
+        const { error: clientsErr } = await supabaseClient.from('clients').upsert(clientPayload, { onConflict: 'phone' });
+        if (clientsErr) {
+          console.warn(`[Supabase clients] Aviso ao upsert cliente ${cleanPhone}:`, clientsErr.message);
+        } else {
+          console.log(`[Supabase CRM] Sincronizado com sucesso: "${formattedName}" (${cleanPhone}) | Tags: [${payload.tags.join(', ')}]`);
+        }
+      } catch (errClients) {
+        console.warn(`[Supabase clients] Erro de rede/conexao:`, errClients.message);
+      }
+    }
+    // Observação: Nunca deletar registros da tabela clients aqui. Deletes só ocorrem por ação explícita no painel.
   } catch (err) {
     // Non-blocking
   }
@@ -265,61 +331,73 @@ function migrateLidContacts(db) {
 
   for (const key of Object.keys(db.contacts)) {
     if (key.length >= 14 && (key.startsWith('168') || key.startsWith('219'))) {
-      const reverseFile = path.resolve(authDir, `lid-mapping-${key}_reverse.json`);
-      if (fs.existsSync(reverseFile)) {
-        try {
-          const realPhone = String(JSON.parse(fs.readFileSync(reverseFile, 'utf8'))).replace(/\D/g, '');
-          if (realPhone && realPhone.length >= 8) {
-            const oldContact = db.contacts[key];
-            db.contacts[realPhone] = {
-              ...oldContact,
-              id: `contact-${realPhone}`,
-              phone: realPhone,
-              updated_at: new Date().toISOString(),
-            };
-            delete db.contacts[key];
-
-            if (db.conversations && db.conversations[`conv-${key}`]) {
-              const oldConv = db.conversations[`conv-${key}`];
-              db.conversations[`conv-${realPhone}`] = {
-                ...oldConv,
-                id: `conv-${realPhone}`,
-                contact_id: `contact-${realPhone}`,
-                contact_phone: realPhone,
-              };
-              delete db.conversations[`conv-${key}`];
-            }
-
-            if (db.messages && db.messages[`conv-${key}`]) {
-              db.messages[`conv-${realPhone}`] = db.messages[`conv-${key}`].map((m) => ({
-                ...m,
-                conversation_id: `conv-${realPhone}`,
-              }));
-              delete db.messages[`conv-${key}`];
-            }
-
-            // Migrar e vincular sessão ativa
-            if (db.sessions && db.sessions[key]) {
-              db.sessions[realPhone] = { ...(db.sessions[realPhone] || {}), ...db.sessions[key] };
-              db.sessions[key] = db.sessions[realPhone];
-            }
-
-            // Excluir LID da nuvem para evitar duplicatas no CRM
-            if (supabaseClient) {
-              supabaseClient.from('clients').delete().eq('phone', key).catch(() => {});
-              supabaseClient.from('contacts').delete().eq('phone', key).catch(() => {});
-            }
-
-            console.log(`[FlowRunner] 🔄 Contato migrado de LID ${key} para o número real: ${realPhone}`);
-          }
-        } catch (e) {}
-      } else {
-        // Remover da lista de contatos do CRM se for um LID solto
-        delete db.contacts[key];
-        if (supabaseClient) {
-          supabaseClient.from('clients').delete().eq('phone', key).catch(() => {});
-          supabaseClient.from('contacts').delete().eq('phone', key).catch(() => {});
+      let realPhone = null;
+      if (db.lid_mappings && db.lid_mappings[key]) {
+        realPhone = String(db.lid_mappings[key]).replace(/\D/g, '');
+      }
+      if (!realPhone) {
+        const reverseFile = path.resolve(authDir, `lid-mapping-${key}_reverse.json`);
+        if (fs.existsSync(reverseFile)) {
+          try {
+            realPhone = String(JSON.parse(fs.readFileSync(reverseFile, 'utf8'))).replace(/\D/g, '');
+          } catch (e) {}
         }
+      }
+
+      if (realPhone && realPhone.length >= 8) {
+        const oldContact = db.contacts[key] || {};
+        const existingReal = db.contacts[realPhone] || {};
+        const resolvedName = (existingReal.is_registered || (existingReal.name && existingReal.name !== 'Cliente WhatsApp' && existingReal.name !== oldContact.name))
+          ? existingReal.name
+          : (oldContact.name || existingReal.name || 'Cliente WhatsApp');
+        const resolvedTags = (existingReal.is_registered && existingReal.tags)
+          ? existingReal.tags
+          : (oldContact.tags || existingReal.tags || ['Cliente WhatsApp']);
+
+        db.contacts[realPhone] = {
+          ...oldContact,
+          ...existingReal,
+          id: `contact-${realPhone}`,
+          phone: realPhone,
+          name: resolvedName,
+          tags: resolvedTags,
+          is_registered: existingReal.is_registered || oldContact.is_registered || false,
+          updated_at: new Date().toISOString(),
+        };
+        delete db.contacts[key];
+
+        if (db.conversations && db.conversations[`conv-${key}`]) {
+          const oldConv = db.conversations[`conv-${key}`];
+          db.conversations[`conv-${realPhone}`] = {
+            ...oldConv,
+            id: `conv-${realPhone}`,
+            contact_id: `contact-${realPhone}`,
+            contact_phone: realPhone,
+          };
+          delete db.conversations[`conv-${key}`];
+        }
+
+        if (db.messages && db.messages[`conv-${key}`]) {
+          db.messages[`conv-${realPhone}`] = db.messages[`conv-${key}`].map((m) => ({
+            ...m,
+            conversation_id: `conv-${realPhone}`,
+          }));
+          delete db.messages[`conv-${key}`];
+        }
+
+        // Migrar e vincular sessão ativa
+        if (db.sessions && db.sessions[key]) {
+          db.sessions[realPhone] = { ...(db.sessions[realPhone] || {}), ...db.sessions[key] };
+          db.sessions[key] = db.sessions[realPhone];
+        }
+
+        // Excluir LID da nuvem para evitar duplicatas no CRM
+        if (supabaseClient) {
+          Promise.resolve(supabaseClient.from('clients').delete().eq('phone', key)).catch(() => {});
+          Promise.resolve(supabaseClient.from('contacts').delete().eq('phone', key)).catch(() => {});
+        }
+
+        console.log(`[FlowRunner] 🔄 Contato migrado de LID ${key} para o número real: ${realPhone}`);
       }
     }
   }
@@ -380,6 +458,7 @@ export function loadDb() {
     auditLogs: Array.isArray(mainSource?.auditLogs) ? mainSource.auditLogs : [],
     sessions: mainSource?.sessions || {},
     rolePermissions: mainSource?.rolePermissions || {},
+    lid_mappings: mainSource?.lid_mappings || {},
   };
 
   migrateLidContacts(result);
@@ -904,19 +983,62 @@ export function executeVariableAssignment(assignment, variables, contact = {}, b
   }
 }
 
+export function isTestOrDummy(phone, name) {
+  if (!phone && !name) return false;
+  const cleanPhone = String(phone || '').replace(/\D/g, '');
+  const cleanName = String(name || '').toLowerCase().trim();
+
+  if (
+    cleanName.includes('teste') ||
+    cleanName.includes('test') ||
+    cleanName.includes('dummy') ||
+    cleanName.includes('mock') ||
+    cleanName.includes('exemplo')
+  ) {
+    return true;
+  }
+
+  // Padrões de repetição ou números conhecidos de teste
+  if (/(.)\1{4,}/.test(cleanPhone)) return true;
+  if (
+    cleanPhone.startsWith('558199999') ||
+    cleanPhone.startsWith('558188888') ||
+    cleanPhone.startsWith('558197777') ||
+    cleanPhone.startsWith('551199999') ||
+    cleanPhone.startsWith('551188888') ||
+    cleanPhone.startsWith('551177777')
+  ) {
+    return true;
+  }
+  if ([
+    '5581911112222',
+    '558199999999',
+    '5581988887777',
+    '5581999998888',
+    '5581977776666',
+    '5581999990099',
+    '5581888880001',
+    '81999999999',
+    '81900000003',
+    '81991234567'
+  ].includes(cleanPhone)) {
+    return true;
+  }
+  if (cleanPhone.length > 0 && cleanPhone.length < 10) return true;
+  return false;
+}
+
 // Record an incoming or outgoing message into real database
 export function recordRealMessage(phone, senderName, direction, content, explicitTags = null, profilePicUrl = null) {
+  if (isTestOrDummy(phone, senderName)) {
+    return { contact: null, conversation: null, message: null };
+  }
   const db = loadDb();
   const cleanPhone = phone.replace(/\D/g, '');
   const { primaryPhone } = resolveLinkedPhones(cleanPhone, db);
   const targetPhone = (primaryPhone && primaryPhone.length >= 10 && primaryPhone.length <= 13) ? primaryPhone : cleanPhone;
   const isTargetLid = targetPhone.length >= 14 || targetPhone.startsWith('1686') || targetPhone.startsWith('219');
   
-  // 🛡️ NUNCA criar contatos ou conversas para WhatsApp LIDs não vinculados
-  if (isTargetLid) {
-    return;
-  }
-
   const convId = `conv-${targetPhone}`;
   const now = new Date().toISOString();
 
@@ -926,26 +1048,56 @@ export function recordRealMessage(phone, senderName, direction, content, explici
   const isBotSender = !senderName || botNames.includes(cleanSenderLower);
   const safeCustomerName = isBotSender ? '' : senderName;
 
-  // 1. Upsert Contact (Apenas para números reais de clientes)
+  // 1. Upsert Contact
   let existingContact = null;
   if (!db.contacts) db.contacts = {};
-  existingContact = db.contacts[targetPhone] || {
+  const inDb = db.contacts[targetPhone];
+
+  // Avaliar se o contato já existente é um cliente cadastrado
+  const existingRawTags = inDb?.tags || explicitTags || [];
+  const existingTagList = Array.isArray(existingRawTags)
+    ? existingRawTags.map(t => String(t).toLowerCase().trim())
+    : typeof existingRawTags === 'string'
+    ? existingRawTags.split(',').map(t => t.toLowerCase().trim())
+    : [];
+  const existingHasClientTag = existingTagList.some(t => 
+    t.includes('cliente') || t.includes('vip') || t.includes('recorrente') || t.includes('cadastrado')
+  );
+  const existingHasRealName = Boolean(
+    inDb?.name &&
+    inDb.name !== 'Cliente WhatsApp' &&
+    inDb.name !== 'Cliente' &&
+    inDb.name !== 'Lead' &&
+    !inDb.name.startsWith('{{')
+  );
+  const isAlreadyClient = Boolean(
+    inDb?.is_registered === true ||
+    inDb?.is_verified === true ||
+    inDb?.cliente_salvo === true ||
+    (inDb?.status === 'active' && (existingHasClientTag || existingHasRealName)) ||
+    (existingHasRealName && existingHasClientTag) ||
+    existingHasClientTag
+  );
+
+  existingContact = inDb || {
     id: `contact-${targetPhone}`,
     phone: targetPhone,
     name: safeCustomerName ? formatCustomerName(safeCustomerName) : 'Cliente WhatsApp',
     whatsapp_pushname: safeCustomerName || undefined,
     profile_picture_url: profilePicUrl || undefined,
-    status: 'lead',
-    tags: explicitTags || ['Lead'],
-    is_registered: false,
+    status: isAlreadyClient ? 'active' : 'lead',
+    tags: isAlreadyClient ? ['Cliente WhatsApp', 'Bot', 'Cliente'] : (explicitTags || ['Lead']),
+    is_registered: isAlreadyClient,
     metadata: {},
     created_at: now,
   };
 
   if (safeCustomerName) {
     existingContact.whatsapp_pushname = safeCustomerName;
-    // NUNCA sobrescrever com pushName se o contato já foi registrado com nome real
-    if (!existingContact.is_registered && (!existingContact.name || existingContact.name === 'Cliente WhatsApp' || existingContact.name === 'Cliente')) {
+    // NUNCA sobrescrever se o contato já possui nome real personalizado cadastrado
+    const currentName = existingContact.name || '';
+    const isGenericName = !currentName || currentName === 'Cliente WhatsApp' || currentName === 'Cliente' || currentName === 'Lead' || currentName.startsWith('{{');
+    if (!isAlreadyClient && isGenericName) {
       existingContact.name = formatCustomerName(safeCustomerName) || safeCustomerName;
     }
   }
@@ -954,6 +1106,26 @@ export function recordRealMessage(phone, senderName, direction, content, explici
   }
   if (explicitTags && Array.isArray(explicitTags)) {
     existingContact.tags = explicitTags;
+  }
+
+  // Clientes já registrados mantêm status active e removem a tag "Lead"
+  if (isAlreadyClient || existingContact.is_registered) {
+    existingContact.is_registered = true;
+    existingContact.status = 'active';
+    if (Array.isArray(existingContact.tags)) {
+      existingContact.tags = existingContact.tags.filter(t => t.toLowerCase() !== 'lead');
+      if (existingContact.tags.length === 0) {
+        existingContact.tags = ['Cliente WhatsApp', 'Bot', 'Cliente'];
+      }
+    } else {
+      existingContact.tags = ['Cliente WhatsApp', 'Bot', 'Cliente'];
+    }
+  } else {
+    existingContact.is_registered = false;
+    existingContact.status = 'lead';
+    if (!existingContact.tags || existingContact.tags.length === 0) {
+      existingContact.tags = ['Lead'];
+    }
   }
 
   existingContact.updated_at = now;
@@ -1001,12 +1173,14 @@ export function recordRealMessage(phone, senderName, direction, content, explici
 
   saveDb(db);
 
-  // Real-time sync to Supabase Database
-  if (existingContact) {
-    syncContactToSupabase(existingContact);
+  // Real-time sync to Supabase Database (apenas para números reais de celular, sem poluir CRM com LID puro)
+  if (!isTargetLid) {
+    if (existingContact) {
+      syncContactToSupabase(existingContact);
+    }
+    syncConversationToSupabase(existingConv);
+    syncMessageToSupabase(msgObj, targetPhone);
   }
-  syncConversationToSupabase(existingConv);
-  syncMessageToSupabase(msgObj, targetPhone);
 
   recordLiveLog(
     direction === 'inbound' ? 'message_inbound' : 'message_outbound',
@@ -1168,8 +1342,16 @@ export function getLiveContacts() {
 
 // Function to find if a contact is already registered (in Supabase or Local DB)
 export async function findRegisteredContact(cleanPhone, senderName, db, checkCriteria = 'crm_or_name') {
-  const digitsOnly = (cleanPhone || '').replace(/\D/g, '');
+  let digitsOnly = (cleanPhone || '').replace(/\D/g, '');
   if (!digitsOnly) return { isRegistered: false, contact: null };
+
+  // Se o número for um LID (14+ dígitos ou 1686/219), tentar resolver o telefone celular real vinculado
+  if (digitsOnly.length >= 14 || digitsOnly.startsWith('1686') || digitsOnly.startsWith('219')) {
+    const { primaryPhone } = resolveLinkedPhones(digitsOnly, db);
+    if (primaryPhone && primaryPhone.length >= 8 && primaryPhone.length <= 13) {
+      digitsOnly = primaryPhone;
+    }
+  }
 
   // Generate phone variations: with 55, without 55, with/without 9th digit
   const variations = new Set();
@@ -1197,10 +1379,10 @@ export async function findRegisteredContact(cleanPhone, senderName, db, checkCri
   // Helper to determine if contact has verified client status
   const isVerifiedClient = (c) => {
     if (!c) return false;
-    // Explicitly unverified/leads or unregistered contacts are NEVER existing clients
-    if (c.status === 'lead' || c.is_registered === false) return false;
-    if (c.is_registered === true || c.is_verified === true) return true;
-    
+
+    // Se o contato foi explicitamente registrado no bot ou CRM
+    if (c.is_registered === true || c.is_verified === true || c.cliente_salvo === true) return true;
+
     // Check tags: safely parse tags if string or array
     const rawTags = c.tags;
     const tagList = Array.isArray(rawTags)
@@ -1210,18 +1392,11 @@ export async function findRegisteredContact(cleanPhone, senderName, db, checkCri
       : [];
 
     const hasClientTag = tagList.some((t) => 
-      t.includes('cliente') || t.includes('vip') || t.includes('recorrente') || t.includes('mensalista') || t.includes('salvo') || t.includes('cadastrado')
+      t.includes('cliente') || t.includes('vip') || t.includes('recorrente') || t.includes('mensalista') || t.includes('cadastrado')
     );
+    const hasLeadTag = tagList.includes('lead');
 
-    if (checkCriteria === 'tag') {
-      return hasClientTag;
-    }
-
-    if (hasClientTag) {
-      return true;
-    }
-
-    // Check orders / purchases / appointments
+    // Check orders / purchases / appointments (histórico comprovado)
     if ((Number(c.total_orders) || 0) > 0 || (Number(c.total_spent) || 0) > 0 || (Number(c.orders_count) || 0) > 0) {
       return true;
     }
@@ -1230,29 +1405,24 @@ export async function findRegisteredContact(cleanPhone, senderName, db, checkCri
       return false;
     }
 
-    // Clean Real Name check:
-    const cleanName = String(c.name || '').trim();
-    const isRealName = Boolean(
-      cleanName && 
-      cleanName.toLowerCase() !== 'cliente' && 
-      cleanName.toLowerCase() !== 'cliente whatsapp' && 
-      cleanName.toLowerCase() !== 'cliente pitoco' && 
-      cleanName.toLowerCase() !== 'novo cliente' && 
-      cleanName.toLowerCase() !== 'cliente novo' && 
-      cleanName.toLowerCase() !== 'nome_cliente' && 
-      cleanName.toLowerCase() !== 'undefined' && 
-      cleanName.toLowerCase() !== 'null' && 
-      !cleanName.includes('{{')
-    );
-
-    // If contact has a real name in CRM/Database and status is active (or undefined/not lead), they are a saved contact!
-    if (isRealName && (c.status === 'active' || !c.status)) {
+    // Se tem tag de cliente e NÃO tem tag exclusiva de lead (ou possui múltiplas tags incluindo cliente)
+    if (hasClientTag && (!hasLeadTag || tagList.length > 1)) {
       return true;
     }
 
-    if (c.custom_fields && Object.keys(c.custom_fields).length > 0) {
+    // Se tem nome real personalizado cadastrado (diferente de placeholders)
+    const invalidNames = ['cliente whatsapp', 'cliente', 'lead', 'contato', 'novo contato', 'undefined', 'null', ''];
+    const cName = String(c.name || '').trim().toLowerCase();
+    const hasRealName = Boolean(cName && !invalidNames.includes(cName) && !cName.startsWith('{{') && !/^\d+$/.test(cName));
+
+    if (hasRealName && (c.status === 'active' || hasClientTag || !hasLeadTag)) {
       return true;
     }
+
+    // Se o contato for puramente lead sem nome e sem tag de cliente
+    if (c.status === 'lead' || hasLeadTag) return false;
+
+    if (c.status === 'active') return true;
 
     return false;
   };
@@ -1264,6 +1434,8 @@ export async function findRegisteredContact(cleanPhone, senderName, db, checkCri
     for (const v of variations) {
       if (cDigits && (cDigits === v || cDigits.endsWith(v) || v.endsWith(cDigits))) {
         if (isVerifiedClient(c)) {
+          c.is_registered = true;
+          c.status = 'active';
           return { isRegistered: true, contact: c, hasRealName: true };
         }
       }
@@ -1283,11 +1455,16 @@ export async function findRegisteredContact(cleanPhone, senderName, db, checkCri
           .maybeSingle();
 
         if (clientRes.data && !clientRes.error && isVerifiedClient(clientRes.data)) {
+          const clientData = {
+            ...clientRes.data,
+            is_registered: true,
+            status: 'active',
+          };
           if (!db.contacts) db.contacts = {};
-          db.contacts[cleanPhone] = clientRes.data;
-          db.contacts[clientRes.data.phone] = clientRes.data;
+          db.contacts[cleanPhone] = clientData;
+          db.contacts[clientRes.data.phone] = clientData;
           saveDb(db);
-          return { isRegistered: true, contact: clientRes.data, hasRealName: true };
+          return { isRegistered: true, contact: clientData, hasRealName: true };
         }
 
         // Fallback em contacts
@@ -1299,11 +1476,20 @@ export async function findRegisteredContact(cleanPhone, senderName, db, checkCri
           .maybeSingle();
 
         if (contactRes.data && !contactRes.error && isVerifiedClient(contactRes.data)) {
+          const contactData = {
+            ...contactRes.data,
+            is_registered: true,
+            status: 'active',
+          };
           if (!db.contacts) db.contacts = {};
-          db.contacts[cleanPhone] = contactRes.data;
-          db.contacts[contactRes.data.phone] = contactRes.data;
+          db.contacts[cleanPhone] = contactData;
+          db.contacts[contactRes.data.phone] = contactData;
           saveDb(db);
-          return { isRegistered: true, contact: contactRes.data, hasRealName: true };
+
+          // Auto-heal: sincronizar para clients se faltava
+          syncContactToSupabase(contactData);
+
+          return { isRegistered: true, contact: contactData, hasRealName: true };
         }
       }
     } catch (e) {
@@ -1512,20 +1698,20 @@ export async function getActiveFlowAndGraph(db, preferredFlowId = null, incoming
   // 1. Consultar diretamente TODOS os fluxos com status ATIVO no Supabase
   if (supabaseClient && supabaseHasFlowsTable !== false) {
     try {
-      const { data, error } = await supabaseClient
+      const { data: allSupabaseFlows, error } = await supabaseClient
         .from('flows')
-        .select('*')
-        .or('is_active.eq.true,status.eq.published');
+        .select('*');
 
       if (error && (error.code === 'PGRST205' || String(error.message || '').includes('Could not find the table'))) {
         supabaseHasFlowsTable = false;
-      } else if (!error && Array.isArray(data)) {
+      } else if (!error && Array.isArray(allSupabaseFlows)) {
         supabaseHasFlowsTable = true;
-        activeFlows = data.filter((f) => f.is_active === true || f.status === 'published');
-        // Mesclar com fluxos locais ativos
+        activeFlows = allSupabaseFlows.filter((f) => f.is_active === true || f.status === 'published');
+        // Mesclar apenas fluxos locais que NÃO existam no Supabase (ex: criados offline)
         const localActives = (db.flows || []).filter((f) => f.status === 'published' || f.is_active === true);
         for (const lf of localActives) {
-          if (!activeFlows.some(af => af.id === lf.id)) {
+          const existsInSupabase = allSupabaseFlows.some(sf => sf.id === lf.id);
+          if (!existsInSupabase && !activeFlows.some(af => af.id === lf.id)) {
             activeFlows.push(lf);
           }
         }
@@ -1828,23 +2014,36 @@ export async function getActiveFlowAndGraph(db, preferredFlowId = null, incoming
 }
 
 // Execute published flow
-export async function executePublishedFlow(senderJid, messageText, pushName, realPhoneNumber = null, profilePicUrl = null) {
+export async function executePublishedFlow(senderJid, messageText, pushName, realPhoneNumber = null, profilePicUrl = null, isSimulation = false) {
   const db = loadDb();
   const rawId = senderJid.split('@')[0].split(':')[0];
   const cleanPhone = (realPhoneNumber || rawId).replace(/\D/g, '');
   const senderName = pushName || 'Cliente';
   const cleanInput = (messageText || '').trim();
+  const isSim = Boolean(isSimulation || isTestOrDummy(cleanPhone, senderName));
 
-  // Record incoming message in real database
-  recordRealMessage(cleanPhone, senderName, 'inbound', cleanInput, null, profilePicUrl);
+  // Record incoming message in real database (apenas para atendimentos reais)
+  if (!isSim) {
+    recordRealMessage(cleanPhone, senderName, 'inbound', cleanInput, null, profilePicUrl);
+  }
+
+  const { primaryPhone, allPhones } = resolveLinkedPhones(cleanPhone, db);
+  const targetPhone = (primaryPhone && primaryPhone.length >= 10 && primaryPhone.length <= 13) ? primaryPhone : cleanPhone;
+
+  // Auto-resolver foto de perfil do WhatsApp se não foi fornecida diretamente
+  if (!profilePicUrl && whatsAppProfilePicGetter && !isSim) {
+    try {
+      profilePicUrl = await whatsAppProfilePicGetter(targetPhone || cleanPhone);
+    } catch (e) {}
+  }
+  if (!profilePicUrl && db.contacts?.[targetPhone]?.profile_picture_url) {
+    profilePicUrl = db.contacts[targetPhone].profile_picture_url;
+  }
 
   const convId = `conv-${cleanPhone}`;
   const currentConv = db.conversations?.[convId] || Object.values(db.conversations || {}).find(c => 
     String(c?.phone || c?.contact_phone || '').replace(/\D/g, '') === cleanPhone
   );
-
-  const { primaryPhone, allPhones } = resolveLinkedPhones(cleanPhone, db);
-  const targetPhone = (primaryPhone && primaryPhone.length >= 10 && primaryPhone.length <= 13) ? primaryPhone : cleanPhone;
 
   // 1. Obter sessão atual buscando em todas as chaves vinculadas (telefone real, LID, rawId)
   let existingSession = null;
@@ -1911,7 +2110,8 @@ export async function executePublishedFlow(senderJid, messageText, pushName, rea
       saveDb(db);
     }
 
-    if (currentConv.status === 'human') {
+    if (currentConv.status === 'human' || currentConv.status === 'waiting_human') {
+      const isWaitingHuman = currentConv.status === 'waiting_human';
       const isUnassigned = !currentConv.assigned_to || currentConv.assigned_to === 'undefined' || currentConv.assigned_to === null;
       const lastAttendantTime = new Date(currentConv.last_attendant_message_at || currentConv.updated_at || 0).getTime();
       const isHumanExpired = (Date.now() - lastAttendantTime) > (15 * 60 * 1000);
@@ -1923,8 +2123,8 @@ export async function executePublishedFlow(senderJid, messageText, pushName, rea
         'voltar', 'oi', 'olá', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'start', 'bot'
       ].some(cmd => cleanLower === cmd || cleanTextOnly === cmd || cleanTextOnly.startsWith(`${cmd} `));
 
-      if (isKeywordMatch || isBotHandoffReturn || isUnassigned || isHumanExpired) {
-        console.log(`🤖 [FlowRunner] Retornando de atendimento humano para robô para ${cleanPhone}.`);
+      if (isWaitingHuman || isKeywordMatch || isBotHandoffReturn || isUnassigned || isHumanExpired) {
+        console.log(`🤖 [FlowRunner] Retornando de atendimento humano/espera para robô para ${cleanPhone}.`);
         currentConv.status = 'bot';
         currentConv.assigned_to = null;
         currentConv.assigned_attendant_name = null;
@@ -1966,15 +2166,25 @@ export async function executePublishedFlow(senderJid, messageText, pushName, rea
   // Se o fluxo mudou (apenas quando o anterior já terminou) ou sessão expirou ou não há nó atual:
   const isReset = !isFlowInProgress;
 
-  session.variables = {
-    ...session.variables,
-    whatsapp_pushname: senderName || '',
-    telefone_cliente: targetPhone,
-    telefone_whatsapp: targetPhone,
-    ultima_mensagem: cleanInput,
-  };
-  if (!session.variables.nome_cliente) {
-    session.variables.nome_cliente = '';
+  if (isReset) {
+    session.variables = {
+      whatsapp_pushname: senderName || '',
+      telefone_cliente: targetPhone,
+      telefone_whatsapp: targetPhone,
+      ultima_mensagem: cleanInput,
+      nome_cliente: '',
+      cliente_nome: '',
+      nome: '',
+      primeiro_nome: '',
+    };
+  } else {
+    session.variables = {
+      ...session.variables,
+      whatsapp_pushname: senderName || session.variables.whatsapp_pushname || '',
+      telefone_cliente: targetPhone,
+      telefone_whatsapp: targetPhone,
+      ultima_mensagem: cleanInput,
+    };
   }
 
   const botProfile = { ...(db.botProfile || {}) };
@@ -2107,7 +2317,7 @@ function parseCustomDateString(input) {
         if (!db.contacts) db.contacts = {};
         const isTargetLid = targetPhone.length >= 14 || targetPhone.startsWith('1686') || targetPhone.startsWith('219');
 
-        if (!isTargetLid) {
+        if (!isTargetLid && !isSim && !isTestOrDummy(targetPhone, extractedName)) {
           if (!db.contacts[targetPhone]) {
             db.contacts[targetPhone] = {
               id: `contact-${targetPhone}`,
@@ -2150,8 +2360,8 @@ function parseCustomDateString(input) {
             delete db.contacts[p];
             if (db.conversations) delete db.conversations[`conv-${p}`];
             if (supabaseClient) {
-              supabaseClient.from('clients').delete().eq('phone', p).catch(() => {});
-              supabaseClient.from('contacts').delete().eq('phone', p).catch(() => {});
+              Promise.resolve(supabaseClient.from('clients').delete().eq('phone', p)).catch(() => {});
+              Promise.resolve(supabaseClient.from('contacts').delete().eq('phone', p)).catch(() => {});
             }
           }
         }
@@ -2631,24 +2841,41 @@ function parseCustomDateString(input) {
         }
       }
 
-      // Fallback robusto se a variável não foi substituída ou contiver valores genéricos
-      const isUnresolved = !resolvedName || 
-                           resolvedName.startsWith('{{') || 
-                           resolvedName.endsWith('}}') || 
-                           ['nome_cliente', 'cliente_nome', 'nome', 'resposta_usuario', 'nome_clientenovo', 'undefined', 'null', 'Cliente WhatsApp', 'Cliente', 'Cliente Pitoco'].includes(resolvedName.trim());
+      // Candidatos a nome em ordem de prioridade
+      const invalidPlaceholders = new Set([
+        'nome_cliente', 'cliente_nome', 'nome', 'resposta_usuario', 'nome_clientenovo',
+        'undefined', 'null', 'cliente whatsapp', 'cliente', 'cliente pitoco', 'lead'
+      ]);
 
-      if (isUnresolved) {
-        resolvedName = session.variables['nome_clientenovo'] || 
-                       session.variables['nome_cliente'] || 
-                       session.variables['cliente_nome'] || 
-                       session.variables['nome'] || 
-                       (senderName && senderName !== 'Cliente' && senderName !== 'Cliente Pitoco' ? senderName : '') || 
-                       'Cliente WhatsApp';
+      const isInvalidName = (n) => {
+        if (!n) return true;
+        const s = String(n).trim().toLowerCase();
+        if (!s || s.startsWith('{{') || s.endsWith('}}')) return true;
+        if (invalidPlaceholders.has(s)) return true;
+        if (/^\d+$/.test(s)) return true;
+        return false;
+      };
+
+      if (isInvalidName(resolvedName)) {
+        const candidateKeys = [
+          session.variables['resposta_usuario'],
+          session.variables['nome_clientenovo'],
+          session.variables['nome_cliente'],
+          session.variables['cliente_nome'],
+          session.variables['nome'],
+          cleanInput,
+          senderName
+        ];
+        resolvedName = '';
+        for (const cand of candidateKeys) {
+          if (cand && !isInvalidName(cand)) {
+            resolvedName = cand;
+            break;
+          }
+        }
       }
-      resolvedName = formatCustomerName(resolvedName);
-      if (!resolvedName || /^\d+$/.test(resolvedName)) {
-        resolvedName = (senderName && senderName !== 'Cliente' && senderName !== 'Cliente Pitoco') ? formatCustomerName(senderName) : 'Cliente WhatsApp';
-      }
+
+      resolvedName = formatCustomerName(resolvedName) || 'Cliente WhatsApp';
 
       // 2. Resolver Telefone do Cliente (Interagindo, Variável ou Fixo)
       let targetPhone = cleanPhone;
@@ -2681,7 +2908,20 @@ function parseCustomDateString(input) {
       // 3. Resolver Foto do Perfil do WhatsApp
       let resolvedPhoto = '';
       if (config.saveProfilePicture !== false) {
-        resolvedPhoto = profilePicUrl || (db.conversations && (db.conversations[`conv-${targetPhone}`]?.profile_pic || db.conversations[`conv-${cleanPhone}`]?.profile_pic)) || '';
+        if (!resolvedPhoto && whatsAppProfilePicGetter && !isSim) {
+          try {
+            resolvedPhoto = await whatsAppProfilePicGetter(targetPhone);
+          } catch (e) {}
+        }
+        if (!resolvedPhoto && profilePicUrl) {
+          resolvedPhoto = profilePicUrl;
+        }
+        if (!resolvedPhoto && db.conversations) {
+          resolvedPhoto = db.conversations[`conv-${targetPhone}`]?.profile_pic || db.conversations[`conv-${cleanPhone}`]?.profile_pic || '';
+        }
+        if (!resolvedPhoto && db.contacts) {
+          resolvedPhoto = db.contacts[targetPhone]?.profile_picture_url || db.contacts[cleanPhone]?.profile_picture_url || '';
+        }
       }
       if (config.customPhotoUrl) {
         const customP = replaceVars(config.customPhotoUrl, session.variables, botProfile);
@@ -2713,17 +2953,22 @@ function parseCustomDateString(input) {
       let savedContact = null;
       const isTargetLid = targetPhone.length >= 14 || targetPhone.startsWith('1686') || targetPhone.startsWith('219');
 
-      if (!isTargetLid) {
+      if (!isTargetLid && !isSim && !isTestOrDummy(targetPhone, resolvedName)) {
         const existing = (typeof db.contacts === 'object' && !Array.isArray(db.contacts)) ? (db.contacts[targetPhone] || {}) : {};
+        
+        // Limpar a tag "Lead" ao cadastrar/atualizar como cliente ativo
+        const existingTags = (existing.tags || []).filter(t => t.toLowerCase() !== 'lead');
+        const finalTags = Array.from(new Set([...tagsList, ...existingTags, 'Cliente WhatsApp', 'Bot'])).filter(t => t.toLowerCase() !== 'lead');
+
         const contactObj = {
           id: existing.id || `contact-${targetPhone}`,
           name: resolvedName || existing.name || 'Cliente WhatsApp',
           phone: targetPhone,
-          profile_picture_url: resolvedPhoto || existing.profile_picture_url,
+          profile_picture_url: resolvedPhoto || existing.profile_picture_url || null,
           baby_name: babyName || existing.baby_name,
           due_date: dueDate || existing.due_date,
           email: email || existing.email,
-          tags: Array.from(new Set([...(existing.tags || []), ...tagsList, 'Cliente', 'Cliente WhatsApp', 'Bot'])),
+          tags: finalTags,
           status: 'active',
           is_registered: true,
           notes: notes || existing.notes || 'Cadastrado e atualizado pelo fluxo do bot',
@@ -2757,17 +3002,15 @@ function parseCustomDateString(input) {
           delete db.contacts[p];
           if (db.conversations) delete db.conversations[`conv-${p}`];
           if (supabaseClient) {
-            supabaseClient.from('clients').delete().eq('phone', p).catch(() => {});
-            supabaseClient.from('contacts').delete().eq('phone', p).catch(() => {});
+            Promise.resolve(supabaseClient.from('clients').delete().eq('phone', p)).catch(() => {});
+            Promise.resolve(supabaseClient.from('contacts').delete().eq('phone', p)).catch(() => {});
           }
         }
       }
 
-      try {
-        fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2), 'utf-8');
-      } catch (err) {}
+      saveDb(db);
 
-      // 8. Variáveis no Contexto da Conversa com todos os aliases
+      // 9. Variáveis no Contexto da Conversa com todos os aliases
       session.variables['cliente_salvo'] = true;
       session.variables['cliente_id'] = savedContact?.id;
       session.variables['cliente_nome'] = resolvedName;
@@ -2789,10 +3032,13 @@ function parseCustomDateString(input) {
       session.variables['telefone_whatsapp'] = targetPhone;
       session.variables['cliente_foto'] = resolvedPhoto;
       session.variables['foto_cliente'] = resolvedPhoto;
+      session.variables['profile_picture_url'] = resolvedPhoto;
+      session.variables['{{cliente_foto}}'] = resolvedPhoto;
+      session.variables['{{foto_cliente}}'] = resolvedPhoto;
       if (babyName) session.variables['cliente_bebe'] = babyName;
       if (dueDate) session.variables['cliente_dpp'] = dueDate;
 
-      console.log(`[FlowRunner] 💾 [Salvar Dados] Contato salvo: "${resolvedName}" (${targetPhone}) | Foto: ${resolvedPhoto ? 'Sim' : 'Não'} | Tags: [${tagsList.join(', ')}]`);
+      console.log(`[FlowRunner] 💾 [Salvar Dados] Contato salvo: "${resolvedName}" (${targetPhone}) | Foto: ${resolvedPhoto ? 'Sim' : 'Não'} | Tags: [${(savedContact?.tags || tagsList).join(', ')}]`);
 
       const outgoing = edges.find((e) => e.source === currentNode.id);
       if (outgoing) {
@@ -2807,7 +3053,13 @@ function parseCustomDateString(input) {
 
     // 4. Check Contact Node (Primeiro Contato vs Contato Salvo / Recorrente)
     else if (nodeType === 'check_contact') {
-      let checkPhone = cleanPhone;
+      // 1. Sempre resolver o telefone real do cliente (evita LID puro 1686...)
+      let checkPhone = targetPhone || cleanPhone;
+      const { primaryPhone } = resolveLinkedPhones(cleanPhone, db);
+      if (primaryPhone && primaryPhone.length >= 8 && primaryPhone.length <= 13) {
+        checkPhone = primaryPhone;
+      }
+
       if (config.phoneMode === 'variable' && config.phoneVariable) {
         const varKey = config.phoneVariable.replace(/[{}]/g, '').trim();
         const extracted = session.variables[varKey] || session.variables[config.phoneVariable] || replaceVars(config.phoneVariable, session.variables, botProfile);
@@ -2815,26 +3067,50 @@ function parseCustomDateString(input) {
         if (cleanExt.length >= 8) checkPhone = cleanExt;
       }
 
-      const contactInfo = await findRegisteredContact(checkPhone, senderName, db, config.checkCriteria || 'crm_or_name');
+      // Se a sessão atual já registrou o cliente nesta mesma execução ativa (ex: acabou de passar por update_contact)
+      const sessionAlreadyRegistered = Boolean(
+        !isReset && session.variables['cliente_salvo'] === true
+      );
+
+      const contactInfo = sessionAlreadyRegistered
+        ? { isRegistered: true, contact: db.contacts?.[checkPhone] || { name: session.variables['nome_cliente'] || session.variables['cliente_nome'] || senderName } }
+        : await findRegisteredContact(checkPhone, senderName, db, config.checkCriteria || 'crm_or_name');
+
       const isNew = !contactInfo.isRegistered;
       const contact = contactInfo.contact;
 
-      // Populate rich context variables
+      // Popular variáveis no contexto da sessão com todos os aliases
       session.variables['is_primeiro_contato'] = isNew;
       session.variables['is_novo_contato'] = isNew;
       session.variables['is_existing_contact'] = !isNew;
       session.variables['tipo_cliente'] = isNew ? 'novo' : 'recorrente';
       session.variables['telefone_whatsapp'] = checkPhone;
+      session.variables['cliente_telefone'] = checkPhone;
 
       if (contact?.custom_fields) {
         Object.assign(session.variables, contact.custom_fields);
       }
       if (!isNew && contact?.name) {
-        session.variables['nome_cliente'] = contact.name;
-        session.variables['cliente_nome'] = contact.name;
-        session.variables['nome'] = contact.name;
-        const firstName = String(contact.name).trim().split(' ')[0] || contact.name;
+        const resolvedName = contact.name;
+        const firstName = String(resolvedName).trim().split(' ')[0] || resolvedName;
+        session.variables['nome_cliente'] = resolvedName;
+        session.variables['cliente_nome'] = resolvedName;
+        session.variables['nome'] = resolvedName;
         session.variables['primeiro_nome'] = firstName;
+        session.variables['{{nome_cliente}}'] = resolvedName;
+        session.variables['{{cliente_nome}}'] = resolvedName;
+        session.variables['{{nome}}'] = resolvedName;
+        session.variables['{{primeiro_nome}}'] = firstName;
+      } else if (isNew) {
+        // Se for novo contato, NUNCA definir nome_cliente antes do cliente digitar seu nome
+        session.variables['nome_cliente'] = '';
+        session.variables['cliente_nome'] = '';
+        session.variables['nome'] = '';
+        session.variables['primeiro_nome'] = '';
+        delete session.variables['{{nome_cliente}}'];
+        delete session.variables['{{cliente_nome}}'];
+        delete session.variables['{{nome}}'];
+        delete session.variables['{{primeiro_nome}}'];
       }
       if (contact?.tags) {
         const rawTags = contact.tags;
@@ -2844,7 +3120,7 @@ function parseCustomDateString(input) {
 
       console.log(`[FlowRunner] 👥 [Check Contact] Verificação para ${checkPhone}: ${isNew ? '🆕 NOVO CONTATO (1ª Vez)' : `✅ CONTATO JÁ CADASTRADO ("${contact?.name || 'Cliente'}")`}`);
 
-      // Follow edge from 'is_new' or 'is_existing' handle
+      // Seguir edge da saída 'is_new' ou 'is_existing'
       const targetHandle = isNew ? 'is_new' : 'is_existing';
       let branchEdge = edges.find((e) => e.source === currentNode.id && e.sourceHandle === targetHandle);
 
@@ -2853,18 +3129,15 @@ function parseCustomDateString(input) {
           (e) =>
             e.source === currentNode.id &&
             (isNew
-              ? e.sourceHandle?.includes('new') || e.sourceHandle?.includes('novo')
-              : e.sourceHandle?.includes('exist') || e.sourceHandle?.includes('salvo') || e.sourceHandle?.includes('recorrente'))
+              ? (e.sourceHandle?.includes('new') || e.sourceHandle?.includes('novo') || e.id?.includes('is_new') || e.id?.includes('new'))
+              : (e.sourceHandle?.includes('exist') || e.sourceHandle?.includes('salvo') || e.sourceHandle?.includes('recorrente') || e.id?.includes('is_existing') || e.id?.includes('exist')))
         );
       }
 
       if (!branchEdge) {
-        const nodeEdges = edges.filter((e) => e.source === currentNode.id);
-        if (nodeEdges.length >= 2) {
-          branchEdge = isNew ? nodeEdges[0] : nodeEdges[1];
-        } else {
-          branchEdge = nodeEdges[0];
-        }
+        const newEdge = edges.find(e => e.source === currentNode.id && (e.sourceHandle === 'is_new' || e.id?.includes('is_new') || e.id?.includes('new')));
+        const existingEdge = edges.find(e => e.source === currentNode.id && (e.sourceHandle === 'is_existing' || e.id?.includes('is_existing') || e.id?.includes('exist')));
+        branchEdge = isNew ? (newEdge || existingEdge) : (existingEdge || newEdge);
       }
 
       if (branchEdge) {
@@ -3751,16 +4024,18 @@ function parseCustomDateString(input) {
     break;
   }
 
-  // Save session in DB across all linked phones
-  if (!db.sessions) db.sessions = {};
-  for (const p of [targetPhone, cleanPhone, rawId, ...allPhones]) {
-    db.sessions[p] = session;
-  }
-  saveDb(db);
+  // Save session in DB across all linked phones (apenas para atendimentos reais)
+  if (!isSim) {
+    if (!db.sessions) db.sessions = {};
+    for (const p of [targetPhone, cleanPhone, rawId, ...allPhones]) {
+      db.sessions[p] = session;
+    }
+    saveDb(db);
 
-  // Record all outbound replies
-  for (const rep of replies) {
-    recordRealMessage(cleanPhone, senderName, 'outbound', rep);
+    // Record all outbound replies
+    for (const rep of replies) {
+      recordRealMessage(cleanPhone, senderName, 'outbound', rep);
+    }
   }
 
   return replies.length > 0 ? replies : [`Mensagem processada pelo fluxo *${publishedFlow.name}*!`];
