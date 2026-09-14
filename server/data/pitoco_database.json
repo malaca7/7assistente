@@ -717,70 +717,12 @@
     ],
     "flow-pitoco-001": [
       {
-        "id": "node-message-1788908658917",
-        "flow_id": "flow-pitoco-001",
-        "type": "message",
-        "position": {
-          "x": 425,
-          "y": 1510
-        },
-        "data": {
-          "label": "Enviar Mensagem",
-          "config": {
-            "text": "👶✨ Olá *{{nome_cliente}}*! Seja muito bem-vindo(a) à *{{empresa}}*!",
-            "previewUrl": false
-          },
-          "nodeType": "message",
-          "description": "Envia texto formatado no WhatsApp com variáveis dinâmicas (ex: {{nome_cliente}}).",
-          "isConfigured": true
-        }
-      },
-      {
-        "id": "node-human_handoff-1789176476938",
-        "flow_id": "flow-pitoco-001",
-        "type": "human_handoff",
-        "position": {
-          "x": 425,
-          "y": 3370
-        },
-        "data": {
-          "label": "Transferir para Humano",
-          "config": {
-            "department": "Atendimento Geral",
-            "notifyMessage": "Você foi transferido para um de nossos atendentes humanos."
-          },
-          "nodeType": "human_handoff",
-          "description": "Pausa as respostas automáticas do bot e notifica um atendente humano.",
-          "isConfigured": true
-        }
-      },
-      {
-        "id": "node-question-1788893542405",
-        "flow_id": "flow-pitoco-001",
-        "type": "question",
-        "position": {
-          "x": 80,
-          "y": 730
-        },
-        "data": {
-          "label": "Pergunta & Resposta",
-          "config": {
-            "expectedType": "text",
-            "questionText": "Por favor, informe seu *Nome*:",
-            "variableName": "nome_clientenovo"
-          },
-          "nodeType": "question",
-          "description": "Faz uma pergunta ao cliente e salva o texto digitado em uma variável.",
-          "isConfigured": true
-        }
-      },
-      {
         "id": "node-update_contact-1788906881259",
         "flow_id": "flow-pitoco-001",
         "type": "update_contact",
         "position": {
           "x": 80,
-          "y": 1090
+          "y": 1120
         },
         "data": {
           "label": "Salvar / Vincular Dados",
@@ -799,12 +741,90 @@
         }
       },
       {
+        "id": "node-question-1789276221154",
+        "flow_id": "flow-pitoco-001",
+        "type": "question",
+        "position": {
+          "x": 80,
+          "y": 800
+        },
+        "data": {
+          "label": "Pergunta & Resposta",
+          "config": {
+            "expectedType": "text",
+            "questionText": "Por favor, informe seu *Nome*:",
+            "variableName": "nome_clientenovo"
+          },
+          "nodeType": "question",
+          "description": "Faz uma pergunta ao cliente e salva o texto digitado em uma variável.",
+          "isConfigured": true
+        }
+      },
+      {
+        "id": "node-message-1788908658917",
+        "flow_id": "flow-pitoco-001",
+        "type": "message",
+        "position": {
+          "x": 425,
+          "y": 1505
+        },
+        "data": {
+          "label": "Enviar Mensagem",
+          "config": {
+            "text": "👶✨ Olá *{{nome_cliente}}*! Seja muito bem-vindo(a) à *{{empresa}}*!",
+            "previewUrl": false
+          },
+          "nodeType": "message",
+          "description": "Envia texto formatado no WhatsApp com variáveis dinâmicas (ex: {{nome_cliente}}).",
+          "isConfigured": true
+        }
+      },
+      {
+        "id": "node-human_handoff-1789176476938",
+        "flow_id": "flow-pitoco-001",
+        "type": "human_handoff",
+        "position": {
+          "x": 550,
+          "y": 3495
+        },
+        "data": {
+          "label": "Transferir para Humano",
+          "config": {
+            "department": "Atendimento Geral",
+            "notifyMessage": "Você foi transferido para um de nossos atendentes humanos."
+          },
+          "nodeType": "human_handoff",
+          "description": "Pausa as respostas automáticas do bot e notifica um atendente humano.",
+          "isConfigured": true
+        }
+      },
+      {
+        "id": "node-question-1788893542405",
+        "flow_id": "flow-pitoco-001",
+        "type": "question",
+        "position": {
+          "x": 905,
+          "y": 800
+        },
+        "data": {
+          "label": "Pergunta & Resposta",
+          "config": {
+            "expectedType": "text",
+            "questionText": "Por favor, informe seu *Nome*:",
+            "variableName": "nome_clientenovo"
+          },
+          "nodeType": "question",
+          "description": "Faz uma pergunta ao cliente e salva o texto digitado em uma variável.",
+          "isConfigured": true
+        }
+      },
+      {
         "id": "node-check_contact-1788893686878",
         "flow_id": "flow-pitoco-001",
         "type": "check_contact",
         "position": {
-          "x": 425,
-          "y": 370
+          "x": 665,
+          "y": 400
         },
         "data": {
           "label": "Verificar Contato (Novo vs Salvo)",
@@ -819,8 +839,8 @@
         "flow_id": "flow-pitoco-001",
         "type": "trigger",
         "position": {
-          "x": 425,
-          "y": 80
+          "x": 665,
+          "y": 105
         },
         "data": {
           "label": "Gatilho Inicial",
@@ -840,7 +860,7 @@
         "type": "measure_guide",
         "position": {
           "x": 905,
-          "y": 3010
+          "y": 3025
         },
         "data": {
           "label": "Guia de Medidas (RN a 3 Anos)",
@@ -859,7 +879,7 @@
         "type": "message",
         "position": {
           "x": 425,
-          "y": 1870
+          "y": 1845
         },
         "data": {
           "label": "Enviar Mensagem",
@@ -877,8 +897,8 @@
         "flow_id": "flow-pitoco-001",
         "type": "show_catalog",
         "position": {
-          "x": 80,
-          "y": 3010
+          "x": 205,
+          "y": 3015
         },
         "data": {
           "label": "Vitrine da Loja Virtual",
@@ -899,7 +919,7 @@
         "type": "store_selector",
         "position": {
           "x": 425,
-          "y": 2230
+          "y": 2185
         },
         "data": {
           "label": "Escolha de Loja / Filial",
@@ -918,7 +938,7 @@
         "type": "buttons",
         "position": {
           "x": 665,
-          "y": 2590
+          "y": 2615
         },
         "data": {
           "label": "Botões Interativos WhatsApp",
@@ -1117,17 +1137,24 @@
     ],
     "flow-pitoco-001": [
       {
-        "id": "xy-edge__node-show_catalog-1789253962865-node-human_handoff-1789176476938",
+        "id": "xy-edge__node-question-1789276221154-node-update_contact-1788906881259",
         "flow_id": "flow-pitoco-001",
-        "source": "node-show_catalog-1789253962865",
+        "source": "node-question-1789276221154",
+        "target": "node-update_contact-1788906881259",
+        "data": {}
+      },
+      {
+        "id": "xy-edge__node-measure_guide-1789176538133-node-human_handoff-1789176476938",
+        "flow_id": "flow-pitoco-001",
+        "source": "node-measure_guide-1789176538133",
         "target": "node-human_handoff-1789176476938",
         "data": {}
       },
       {
-        "id": "xy-edge__node-question-1788893542405-node-update_contact-1788906881259",
+        "id": "xy-edge__node-show_catalog-1789253962865-node-human_handoff-1789176476938",
         "flow_id": "flow-pitoco-001",
-        "source": "node-question-1788893542405",
-        "target": "node-update_contact-1788906881259",
+        "source": "node-show_catalog-1789253962865",
+        "target": "node-human_handoff-1789176476938",
         "data": {}
       },
       {
@@ -1161,17 +1188,10 @@
         "data": {}
       },
       {
-        "id": "xy-edge__node-measure_guide-1789176538133-node-human_handoff-1789176476938",
-        "flow_id": "flow-pitoco-001",
-        "source": "node-measure_guide-1789176538133",
-        "target": "node-human_handoff-1789176476938",
-        "data": {}
-      },
-      {
-        "id": "xy-edge__node-check_contact-1788893686878is_new-node-question-1788893542405",
+        "id": "xy-edge__node-check_contact-1788893686878-is_new-node-question-1789276221154",
         "flow_id": "flow-pitoco-001",
         "source": "node-check_contact-1788893686878",
-        "target": "node-question-1788893542405",
+        "target": "node-question-1789276221154",
         "sourceHandle": "is_new",
         "data": {}
       },
@@ -1197,6 +1217,21 @@
         "source": "node-buttons-1788914057467",
         "target": "node-measure_guide-1789176538133",
         "sourceHandle": "btn_2",
+        "data": {}
+      },
+      {
+        "id": "xy-edge__node-question-1788893542405-node-update_contact-1788906881259",
+        "flow_id": "flow-pitoco-001",
+        "source": "node-question-1788893542405",
+        "target": "node-update_contact-1788906881259",
+        "data": {}
+      },
+      {
+        "id": "xy-edge__node-check_contact-1788893686878is_new-node-question-1788893542405",
+        "flow_id": "flow-pitoco-001",
+        "source": "node-check_contact-1788893686878",
+        "target": "node-question-1788893542405",
+        "sourceHandle": "is_new",
         "data": {}
       },
       {
@@ -1226,38 +1261,30 @@
   "contacts": {
     "558196138924": {
       "id": "contact-558196138924",
-      "name": "João",
+      "name": "Rogerio Mlc",
       "phone": "558196138924",
-      "status": "active",
-      "is_registered": true,
+      "status": "lead",
+      "is_registered": false,
       "tags": [
-        "Cliente WhatsApp",
-        "Bot",
-        "Cliente"
+        "Lead"
       ],
-      "notes": "Cadastrado e atualizado pelo fluxo do bot",
-      "custom_fields": {
-        "nome_clientenovo": "Malaquias",
-        "nome_cliente": "Malaquias"
-      },
-      "created_at": "2026-09-12T20:55:11.970Z",
-      "updated_at": "2026-09-13T05:39:03.428Z",
-      "last_interaction": "2026-09-12T20:55:11.970Z",
-      "whatsapp_pushname": "Malaquias"
+      "whatsapp_pushname": "Rogerio Mlc",
+      "metadata": {},
+      "updated_at": "2026-09-14T22:53:43.810Z"
     }
   },
   "conversations": {
     "conv-558196138924": {
       "id": "conv-558196138924",
-      "contact_name": "João",
+      "contact_name": "Rogerio",
       "contact_phone": "558196138924",
       "phone": "558196138924",
       "last_message": "🏬 *Escolha de Filial / Loja:*\n\n🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?\n\n• *Loja Matriz — Centro* (Cabo - PE)\n• *Loja Ipojuca - Filial* (Ipojuca - PE)",
-      "last_message_at": "2026-09-13T03:06:39.308Z",
+      "last_message_at": "2026-09-14T22:53:24.044Z",
       "status": "bot",
       "store_name": "Pitoco de Gente",
       "contact_id": "contact-558196138924",
-      "updated_at": "2026-09-13T05:39:03.428Z",
+      "updated_at": "2026-09-14T22:53:24.044Z",
       "started_at": "2026-09-12T23:43:39.112Z",
       "unread_count": 0,
       "created_at": "2026-09-12T23:43:39.112Z"
@@ -1606,6 +1633,87 @@
         "content": "🏬 *Escolha de Filial / Loja:*\n\n🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?\n\n• *Loja Matriz — Centro* (Cabo - PE)\n• *Loja Ipojuca - Filial* (Ipojuca - PE)",
         "status": "delivered",
         "created_at": "2026-09-13T03:06:39.308Z"
+      },
+      {
+        "id": "msg-1789426378002-280wl",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Opções Interativas",
+        "status": "delivered",
+        "created_at": "2026-09-14T22:52:58.002Z"
+      },
+      {
+        "id": "msg-1789426379183-rkcq0",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Opções Interativas",
+        "status": "delivered",
+        "created_at": "2026-09-14T22:52:59.183Z"
+      },
+      {
+        "id": "msg-1789426379189-c50ib",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Opções Interativas",
+        "status": "delivered",
+        "created_at": "2026-09-14T22:52:59.189Z"
+      },
+      {
+        "id": "msg-1789426379196-o88oq",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "🏬 *Escolha de Filial / Loja:*\n\n🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?\n\n• *Loja Matriz — Centro* (Cabo - PE)\n• *Loja Ipojuca - Filial* (Ipojuca - PE)",
+        "status": "delivered",
+        "created_at": "2026-09-14T22:52:59.196Z"
+      },
+      {
+        "id": "msg-1789426402683-0vyu5",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "*Opção não reconhecida.*\n\nPor favor, escolha uma das opções abaixo:\n\n1️⃣ *Matriz — Centro*\n\n2️⃣ *Ipojuca - Filial*\n\n_👉 Digite o número ou o nome da opção desejada:_",
+        "status": "delivered",
+        "created_at": "2026-09-14T22:53:22.683Z"
+      },
+      {
+        "id": "msg-1789426403481-sn1tj",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "*Opção não reconhecida.*\n\nPor favor, escolha uma das opções abaixo:\n\n1️⃣ *Matriz — Centro*\n\n2️⃣ *Ipojuca - Filial*\n\n_👉 Digite o número ou o nome da opção desejada:_",
+        "status": "delivered",
+        "created_at": "2026-09-14T22:53:23.481Z"
+      },
+      {
+        "id": "msg-1789426404032-ng8x1",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Opções Interativas",
+        "status": "delivered",
+        "created_at": "2026-09-14T22:53:24.032Z"
+      },
+      {
+        "id": "msg-1789426404038-gs3ne",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Opções Interativas",
+        "status": "delivered",
+        "created_at": "2026-09-14T22:53:24.038Z"
+      },
+      {
+        "id": "msg-1789426404044-nr11v",
+        "conversation_id": "conv-558196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "🏬 *Escolha de Filial / Loja:*\n\n🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?\n\n• *Loja Matriz — Centro* (Cabo - PE)\n• *Loja Ipojuca - Filial* (Ipojuca - PE)",
+        "status": "delivered",
+        "created_at": "2026-09-14T22:53:24.044Z"
       }
     ]
   },
@@ -1909,72 +2017,22 @@
     }
   ],
   "auditLogs": [],
-  "sessions": {
-    "558196138924": {
-      "flowId": "flow-pitoco-001",
-      "currentNodeId": "node-store_selector-1788913989382",
-      "variables": {
-        "whatsapp_pushname": "Malaquias",
-        "telefone_cliente": "558196138924",
-        "telefone_whatsapp": "558196138924",
-        "ultima_mensagem": "menu",
-        "nome_cliente": "Malaquias",
-        "is_primeiro_contato": false,
-        "is_novo_contato": false,
-        "is_existing_contact": true,
-        "tipo_cliente": "recorrente",
-        "nome_clientenovo": "Malaquias",
-        "cliente_nome": "Malaquias",
-        "nome": "Malaquias",
-        "primeiro_nome": "Malaquias",
-        "tags_contato": "Lead, Cliente, Cliente WhatsApp, Bot",
-        "opcao_selecionada": "Ver Catálogo Bebê",
-        "botao_id": "btn_1",
-        "loja_escolhida": "Loja Matriz — Centro",
-        "loja_id": "store-001",
-        "loja_nome": "Loja Matriz — Centro",
-        "loja_whatsapp": "81987300915",
-        "resposta_usuario": "Loja Matriz — Centro",
-        "catalogo_produtos": "🍼 *PITOCO DE GENTE — Moda Bebê & Enxovais*\nConfira nossos destaques mais amados:\n\n• *Body Suedine 100% Algodão*\n   💰 R$ 49,90 • 👶 RN a GG (Cores Lisas & Estampadas)\n\n• *Macacão Confort Zíper Duplo*\n   💰 R$ 89,90 • 👶 RN ao 3 Anos (Proteção no Queixo)\n\n• *Saída Maternidade Tricot Luxo (5 Peças)*\n   💰 R$ 199,90 • 👶 RN e P (Macacão + Manta + Body + Faixinha)\n\n• *Kit de Berço 9 Peças 200 Fios*\n   💰 R$ 389,00 • 🛏️ Padrão Americano (100% Algodão Hipoalergênico)\n\n_Para pedir ou verificar tamanhos (RN a 3 anos), basta nos chamar!_"
-      },
-      "lastFlowTriggerAt": 1789268799274,
-      "waitingForVar": null,
-      "lastInteractionAt": 1789268799274,
-      "activeButtons": [
-        {
-          "id": "store-001",
-          "title": "Matriz — Centro",
-          "storeId": "store-001",
-          "slug": "matriz",
-          "storeName": "Loja Matriz — Centro"
-        },
-        {
-          "id": "store-002",
-          "title": "Ipojuca - Filial",
-          "storeId": "store-002",
-          "slug": "ipojuca",
-          "storeName": "Loja Ipojuca - Filial"
-        }
-      ],
-      "flowStatus": "in_progress",
-      "completedAt": 1789268357660
-    }
-  },
+  "sessions": {},
   "rolePermissions": {},
   "lid_mappings": {},
   "logs": [
     {
-      "id": "log-1789268799971-l50d7",
+      "id": "log-1789426404047-7lfos",
       "type": "message_outbound",
-      "title": "Resposta para Cliente Audio",
+      "title": "Resposta para Rogerio Mlc",
       "description": "Mensagem Interativa",
-      "contact_phone": "5581988887777",
-      "contact_name": "Cliente Audio",
+      "contact_phone": "558196138924",
+      "contact_name": "Rogerio Mlc",
       "details": {
         "direction": "outbound",
-        "messageId": "msg-1789268799962-3tezz"
+        "messageId": "msg-1789426404044-nr11v"
       },
-      "created_at": "2026-09-13T03:06:39.971Z"
+      "created_at": "2026-09-14T22:53:24.047Z"
     }
   ]
 }

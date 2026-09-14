@@ -687,19 +687,16 @@ async function recordMessageInSupabase(phone, name, direction, content) {
   try {
     const cleanPhone = String(phone).replace(/\D/g, '');
     const isLid = cleanPhone.length >= 14 || cleanPhone.startsWith('1686') || cleanPhone.startsWith('219');
+    const convId = `conv-${cleanPhone}`;
 
-    // NUNCA inserir WhatsApp LID na tabela clients
+    // Atualizar last_interaction APENAS se o cliente já existir previamente cadastrado na tabela clients
     if (!isLid) {
-      const clientPayload = {
-        id: `client-${cleanPhone}`,
-        phone: cleanPhone,
-        last_interaction: new Date().toISOString(),
-      };
-      if (name && !['Cliente', 'Cliente Pitoco', 'undefined', 'null', 'Cliente WhatsApp'].includes(name)) {
-        clientPayload.name = name;
-      }
-
-      await safeSupa(supabaseServer.from('clients').upsert(clientPayload, { onConflict: 'phone' }));
+      await safeSupa(
+        supabaseServer
+          .from('clients')
+          .update({ last_interaction: new Date().toISOString() })
+          .eq('phone', cleanPhone)
+      );
     }
 
     await safeSupa(supabaseServer.from('conversations').upsert({
@@ -1193,9 +1190,19 @@ app.post('/api/settings', (req, res) => {
 // ==============================================================================
 // 2. MULTI-LOJAS CRUD
 // ==============================================================================
-app.get('/api/stores', (req, res) => {
+app.get('/api/stores', async (req, res) => {
   try {
     const db = loadDb();
+    if (supabaseServer) {
+      try {
+        const { data } = await safeSupa(supabaseServer.from('stores').select('*').order('slug', { ascending: true }));
+        if (data && data.length > 0) {
+          db.stores = data;
+          saveDb(db);
+          return res.json(data);
+        }
+      } catch (e) {}
+    }
     res.json(db.stores || []);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1214,7 +1221,7 @@ app.get('/api/stores/:id', (req, res) => {
   }
 });
 
-app.post('/api/stores', (req, res) => {
+app.post('/api/stores', async (req, res) => {
   try {
     const db = loadDb();
     if (!db.stores) db.stores = [];
@@ -1249,6 +1256,9 @@ app.post('/api/stores', (req, res) => {
     }
 
     saveDb(db);
+    if (supabaseServer) {
+      safeSupa(supabaseServer.from('stores').upsert(newStore, { onConflict: 'id' })).catch(() => {});
+    }
     console.log(`[Stores API] 🏬 Loja salva: "${newStore.name}" (${newStore.id})`);
     res.json({ success: true, store: newStore });
   } catch (err) {
@@ -1256,7 +1266,7 @@ app.post('/api/stores', (req, res) => {
   }
 });
 
-app.delete('/api/stores/:id', (req, res) => {
+app.delete('/api/stores/:id', async (req, res) => {
   try {
     const db = loadDb();
     const id = req.params.id;
@@ -1264,6 +1274,9 @@ app.delete('/api/stores/:id', (req, res) => {
       db.stores = db.stores.filter(s => s.id !== id && s.slug !== id);
     }
     saveDb(db);
+    if (supabaseServer) {
+      safeSupa(supabaseServer.from('stores').delete().or(`id.eq.${id},slug.eq.${id}`)).catch(() => {});
+    }
     console.log(`[Stores API] 🗑️ Loja removida: ${id}`);
     res.json({ success: true, message: `Loja ${id} removida` });
   } catch (err) {
@@ -1565,6 +1578,7 @@ app.delete('/api/contacts', async (req, res) => {
     db.contacts = {};
     db.conversations = {};
     db.messages = {};
+    db.sessions = {};
     saveDb(db);
 
     if (supabaseServer) {
@@ -1613,7 +1627,7 @@ app.delete('/api/contacts/:id', async (req, res) => {
       }
     }
 
-    // 2. Remover conversas e mensagens vinculadas para evitar ressuscitação
+    // 2. Remover conversas, mensagens e sessões vinculadas
     if (db.conversations && typeof db.conversations === 'object') {
       for (const p of phoneVariants) {
         delete db.conversations[`conv-${p}`];
@@ -1630,6 +1644,14 @@ app.delete('/api/contacts/:id', async (req, res) => {
     if (db.messages && typeof db.messages === 'object') {
       for (const p of phoneVariants) {
         delete db.messages[`conv-${p}`];
+      }
+    }
+
+    if (db.sessions && typeof db.sessions === 'object') {
+      delete db.sessions[id];
+      for (const p of phoneVariants) {
+        delete db.sessions[p];
+        delete db.sessions[`conv-${p}`];
       }
     }
 
@@ -1659,9 +1681,18 @@ app.delete('/api/contacts/:id', async (req, res) => {
 // ==============================================================================
 // 3. CATEGORIAS DO CATÁLOGO CRUD
 // ==============================================================================
-app.get('/api/categories', (req, res) => {
+app.get('/api/categories', async (req, res) => {
   try {
     const db = loadDb();
+    if (supabaseServer) {
+      try {
+        const { data } = await safeSupa(supabaseServer.from('categories').select('*').order('sort_order', { ascending: true }));
+        if (data && data.length > 0) {
+          db.categories = data;
+          saveDb(db);
+        }
+      } catch (e) {}
+    }
     let categories = db.categories || [];
     if (req.query.store_id) {
       categories = categories.filter(c => !c.store_id || c.store_id === req.query.store_id);
@@ -1672,7 +1703,7 @@ app.get('/api/categories', (req, res) => {
   }
 });
 
-app.post('/api/categories', (req, res) => {
+app.post('/api/categories', async (req, res) => {
   try {
     const db = loadDb();
     if (!db.categories) db.categories = [];
@@ -1697,13 +1728,16 @@ app.post('/api/categories', (req, res) => {
     }
 
     saveDb(db);
+    if (supabaseServer) {
+      safeSupa(supabaseServer.from('categories').upsert(newCat, { onConflict: 'id' })).catch(() => {});
+    }
     res.json({ success: true, category: newCat });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.delete('/api/categories/:id', (req, res) => {
+app.delete('/api/categories/:id', async (req, res) => {
   try {
     const db = loadDb();
     const id = req.params.id;
@@ -1711,6 +1745,9 @@ app.delete('/api/categories/:id', (req, res) => {
       db.categories = db.categories.filter(c => c.id !== id && c.slug !== id);
     }
     saveDb(db);
+    if (supabaseServer) {
+      safeSupa(supabaseServer.from('categories').delete().or(`id.eq.${id},slug.eq.${id}`)).catch(() => {});
+    }
     res.json({ success: true, message: `Categoria ${id} removida` });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1720,9 +1757,18 @@ app.delete('/api/categories/:id', (req, res) => {
 // ==============================================================================
 // 4. PRODUTOS DO CATÁLOGO DE BEBÊ CRUD
 // ==============================================================================
-app.get('/api/products', (req, res) => {
+app.get('/api/products', async (req, res) => {
   try {
     const db = loadDb();
+    if (supabaseServer) {
+      try {
+        const { data } = await safeSupa(supabaseServer.from('products').select('*'));
+        if (data && data.length > 0) {
+          db.products = data;
+          saveDb(db);
+        }
+      } catch (e) {}
+    }
     let prods = db.products || [];
     const { store_id, category_id } = req.query;
     if (store_id) {
@@ -1748,7 +1794,7 @@ app.get('/api/products/:id', (req, res) => {
   }
 });
 
-app.post('/api/products', (req, res) => {
+app.post('/api/products', async (req, res) => {
   try {
     const db = loadDb();
     if (!db.products) db.products = [];
@@ -1786,6 +1832,9 @@ app.post('/api/products', (req, res) => {
     }
 
     saveDb(db);
+    if (supabaseServer) {
+      safeSupa(supabaseServer.from('products').upsert(newProd, { onConflict: 'id' })).catch(() => {});
+    }
     console.log(`[Products API] 👶 Produto salvo: "${newProd.name}" (${newProd.id}) - R$ ${newProd.price}`);
     res.json({ success: true, product: newProd });
   } catch (err) {
@@ -1793,7 +1842,7 @@ app.post('/api/products', (req, res) => {
   }
 });
 
-app.delete('/api/products/:id', (req, res) => {
+app.delete('/api/products/:id', async (req, res) => {
   try {
     const db = loadDb();
     const id = req.params.id;
@@ -1801,6 +1850,9 @@ app.delete('/api/products/:id', (req, res) => {
       db.products = db.products.filter(p => p.id !== id);
     }
     saveDb(db);
+    if (supabaseServer) {
+      safeSupa(supabaseServer.from('products').delete().eq('id', id)).catch(() => {});
+    }
     console.log(`[Products API] 🗑️ Produto removido: ${id}`);
     res.json({ success: true, message: `Produto ${id} removido` });
   } catch (err) {
@@ -3040,13 +3092,25 @@ app.listen(PORT, HOST, async () => {
   setTimeout(async () => {
     try {
       if (supabaseServer) {
-        const [flowsRes, clientsRes, botRes, setRes] = await Promise.all([
+        const [flowsRes, clientsRes, botRes, setRes, storesRes, prodsRes, catsRes] = await Promise.all([
           safeSupa(supabaseServer.from('flows').select('*')),
           safeSupa(supabaseServer.from('clients').select('*')),
           safeSupa(supabaseServer.from('bot_config').select('*').eq('id', 'default').maybeSingle()),
           safeSupa(supabaseServer.from('settings').select('*').eq('id', 'default').maybeSingle()),
+          safeSupa(supabaseServer.from('stores').select('*').order('slug', { ascending: true })),
+          safeSupa(supabaseServer.from('products').select('*')),
+          safeSupa(supabaseServer.from('categories').select('*').order('sort_order', { ascending: true })),
         ]);
         const db = loadDb();
+        if (Array.isArray(storesRes.data) && storesRes.data.length > 0) {
+          db.stores = storesRes.data;
+        }
+        if (Array.isArray(prodsRes.data) && prodsRes.data.length > 0) {
+          db.products = prodsRes.data;
+        }
+        if (Array.isArray(catsRes.data) && catsRes.data.length > 0) {
+          db.categories = catsRes.data;
+        }
         if (Array.isArray(flowsRes.data)) {
           db.flows = flowsRes.data;
         }
@@ -3054,7 +3118,12 @@ app.listen(PORT, HOST, async () => {
           const cloudMap = {};
           clientsRes.data.forEach(c => {
             const p = String(c.phone || '').replace(/\D/g, '');
-            if (p) cloudMap[p] = c;
+            const rawTags = c.tags || [];
+            const tagList = Array.isArray(rawTags) ? rawTags.map(t => String(t).toLowerCase().trim()) : [];
+            const isLead = tagList.includes('lead') && !tagList.some(t => t.includes('cliente'));
+            if (p && !isLead) {
+              cloudMap[p] = { ...c, is_registered: true, status: 'active' };
+            }
           });
           db.contacts = cloudMap;
         }
@@ -3089,7 +3158,7 @@ app.listen(PORT, HOST, async () => {
           db.customVariables = setRes.data.custom_variables;
         }
         saveDb(db);
-        console.log(`[Startup Sync] ☁️ Sincronização inicial concluída com Supabase: ${db.flows?.length || 0} fluxos, ${Object.keys(db.contacts || {}).length} clientes, perfil do bot ("${db.botProfile?.name || 'Pitoco Bot'}") e ${db.customVariables?.length || 0} variáveis customizadas.`);
+        console.log(`[Startup Sync] ☁️ Sincronização inicial concluída com Supabase: ${db.flows?.length || 0} fluxos, ${db.stores?.length || 0} lojas, ${db.products?.length || 0} produtos, ${Object.keys(db.contacts || {}).length} clientes, perfil do bot ("${db.botProfile?.name || 'Pitoco Bot'}") e ${db.customVariables?.length || 0} variáveis customizadas.`);
       }
     } catch (e) {
       console.warn('[Startup Sync] Aviso ao sincronizar com Supabase no início:', e.message);
