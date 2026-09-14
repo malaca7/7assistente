@@ -44,17 +44,17 @@ export const DashboardCEO: React.FC<DashboardCEOProps> = ({
   return (
     <div className="space-y-6 animate-fadeIn">
       {/* CEO Executive Banner */}
-      <div className="p-6 rounded-2xl bg-[#0c0c0e] border border-white/10 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="p-4 sm:p-6 rounded-2xl bg-[#0c0c0e] border border-white/10 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
             <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white text-black font-mono">
               PAINEL EXECUTIVO CEO
             </span>
-            <span className="text-xs text-zinc-400 font-medium">
+            <span className="text-xs text-zinc-400 font-medium hidden sm:inline">
               Visão Panorâmica da Rede Pitoco de Gente
             </span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+          <h2 className="text-lg sm:text-2xl font-bold text-white tracking-tight">
             Controle Geral da Operação, Robô & Vendas
           </h2>
           <p className="text-xs text-zinc-400 mt-1">
@@ -62,11 +62,11 @@ export const DashboardCEO: React.FC<DashboardCEOProps> = ({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <Button
             size="sm"
             onClick={() => onNavigateTab('fluxos')}
-            className="bg-white hover:bg-zinc-200 text-black font-bold text-xs"
+            className="bg-white hover:bg-zinc-200 text-black font-bold text-xs flex-1 sm:flex-initial"
           >
             <GitFork className="w-3.5 h-3.5 mr-1.5" />
             Studio de Fluxos
@@ -75,7 +75,7 @@ export const DashboardCEO: React.FC<DashboardCEOProps> = ({
             size="sm"
             variant="outline"
             onClick={() => onNavigateTab('whatsapp')}
-            className="border-white/10 hover:bg-white/5 text-zinc-200 text-xs"
+            className="border-white/10 hover:bg-white/5 text-zinc-200 text-xs flex-1 sm:flex-initial"
           >
             <QrCode className="w-3.5 h-3.5 mr-1.5" />
             Sessão WhatsApp
@@ -84,75 +84,75 @@ export const DashboardCEO: React.FC<DashboardCEOProps> = ({
       </div>
 
       {/* Primary KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-4 sm:p-5 bg-[#0c0c0e] border-white/10">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
+        <Card className="p-3 sm:p-5 bg-[#0c0c0e] border-white/10 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-zinc-400">Faturamento da Rede</span>
-            <div className="p-2 rounded-xl bg-white/5 text-white border border-white/10">
-              <DollarSign className="w-4 h-4" />
+            <div className="p-1.5 sm:p-2 rounded-xl bg-white/5 text-white border border-white/10">
+              <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <span className="text-xl sm:text-2xl font-black text-white block">
+          <div className="mt-2.5 sm:mt-3">
+            <span className="text-base xs:text-lg sm:text-2xl font-black text-white block truncate">
               {formatCurrency(totalRevenue)}
             </span>
             <span className="text-[10px] text-emerald-400 font-medium mt-1 inline-flex items-center gap-1">
               <TrendingUp className="w-3 h-3" />
-              Meta mensal 94% atingida
+              Meta 94%
             </span>
           </div>
         </Card>
 
-        <Card className="p-4 sm:p-5 bg-[#0c0c0e] border-white/10">
+        <Card className="p-3 sm:p-5 bg-[#0c0c0e] border-white/10 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-zinc-400">Atendimentos do Bot</span>
-            <div className="p-2 rounded-xl bg-white/5 text-white border border-white/10">
-              <Bot className="w-4 h-4" />
+            <span className="text-xs font-semibold text-zinc-400">Atendimentos Bot</span>
+            <div className="p-1.5 sm:p-2 rounded-xl bg-white/5 text-white border border-white/10">
+              <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <span className="text-xl sm:text-2xl font-black text-white block">
+          <div className="mt-2.5 sm:mt-3">
+            <span className="text-base xs:text-lg sm:text-2xl font-black text-white block truncate">
               {kpis?.messagesSentToday || 2490}
             </span>
-            <span className="text-[10px] text-zinc-400 font-medium mt-1 block">
-              Mensagens hoje via Baileys
+            <span className="text-[10px] text-zinc-400 font-medium mt-1 block truncate">
+              Mensagens hoje
             </span>
           </div>
         </Card>
 
-        <Card className="p-4 sm:p-5 bg-[#0c0c0e] border-white/10">
+        <Card className="p-3 sm:p-5 bg-[#0c0c0e] border-white/10 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-zinc-400">Transbordo Humano</span>
-            <div className="p-2 rounded-xl bg-white/5 text-white border border-white/10">
-              <MessageSquare className="w-4 h-4" />
+            <div className="p-1.5 sm:p-2 rounded-xl bg-white/5 text-white border border-white/10">
+              <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <span className="text-xl sm:text-2xl font-black text-white block">
+          <div className="mt-2.5 sm:mt-3">
+            <span className="text-base xs:text-lg sm:text-2xl font-black text-white block truncate">
               {kpis?.waitingHuman || 3}
             </span>
-            <span className="text-[10px] text-amber-400 font-medium mt-1 block">
-              Clientes aguardando consultora
+            <span className="text-[10px] text-amber-400 font-medium mt-1 block truncate">
+              Aguardando consultora
             </span>
           </div>
         </Card>
 
         <Card 
           onClick={() => onNavigateTab('clientes')}
-          className="p-4 sm:p-5 bg-[#0c0c0e] border-white/10 cursor-pointer hover:border-white/25 transition-all"
+          className="p-3 sm:p-5 bg-[#0c0c0e] border-white/10 cursor-pointer hover:border-white/25 transition-all flex flex-col justify-between"
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-zinc-400">Base de Clientes</span>
-            <div className="p-2 rounded-xl bg-white/5 text-white border border-white/10">
-              <Users className="w-4 h-4" />
+            <div className="p-1.5 sm:p-2 rounded-xl bg-white/5 text-white border border-white/10">
+              <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <span className="text-xl sm:text-2xl font-black text-white block">
+          <div className="mt-2.5 sm:mt-3">
+            <span className="text-base xs:text-lg sm:text-2xl font-black text-white block truncate">
               {kpis?.totalContacts || 1240}
             </span>
-            <span className="text-[10px] text-zinc-400 font-medium mt-1 block">
-              Contatos ativos no CRM
+            <span className="text-[10px] text-zinc-400 font-medium mt-1 block truncate">
+              Contatos no CRM
             </span>
           </div>
         </Card>

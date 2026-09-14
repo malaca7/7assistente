@@ -30,50 +30,52 @@ export const Topbar: React.FC<TopbarProps> = ({
   const { openThemeModal } = useTheme();
 
   return (
-    <header className="h-16 bg-[#09090b]/90 backdrop-blur-xl border-b border-white/10 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30">
+    <header className="h-16 pt-safe bg-[#09090b]/90 backdrop-blur-xl border-b border-white/10 px-3 sm:px-6 flex items-center justify-between sticky top-0 z-30">
       {/* Left side: Hamburger (mobile) + Page Title */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         <button
           onClick={onOpenMobileMenu}
-          className="lg:hidden p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
+          className="lg:hidden p-2 -ml-1 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 active:scale-95 transition-all shrink-0"
           title="Abrir Menu"
         >
           <Menu className="w-5 h-5" />
         </button>
 
-        <div>
-          <h1 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
+        <div className="min-w-0">
+          <h1 className="text-sm sm:text-lg font-bold text-white tracking-tight flex items-center gap-2 truncate">
             {title}
           </h1>
-          {subtitle && <p className="text-xs text-zinc-400 hidden sm:block">{subtitle}</p>}
+          {subtitle && <p className="text-xs text-zinc-400 hidden md:block truncate">{subtitle}</p>}
         </div>
       </div>
 
       {/* Right side: WhatsApp Status & Role info */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
         {/* Dynamic WhatsApp Status Badge */}
         {isConnected ? (
           <div 
             onClick={() => onNavigate('/whatsapp')}
-            className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 cursor-pointer hover:border-emerald-500/40 transition-all group"
+            className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 cursor-pointer hover:border-emerald-500/40 active:scale-95 transition-all group shrink-0"
             title="Clique para gerenciar sessão do WhatsApp"
           >
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs font-semibold text-emerald-400">
-              WhatsApp Conectado {session.phone ? `(${formatPhone(session.phone)})` : ''}
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <span className="text-[11px] sm:text-xs font-semibold text-emerald-400">
+              <span className="hidden sm:inline">WhatsApp Conectado {session.phone ? `(${formatPhone(session.phone)})` : ''}</span>
+              <span className="sm:hidden">WhatsApp</span>
             </span>
-            <ExternalLink className="w-3 h-3 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <ExternalLink className="w-3 h-3 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:inline" />
           </div>
         ) : (
           <div 
             onClick={() => onNavigate('/whatsapp')}
-            className="flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 cursor-pointer hover:border-amber-500/40 transition-all group"
+            className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 cursor-pointer hover:border-amber-500/40 active:scale-95 transition-all group shrink-0"
             title="Clique para configurar a Meta WhatsApp Cloud API"
           >
-            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-            <span className="text-xs font-semibold text-amber-400 flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-              Meta Cloud API (Configurar)
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
+            <span className="text-[11px] sm:text-xs font-semibold text-amber-400 flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="hidden sm:inline">Meta Cloud API (Configurar)</span>
+              <span className="sm:hidden">Meta API</span>
             </span>
           </div>
         )}
@@ -83,7 +85,7 @@ export const Topbar: React.FC<TopbarProps> = ({
           type="button"
           onClick={openThemeModal}
           title="Personalizar Tema (Brilho, Contraste e Cores)"
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-white/10 hover:border-white/20 bg-white/[0.03] hover:bg-white/10 text-zinc-300 hover:text-white transition-all group shadow-sm"
+          className="flex items-center gap-1.5 p-2 sm:px-2.5 sm:py-1.5 rounded-xl border border-white/10 hover:border-white/20 bg-white/[0.03] hover:bg-white/10 text-zinc-300 hover:text-white active:scale-95 transition-all group shadow-sm shrink-0"
         >
           <Palette className="w-4 h-4 text-zinc-400 group-hover:text-white transition-transform group-hover:rotate-12" />
           <span className="text-xs font-semibold hidden md:inline">

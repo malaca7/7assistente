@@ -196,6 +196,7 @@ export const App: React.FC = () => {
       subtitle={subtitle}
       currentPath={fullPath}
       onNavigate={navigate}
+      fullWidth={pathname.startsWith('/atendimento') || pathname.startsWith('/conversas')}
     >
       {pageContent}
     </AdminLayout>

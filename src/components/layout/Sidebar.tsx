@@ -20,7 +20,8 @@ import {
   Maximize2,
   Minimize2,
   Palette,
-  Smartphone
+  Smartphone,
+  X
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWhatsApp } from '../../contexts/WhatsAppContext';
@@ -214,11 +215,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     onCloseMobile();
   };
 
-  // Larguras baseadas no modo
+  // Larguras baseadas no modo (aplicadas apenas no breakpoint desktop lg:)
   const getSidebarWidthClass = () => {
-    if (collapsed) return 'w-[72px]';
-    if (widthMode === 'wide') return 'w-80';
-    return 'w-64';
+    if (collapsed) return 'lg:w-[72px]';
+    if (widthMode === 'wide') return 'lg:w-80';
+    return 'lg:w-64';
   };
 
   return (
@@ -235,6 +236,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <aside
         className={cn(
           'fixed top-0 bottom-0 left-0 z-50 bg-[#09090b] border-r border-white/10 flex flex-col transition-all duration-300 ease-in-out select-none',
+          'w-72 sm:w-80 max-w-[85vw]',
           getSidebarWidthClass(),
           mobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
         )}
@@ -302,6 +304,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
               ) : (
                 <PanelLeftClose className="w-4 h-4 text-zinc-300" />
               )}
+            </button>
+
+            {/* Botão Fechar no Mobile */}
+            <button
+              onClick={onCloseMobile}
+              className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 active:scale-95 transition-colors lg:hidden"
+              title="Fechar menu lateral"
+            >
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -386,8 +397,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ))}
         </div>
 
-        {/* Footer Controls: Theme, WhatsApp Status & Logout */}
-        <div className="p-3 border-t border-white/[0.08] space-y-2 bg-[#0c0c0e]/80 shrink-0">
+        {/* Footer Settings & Logout */}
+        <div className="p-3 pb-safe border-t border-white/[0.08] space-y-2 bg-[#0c0c0e]/80 shrink-0">
           {!collapsed ? (
             <div className="flex items-center justify-between px-2 py-1 text-xs">
               <span className="text-[11px] text-zinc-400 flex items-center gap-1.5">

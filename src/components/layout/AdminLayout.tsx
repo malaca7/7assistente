@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
+import { BottomNavigation } from './BottomNavigation';
 import { ThemeSettingsModal } from '../theme/ThemeSettingsModal';
 
 export interface AdminLayoutProps {
@@ -89,10 +90,17 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         />
 
         {/* Page Content Viewport */}
-        <main className={`flex-1 ${fullWidth ? 'p-0' : 'p-4 sm:p-6 md:p-8 max-w-7xl w-full mx-auto'}`}>
+        <main className={`flex-1 pb-24 md:pb-8 ${fullWidth ? 'p-1 sm:p-3 md:p-6' : 'p-3 sm:p-5 md:p-8 max-w-7xl w-full mx-auto'}`}>
           {children}
         </main>
       </div>
+
+      {/* Barra de Navegação Inferior para Mobile (App Nativo iOS/Android) */}
+      <BottomNavigation
+        currentPath={currentPath}
+        onNavigate={onNavigate}
+        onOpenMenu={() => setMobileOpen(true)}
+      />
 
       {/* Modal de Personalização de Tema */}
       <ThemeSettingsModal />

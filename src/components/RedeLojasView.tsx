@@ -205,10 +205,10 @@ export const RedeLojasView: React.FC<RedeLojasViewProps> = ({ onSelectStore, onN
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <Button
               onClick={handleOpenCreateModal}
-              className="bg-pitoco-blue text-slate-950 font-bold text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-pitoco-blue/20 flex items-center gap-1.5"
+              className="bg-pitoco-blue text-slate-950 font-bold text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-pitoco-blue/20 flex items-center justify-center gap-1.5 flex-1 sm:flex-initial"
             >
               <Plus className="w-4 h-4" />
               Nova Filial
@@ -219,7 +219,7 @@ export const RedeLojasView: React.FC<RedeLojasViewProps> = ({ onSelectStore, onN
                 variant="outline"
                 size="sm"
                 onClick={handleClearFilter}
-                className="border-white/10 hover:bg-white/5 text-xs text-slate-300"
+                className="border-white/10 hover:bg-white/5 text-xs text-slate-300 flex-1 sm:flex-initial"
               >
                 Ver Todas as Lojas
               </Button>
@@ -228,43 +228,43 @@ export const RedeLojasView: React.FC<RedeLojasViewProps> = ({ onSelectStore, onN
         </div>
 
         {/* Métricas Consolidadas da Rede */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-white/5">
-          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5">
-            <span className="text-xs text-slate-400 flex items-center gap-1.5 mb-1">
-              <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
-              Faturamento Consolidado
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4 mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-white/5">
+          <div className="p-2.5 sm:p-3 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col justify-between">
+            <span className="text-xs text-slate-400 flex items-center gap-1.5 mb-1 truncate">
+              <DollarSign className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              Faturamento
             </span>
-            <p className="text-xl md:text-2xl font-bold text-white">
+            <p className="text-base xs:text-lg md:text-2xl font-bold text-white truncate">
               R$ {totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </p>
-            <span className="text-[11px] text-emerald-400 font-medium">↑ +14.2% este mês</span>
+            <span className="text-[10px] sm:text-[11px] text-emerald-400 font-medium truncate">↑ +14.2% mês</span>
           </div>
 
-          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5">
-            <span className="text-xs text-slate-400 flex items-center gap-1.5 mb-1">
-              <ShoppingBag className="w-3.5 h-3.5 text-pitoco-blue" />
+          <div className="p-2.5 sm:p-3 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col justify-between">
+            <span className="text-xs text-slate-400 flex items-center gap-1.5 mb-1 truncate">
+              <ShoppingBag className="w-3.5 h-3.5 text-pitoco-blue shrink-0" />
               Pedidos da Rede
             </span>
-            <p className="text-xl md:text-2xl font-bold text-white">680 pedidos</p>
-            <span className="text-[11px] text-slate-400">Ticket médio: R$ 303,80</span>
+            <p className="text-base xs:text-lg md:text-2xl font-bold text-white truncate">680 pedidos</p>
+            <span className="text-[10px] sm:text-[11px] text-slate-400 truncate">Ticket: R$ 303,80</span>
           </div>
 
-          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5">
-            <span className="text-xs text-slate-400 flex items-center gap-1.5 mb-1">
-              <MessageSquare className="w-3.5 h-3.5 text-pitoco-pink" />
-              Atendimentos em Aberto
+          <div className="p-2.5 sm:p-3 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col justify-between">
+            <span className="text-xs text-slate-400 flex items-center gap-1.5 mb-1 truncate">
+              <MessageSquare className="w-3.5 h-3.5 text-pitoco-pink shrink-0" />
+              Atendimentos
             </span>
-            <p className="text-xl md:text-2xl font-bold text-white">{totalActiveChats} conversas</p>
-            <span className="text-[11px] text-pitoco-pink">Distribuídas por filial</span>
+            <p className="text-base xs:text-lg md:text-2xl font-bold text-white truncate">{totalActiveChats} conversas</p>
+            <span className="text-[10px] sm:text-[11px] text-pitoco-pink truncate">Por filial</span>
           </div>
 
-          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5">
-            <span className="text-xs text-slate-400 flex items-center gap-1.5 mb-1">
-              <Layers className="w-3.5 h-3.5 text-amber-400" />
-              Filiais Cadastradas
+          <div className="p-2.5 sm:p-3 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col justify-between">
+            <span className="text-xs text-slate-400 flex items-center gap-1.5 mb-1 truncate">
+              <Layers className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              Filiais
             </span>
-            <p className="text-xl md:text-2xl font-bold text-white">{stores.length} lojas</p>
-            <span className="text-[11px] text-emerald-400 font-medium">Sincronizadas com o Bot</span>
+            <p className="text-base xs:text-lg md:text-2xl font-bold text-white truncate">{stores.length} lojas</p>
+            <span className="text-[10px] sm:text-[11px] text-emerald-400 font-medium truncate">No Bot</span>
           </div>
         </div>
       </div>

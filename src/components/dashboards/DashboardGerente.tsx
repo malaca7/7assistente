@@ -47,17 +47,17 @@ export const DashboardGerente: React.FC<DashboardGerenteProps> = ({
   return (
     <div className="space-y-6 animate-fadeIn">
       {/* Gerente Store Header */}
-      <div className="p-6 rounded-2xl bg-[#0c0c0e] border border-white/10 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="p-4 sm:p-6 rounded-2xl bg-[#0c0c0e] border border-white/10 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
             <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
               PAINEL DE GESTÃO DA FILIAL
             </span>
-            <span className="text-xs text-zinc-400 font-medium">
+            <span className="text-xs text-zinc-400 font-medium hidden sm:inline">
               Operação de Loja & Atendimento
             </span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+          <h2 className="text-lg sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
             <StoreIcon className="w-5 h-5 text-emerald-400" />
             {currentStore ? currentStore.name : 'Loja Vinculada'}
           </h2>
@@ -68,12 +68,12 @@ export const DashboardGerente: React.FC<DashboardGerenteProps> = ({
 
         {/* Seletor de Filial caso o usuário tenha acesso a mais lojas */}
         {stores.length > 1 && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <span className="text-xs text-zinc-400">Filial:</span>
             <select
               value={currentStore?.id || ''}
               onChange={e => onSelectStore(e.target.value)}
-              className="px-3 py-2 bg-[#141416] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-white"
+              className="px-3 py-2 bg-[#141416] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-white flex-1 sm:flex-initial"
             >
               {stores.map(s => (
                 <option key={s.id} value={s.id}>{s.name}</option>
@@ -84,74 +84,74 @@ export const DashboardGerente: React.FC<DashboardGerenteProps> = ({
       </div>
 
       {/* Gerente KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-4 sm:p-5 bg-[#0c0c0e] border-white/10">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
+        <Card className="p-3 sm:p-5 bg-[#0c0c0e] border-white/10 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-zinc-400">Faturamento da Loja</span>
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <DollarSign className="w-4 h-4" />
+            <span className="text-xs font-semibold text-zinc-400">Faturamento Loja</span>
+            <div className="p-1.5 sm:p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <span className="text-xl sm:text-2xl font-black text-white block">
+          <div className="mt-2.5 sm:mt-3">
+            <span className="text-base xs:text-lg sm:text-2xl font-black text-white block truncate">
               {formatCurrency(currentStore?.monthly_revenue || 68400)}
             </span>
-            <span className="text-[10px] text-emerald-400 font-medium mt-1 block">
+            <span className="text-[10px] text-emerald-400 font-medium mt-1 block truncate">
               Mês corrente
             </span>
           </div>
         </Card>
 
-        <Card className="p-4 sm:p-5 bg-[#0c0c0e] border-white/10">
+        <Card className="p-3 sm:p-5 bg-[#0c0c0e] border-white/10 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-zinc-400">Chats na Loja</span>
-            <div className="p-2 rounded-xl bg-white/5 text-white border border-white/10">
-              <MessageSquare className="w-4 h-4" />
+            <div className="p-1.5 sm:p-2 rounded-xl bg-white/5 text-white border border-white/10">
+              <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <span className="text-xl sm:text-2xl font-black text-white block">
+          <div className="mt-2.5 sm:mt-3">
+            <span className="text-base xs:text-lg sm:text-2xl font-black text-white block truncate">
               {currentStore?.active_chats || 42}
             </span>
-            <span className="text-[10px] text-zinc-400 font-medium mt-1 block">
-              Atendimentos ativos hoje
+            <span className="text-[10px] text-zinc-400 font-medium mt-1 block truncate">
+              Ativos hoje
             </span>
           </div>
         </Card>
 
         <Card 
           onClick={() => onNavigateTab('clientes')}
-          className="p-4 sm:p-5 bg-[#0c0c0e] border-white/10 cursor-pointer hover:border-white/25 transition-all"
+          className="p-3 sm:p-5 bg-[#0c0c0e] border-white/10 cursor-pointer hover:border-white/25 transition-all flex flex-col justify-between"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-zinc-400">Clientes da Filial</span>
-            <div className="p-2 rounded-xl bg-white/5 text-white border border-white/10">
-              <Users className="w-4 h-4" />
+            <span className="text-xs font-semibold text-zinc-400">Clientes Filial</span>
+            <div className="p-1.5 sm:p-2 rounded-xl bg-white/5 text-white border border-white/10">
+              <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <span className="text-xl sm:text-2xl font-black text-white block">
+          <div className="mt-2.5 sm:mt-3">
+            <span className="text-base xs:text-lg sm:text-2xl font-black text-white block truncate">
               {currentStore?.active_chats ? currentStore.active_chats * 4 : 142}
             </span>
-            <span className="text-[10px] text-zinc-400 font-medium mt-1 block">
-              Contatos vinculados à unidade
+            <span className="text-[10px] text-zinc-400 font-medium mt-1 block truncate">
+              Contatos da unidade
             </span>
           </div>
         </Card>
 
-        <Card className="p-4 sm:p-5 bg-[#0c0c0e] border-white/10">
+        <Card className="p-3 sm:p-5 bg-[#0c0c0e] border-white/10 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-zinc-400">Alerta de Estoque</span>
-            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              <AlertTriangle className="w-4 h-4" />
+            <span className="text-xs font-semibold text-zinc-400">Alerta Estoque</span>
+            <div className="p-1.5 sm:p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <span className="text-xl sm:text-2xl font-black text-white block">
+          <div className="mt-2.5 sm:mt-3">
+            <span className="text-base xs:text-lg sm:text-2xl font-black text-white block truncate">
               {lowStockProducts.length}
             </span>
-            <span className="text-[10px] text-amber-400 font-medium mt-1 block">
-              Itens com estoque baixo
+            <span className="text-[10px] text-amber-400 font-medium mt-1 block truncate">
+              Itens em baixa
             </span>
           </div>
         </Card>

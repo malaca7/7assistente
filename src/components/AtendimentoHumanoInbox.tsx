@@ -21,6 +21,7 @@ import {
   ShieldAlert, 
   ExternalLink,
   ChevronRight,
+  ChevronLeft,
   ShoppingBag,
   Calendar,
   AlertCircle,
@@ -883,13 +884,13 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
     <div 
       className={`${
         isFullscreen 
-          ? 'fixed inset-0 z-50 bg-[#0c1017] p-3 h-screen w-screen flex flex-col gap-2.5' 
-          : 'h-[calc(100vh-105px)] flex flex-col gap-3 font-sans'
+          ? 'fixed inset-0 z-50 bg-[#0c1017] p-2 sm:p-3 h-screen w-screen flex flex-col gap-2.5' 
+          : 'h-[calc(100dvh-135px)] md:h-[calc(100vh-105px)] flex flex-col gap-2 md:gap-3 font-sans'
       } select-none transition-all duration-200`}
       style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif' }}
     >
       {/* 🍏 Topbar macOS Nativa (Traffic Lights + Título + Segmented Stores + Fast Controls) */}
-      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 px-4 py-2.5 rounded-2xl bg-slate-900/75 backdrop-blur-xl border border-white/10 shadow-sm shrink-0">
+      <header className={`${activeConv ? 'hidden md:flex' : 'flex'} flex-col lg:flex-row lg:items-center justify-between gap-2.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl bg-slate-900/75 backdrop-blur-xl border border-white/10 shadow-sm shrink-0`}>
         <div className="flex items-center gap-3.5">
           {/* macOS Traffic Lights Sutis */}
           <div className="hidden sm:flex items-center gap-1.5 px-1 py-1">
@@ -1001,7 +1002,7 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
         {/* ========================================================= */}
         {/* COLUNA 1: SIDEBAR DE CONVERSAS (macOS Messages Sidebar) */}
         {/* ========================================================= */}
-        <div className={`${isCrmOpen ? 'md:col-span-3' : 'md:col-span-4'} flex flex-col h-full rounded-2xl bg-slate-900/60 backdrop-blur-xl border border-white/10 overflow-hidden transition-all duration-300 shadow-sm`}>
+        <div className={`${activeConv ? 'hidden md:flex' : 'flex'} ${isCrmOpen ? 'md:col-span-3' : 'md:col-span-4'} flex flex-col h-full rounded-2xl bg-slate-900/60 backdrop-blur-xl border border-white/10 overflow-hidden transition-all duration-300 shadow-sm`}>
           {/* Header da Sidebar com Busca Spotlight */}
           <div className="p-3 border-b border-white/5 space-y-2.5 bg-slate-900/40">
             {/* Campo de Busca macOS com atalho ⌘K */}
@@ -1220,13 +1221,23 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
         {/* ========================================================= */}
         {/* COLUNA 2: ÁREA PRINCIPAL DE CHAT (macOS Message Window) */}
         {/* ========================================================= */}
-        <div className={`flex flex-col h-full rounded-2xl bg-slate-900/60 backdrop-blur-xl border border-white/10 overflow-hidden transition-all duration-300 shadow-sm ${isCrmOpen ? 'md:col-span-6' : 'md:col-span-8'}`}>
+        <div className={`${activeConv ? 'flex' : 'hidden md:flex'} flex flex-col h-full rounded-2xl bg-slate-900/60 backdrop-blur-xl border border-white/10 overflow-hidden transition-all duration-300 shadow-sm ${isCrmOpen ? 'md:col-span-6' : 'md:col-span-8'}`}>
           {activeConv ? (
             <>
               {/* Header do Chat Ativo */}
-              <div className="px-4 py-3 border-b border-white/5 bg-slate-900/80 backdrop-blur-md flex flex-wrap items-center justify-between gap-2.5">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-slate-700 to-slate-800 flex items-center justify-center text-white text-sm font-bold border border-white/10 shrink-0">
+              <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-b border-white/5 bg-slate-900/80 backdrop-blur-md flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                  {/* Botão Voltar para lista de conversas no mobile */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveConv(null)}
+                    className="md:hidden p-1.5 -ml-1 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-slate-300 hover:text-white transition-all shrink-0"
+                    title="Voltar para a lista de conversas"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-slate-700 to-slate-800 flex items-center justify-center text-white text-xs sm:text-sm font-bold border border-white/10 shrink-0">
                     {(activeConv.contact_name || 'C')[0]}
                   </div>
                   <div className="min-w-0">
@@ -1390,7 +1401,7 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                         className={`group flex flex-col ${isOutbound ? 'items-end' : 'items-start'} relative`}
                       >
                         <div
-                          className={`max-w-[75%] rounded-[18px] px-3.5 py-2.5 text-xs shadow-sm relative group/msg ${
+                          className={`max-w-[85%] sm:max-w-[75%] rounded-[18px] px-3.5 py-2.5 text-xs shadow-sm relative group/msg ${
                             isOutbound
                               ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-br-[4px] font-normal shadow-emerald-950/20'
                               : 'bg-slate-800/90 text-slate-100 border border-white/5 rounded-bl-[4px]'
@@ -1447,16 +1458,16 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
               </div>
 
               {/* Barra Flutuante de Composição de Mensagens (macOS Floating Bar) */}
-              <form onSubmit={handleSendMessage} className="p-2.5 bg-slate-900/80 backdrop-blur-md border-t border-white/5 flex items-center gap-2">
+              <form onSubmit={handleSendMessage} className="p-2 sm:p-2.5 pb-safe bg-slate-900/80 backdrop-blur-md border-t border-white/5 flex items-center gap-1.5 sm:gap-2">
                 <button
                   type="button"
                   onClick={handleOpenCatalog}
                   disabled={activeConv.is_deleted}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-white/10 text-xs font-semibold transition-all shrink-0"
+                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-white/10 text-xs font-semibold transition-all shrink-0"
                   title="Abrir catálogo para enviar peças"
                 >
                   <ShoppingBag className="w-4 h-4 text-emerald-400" />
-                  <span>Peças</span>
+                  <span className="hidden xs:inline">Peças</span>
                 </button>
 
                 <div className="flex-1 relative">
@@ -1491,10 +1502,17 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
         {/* COLUNA 3: DOSSIÊ DO CLIENTE / CRM (macOS Inspector Panel) */}
         {/* ========================================================= */}
         {isCrmOpen && (
-          <div className="md:col-span-3 flex flex-col h-full rounded-2xl bg-slate-900/60 backdrop-blur-xl border border-white/10 overflow-hidden p-3.5 shadow-sm animate-in slide-in-from-right-3 duration-200">
-            {/* Header do Dossiê */}
-            <div className="border-b border-white/5 pb-2.5 mb-3 flex items-center justify-between">
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+          <div 
+            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex justify-end md:static md:inset-auto md:z-auto md:bg-transparent md:col-span-3 md:flex md:h-full animate-in fade-in duration-200"
+            onClick={() => setIsCrmOpen(false)}
+          >
+            <div 
+              className="w-full max-w-sm sm:max-w-md h-full bg-slate-900 border-l md:border border-white/10 md:rounded-2xl p-3.5 shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-right-4 duration-200"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header do Dossiê */}
+              <div className="border-b border-white/5 pb-2.5 mb-3 flex items-center justify-between">
+                <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5 text-emerald-400" />
                 Dossiê & CRM
               </h3>
@@ -1706,6 +1724,7 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                 Nenhum contato selecionado.
               </div>
             )}
+            </div>
           </div>
         )}
       </div>

@@ -547,30 +547,30 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
       {/* Header with Title & Action Buttons */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-dark-900/60 p-4 rounded-3xl border border-white/5 backdrop-blur-xl">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-500 p-0.5 shadow-lg shadow-brand-500/20 flex items-center justify-center">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-500 p-0.5 shadow-lg shadow-brand-500/20 flex items-center justify-center shrink-0">
             <div className="w-full h-full bg-dark-950 rounded-[14px] flex items-center justify-center text-brand-400">
-              <Users className="w-6 h-6" />
+              <Users className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
           </div>
           <div>
-            <h1 className="text-lg font-bold text-white flex items-center gap-2">
+            <h1 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
               Gestão de Clientes & CRM
               <Badge variant="brand" className="text-[10px] py-0 px-2">Sincronizado</Badge>
             </h1>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-400 hidden sm:block">
               Base central de clientes, histórico de serviços prestados, agendamentos e preferências
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {clients.length > 0 && (
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsDeleteAllModalOpen(true)}
               leftIcon={<Trash2 className="w-4 h-4 text-rose-400" />}
-              className="text-xs border-rose-500/20 text-rose-300 hover:bg-rose-500/10 hover:border-rose-500/40"
+              className="text-xs border-rose-500/20 text-rose-300 hover:bg-rose-500/10 hover:border-rose-500/40 flex-1 sm:flex-initial"
             >
               Excluir Todos
             </Button>
@@ -580,7 +580,7 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
             size="sm"
             onClick={handleExportCSV}
             leftIcon={<Download className="w-4 h-4" />}
-            className="text-xs border-white/10 hover:border-white/20"
+            className="text-xs border-white/10 hover:border-white/20 flex-1 sm:flex-initial"
           >
             Exportar CSV
           </Button>
@@ -588,7 +588,7 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
             variant="brand"
             onClick={handleOpenAddClient}
             leftIcon={<Plus className="w-4 h-4" />}
-            className="text-xs shadow-lg shadow-brand-500/20"
+            className="text-xs shadow-lg shadow-brand-500/20 flex-1 sm:flex-initial"
           >
             Novo Cliente
           </Button>
@@ -596,45 +596,45 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
       </div>
 
       {/* KPI Stats Bar */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <Card className="p-4 border-white/5 bg-dark-900/50">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
+        <Card className="p-3 sm:p-4 border-white/5 bg-dark-900/50 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400 font-medium">Total de Clientes</span>
+            <span className="text-xs text-slate-400 font-medium">Total Clientes</span>
             <Users className="w-4 h-4 text-brand-400" />
           </div>
-          <p className="text-2xl font-bold text-white mt-1.5">{totalClientsCount}</p>
-          <span className="text-[10px] text-emerald-400 flex items-center gap-1 mt-1 font-mono">
-            <CheckCircle2 className="w-3 h-3" /> {activeClientsCount} ativos na base
+          <p className="text-lg sm:text-2xl font-bold text-white mt-1 truncate">{totalClientsCount}</p>
+          <span className="text-[10px] text-emerald-400 flex items-center gap-1 mt-1 font-mono truncate">
+            <CheckCircle2 className="w-3 h-3 shrink-0" /> {activeClientsCount} ativos
           </span>
         </Card>
 
-        <Card className="p-4 border-white/5 bg-dark-900/50">
+        <Card className="p-3 sm:p-4 border-white/5 bg-dark-900/50 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400 font-medium">Atendimentos Realizados</span>
+            <span className="text-xs text-slate-400 font-medium">Atendimentos</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           </div>
-          <p className="text-2xl font-bold text-emerald-400 mt-1.5">{totalCompletedAppointments}</p>
-          <span className="text-[10px] text-slate-400 mt-1 font-mono">Serviços concluídos com sucesso</span>
+          <p className="text-lg sm:text-2xl font-bold text-emerald-400 mt-1 truncate">{totalCompletedAppointments}</p>
+          <span className="text-[10px] text-slate-400 mt-1 font-mono truncate">Concluídos</span>
         </Card>
 
-        <Card className="p-4 border-white/5 bg-dark-900/50">
+        <Card className="p-3 sm:p-4 border-white/5 bg-dark-900/50 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400 font-medium">Faturamento Acumulado</span>
+            <span className="text-xs text-slate-400 font-medium">Faturamento</span>
             <DollarSign className="w-4 h-4 text-cyan-400" />
           </div>
-          <p className="text-2xl font-bold text-white mt-1.5">R$ {totalRevenueGenerated.toFixed(2).replace('.', ',')}</p>
-          <span className="text-[10px] text-slate-400 mt-1 font-mono">Receita total gerada</span>
+          <p className="text-lg sm:text-2xl font-bold text-white mt-1 truncate">R$ {totalRevenueGenerated.toFixed(2).replace('.', ',')}</p>
+          <span className="text-[10px] text-slate-400 mt-1 font-mono truncate">Receita gerada</span>
         </Card>
 
-        <Card className="p-4 border-white/5 bg-dark-900/50">
+        <Card className="p-3 sm:p-4 border-white/5 bg-dark-900/50 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400 font-medium">Ticket Médio por Cliente</span>
+            <span className="text-xs text-slate-400 font-medium">Ticket Médio</span>
             <TrendingUp className="w-4 h-4 text-amber-400" />
           </div>
-          <p className="text-2xl font-bold text-white mt-1.5">
+          <p className="text-lg sm:text-2xl font-bold text-white mt-1 truncate">
             R$ {(totalClientsCount > 0 ? totalRevenueGenerated / totalClientsCount : 0).toFixed(2).replace('.', ',')}
           </p>
-          <span className="text-[10px] text-amber-300/80 mt-1 font-mono">LTV médio por cadastro</span>
+          <span className="text-[10px] text-amber-300/80 mt-1 font-mono truncate">LTV médio</span>
         </Card>
       </div>
 

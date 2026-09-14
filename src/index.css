@@ -18,12 +18,16 @@
     filter: brightness(var(--theme-brightness, 1)) contrast(var(--theme-contrast, 1));
     min-height: 100%;
     transition: filter 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
     background-color: var(--bg-main, #000000);
     color: #cbd5e1;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
@@ -380,5 +384,41 @@
 .pitoco-badge {
   background: linear-gradient(135deg, #38bdf8 0%, #f472b6 100%);
   color: white;
+}
+
+/* Safe Area Insets for Mobile App Notches and Home Indicators */
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pl-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+.pr-safe {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+.h-safe-screen {
+  height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+}
+
+/* Mobile Native App Touch & Momentum */
+.touch-momentum {
+  -webkit-overflow-scrolling: touch;
+}
+
+.active-press {
+  transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.12s ease;
+}
+.active-press:active {
+  transform: scale(0.96);
+  opacity: 0.85;
+}
+
+.app-glass {
+  background-color: rgba(9, 9, 11, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
 }
 
