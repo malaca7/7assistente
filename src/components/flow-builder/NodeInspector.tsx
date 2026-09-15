@@ -49,6 +49,7 @@ import {
 import { cn } from '../../lib/utils';
 import { VariableBadge } from './ui/VariableBadge';
 import { StorageService } from '../../lib/storage';
+import { getBrazilianPhoneVariations } from '../../lib/phoneUtils';
 
 const SYSTEM_VARIABLES_LIST = [
   { key: 'etapa_funil', label: 'etapa_funil (Funil CRM)', category: 'Funil' },
@@ -113,16 +114,20 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({
     if (!rawDigits) return;
     try {
       const contacts = await StorageService.getContacts();
+      const searchVariations = getBrazilianPhoneVariations(rawDigits);
       const match = (contacts || []).find((c: any) => {
         if (StorageService.isContactDeleted(c)) return false;
-        const cPhone = (c.phone || '').replace(/\D/g, '');
-        const cClean = cPhone.startsWith('55') && cPhone.length >= 12 ? cPhone.slice(2) : cPhone;
-        const qClean = rawDigits.startsWith('55') && rawDigits.length >= 12 ? rawDigits.slice(2) : rawDigits;
-        return cPhone === rawDigits || cClean === qClean || (cClean.length === 11 && qClean.length === 10 && cClean.slice(0, 2) === qClean.slice(0, 2) && cClean.slice(3) === qClean.slice(2));
+        const cPhone = String(c.phone || c.real_phone || '').replace(/\D/g, '');
+        const cVars = getBrazilianPhoneVariations(cPhone);
+        return searchVariations.some(v => v === cPhone || cVars.includes(v));
       });
-      const hasRealName = Boolean(match?.name && !['cliente', 'novo contato', 'visitante', 'sem nome'].includes(match.name.toLowerCase().trim()));
-      if (match && hasRealName) {
-        setTestContactResult({ isExisting: true, contactName: match.name });
+      const hasRealName = Boolean(
+        match?.name && 
+        !['cliente', 'cliente whatsapp', 'novo contato', 'visitante', 'sem nome', 'lead'].includes(match.name.toLowerCase().trim()) && 
+        !match.name.startsWith('{{')
+      );
+      if (match && (hasRealName || match.is_registered || match.status === 'active')) {
+        setTestContactResult({ isExisting: true, contactName: match.name || 'Cliente Cadastrado' });
       } else {
         setTestContactResult({ isExisting: false });
       }

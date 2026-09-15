@@ -49,20 +49,102 @@ export function setWhatsAppProfilePicGetter(fn) {
 }
 
 
-// Helper: Resolver correspondência bidirecional entre LID (WhatsApp Privacy ID) e Telefone Real (ex: 558196138924)
+/**
+ * Retorna todas as 4 variações canônicas de números de telefone do Brasil:
+ * Exemplo para o número de Leo:
+ * 1) 5581996138924  (DDI 55 + DDD 81 + 9 dígitos iniciado por 9 - 13 dígitos)
+ * 2) 81996138924    (DDD 81 + 9 dígitos iniciado por 9 - 11 dígitos)
+ * 3) 8196138924     (DDD 81 + 8 dígitos legado - 10 dígitos)
+ * 4) 558196138924   (DDI 55 + DDD 81 + 8 dígitos legado - 12 dígitos)
+ */
+export function getBrazilianPhoneVariations(phone) {
+  if (!phone) return [];
+  let digits = String(phone).replace(/\D/g, '');
+  if (!digits) return [];
+
+  // Remove zeros à esquerda (ex: 081996138924 -> 81996138924)
+  digits = digits.replace(/^0+/, '');
+
+  const variations = new Set();
+  variations.add(digits);
+
+  // Se for LID do WhatsApp (14+ dígitos ou iniciado por 1686 / 219), não tentar deduzir DDD móvel
+  if (digits.length > 13 || digits.startsWith('1686') || digits.startsWith('219')) {
+    return Array.from(variations);
+  }
+
+  let ddd = '';
+  let numberPart = '';
+
+  if (digits.startsWith('55') && digits.length >= 12) {
+    ddd = digits.substring(2, 4);
+    numberPart = digits.substring(4);
+  } else if (digits.length === 10 || digits.length === 11) {
+    ddd = digits.substring(0, 2);
+    numberPart = digits.substring(2);
+  } else if (digits.length === 8 || digits.length === 9) {
+    if (digits.length === 9 && digits.startsWith('9')) {
+      variations.add(digits.substring(1));
+    } else if (digits.length === 8) {
+      variations.add(`9${digits}`);
+    }
+    return Array.from(variations);
+  }
+
+  if (ddd && numberPart) {
+    let num9 = '';
+    let num8 = '';
+
+    if (numberPart.length === 9) {
+      num9 = numberPart;
+      if (numberPart.startsWith('9')) {
+        num8 = numberPart.substring(1);
+      }
+    } else if (numberPart.length === 8) {
+      num8 = numberPart;
+      num9 = `9${numberPart}`;
+    }
+
+    // 1) DDI + DDD + 9 dígitos (ex: 5581996138924)
+    if (num9) variations.add(`55${ddd}${num9}`);
+    // 2) DDD + 9 dígitos (ex: 81996138924)
+    if (num9) variations.add(`${ddd}${num9}`);
+    // 3) DDD + 8 dígitos legado (ex: 8196138924)
+    if (num8) variations.add(`${ddd}${num8}`);
+    // 4) DDI + DDD + 8 dígitos legado (ex: 558196138924)
+    if (num8) variations.add(`55${ddd}${num8}`);
+
+    if (num9) variations.add(num9);
+    if (num8) variations.add(num8);
+  }
+
+  return Array.from(variations);
+}
+
+// Helper: Resolver correspondência bidirecional entre LID (WhatsApp Privacy ID) e Telefone Real em todas as variações
 export function resolveLinkedPhones(phone, db) {
   const clean = String(phone || '').replace(/\D/g, '');
   if (!clean) return { primaryPhone: '', allPhones: [] };
 
   const phones = new Set([clean]);
+  const variations = getBrazilianPhoneVariations(clean);
+  variations.forEach(v => {
+    if (v.length >= 10) phones.add(v);
+  });
 
   if (db?.conversations) {
     Object.values(db.conversations).forEach(conv => {
       if (!conv) return;
       const cPhone = String(conv.phone || '').replace(/\D/g, '');
       const cContactPhone = String(conv.contact_phone || '').replace(/\D/g, '');
-      if (cPhone === clean && cContactPhone) phones.add(cContactPhone);
-      if (cContactPhone === clean && cPhone) phones.add(cPhone);
+      const convPhones = [cPhone, cContactPhone].filter(Boolean);
+      for (const cp of convPhones) {
+        const cpVars = getBrazilianPhoneVariations(cp);
+        if (variations.some(v => cp === v || cpVars.includes(v))) {
+          if (cPhone) phones.add(cPhone);
+          if (cContactPhone) phones.add(cContactPhone);
+        }
+      }
     });
   }
 
@@ -72,8 +154,17 @@ export function resolveLinkedPhones(phone, db) {
       if (!c) return;
       const p = String(c.phone || '').replace(/\D/g, '');
       const realP = String(c.real_phone || c.phone_number || c.metadata?.real_phone || '').replace(/\D/g, '');
-      if (p === clean && realP) phones.add(realP);
-      if (realP === clean && p) phones.add(p);
+      const contactPhones = [p, realP].filter(Boolean);
+      for (const cp of contactPhones) {
+        const cpVars = getBrazilianPhoneVariations(cp);
+        if (variations.some(v => cp === v || cpVars.includes(v))) {
+          if (p) phones.add(p);
+          if (realP) phones.add(realP);
+          cpVars.forEach(cv => {
+            if (cv.length >= 10) phones.add(cv);
+          });
+        }
+      }
     });
   }
 
@@ -84,15 +175,30 @@ export function resolveLinkedPhones(phone, db) {
       const cv = String(v).replace(/\D/g, '');
       if (ck === clean && cv) phones.add(cv);
       if (cv === clean && ck) phones.add(ck);
+      for (const varP of variations) {
+        if (ck === varP && cv) phones.add(cv);
+        if (cv === varP && ck) phones.add(ck);
+      }
     }
   }
 
   const allPhones = Array.from(phones);
-  // Priorizar telefone móvel padrão (10 a 13 dígitos) sobre o LID (15+ dígitos)
+  // Priorizar telefone com cadastro ativo confirmado se existir
   let primaryPhone = clean;
-  const standardPhone = allPhones.find(p => p.length >= 10 && p.length <= 13);
-  if (standardPhone) {
-    primaryPhone = standardPhone;
+  if (db?.contacts) {
+    for (const p of allPhones) {
+      if (db.contacts[p]?.is_registered || db.contacts[p]?.status === 'active') {
+        primaryPhone = p;
+        break;
+      }
+    }
+  }
+  // Se ainda for LID, buscar qualquer telefone móvel padrão (10 a 13 dígitos)
+  if (primaryPhone.length > 13 || primaryPhone.startsWith('1686') || primaryPhone.startsWith('219')) {
+    const standardPhone = allPhones.find(p => p.length >= 10 && p.length <= 13);
+    if (standardPhone) {
+      primaryPhone = standardPhone;
+    }
   }
 
   return { primaryPhone, allPhones };
@@ -1048,10 +1154,27 @@ export function recordRealMessage(phone, senderName, direction, content, explici
   const isBotSender = !senderName || botNames.includes(cleanSenderLower);
   const safeCustomerName = isBotSender ? '' : senderName;
 
-  // 1. Upsert Contact
+  // 1. Upsert Contact: buscar por targetPhone OU qualquer uma das variações (13, 11, 10, 12 dígitos)
   let existingContact = null;
   if (!db.contacts) db.contacts = {};
-  const inDb = db.contacts[targetPhone];
+  
+  const phoneVariations = getBrazilianPhoneVariations(targetPhone || cleanPhone);
+  for (const p of [targetPhone, cleanPhone, ...allPhones, ...phoneVariations]) {
+    if (db.contacts[p]) {
+      existingContact = db.contacts[p];
+      break;
+    }
+  }
+  if (!existingContact) {
+    const list = Array.isArray(db.contacts) ? db.contacts : Object.values(db.contacts);
+    existingContact = list.find(c => {
+      if (!c) return false;
+      const cp = String(c.phone || c.real_phone || '').replace(/\D/g, '');
+      const cpVars = getBrazilianPhoneVariations(cp);
+      return phoneVariations.some(v => v === cp || cpVars.includes(v));
+    }) || null;
+  }
+  const inDb = existingContact;
 
   // Avaliar se o contato já existente é um cliente cadastrado
   const existingRawTags = inDb?.tags || explicitTags || [];
@@ -1130,6 +1253,12 @@ export function recordRealMessage(phone, senderName, direction, content, explici
 
   existingContact.updated_at = now;
   db.contacts[targetPhone] = existingContact;
+  // Criar alias em todas as variações para o contato ser localizado instantaneamente por qualquer formato
+  for (const v of phoneVariations) {
+    if (v.length >= 10) {
+      db.contacts[v] = existingContact;
+    }
+  }
 
   // 2. Upsert Conversation
   if (!db.conversations) db.conversations = {};
@@ -1353,28 +1482,13 @@ export async function findRegisteredContact(cleanPhone, senderName, db, checkCri
     }
   }
 
-  // Generate phone variations: with 55, without 55, with/without 9th digit
-  const variations = new Set();
-  variations.add(digitsOnly);
-
-  let withoutDdi = digitsOnly;
-  if (digitsOnly.startsWith('55') && digitsOnly.length >= 12) {
-    withoutDdi = digitsOnly.substring(2);
-    variations.add(withoutDdi);
-  } else if (digitsOnly.length === 10 || digitsOnly.length === 11) {
-    variations.add(`55${digitsOnly}`);
-  }
-
-  // 9th digit variations for Brazilian numbers (e.g. 81 99613-8924 vs 81 9613-8924)
-  if (withoutDdi.length === 11 && withoutDdi[2] === '9') {
-    const without9 = withoutDdi.substring(0, 2) + withoutDdi.substring(3);
-    variations.add(without9);
-    variations.add(`55${without9}`);
-  } else if (withoutDdi.length === 10) {
-    const with9 = withoutDdi.substring(0, 2) + '9' + withoutDdi.substring(2);
-    variations.add(with9);
-    variations.add(`55${with9}`);
-  }
+  // Gera todas as 4 variações canônicas brasileiras (ex: 5581996138924, 81996138924, 8196138924, 558196138924)
+  const canonicalVariations = getBrazilianPhoneVariations(digitsOnly);
+  const { allPhones } = resolveLinkedPhones(digitsOnly, db);
+  const variations = new Set([
+    ...canonicalVariations,
+    ...allPhones.filter(p => p.length >= 10 && p.length <= 13),
+  ]);
 
   // Helper to determine if contact has verified client status
   const isVerifiedClient = (c) => {
@@ -1428,69 +1542,111 @@ export async function findRegisteredContact(cleanPhone, senderName, db, checkCri
   };
 
   // 1. Search in memory / db.contacts
+  // 1.1 Busca direta nas chaves do objeto por todas as variações
+  for (const v of variations) {
+    const directContact = db.contacts?.[v];
+    if (directContact && isVerifiedClient(directContact)) {
+      directContact.is_registered = true;
+      directContact.status = 'active';
+      for (const varP of variations) {
+        if (varP.length >= 10) db.contacts[varP] = directContact;
+      }
+      saveDb(db);
+      return { isRegistered: true, contact: directContact, hasRealName: true };
+    }
+  }
+
+  // 1.2 Scan completo da lista de contatos comparando variações
   const contactsList = Object.values(db.contacts || {});
   for (const c of contactsList) {
     const cDigits = (c.phone || c.id || '').replace(/\D/g, '');
-    for (const v of variations) {
-      if (cDigits && (cDigits === v || cDigits.endsWith(v) || v.endsWith(cDigits))) {
-        if (isVerifiedClient(c)) {
-          c.is_registered = true;
-          c.status = 'active';
-          return { isRegistered: true, contact: c, hasRealName: true };
-        }
+    const cVars = getBrazilianPhoneVariations(cDigits);
+    const hasMatch = Array.from(variations).some(v => v === cDigits || cVars.includes(v));
+    if (hasMatch && isVerifiedClient(c)) {
+      c.is_registered = true;
+      c.status = 'active';
+      for (const varP of variations) {
+        if (varP.length >= 10) db.contacts[varP] = c;
       }
+      saveDb(db);
+      return { isRegistered: true, contact: c, hasRealName: true };
     }
   }
 
   // 2. Search in Supabase Cloud Database (Single Source of Truth)
   if (supabaseClient) {
     try {
-      for (const v of variations) {
-        // Consultar tabela clients (principal do CRM)
-        const clientRes = await supabaseClient
+      const varsArray = Array.from(variations).filter(v => v.length >= 10);
+      
+      // 2.1 Consultar tabela clients (principal do CRM) em lote com todas as variações
+      const clientRes = await supabaseClient
+        .from('clients')
+        .select('*')
+        .in('phone', varsArray)
+        .limit(1)
+        .maybeSingle();
+
+      if (clientRes.data && !clientRes.error) {
+        const clientData = {
+          ...clientRes.data,
+          is_registered: true,
+          status: 'active',
+        };
+        if (!db.contacts) db.contacts = {};
+        for (const varP of variations) {
+          if (varP.length >= 10) db.contacts[varP] = clientData;
+        }
+        db.contacts[cleanPhone] = clientData;
+        saveDb(db);
+        return { isRegistered: true, contact: clientData, hasRealName: true };
+      }
+
+      // Fallback em clients com filtro OR
+      const orFilterClients = varsArray.map(v => `phone.eq.${v}`).join(',');
+      if (orFilterClients) {
+        const clientOrRes = await supabaseClient
           .from('clients')
           .select('*')
-          .or(`phone.eq.${v},phone.ilike.%${v}%`)
+          .or(orFilterClients)
           .limit(1)
           .maybeSingle();
 
-        if (clientRes.data && !clientRes.error && isVerifiedClient(clientRes.data)) {
+        if (clientOrRes.data && !clientOrRes.error) {
           const clientData = {
-            ...clientRes.data,
+            ...clientOrRes.data,
             is_registered: true,
             status: 'active',
           };
           if (!db.contacts) db.contacts = {};
-          db.contacts[cleanPhone] = clientData;
-          db.contacts[clientRes.data.phone] = clientData;
+          for (const varP of variations) {
+            if (varP.length >= 10) db.contacts[varP] = clientData;
+          }
           saveDb(db);
           return { isRegistered: true, contact: clientData, hasRealName: true };
         }
+      }
 
-        // Fallback em contacts
-        const contactRes = await supabaseClient
-          .from('contacts')
-          .select('*')
-          .or(`phone.eq.${v},phone.ilike.%${v}%`)
-          .limit(1)
-          .maybeSingle();
+      // 2.2 Consultar tabela contacts
+      const contactRes = await supabaseClient
+        .from('contacts')
+        .select('*')
+        .in('phone', varsArray)
+        .limit(1)
+        .maybeSingle();
 
-        if (contactRes.data && !contactRes.error && isVerifiedClient(contactRes.data)) {
-          const contactData = {
-            ...contactRes.data,
-            is_registered: true,
-            status: 'active',
-          };
-          if (!db.contacts) db.contacts = {};
-          db.contacts[cleanPhone] = contactData;
-          db.contacts[contactRes.data.phone] = contactData;
-          saveDb(db);
-
-          // Auto-heal: sincronizar para clients se faltava
-          syncContactToSupabase(contactData);
-
-          return { isRegistered: true, contact: contactData, hasRealName: true };
+      if (contactRes.data && !contactRes.error && isVerifiedClient(contactRes.data)) {
+        const contactData = {
+          ...contactRes.data,
+          is_registered: true,
+          status: 'active',
+        };
+        if (!db.contacts) db.contacts = {};
+        for (const varP of variations) {
+          if (varP.length >= 10) db.contacts[varP] = contactData;
         }
+        saveDb(db);
+        syncContactToSupabase(contactData);
+        return { isRegistered: true, contact: contactData, hasRealName: true };
       }
     } catch (e) {
       console.warn('[FlowRunner] Erro ao consultar contato no Supabase:', e.message);
@@ -1498,30 +1654,30 @@ export async function findRegisteredContact(cleanPhone, senderName, db, checkCri
   }
 
   // 3. Search in Appointments (Historic bookings)
-  // Only consider appointment if contact is active in db.contacts and not deleted
   const apts = (db.appointments || []).filter(a => a.status === 'confirmed' || a.status === 'completed');
   const aptMatch = apts.find((a) => {
     const aDigits = (a.contact_phone || a.phone || '').replace(/\D/g, '');
-    for (const v of variations) {
-      if (aDigits && (aDigits === v || aDigits.endsWith(v) || v.endsWith(aDigits))) return true;
-    }
-    return false;
+    const aVars = getBrazilianPhoneVariations(aDigits);
+    return Array.from(variations).some(v => v === aDigits || aVars.includes(v));
   });
 
   if (aptMatch && aptMatch.contact_name && aptMatch.contact_name.toLowerCase() !== 'cliente' && !aptMatch.contact_name.includes('{{')) {
-    // Cross-check with db.contacts: if contact was marked as lead or unregistered, do NOT consider as registered client
-    const existingContact = contactsList.find(c => {
-      const cd = (c.phone || c.id || '').replace(/\D/g, '');
-      return cd && variations.has(cd);
-    });
-
-    if (!existingContact || (existingContact.status !== 'lead' && existingContact.is_registered !== false)) {
-      return {
-        isRegistered: true,
-        contact: { name: aptMatch.contact_name, phone: cleanPhone, is_registered: true },
-        hasRealName: true,
-      };
+    const matchedContact = {
+      name: aptMatch.contact_name,
+      phone: cleanPhone,
+      is_registered: true,
+      status: 'active'
+    };
+    if (!db.contacts) db.contacts = {};
+    for (const varP of variations) {
+      if (varP.length >= 10) db.contacts[varP] = matchedContact;
     }
+    saveDb(db);
+    return {
+      isRegistered: true,
+      contact: matchedContact,
+      hasRealName: true,
+    };
   }
 
   return { isRegistered: false, contact: null, hasRealName: false };
@@ -2981,6 +3137,12 @@ function parseCustomDateString(input) {
         db.contacts[targetPhone] = contactObj;
         savedContact = contactObj;
 
+        // Criar alias em todas as variações para localizar em O(1)
+        const savedVars = getBrazilianPhoneVariations(targetPhone);
+        for (const sv of savedVars) {
+          if (sv.length >= 10) db.contacts[sv] = contactObj;
+        }
+
         // 6. Atualizar Conversa Ativa na Central de Atendimento
         if (config.updateActiveConversation !== false && db.conversations) {
           const convKey = `conv-${targetPhone}`;
@@ -3072,20 +3234,32 @@ function parseCustomDateString(input) {
         !isReset && session.variables['cliente_salvo'] === true
       );
 
+      let cachedContact = null;
+      const checkVars = getBrazilianPhoneVariations(checkPhone);
+      for (const cv of checkVars) {
+        if (db.contacts?.[cv]) {
+          cachedContact = db.contacts[cv];
+          break;
+        }
+      }
+
       const contactInfo = sessionAlreadyRegistered
-        ? { isRegistered: true, contact: db.contacts?.[checkPhone] || { name: session.variables['nome_cliente'] || session.variables['cliente_nome'] || senderName } }
+        ? { isRegistered: true, contact: cachedContact || db.contacts?.[checkPhone] || { name: session.variables['nome_cliente'] || session.variables['cliente_nome'] || senderName } }
         : await findRegisteredContact(checkPhone, senderName, db, config.checkCriteria || 'crm_or_name');
 
       const isNew = !contactInfo.isRegistered;
       const contact = contactInfo.contact;
 
       // Popular variáveis no contexto da sessão com todos os aliases
+      const finalPhone = contact?.phone || checkPhone;
       session.variables['is_primeiro_contato'] = isNew;
       session.variables['is_novo_contato'] = isNew;
       session.variables['is_existing_contact'] = !isNew;
       session.variables['tipo_cliente'] = isNew ? 'novo' : 'recorrente';
-      session.variables['telefone_whatsapp'] = checkPhone;
-      session.variables['cliente_telefone'] = checkPhone;
+      session.variables['telefone_whatsapp'] = finalPhone;
+      session.variables['cliente_telefone'] = finalPhone;
+      session.variables['telefone_cliente'] = finalPhone;
+      session.variables['telefone'] = finalPhone;
 
       if (contact?.custom_fields) {
         Object.assign(session.variables, contact.custom_fields);

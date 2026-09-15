@@ -19,6 +19,7 @@ import { Badge } from '../ui/Badge';
 import { Flow, FlowNode, FlowEdge, BotProfile, AgendaServiceItem, Contact } from '../../types';
 import { substituteVariables, executeVariableAssignment } from '../../lib/flowEngine';
 import { StorageService } from '../../lib/storage';
+import { getBrazilianPhoneVariations } from '../../lib/phoneUtils';
 
 export interface FlowSimulatorProps {
   flow: Flow;
@@ -61,6 +62,23 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
   const [isRunning, setIsRunning] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Helper para buscar contato registrado comparando todas as 4 variações de telefone
+  const checkContactByPhoneVariations = (phoneStr: string) => {
+    const raw = (phoneStr || '').replace(/\D/g, '');
+    if (!raw) return null;
+    const vars = getBrazilianPhoneVariations(raw);
+    return availableContacts.find(c => {
+      if (StorageService.isContactDeleted(c)) return false;
+      const cp = String(c.phone || (c as any).real_phone || '').replace(/\D/g, '');
+      const cpVars = getBrazilianPhoneVariations(cp);
+      return vars.some(v => v === cp || cpVars.includes(v));
+    }) || null;
+  };
+
+  const matchedContactInfo = React.useMemo(() => {
+    return checkContactByPhoneVariations(simPhone);
+  }, [simPhone, availableContacts]);
+
   // Load bot profile, services and registered contacts
   useEffect(() => {
     async function loadInitialData() {
@@ -98,8 +116,9 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
   const handleStartSimulation = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const cleanPhone = (simPhone || '').replace(/\D/g, '') || '81999998888';
-    const isNew = simMode === 'new';
-    const clientName = simName.trim() || (isNew ? '' : 'Cliente Cadastrado');
+    const matched = checkContactByPhoneVariations(cleanPhone);
+    const isNew = matched ? false : (simMode === 'new');
+    const clientName = (matched?.name || simName || (isNew ? '' : 'Cliente Cadastrado')).trim();
 
     const initialVars: Record<string, any> = {
       ...variables,
@@ -114,6 +133,7 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
       nome_cliente: isNew ? '' : clientName,
       cliente_nome: isNew ? '' : clientName,
       nome: isNew ? '' : clientName,
+      primeiro_nome: isNew ? '' : (clientName.split(' ')[0] || clientName),
       empresa: botProfile?.company_name || 'Pitoco de Gente',
       bot_nome: botProfile?.name || 'Pitoco Bot',
     };
@@ -193,9 +213,10 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
 
         // Handle branching for multi-output nodes
         if (startNodeType === 'check_contact') {
-          const isNew = activeVars.is_primeiro_contato !== undefined
-            ? Boolean(activeVars.is_primeiro_contato)
-            : Boolean(activeVars.is_novo_contato || !activeVars.is_existing_contact);
+          const phoneToCheck = activeVars.telefone_cliente || activeVars.telefone_whatsapp || simPhone || '';
+          const matched = checkContactByPhoneVariations(phoneToCheck);
+          const isExisting = Boolean(matched || simMode === 'existing' || activeVars.is_existing_contact);
+          const isNew = !isExisting;
           const targetHandle = isNew ? 'is_new' : 'is_existing';
           const branchEdge =
             outgoing.find(e => e.sourceHandle === targetHandle) ||
@@ -294,14 +315,31 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
       } 
       // 4. Check Contact Node
       else if (type === 'check_contact') {
-        const isNew = activeVars.is_primeiro_contato !== undefined
-          ? Boolean(activeVars.is_primeiro_contato)
-          : Boolean(activeVars.is_novo_contato || !activeVars.is_existing_contact);
+        const phoneToCheck = activeVars.telefone_cliente || activeVars.telefone_whatsapp || simPhone || '';
+        const matched = checkContactByPhoneVariations(phoneToCheck);
+        const isExisting = Boolean(matched || simMode === 'existing' || activeVars.is_existing_contact);
+        const isNew = !isExisting;
 
         activeVars.is_primeiro_contato = isNew;
         activeVars.is_novo_contato = isNew;
         activeVars.is_existing_contact = !isNew;
         activeVars.tipo_cliente = isNew ? 'novo' : 'recorrente';
+
+        if (!isNew) {
+          const resolvedName = (matched?.name || activeVars.nome_cliente || simName || 'Cliente').trim();
+          activeVars.nome_cliente = resolvedName;
+          activeVars.cliente_nome = resolvedName;
+          activeVars.nome = resolvedName;
+          activeVars.primeiro_nome = resolvedName.split(' ')[0] || resolvedName;
+          activeVars['{{nome_cliente}}'] = resolvedName;
+          activeVars['{{cliente_nome}}'] = resolvedName;
+          activeVars['{{primeiro_nome}}'] = activeVars.primeiro_nome;
+        } else {
+          activeVars.nome_cliente = '';
+          activeVars.cliente_nome = '';
+          activeVars.nome = '';
+          activeVars.primeiro_nome = '';
+        }
 
         const targetHandle = isNew ? 'is_new' : 'is_existing';
         const branchEdge =
@@ -1212,11 +1250,25 @@ export const FlowSimulator: React.FC<FlowSimulatorProps> = ({
               <input
                 type="text"
                 value={simPhone}
-                onChange={(e) => setSimPhone(e.target.value)}
-                placeholder="Ex: (81) 99613-8924 ou 81999998888"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSimPhone(val);
+                  const matched = checkContactByPhoneVariations(val);
+                  if (matched && matched.name) {
+                    setSimMode('existing');
+                    setSimName(matched.name);
+                  }
+                }}
+                placeholder="Ex: 5581996138924 / 81996138924 / 8196138924 / 558196138924"
                 className="w-full bg-dark-900 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                 required
               />
+              {matchedContactInfo && (
+                <div className="mt-1.5 flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-400 font-medium animate-in fade-in duration-200">
+                  <UserCheck className="w-3.5 h-3.5 shrink-0" />
+                  <span>Cliente localizado na base: <strong>"{matchedContactInfo.name}"</strong></span>
+                </div>
+              )}
             </div>
 
             {/* Scenario Selection Cards */}

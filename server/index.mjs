@@ -38,7 +38,8 @@ import {
   syncContactToSupabase,
   recordRealMessage,
   isTestOrDummy,
-  setWhatsAppProfilePicGetter
+  setWhatsAppProfilePicGetter,
+  getBrazilianPhoneVariations
 } from './flowRunner.mjs';
 import { processAdminBotMessage } from './botEngine.mjs';
 import { syncToSupabase } from './syncSupabase.mjs';
@@ -372,9 +373,15 @@ async function startWhatsApp() {
         // JID de destino para envio: SEMPRE responder no chat de onde a mensagem veio (ex: @lid ou @s.whatsapp.net)
         const destinationJid = remoteJid;
 
-        // Identificar se o cliente já tem um nome cadastrado pelo fluxo/CRM
+        // Identificar se o cliente já tem um nome cadastrado pelo fluxo/CRM em qualquer uma das 4 variações
         let registeredName = null;
-        for (const p of [clientPhone, rawPhone, ...allPhones]) {
+        const phoneVariations = [
+          ...getBrazilianPhoneVariations(clientPhone),
+          ...getBrazilianPhoneVariations(rawPhone),
+        ];
+        const searchKeys = Array.from(new Set([clientPhone, rawPhone, ...allPhones, ...phoneVariations]));
+
+        for (const p of searchKeys) {
           const contact = (typeof dbCheck.contacts === 'object' && !Array.isArray(dbCheck.contacts)) 
             ? dbCheck.contacts[p] 
             : (Array.isArray(dbCheck.contacts) ? dbCheck.contacts.find(c => String(c?.phone || '').replace(/\D/g, '') === p) : null);
@@ -1485,6 +1492,10 @@ app.post('/api/contacts', async (req, res) => {
         else db.contacts.push({ ...newContact, phone: targetPhone });
       } else {
         db.contacts[targetPhone] = { ...(db.contacts[targetPhone] || {}), ...newContact, phone: targetPhone };
+        const savedVars = getBrazilianPhoneVariations(targetPhone);
+        for (const sv of savedVars) {
+          if (sv.length >= 10) db.contacts[sv] = db.contacts[targetPhone];
+        }
       }
 
       if (db.conversations && db.conversations[`conv-${targetPhone}`]) {
@@ -1545,6 +1556,10 @@ app.put('/api/contacts/:id', async (req, res) => {
       } else {
         db.contacts[targetPhone] = { ...(db.contacts[targetPhone] || {}), ...data, phone: targetPhone, updated_at: new Date().toISOString() };
         updatedContact = db.contacts[targetPhone];
+        const savedVars = getBrazilianPhoneVariations(targetPhone);
+        for (const sv of savedVars) {
+          if (sv.length >= 10) db.contacts[sv] = updatedContact;
+        }
       }
 
       if (db.conversations && db.conversations[`conv-${targetPhone}`]) {

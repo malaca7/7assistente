@@ -1,5 +1,6 @@
 import { Flow, FlowNode, FlowEdge, Contact, Conversation, Message, BotProfile } from '../types';
 import { StorageService } from './storage';
+import { getBrazilianPhoneVariations } from './phoneUtils';
 
 export interface FlowExecutionContext {
   flowId: string;
@@ -552,10 +553,17 @@ export const FlowEngine = {
 
       // 8.5 Check Contact Node (Primeiro Contato vs Contato Salvo)
       else if (nodeType === 'check_contact') {
+        const hasRealName = Boolean(
+          contact?.name && 
+          !['cliente', 'cliente whatsapp', 'novo contato', 'visitante', 'lead'].includes(contact.name.toLowerCase().trim()) &&
+          !contact.name.startsWith('{{')
+        );
+        const isRegistered = Boolean(contact?.is_registered || contact?.status === 'active' || hasRealName);
+
         const isNew = Boolean(
           variables.is_primeiro_contato !== undefined
             ? variables.is_primeiro_contato
-            : (!contact?.name || contact.name === 'Cliente' || contact.name === 'Cliente WhatsApp')
+            : !isRegistered
         );
 
         variables.is_primeiro_contato = isNew;
@@ -564,7 +572,12 @@ export const FlowEngine = {
         variables.tipo_cliente = isNew ? 'novo' : 'recorrente';
         if (!isNew && contact?.name) {
           variables.nome_cliente = contact.name;
+          variables.cliente_nome = contact.name;
+          variables.nome = contact.name;
           variables.primeiro_nome = contact.name.split(' ')[0] || contact.name;
+          variables['{{nome_cliente}}'] = contact.name;
+          variables['{{cliente_nome}}'] = contact.name;
+          variables['{{primeiro_nome}}'] = variables.primeiro_nome;
         }
 
         const targetHandle = isNew ? 'is_new' : 'is_existing';

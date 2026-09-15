@@ -717,12 +717,50 @@
     ],
     "flow-pitoco-001": [
       {
+        "id": "node-message-1788908658917",
+        "flow_id": "flow-pitoco-001",
+        "type": "message",
+        "position": {
+          "x": 425,
+          "y": 1455
+        },
+        "data": {
+          "label": "Enviar Mensagem",
+          "config": {
+            "text": "👶✨ Olá *{{nome_cliente}}*! Seja muito bem-vindo(a) à *{{empresa}}*!",
+            "previewUrl": false
+          },
+          "nodeType": "message",
+          "description": "Envia texto formatado no WhatsApp com variáveis dinâmicas (ex: {{nome_cliente}}).",
+          "isConfigured": true
+        }
+      },
+      {
+        "id": "node-human_handoff-1789176476938",
+        "flow_id": "flow-pitoco-001",
+        "type": "human_handoff",
+        "position": {
+          "x": 425,
+          "y": 3480
+        },
+        "data": {
+          "label": "Transferir para Humano",
+          "config": {
+            "department": "Atendimento Geral",
+            "notifyMessage": "Você foi transferido para um de nossos atendentes humanos."
+          },
+          "nodeType": "human_handoff",
+          "description": "Pausa as respostas automáticas do bot e notifica um atendente humano.",
+          "isConfigured": true
+        }
+      },
+      {
         "id": "node-update_contact-1788906881259",
         "flow_id": "flow-pitoco-001",
         "type": "update_contact",
         "position": {
           "x": 80,
-          "y": 1120
+          "y": 1070
         },
         "data": {
           "label": "Salvar / Vincular Dados",
@@ -746,7 +784,7 @@
         "type": "question",
         "position": {
           "x": 80,
-          "y": 800
+          "y": 750
         },
         "data": {
           "label": "Pergunta & Resposta",
@@ -761,50 +799,12 @@
         }
       },
       {
-        "id": "node-message-1788908658917",
-        "flow_id": "flow-pitoco-001",
-        "type": "message",
-        "position": {
-          "x": 425,
-          "y": 1505
-        },
-        "data": {
-          "label": "Enviar Mensagem",
-          "config": {
-            "text": "👶✨ Olá *{{nome_cliente}}*! Seja muito bem-vindo(a) à *{{empresa}}*!",
-            "previewUrl": false
-          },
-          "nodeType": "message",
-          "description": "Envia texto formatado no WhatsApp com variáveis dinâmicas (ex: {{nome_cliente}}).",
-          "isConfigured": true
-        }
-      },
-      {
-        "id": "node-human_handoff-1789176476938",
-        "flow_id": "flow-pitoco-001",
-        "type": "human_handoff",
-        "position": {
-          "x": 550,
-          "y": 3495
-        },
-        "data": {
-          "label": "Transferir para Humano",
-          "config": {
-            "department": "Atendimento Geral",
-            "notifyMessage": "Você foi transferido para um de nossos atendentes humanos."
-          },
-          "nodeType": "human_handoff",
-          "description": "Pausa as respostas automáticas do bot e notifica um atendente humano.",
-          "isConfigured": true
-        }
-      },
-      {
         "id": "node-question-1788893542405",
         "flow_id": "flow-pitoco-001",
         "type": "question",
         "position": {
-          "x": 905,
-          "y": 800
+          "x": 780,
+          "y": 750
         },
         "data": {
           "label": "Pergunta & Resposta",
@@ -823,8 +823,8 @@
         "flow_id": "flow-pitoco-001",
         "type": "check_contact",
         "position": {
-          "x": 665,
-          "y": 400
+          "x": 540,
+          "y": 350
         },
         "data": {
           "label": "Verificar Contato (Novo vs Salvo)",
@@ -839,8 +839,8 @@
         "flow_id": "flow-pitoco-001",
         "type": "trigger",
         "position": {
-          "x": 665,
-          "y": 105
+          "x": 540,
+          "y": 80
         },
         "data": {
           "label": "Gatilho Inicial",
@@ -860,7 +860,7 @@
         "type": "measure_guide",
         "position": {
           "x": 905,
-          "y": 3025
+          "y": 3010
         },
         "data": {
           "label": "Guia de Medidas (RN a 3 Anos)",
@@ -879,7 +879,7 @@
         "type": "message",
         "position": {
           "x": 425,
-          "y": 1845
+          "y": 1795
         },
         "data": {
           "label": "Enviar Mensagem",
@@ -897,8 +897,8 @@
         "flow_id": "flow-pitoco-001",
         "type": "show_catalog",
         "position": {
-          "x": 205,
-          "y": 3015
+          "x": 80,
+          "y": 3000
         },
         "data": {
           "label": "Vitrine da Loja Virtual",
@@ -919,7 +919,7 @@
         "type": "store_selector",
         "position": {
           "x": 425,
-          "y": 2185
+          "y": 2135
         },
         "data": {
           "label": "Escolha de Loja / Filial",
@@ -938,7 +938,7 @@
         "type": "buttons",
         "position": {
           "x": 665,
-          "y": 2615
+          "y": 2600
         },
         "data": {
           "label": "Botões Interativos WhatsApp",
@@ -1137,20 +1137,6 @@
     ],
     "flow-pitoco-001": [
       {
-        "id": "xy-edge__node-question-1789276221154-node-update_contact-1788906881259",
-        "flow_id": "flow-pitoco-001",
-        "source": "node-question-1789276221154",
-        "target": "node-update_contact-1788906881259",
-        "data": {}
-      },
-      {
-        "id": "xy-edge__node-measure_guide-1789176538133-node-human_handoff-1789176476938",
-        "flow_id": "flow-pitoco-001",
-        "source": "node-measure_guide-1789176538133",
-        "target": "node-human_handoff-1789176476938",
-        "data": {}
-      },
-      {
         "id": "xy-edge__node-show_catalog-1789253962865-node-human_handoff-1789176476938",
         "flow_id": "flow-pitoco-001",
         "source": "node-show_catalog-1789253962865",
@@ -1193,6 +1179,20 @@
         "source": "node-check_contact-1788893686878",
         "target": "node-question-1789276221154",
         "sourceHandle": "is_new",
+        "data": {}
+      },
+      {
+        "id": "xy-edge__node-question-1789276221154-node-update_contact-1788906881259",
+        "flow_id": "flow-pitoco-001",
+        "source": "node-question-1789276221154",
+        "target": "node-update_contact-1788906881259",
+        "data": {}
+      },
+      {
+        "id": "xy-edge__node-measure_guide-1789176538133-node-human_handoff-1789176476938",
+        "flow_id": "flow-pitoco-001",
+        "source": "node-measure_guide-1789176538133",
+        "target": "node-human_handoff-1789176476938",
         "data": {}
       },
       {
@@ -1260,6 +1260,69 @@
   },
   "contacts": {
     "558196138924": {
+      "id": "contact-558196138924",
+      "phone": "558196138924",
+      "name": "Leo",
+      "profile_picture_url": "https://pps.whatsapp.net/v/t61.24694-24/674630155_1633106875192131_9214554452579566382_n.jpg?ccb=11-4&oh=01_Q5Aa5gH2RlLgPFNQx8XjGoUD2IBYKoPr2pWsnRqtTM5Sjsne6A&oe=6AB5A321&_nc_sid=5e03e0&_nc_cat=104",
+      "status": "active",
+      "tags": [
+        "Cliente WhatsApp",
+        "Bot",
+        "Cliente"
+      ],
+      "metadata": {
+        "notes": "Cadastrado e atualizado pelo fluxo do bot",
+        "nome_cliente": "Leo",
+        "nome_clientenovo": "Leo"
+      },
+      "created_at": "2026-09-14T22:36:53.437583+00:00",
+      "updated_at": "2026-09-14T23:26:11.605Z",
+      "whatsapp_pushname": "Rogerio Mlc",
+      "is_registered": true
+    },
+    "5581996138924": {
+      "id": "contact-558196138924",
+      "phone": "558196138924",
+      "name": "Leo",
+      "profile_picture_url": "https://pps.whatsapp.net/v/t61.24694-24/674630155_1633106875192131_9214554452579566382_n.jpg?ccb=11-4&oh=01_Q5Aa5gH2RlLgPFNQx8XjGoUD2IBYKoPr2pWsnRqtTM5Sjsne6A&oe=6AB5A321&_nc_sid=5e03e0&_nc_cat=104",
+      "status": "active",
+      "tags": [
+        "Cliente WhatsApp",
+        "Bot",
+        "Cliente"
+      ],
+      "metadata": {
+        "notes": "Cadastrado e atualizado pelo fluxo do bot",
+        "nome_cliente": "Leo",
+        "nome_clientenovo": "Leo"
+      },
+      "created_at": "2026-09-14T22:36:53.437583+00:00",
+      "updated_at": "2026-09-14T23:26:11.605Z",
+      "whatsapp_pushname": "Rogerio Mlc",
+      "is_registered": true
+    },
+    "81996138924": {
+      "id": "contact-558196138924",
+      "phone": "558196138924",
+      "name": "Leo",
+      "profile_picture_url": "https://pps.whatsapp.net/v/t61.24694-24/674630155_1633106875192131_9214554452579566382_n.jpg?ccb=11-4&oh=01_Q5Aa5gH2RlLgPFNQx8XjGoUD2IBYKoPr2pWsnRqtTM5Sjsne6A&oe=6AB5A321&_nc_sid=5e03e0&_nc_cat=104",
+      "status": "active",
+      "tags": [
+        "Cliente WhatsApp",
+        "Bot",
+        "Cliente"
+      ],
+      "metadata": {
+        "notes": "Cadastrado e atualizado pelo fluxo do bot",
+        "nome_cliente": "Leo",
+        "nome_clientenovo": "Leo"
+      },
+      "created_at": "2026-09-14T22:36:53.437583+00:00",
+      "updated_at": "2026-09-14T23:26:11.605Z",
+      "whatsapp_pushname": "Rogerio Mlc",
+      "is_registered": true
+    },
+    "8196138924": {
       "id": "contact-558196138924",
       "phone": "558196138924",
       "name": "Leo",
