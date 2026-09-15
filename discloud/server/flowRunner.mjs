@@ -1141,7 +1141,7 @@ export function recordRealMessage(phone, senderName, direction, content, explici
   }
   const db = loadDb();
   const cleanPhone = phone.replace(/\D/g, '');
-  const { primaryPhone } = resolveLinkedPhones(cleanPhone, db);
+  const { primaryPhone, allPhones = [] } = resolveLinkedPhones(cleanPhone, db);
   const targetPhone = (primaryPhone && primaryPhone.length >= 10 && primaryPhone.length <= 13) ? primaryPhone : cleanPhone;
   const isTargetLid = targetPhone.length >= 14 || targetPhone.startsWith('1686') || targetPhone.startsWith('219');
   
@@ -1900,35 +1900,45 @@ export async function getActiveFlowAndGraph(db, preferredFlowId = null, incoming
   // 3. Carregar nós e arestas de todos os fluxos ativos para conferir palavras-chave e disparos
   let allActiveNodes = [];
   let allActiveEdges = [];
+  const flowsWithCloudNodes = new Set();
   if (supabaseClient && supabaseHasFlowsTable !== false) {
     try {
       const [nodesRes, edgesRes] = await Promise.all([
         supabaseClient.from('flow_nodes').select('*').in('flow_id', activeFlowIds),
         supabaseClient.from('flow_edges').select('*').in('flow_id', activeFlowIds),
       ]);
-      if (Array.isArray(nodesRes.data)) allActiveNodes = nodesRes.data;
-      if (Array.isArray(edgesRes.data)) allActiveEdges = edgesRes.data;
-    } catch (e) {}
+      if (Array.isArray(nodesRes.data) && nodesRes.data.length > 0) {
+        allActiveNodes = nodesRes.data;
+        for (const n of nodesRes.data) {
+          if (n.flow_id) flowsWithCloudNodes.add(n.flow_id);
+        }
+      }
+      if (Array.isArray(edgesRes.data) && edgesRes.data.length > 0) {
+        allActiveEdges = edgesRes.data;
+      }
+    } catch (e) {
+      console.warn('[FlowRunner] Aviso ao consultar nós e arestas no Supabase:', e.message);
+    }
   }
 
-  // Mesclar com nós e arestas locais
+  // Fallback local: APENAS para fluxos que NÃO possuem nós no Supabase (offline ou criados localmente)
   if (Array.isArray(db.flow_nodes)) {
     for (const ln of db.flow_nodes) {
-      if (activeFlowIds.includes(ln.flow_id) && !allActiveNodes.some(n => n.id === ln.id)) {
-        allActiveNodes.push(ln);
+      if (activeFlowIds.includes(ln.flow_id) && !flowsWithCloudNodes.has(ln.flow_id)) {
+        if (!allActiveNodes.some(n => n.id === ln.id)) allActiveNodes.push(ln);
       }
     }
   }
   if (Array.isArray(db.flow_edges)) {
     for (const le of db.flow_edges) {
-      if (activeFlowIds.includes(le.flow_id) && !allActiveEdges.some(e => e.id === le.id)) {
-        allActiveEdges.push(le);
+      if (activeFlowIds.includes(le.flow_id) && !flowsWithCloudNodes.has(le.flow_id)) {
+        if (!allActiveEdges.some(e => e.id === le.id)) allActiveEdges.push(le);
       }
     }
   }
   if (db.nodes) {
     for (const [fId, nList] of Object.entries(db.nodes)) {
-      if (activeFlowIds.includes(fId) && Array.isArray(nList)) {
+      if (activeFlowIds.includes(fId) && !flowsWithCloudNodes.has(fId) && Array.isArray(nList)) {
         for (const ln of nList) {
           if (!allActiveNodes.some(n => n.id === ln.id)) allActiveNodes.push({ ...ln, flow_id: fId });
         }
@@ -1937,12 +1947,20 @@ export async function getActiveFlowAndGraph(db, preferredFlowId = null, incoming
   }
   if (db.edges) {
     for (const [fId, eList] of Object.entries(db.edges)) {
-      if (activeFlowIds.includes(fId) && Array.isArray(eList)) {
+      if (activeFlowIds.includes(fId) && !flowsWithCloudNodes.has(fId) && Array.isArray(eList)) {
         for (const le of eList) {
           if (!allActiveEdges.some(e => e.id === le.id)) allActiveEdges.push({ ...le, flow_id: fId });
         }
       }
     }
+  }
+
+  // Manter db.nodes e db.edges atualizados com o Supabase para cada fluxo com nós na nuvem
+  if (!db.nodes) db.nodes = {};
+  if (!db.edges) db.edges = {};
+  for (const fId of flowsWithCloudNodes) {
+    db.nodes[fId] = allActiveNodes.filter(n => n.flow_id === fId);
+    db.edges[fId] = allActiveEdges.filter(e => e.flow_id === fId);
   }
 
   // =========================================================================

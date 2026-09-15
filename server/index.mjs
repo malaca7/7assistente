@@ -2554,9 +2554,12 @@ app.post('/api/flows/sync-database', async (req, res) => {
       }
       if (Array.isArray(nodesRes.data)) {
         if (!db.nodes) db.nodes = {};
+        const flowsInSupa = new Set(nodesRes.data.map(n => n.flow_id).filter(Boolean));
+        for (const fId of flowsInSupa) {
+          db.nodes[fId] = [];
+        }
         for (const n of nodesRes.data) {
           if (!db.nodes[n.flow_id]) db.nodes[n.flow_id] = [];
-          const idx = db.nodes[n.flow_id].findIndex(x => x.id === n.id);
           const mappedNode = {
             id: n.id,
             flow_id: n.flow_id,
@@ -2564,15 +2567,17 @@ app.post('/api/flows/sync-database', async (req, res) => {
             position: n.position || { x: 0, y: 0 },
             data: n.data || { label: n.label, nodeType: n.type, config: {} },
           };
-          if (idx >= 0) db.nodes[n.flow_id][idx] = mappedNode;
-          else db.nodes[n.flow_id].push(mappedNode);
+          db.nodes[n.flow_id].push(mappedNode);
         }
       }
       if (Array.isArray(edgesRes.data)) {
         if (!db.edges) db.edges = {};
+        const flowsInSupaEdges = new Set(edgesRes.data.map(e => e.flow_id).filter(Boolean));
+        for (const fId of flowsInSupaEdges) {
+          db.edges[fId] = [];
+        }
         for (const e of edgesRes.data) {
           if (!db.edges[e.flow_id]) db.edges[e.flow_id] = [];
-          const idx = db.edges[e.flow_id].findIndex(x => x.id === e.id);
           const mappedEdge = {
             id: e.id,
             flow_id: e.flow_id,
@@ -2582,8 +2587,7 @@ app.post('/api/flows/sync-database', async (req, res) => {
             targetHandle: e.target_handle || e.targetHandle,
             data: e.data || {},
           };
-          if (idx >= 0) db.edges[e.flow_id][idx] = mappedEdge;
-          else db.edges[e.flow_id].push(mappedEdge);
+          db.edges[e.flow_id].push(mappedEdge);
         }
       }
       saveDb(db);
