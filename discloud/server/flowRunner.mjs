@@ -121,6 +121,23 @@ export function getBrazilianPhoneVariations(phone) {
   return Array.from(variations);
 }
 
+/**
+ * Compara dois números de telefone brasileiros e verifica se correspondem à mesma linha
+ * independente de terem 55, 9º dígito ou formatação.
+ */
+export function areBrazilianPhonesMatching(phoneA, phoneB) {
+  if (!phoneA || !phoneB) return false;
+  const digitsA = String(phoneA).replace(/\D/g, '');
+  const digitsB = String(phoneB).replace(/\D/g, '');
+  if (!digitsA || !digitsB) return false;
+  if (digitsA === digitsB) return true;
+
+  const varsA = getBrazilianPhoneVariations(digitsA);
+  const varsB = getBrazilianPhoneVariations(digitsB);
+
+  return varsA.some((va) => va === digitsB || varsB.includes(va));
+}
+
 // Helper: Resolver correspondência bidirecional entre LID (WhatsApp Privacy ID) e Telefone Real em todas as variações
 export function resolveLinkedPhones(phone, db) {
   const clean = String(phone || '').replace(/\D/g, '');
@@ -1197,9 +1214,9 @@ export function recordRealMessage(phone, senderName, direction, content, explici
     inDb?.is_registered === true ||
     inDb?.is_verified === true ||
     inDb?.cliente_salvo === true ||
-    (inDb?.status === 'active' && (existingHasClientTag || existingHasRealName)) ||
-    (existingHasRealName && existingHasClientTag) ||
-    existingHasClientTag
+    inDb?.status === 'active' ||
+    existingHasClientTag ||
+    existingHasRealName
   );
 
   existingContact = inDb || {
@@ -1245,7 +1262,9 @@ export function recordRealMessage(phone, senderName, direction, content, explici
     }
   } else {
     existingContact.is_registered = false;
-    existingContact.status = 'lead';
+    if (!existingContact.status) {
+      existingContact.status = 'lead';
+    }
     if (!existingContact.tags || existingContact.tags.length === 0) {
       existingContact.tags = ['Lead'];
     }
@@ -1280,7 +1299,7 @@ export function recordRealMessage(phone, senderName, direction, content, explici
     started_at: prevConv.started_at || now,
     unread_count: Number(prevConv.unread_count || 0),
     created_at: prevConv.created_at || now,
-    last_message: typeof content === 'string' ? content : content.body || 'Mensagem Interativa',
+    last_message: typeof content === 'string' ? content : (content?.text || content?.body || 'Mensagem Interativa'),
     last_message_at: now,
     updated_at: now,
   };
@@ -1294,7 +1313,7 @@ export function recordRealMessage(phone, senderName, direction, content, explici
     conversation_id: convId,
     direction: direction,
     message_type: typeof content === 'string' ? 'text' : 'button',
-    content: typeof content === 'string' ? content : content.body || 'Opções Interativas',
+    content: typeof content === 'string' ? content : (content?.text || content?.body || 'Opções Interativas'),
     status: 'delivered',
     created_at: now,
   };
@@ -1302,9 +1321,9 @@ export function recordRealMessage(phone, senderName, direction, content, explici
 
   saveDb(db);
 
-  // Real-time sync to Supabase Database (apenas para números reais de celular, sem poluir CRM com LID puro)
+  // Real-time sync to Supabase Database (apenas sincroniza cliente se já verificado/ativo)
   if (!isTargetLid) {
-    if (existingContact) {
+    if (existingContact && (isAlreadyClient || existingContact.is_registered || existingContact.status === 'active')) {
       syncContactToSupabase(existingContact);
     }
     syncConversationToSupabase(existingConv);
@@ -1506,43 +1525,166 @@ export async function findRegisteredContact(cleanPhone, senderName, db, checkCri
       : [];
 
     const hasClientTag = tagList.some((t) => 
-      t.includes('cliente') || t.includes('vip') || t.includes('recorrente') || t.includes('mensalista') || t.includes('cadastrado')
+      t.includes('cliente') || t.includes('vip') || t.includes('recorrente') || t.includes('mensalista') || t.includes('cadastrado') || t.includes('equipe') || t.includes('ceo') || t.includes('gerente')
     );
-    const hasLeadTag = tagList.includes('lead');
 
     // Check orders / purchases / appointments (histórico comprovado)
     if ((Number(c.total_orders) || 0) > 0 || (Number(c.total_spent) || 0) > 0 || (Number(c.orders_count) || 0) > 0) {
       return true;
     }
 
-    if (checkCriteria === 'appointment_or_order') {
-      return false;
-    }
-
-    // Se tem tag de cliente e NÃO tem tag exclusiva de lead (ou possui múltiplas tags incluindo cliente)
-    if (hasClientTag && (!hasLeadTag || tagList.length > 1)) {
+    if (hasClientTag) {
       return true;
     }
 
-    // Se tem nome real personalizado cadastrado (diferente de placeholders)
-    const invalidNames = ['cliente whatsapp', 'cliente', 'lead', 'contato', 'novo contato', 'undefined', 'null', ''];
+    // Se tem nome real personalizado cadastrado (diferente de placeholders e saudações)
+    const invalidNames = ['cliente whatsapp', 'cliente', 'lead', 'contato', 'novo contato', 'undefined', 'null', '', 'oi', 'olá', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'opa', 'teste', 'test'];
     const cName = String(c.name || '').trim().toLowerCase();
-    const hasRealName = Boolean(cName && !invalidNames.includes(cName) && !cName.startsWith('{{') && !/^\d+$/.test(cName));
+    const hasRealName = Boolean(cName && !invalidNames.includes(cName) && !cName.startsWith('{{') && !/^\d+$/.test(cName) && cName.length >= 2);
 
-    if (hasRealName && (c.status === 'active' || hasClientTag || !hasLeadTag)) {
+    if (hasRealName && c.status !== 'blocked') {
       return true;
     }
-
-    // Se o contato for puramente lead sem nome e sem tag de cliente
-    if (c.status === 'lead' || hasLeadTag) return false;
 
     if (c.status === 'active') return true;
 
     return false;
   };
 
-  // 1. Search in memory / db.contacts
-  // 1.1 Busca direta nas chaves do objeto por todas as variações
+  // 1. Verificar se é usuário do sistema / equipe / CEO (ex: Rogerio Malaquias 81996138924)
+  const allLocalUsers = [
+    ...(Array.isArray(db.systemUsers) ? db.systemUsers : Object.values(db.systemUsers || {})),
+    ...(Array.isArray(initialAccessUsers) ? initialAccessUsers : []),
+  ];
+  let matchedUser = allLocalUsers.find(u => {
+    if (!u || !u.phone) return false;
+    return areBrazilianPhonesMatching(digitsOnly, u.phone);
+  });
+
+  if (!matchedUser && supabaseClient) {
+    try {
+      const varsArray = Array.from(variations).filter(v => v.length >= 10);
+      const { data: suData } = await supabaseClient
+        .from('system_users')
+        .select('*')
+        .in('phone', varsArray)
+        .limit(1)
+        .maybeSingle();
+
+      if (suData) {
+        matchedUser = suData;
+      } else {
+        const { data: allSu } = await supabaseClient.from('system_users').select('*');
+        if (Array.isArray(allSu)) {
+          matchedUser = allSu.find(u => u?.phone && areBrazilianPhonesMatching(digitsOnly, u.phone)) || null;
+        }
+      }
+    } catch (suErr) {
+      console.warn('[FlowRunner] Erro ao buscar em system_users:', suErr.message);
+    }
+  }
+
+  if (matchedUser) {
+    const userRole = (matchedUser.role || 'Equipe').toUpperCase();
+    const contactData = {
+      id: matchedUser.id || `user-${digitsOnly}`,
+      name: matchedUser.name || 'Membro da Equipe',
+      phone: matchedUser.phone || digitsOnly,
+      status: 'active',
+      is_registered: true,
+      is_verified: true,
+      tags: ['Cliente VIP', 'Equipe Pitoco', userRole],
+    };
+    if (!db.contacts) db.contacts = {};
+    for (const varP of variations) {
+      if (varP.length >= 10) db.contacts[varP] = contactData;
+    }
+    db.contacts[digitsOnly] = contactData;
+    db.contacts[cleanPhone] = contactData;
+    saveDb(db);
+    return { isRegistered: true, contact: contactData, hasRealName: true };
+  }
+
+  // 2. Search in Supabase Cloud Database (Single Source of Truth)
+  if (supabaseClient) {
+    try {
+      const varsArray = Array.from(variations).filter(v => v.length >= 10);
+      
+      // 2.1 Consultar tabela clients (principal do CRM)
+      const clientRes = await supabaseClient
+        .from('clients')
+        .select('*')
+        .in('phone', varsArray)
+        .limit(1)
+        .maybeSingle();
+
+      let clientRecord = clientRes?.data || null;
+
+      if (!clientRecord) {
+        // Fallback: varredura em clients com comparação flexível de telefones brasileiros
+        const { data: allClients } = await supabaseClient.from('clients').select('*');
+        if (Array.isArray(allClients)) {
+          clientRecord = allClients.find(c => c?.phone && areBrazilianPhonesMatching(digitsOnly, c.phone)) || null;
+        }
+      }
+
+      if (clientRecord && isVerifiedClient(clientRecord)) {
+        const clientData = {
+          ...clientRecord,
+          is_registered: true,
+          status: 'active',
+          tags: Array.isArray(clientRecord.tags) && clientRecord.tags.length > 0 
+            ? clientRecord.tags 
+            : ['Cliente WhatsApp', 'Bot', 'Cliente'],
+        };
+        if (!db.contacts) db.contacts = {};
+        for (const varP of variations) {
+          if (varP.length >= 10) db.contacts[varP] = clientData;
+        }
+        db.contacts[digitsOnly] = clientData;
+        db.contacts[cleanPhone] = clientData;
+        saveDb(db);
+        return { isRegistered: true, contact: clientData, hasRealName: true };
+      }
+
+      // 2.2 Consultar tabela contacts do Supabase
+      const contactRes = await supabaseClient
+        .from('contacts')
+        .select('*')
+        .in('phone', varsArray)
+        .limit(1)
+        .maybeSingle();
+
+      let rawContact = contactRes?.data || null;
+      if (!rawContact) {
+        const { data: allContacts } = await supabaseClient.from('contacts').select('*');
+        if (Array.isArray(allContacts)) {
+          rawContact = allContacts.find(c => c?.phone && areBrazilianPhonesMatching(digitsOnly, c.phone)) || null;
+        }
+      }
+
+      if (rawContact && isVerifiedClient(rawContact)) {
+        const contactData = {
+          ...rawContact,
+          is_registered: true,
+          status: 'active',
+        };
+        if (!db.contacts) db.contacts = {};
+        for (const varP of variations) {
+          if (varP.length >= 10) db.contacts[varP] = contactData;
+        }
+        db.contacts[digitsOnly] = contactData;
+        db.contacts[cleanPhone] = contactData;
+        saveDb(db);
+        return { isRegistered: true, contact: contactData, hasRealName: true };
+      }
+    } catch (e) {
+      console.warn('[FlowRunner] Erro ao consultar contato no Supabase:', e.message);
+    }
+  }
+
+  // 3. Search in memory / db.contacts
+  // 3.1 Busca direta nas chaves do objeto por todas as variações
   for (const v of variations) {
     const directContact = db.contacts?.[v];
     if (directContact && isVerifiedClient(directContact)) {
@@ -1551,120 +1693,42 @@ export async function findRegisteredContact(cleanPhone, senderName, db, checkCri
       for (const varP of variations) {
         if (varP.length >= 10) db.contacts[varP] = directContact;
       }
+      db.contacts[digitsOnly] = directContact;
+      db.contacts[cleanPhone] = directContact;
       saveDb(db);
       return { isRegistered: true, contact: directContact, hasRealName: true };
     }
   }
 
-  // 1.2 Scan completo da lista de contatos comparando variações
+  // 3.2 Scan completo da lista de contatos comparando variações
   const contactsList = Object.values(db.contacts || {});
   for (const c of contactsList) {
+    if (!c) continue;
     const cDigits = (c.phone || c.id || '').replace(/\D/g, '');
-    const cVars = getBrazilianPhoneVariations(cDigits);
-    const hasMatch = Array.from(variations).some(v => v === cDigits || cVars.includes(v));
-    if (hasMatch && isVerifiedClient(c)) {
+    if (areBrazilianPhonesMatching(digitsOnly, cDigits) && isVerifiedClient(c)) {
       c.is_registered = true;
       c.status = 'active';
       for (const varP of variations) {
         if (varP.length >= 10) db.contacts[varP] = c;
       }
+      db.contacts[digitsOnly] = c;
+      db.contacts[cleanPhone] = c;
       saveDb(db);
       return { isRegistered: true, contact: c, hasRealName: true };
     }
   }
 
-  // 2. Search in Supabase Cloud Database (Single Source of Truth)
-  if (supabaseClient) {
-    try {
-      const varsArray = Array.from(variations).filter(v => v.length >= 10);
-      
-      // 2.1 Consultar tabela clients (principal do CRM) em lote com todas as variações
-      const clientRes = await supabaseClient
-        .from('clients')
-        .select('*')
-        .in('phone', varsArray)
-        .limit(1)
-        .maybeSingle();
-
-      if (clientRes.data && !clientRes.error) {
-        const clientData = {
-          ...clientRes.data,
-          is_registered: true,
-          status: 'active',
-        };
-        if (!db.contacts) db.contacts = {};
-        for (const varP of variations) {
-          if (varP.length >= 10) db.contacts[varP] = clientData;
-        }
-        db.contacts[cleanPhone] = clientData;
-        saveDb(db);
-        return { isRegistered: true, contact: clientData, hasRealName: true };
-      }
-
-      // Fallback em clients com filtro OR
-      const orFilterClients = varsArray.map(v => `phone.eq.${v}`).join(',');
-      if (orFilterClients) {
-        const clientOrRes = await supabaseClient
-          .from('clients')
-          .select('*')
-          .or(orFilterClients)
-          .limit(1)
-          .maybeSingle();
-
-        if (clientOrRes.data && !clientOrRes.error) {
-          const clientData = {
-            ...clientOrRes.data,
-            is_registered: true,
-            status: 'active',
-          };
-          if (!db.contacts) db.contacts = {};
-          for (const varP of variations) {
-            if (varP.length >= 10) db.contacts[varP] = clientData;
-          }
-          saveDb(db);
-          return { isRegistered: true, contact: clientData, hasRealName: true };
-        }
-      }
-
-      // 2.2 Consultar tabela contacts
-      const contactRes = await supabaseClient
-        .from('contacts')
-        .select('*')
-        .in('phone', varsArray)
-        .limit(1)
-        .maybeSingle();
-
-      if (contactRes.data && !contactRes.error && isVerifiedClient(contactRes.data)) {
-        const contactData = {
-          ...contactRes.data,
-          is_registered: true,
-          status: 'active',
-        };
-        if (!db.contacts) db.contacts = {};
-        for (const varP of variations) {
-          if (varP.length >= 10) db.contacts[varP] = contactData;
-        }
-        saveDb(db);
-        syncContactToSupabase(contactData);
-        return { isRegistered: true, contact: contactData, hasRealName: true };
-      }
-    } catch (e) {
-      console.warn('[FlowRunner] Erro ao consultar contato no Supabase:', e.message);
-    }
-  }
-
-  // 3. Search in Appointments (Historic bookings)
+  // 4. Search in Appointments (Historic bookings)
   const apts = (db.appointments || []).filter(a => a.status === 'confirmed' || a.status === 'completed');
   const aptMatch = apts.find((a) => {
     const aDigits = (a.contact_phone || a.phone || '').replace(/\D/g, '');
-    const aVars = getBrazilianPhoneVariations(aDigits);
-    return Array.from(variations).some(v => v === aDigits || aVars.includes(v));
+    return areBrazilianPhonesMatching(digitsOnly, aDigits);
   });
 
   if (aptMatch && aptMatch.contact_name && aptMatch.contact_name.toLowerCase() !== 'cliente' && !aptMatch.contact_name.includes('{{')) {
     const matchedContact = {
       name: aptMatch.contact_name,
-      phone: cleanPhone,
+      phone: digitsOnly,
       is_registered: true,
       status: 'active'
     };
@@ -1672,6 +1736,8 @@ export async function findRegisteredContact(cleanPhone, senderName, db, checkCri
     for (const varP of variations) {
       if (varP.length >= 10) db.contacts[varP] = matchedContact;
     }
+    db.contacts[digitsOnly] = matchedContact;
+    db.contacts[cleanPhone] = matchedContact;
     saveDb(db);
     return {
       isRegistered: true,
@@ -2233,12 +2299,26 @@ export async function executePublishedFlow(senderJid, messageText, pushName, rea
     existingSession?.lastInteractionAt && (Date.now() - existingSession.lastInteractionAt) > (30 * 60 * 1000)
   );
 
-  // 3. Verificar comandos de saída explícita do fluxo (#sair, #cancelar, #reset, etc.)
+  // 3. Verificar comandos de saída explícita do fluxo (#sair, #cancelar, #reset, etc.) e saudações de reinício
   const cleanLower = cleanInput.toLowerCase().trim();
+  const cleanTextOnly = cleanLower.replace(/[^\p{L}\p{N}\s]/gu, '').replace(/\s+/g, ' ').trim();
+  const isGreetingCmd = [
+    'oi', 'olá', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'opa', 'e ai', 'e aí', 'start', 'iniciar', 'menu', 'inicio', 'início', 'começar', 'comecar', 'reiniciar', 'reset', 'voltar', 'bot'
+  ].some(cmd => cleanLower === cmd || cleanTextOnly === cmd || cleanTextOnly.startsWith(`${cmd} `));
+
   const isExplicitExitCmd = [
     '#sair', '#cancelar', '#reset', '#encerrar', '#parar',
     '/sair', '/cancelar', '/reset', '/encerrar', '/parar'
   ].includes(cleanLower);
+
+  // Se a sessão anterior parou em um nó de escolha/menu/lojas/botões e o cliente enviou uma saudação nova, recomeçar o fluxo pelo gatilho!
+  const isStuckAtInteractiveNode = existingSession?.currentNodeId && (
+    existingSession.activeButtons || 
+    existingSession.currentNodeId.includes('store_selector') || 
+    existingSession.currentNodeId.includes('buttons') ||
+    existingSession.currentNodeId.includes('show_catalog') ||
+    existingSession.currentNodeId.includes('measure_guide')
+  );
 
   // 4. Determinar com precisão se o cliente está NO MEIO DE UM FLUXO ATIVO
   // Um fluxo está ativo se foi iniciado, não foi marcado como concluído,
@@ -2249,7 +2329,8 @@ export async function executePublishedFlow(senderJid, messageText, pushName, rea
     existingSession.flowStatus === 'in_progress' &&
     existingSession.currentNodeId &&
     !isExistingSessionExpired &&
-    !isExplicitExitCmd
+    !isExplicitExitCmd &&
+    !(isGreetingCmd && isStuckAtInteractiveNode)
   );
 
   // Se o cliente solicitou saída explícita do fluxo em andamento
@@ -2401,7 +2482,7 @@ function parseCustomDateString(input) {
   // Se o usuário está no meio de um fluxo ativo, ou enviou saudação, palavra-chave ou comando, NUNCA sofre cooldown
   const isGreeting = [
     'oi', 'olá', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'opa', 'e ai', 'e aí', 'start', 'iniciar', 'menu', 'inicio', 'início'
-  ].includes(cleanLower);
+  ].some(g => cleanLower === g || cleanTextOnly === g || cleanTextOnly.startsWith(`${g} `) || cleanLower.startsWith(g));
 
   const shouldBypassCooldown = isFlowInProgress || isKeywordMatch || isExplicitExitCmd || isGreeting || session.flowStatus === 'completed' || !session.currentNodeId;
 
@@ -2452,11 +2533,14 @@ function parseCustomDateString(input) {
       
       let extractedName = cleanInput;
       if (isNameVar) {
-        // Se o usuário digitou apenas números (ex: 1, 2) enquanto o fluxo aguardava um nome, rejeitar de forma amigável
+        // Se o usuário digitou apenas números (ex: 1, 2) ou uma saudação genérica enquanto o fluxo aguardava um nome, rejeitar de forma amigável
         const isOnlyDigits = /^\d+$/.test(cleanInput.trim());
+        const isGenericGreetingOrCmd = [
+          'oi', 'ola', 'olá', 'bom dia', 'boa tarde', 'boa noite', 'opa', 'e ai', 'e aí', 'sim', 'nao', 'não', 'menu', 'inicio', 'início', 'reiniciar', 'bot', 'robo', 'robô', 'ok', 'blz', 'teste', 'test'
+        ].includes(cleanLower) || ['oi', 'ola', 'olá'].includes(cleanInput.toLowerCase().trim());
         const formatted = formatCustomerName(cleanInput);
-        if (isOnlyDigits || !formatted) {
-          console.warn(`[FlowRunner] ⚠️ Entrada rejeitada para variável de nome "${varKey}": "${cleanInput}" (números/opções não são aceitos como nome).`);
+        if (isOnlyDigits || isGenericGreetingOrCmd || !formatted || formatted.length < 2) {
+          console.warn(`[FlowRunner] ⚠️ Entrada rejeitada para variável de nome "${varKey}": "${cleanInput}" (saudação ou números não são aceitos como nome).`);
           session.waitingForVar = varKey;
           session.currentNodeId = activeQuestionNode?.id || prevNode?.id;
           saveDb(db);
@@ -2896,13 +2980,41 @@ function parseCustomDateString(input) {
 
     // 1. Message Node
     else if (nodeType === 'message') {
-      const text = replaceVars(config.text || 'Olá!', session.variables, botProfile);
+      let rawMsg = config.text || 'Olá!';
+
+      // Personalização acolhedora para cliente recorrente/já cadastrado que retornou ao bot
+      const isReturning = session.variables['is_returning_customer'] === true && !session.variables['acabou_de_cadastrar'];
+      if (isReturning && (rawMsg.includes('Seja muito bem-vindo') || rawMsg.includes('bem-vindo(a) à') || currentNode.id === 'node-message-1788908658917')) {
+        const pNome = session.variables['primeiro_nome'] || session.variables['nome_cliente'] || 'Cliente';
+        const emp = botProfile.company_name || 'Pitoco de Gente';
+        rawMsg = `👶✨ Olá, *${pNome}*! Que bom ter você de volta à *${emp}*!\nComo podemos te ajudar hoje?`;
+      }
+
+      const text = replaceVars(rawMsg, session.variables, botProfile);
       if (text) {
         replies.push({
           type: 'text',
           text,
           replyMode: config.replyMode || 'send',
         });
+      }
+
+      // Se for cliente já cadastrado, pular introdução repetitiva do robô ("Me chamo Victoria...") e ir direto para seleção de loja
+      if (isReturning && currentNode.id === 'node-message-1788908658917') {
+        const nextEdge = edges.find(e => e.source === currentNode.id);
+        if (nextEdge) {
+          const nextNode = nodes.find(n => n.id === nextEdge.target);
+          if (nextNode && (nextNode.id === 'node-message-1788908698448' || nextNode.data?.config?.text?.includes('assistente virtual'))) {
+            const skipEdge = edges.find(e => e.source === nextNode.id);
+            if (skipEdge) {
+              currentNode = nodes.find(n => n.id === skipEdge.target);
+              if (currentNode) {
+                session.currentNodeId = currentNode.id;
+                continue;
+              }
+            }
+          }
+        }
       }
     }
 
@@ -3208,6 +3320,8 @@ function parseCustomDateString(input) {
       session.variables['is_primeiro_contato'] = false;
       session.variables['is_novo_contato'] = false;
       session.variables['is_existing_contact'] = true;
+      session.variables['is_returning_customer'] = false;
+      session.variables['acabou_de_cadastrar'] = true;
       session.variables['cliente_telefone'] = targetPhone;
       session.variables['telefone_whatsapp'] = targetPhone;
       session.variables['cliente_foto'] = resolvedPhoto;
@@ -3273,6 +3387,8 @@ function parseCustomDateString(input) {
       session.variables['is_primeiro_contato'] = isNew;
       session.variables['is_novo_contato'] = isNew;
       session.variables['is_existing_contact'] = !isNew;
+      session.variables['is_returning_customer'] = !isNew;
+      session.variables['acabou_de_cadastrar'] = false;
       session.variables['tipo_cliente'] = isNew ? 'novo' : 'recorrente';
       session.variables['telefone_whatsapp'] = finalPhone;
       session.variables['cliente_telefone'] = finalPhone;

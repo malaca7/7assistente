@@ -1389,88 +1389,64 @@
   },
   "contacts": {
     "558196138924": {
-      "id": "contact-558196138924",
-      "phone": "558196138924",
-      "name": "Leo",
-      "profile_picture_url": "https://pps.whatsapp.net/v/t61.24694-24/674630155_1633106875192131_9214554452579566382_n.jpg?ccb=11-4&oh=01_Q5Aa5gH2RlLgPFNQx8XjGoUD2IBYKoPr2pWsnRqtTM5Sjsne6A&oe=6AB5A321&_nc_sid=5e03e0&_nc_cat=104",
+      "id": "user-ceo",
+      "name": "Rogerio Malaquias",
+      "phone": "81996138924",
       "status": "active",
+      "is_registered": true,
+      "is_verified": true,
       "tags": [
-        "Cliente WhatsApp",
-        "Bot",
-        "Cliente"
+        "Cliente VIP",
+        "Equipe Pitoco",
+        "CEO"
       ],
-      "metadata": {
-        "notes": "Cadastrado e atualizado pelo fluxo do bot",
-        "nome_cliente": "Leo",
-        "nome_clientenovo": "Leo"
-      },
-      "created_at": "2026-09-14T22:36:53.437583+00:00",
-      "updated_at": "2026-09-15T00:47:11.720Z",
-      "whatsapp_pushname": "Leo",
-      "is_registered": true
+      "whatsapp_pushname": "Kaju WhatsApp",
+      "updated_at": "2026-09-15T01:19:17.468Z"
     },
     "5581996138924": {
-      "id": "contact-558196138924",
-      "phone": "558196138924",
-      "name": "Leo",
-      "profile_picture_url": "https://pps.whatsapp.net/v/t61.24694-24/674630155_1633106875192131_9214554452579566382_n.jpg?ccb=11-4&oh=01_Q5Aa5gH2RlLgPFNQx8XjGoUD2IBYKoPr2pWsnRqtTM5Sjsne6A&oe=6AB5A321&_nc_sid=5e03e0&_nc_cat=104",
+      "id": "user-ceo",
+      "name": "Rogerio Malaquias",
+      "phone": "81996138924",
       "status": "active",
+      "is_registered": true,
+      "is_verified": true,
       "tags": [
-        "Cliente WhatsApp",
-        "Bot",
-        "Cliente"
+        "Cliente VIP",
+        "Equipe Pitoco",
+        "CEO"
       ],
-      "metadata": {
-        "notes": "Cadastrado e atualizado pelo fluxo do bot",
-        "nome_cliente": "Leo",
-        "nome_clientenovo": "Leo"
-      },
-      "created_at": "2026-09-14T22:36:53.437583+00:00",
-      "updated_at": "2026-09-15T00:47:11.720Z",
-      "whatsapp_pushname": "Leo",
-      "is_registered": true
+      "whatsapp_pushname": "Kaju WhatsApp",
+      "updated_at": "2026-09-15T01:19:17.468Z"
     },
     "81996138924": {
-      "id": "contact-558196138924",
-      "phone": "558196138924",
-      "name": "Leo",
-      "profile_picture_url": "https://pps.whatsapp.net/v/t61.24694-24/674630155_1633106875192131_9214554452579566382_n.jpg?ccb=11-4&oh=01_Q5Aa5gH2RlLgPFNQx8XjGoUD2IBYKoPr2pWsnRqtTM5Sjsne6A&oe=6AB5A321&_nc_sid=5e03e0&_nc_cat=104",
+      "id": "user-ceo",
+      "name": "Rogerio Malaquias",
+      "phone": "81996138924",
       "status": "active",
+      "is_registered": true,
+      "is_verified": true,
       "tags": [
-        "Cliente WhatsApp",
-        "Bot",
-        "Cliente"
+        "Cliente VIP",
+        "Equipe Pitoco",
+        "CEO"
       ],
-      "metadata": {
-        "notes": "Cadastrado e atualizado pelo fluxo do bot",
-        "nome_cliente": "Leo",
-        "nome_clientenovo": "Leo"
-      },
-      "created_at": "2026-09-14T22:36:53.437583+00:00",
-      "updated_at": "2026-09-15T00:47:11.720Z",
-      "whatsapp_pushname": "Leo",
-      "is_registered": true
+      "whatsapp_pushname": "Kaju WhatsApp",
+      "updated_at": "2026-09-15T01:19:17.468Z"
     },
     "8196138924": {
-      "id": "contact-558196138924",
-      "phone": "558196138924",
-      "name": "Leo",
-      "profile_picture_url": "https://pps.whatsapp.net/v/t61.24694-24/674630155_1633106875192131_9214554452579566382_n.jpg?ccb=11-4&oh=01_Q5Aa5gH2RlLgPFNQx8XjGoUD2IBYKoPr2pWsnRqtTM5Sjsne6A&oe=6AB5A321&_nc_sid=5e03e0&_nc_cat=104",
+      "id": "user-ceo",
+      "name": "Rogerio Malaquias",
+      "phone": "81996138924",
       "status": "active",
+      "is_registered": true,
+      "is_verified": true,
       "tags": [
-        "Cliente WhatsApp",
-        "Bot",
-        "Cliente"
+        "Cliente VIP",
+        "Equipe Pitoco",
+        "CEO"
       ],
-      "metadata": {
-        "notes": "Cadastrado e atualizado pelo fluxo do bot",
-        "nome_cliente": "Leo",
-        "nome_clientenovo": "Leo"
-      },
-      "created_at": "2026-09-14T22:36:53.437583+00:00",
-      "updated_at": "2026-09-15T00:47:11.720Z",
-      "whatsapp_pushname": "Leo",
-      "is_registered": true
+      "whatsapp_pushname": "Kaju WhatsApp",
+      "updated_at": "2026-09-15T01:19:17.468Z"
     },
     "558188887777": {
       "id": "contact-558188887777",
@@ -1703,6 +1679,326 @@
       "last_interaction": "2026-09-15T00:48:26.829Z",
       "updated_at": "2026-09-15T00:48:29.152Z",
       "whatsapp_pushname": "Gabriel"
+    },
+    "5581987654321": {
+      "id": "contact-81987654321",
+      "store_id": null,
+      "store_name": null,
+      "name": "Carlos Oliveira",
+      "phone": "81987654321",
+      "email": null,
+      "address": null,
+      "city": null,
+      "cep": null,
+      "notes": "Atualizado via CRM / API",
+      "baby_name": null,
+      "due_date": null,
+      "total_orders": 0,
+      "total_spent": 0,
+      "tags": [
+        "Cliente",
+        "VIP"
+      ],
+      "last_interaction": "2026-09-15T01:19:17.811+00:00",
+      "created_at": "2026-09-15T01:07:58.386265+00:00",
+      "updated_at": "2026-09-15T01:19:18.954Z",
+      "is_registered": true,
+      "status": "active",
+      "whatsapp_pushname": "Carlos"
+    },
+    "81987654321": {
+      "id": "contact-81987654321",
+      "store_id": null,
+      "store_name": null,
+      "name": "Carlos Oliveira",
+      "phone": "81987654321",
+      "email": null,
+      "address": null,
+      "city": null,
+      "cep": null,
+      "notes": "Atualizado via CRM / API",
+      "baby_name": null,
+      "due_date": null,
+      "total_orders": 0,
+      "total_spent": 0,
+      "tags": [
+        "Cliente",
+        "VIP"
+      ],
+      "last_interaction": "2026-09-15T01:19:17.811+00:00",
+      "created_at": "2026-09-15T01:07:58.386265+00:00",
+      "updated_at": "2026-09-15T01:19:18.954Z",
+      "is_registered": true,
+      "status": "active",
+      "whatsapp_pushname": "Carlos"
+    },
+    "8187654321": {
+      "id": "contact-81987654321",
+      "store_id": null,
+      "store_name": null,
+      "name": "Carlos Oliveira",
+      "phone": "81987654321",
+      "email": null,
+      "address": null,
+      "city": null,
+      "cep": null,
+      "notes": "Atualizado via CRM / API",
+      "baby_name": null,
+      "due_date": null,
+      "total_orders": 0,
+      "total_spent": 0,
+      "tags": [
+        "Cliente",
+        "VIP"
+      ],
+      "last_interaction": "2026-09-15T01:19:17.811+00:00",
+      "created_at": "2026-09-15T01:07:58.386265+00:00",
+      "updated_at": "2026-09-15T01:19:18.954Z",
+      "is_registered": true,
+      "status": "active",
+      "whatsapp_pushname": "Carlos"
+    },
+    "558187654321": {
+      "id": "contact-81987654321",
+      "store_id": null,
+      "store_name": null,
+      "name": "Carlos Oliveira",
+      "phone": "81987654321",
+      "email": null,
+      "address": null,
+      "city": null,
+      "cep": null,
+      "notes": "Atualizado via CRM / API",
+      "baby_name": null,
+      "due_date": null,
+      "total_orders": 0,
+      "total_spent": 0,
+      "tags": [
+        "Cliente",
+        "VIP"
+      ],
+      "last_interaction": "2026-09-15T01:19:17.811+00:00",
+      "created_at": "2026-09-15T01:07:58.386265+00:00",
+      "updated_at": "2026-09-15T01:19:18.954Z",
+      "is_registered": true,
+      "status": "active",
+      "whatsapp_pushname": "Carlos"
+    },
+    "8112344321": {
+      "id": "contact-5581912344321",
+      "store_id": null,
+      "store_name": null,
+      "name": "Mariana Santos",
+      "phone": "5581912344321",
+      "email": null,
+      "address": null,
+      "city": null,
+      "cep": null,
+      "notes": "Cadastrado e atualizado pelo fluxo do bot",
+      "baby_name": null,
+      "due_date": null,
+      "total_orders": 0,
+      "total_spent": 0,
+      "tags": [
+        "Cliente WhatsApp",
+        "Bot",
+        "Cliente"
+      ],
+      "last_interaction": "2026-09-15T01:19:19.776+00:00",
+      "created_at": "2026-09-15T01:17:33.310024+00:00",
+      "updated_at": "2026-09-15T01:19:21.001Z",
+      "is_registered": true,
+      "status": "active",
+      "whatsapp_pushname": "Desconhecido"
+    },
+    "558112344321": {
+      "id": "contact-5581912344321",
+      "store_id": null,
+      "store_name": null,
+      "name": "Mariana Santos",
+      "phone": "5581912344321",
+      "email": null,
+      "address": null,
+      "city": null,
+      "cep": null,
+      "notes": "Cadastrado e atualizado pelo fluxo do bot",
+      "baby_name": null,
+      "due_date": null,
+      "total_orders": 0,
+      "total_spent": 0,
+      "tags": [
+        "Cliente WhatsApp",
+        "Bot",
+        "Cliente"
+      ],
+      "last_interaction": "2026-09-15T01:19:19.776+00:00",
+      "created_at": "2026-09-15T01:17:33.310024+00:00",
+      "updated_at": "2026-09-15T01:19:21.001Z",
+      "is_registered": true,
+      "status": "active",
+      "whatsapp_pushname": "Desconhecido"
+    },
+    "5581912344321": {
+      "id": "contact-5581912344321",
+      "store_id": null,
+      "store_name": null,
+      "name": "Mariana Santos",
+      "phone": "5581912344321",
+      "email": null,
+      "address": null,
+      "city": null,
+      "cep": null,
+      "notes": "Cadastrado e atualizado pelo fluxo do bot",
+      "baby_name": null,
+      "due_date": null,
+      "total_orders": 0,
+      "total_spent": 0,
+      "tags": [
+        "Cliente WhatsApp",
+        "Bot",
+        "Cliente"
+      ],
+      "last_interaction": "2026-09-15T01:19:19.776+00:00",
+      "created_at": "2026-09-15T01:17:33.310024+00:00",
+      "updated_at": "2026-09-15T01:19:21.001Z",
+      "is_registered": true,
+      "status": "active",
+      "whatsapp_pushname": "Desconhecido"
+    },
+    "81912344321": {
+      "id": "contact-5581912344321",
+      "store_id": null,
+      "store_name": null,
+      "name": "Mariana Santos",
+      "phone": "5581912344321",
+      "email": null,
+      "address": null,
+      "city": null,
+      "cep": null,
+      "notes": "Cadastrado e atualizado pelo fluxo do bot",
+      "baby_name": null,
+      "due_date": null,
+      "total_orders": 0,
+      "total_spent": 0,
+      "tags": [
+        "Cliente WhatsApp",
+        "Bot",
+        "Cliente"
+      ],
+      "last_interaction": "2026-09-15T01:19:19.776+00:00",
+      "created_at": "2026-09-15T01:17:33.310024+00:00",
+      "updated_at": "2026-09-15T01:19:21.001Z",
+      "is_registered": true,
+      "status": "active",
+      "whatsapp_pushname": "Desconhecido"
+    },
+    "558196715913": {
+      "id": "contact-558196715913",
+      "store_id": null,
+      "store_name": null,
+      "name": "Helena Guimarães",
+      "phone": "558196715913",
+      "email": null,
+      "address": null,
+      "city": null,
+      "cep": null,
+      "notes": "Cadastrado e atualizado pelo fluxo do bot",
+      "baby_name": null,
+      "due_date": null,
+      "total_orders": 0,
+      "total_spent": 0,
+      "tags": [
+        "Cliente WhatsApp",
+        "Bot",
+        "Cliente"
+      ],
+      "last_interaction": "2026-09-15T01:20:33.928+00:00",
+      "created_at": "2026-09-15T01:20:44.409403+00:00",
+      "updated_at": "2026-09-15T01:20:35.023Z",
+      "is_registered": true,
+      "status": "active",
+      "whatsapp_pushname": "Helena"
+    },
+    "5581996715913": {
+      "id": "contact-558196715913",
+      "store_id": null,
+      "store_name": null,
+      "name": "Helena Guimarães",
+      "phone": "558196715913",
+      "email": null,
+      "address": null,
+      "city": null,
+      "cep": null,
+      "notes": "Cadastrado e atualizado pelo fluxo do bot",
+      "baby_name": null,
+      "due_date": null,
+      "total_orders": 0,
+      "total_spent": 0,
+      "tags": [
+        "Cliente WhatsApp",
+        "Bot",
+        "Cliente"
+      ],
+      "last_interaction": "2026-09-15T01:20:33.928+00:00",
+      "created_at": "2026-09-15T01:20:44.409403+00:00",
+      "updated_at": "2026-09-15T01:20:35.023Z",
+      "is_registered": true,
+      "status": "active",
+      "whatsapp_pushname": "Helena"
+    },
+    "81996715913": {
+      "id": "contact-558196715913",
+      "store_id": null,
+      "store_name": null,
+      "name": "Helena Guimarães",
+      "phone": "558196715913",
+      "email": null,
+      "address": null,
+      "city": null,
+      "cep": null,
+      "notes": "Cadastrado e atualizado pelo fluxo do bot",
+      "baby_name": null,
+      "due_date": null,
+      "total_orders": 0,
+      "total_spent": 0,
+      "tags": [
+        "Cliente WhatsApp",
+        "Bot",
+        "Cliente"
+      ],
+      "last_interaction": "2026-09-15T01:20:33.928+00:00",
+      "created_at": "2026-09-15T01:20:44.409403+00:00",
+      "updated_at": "2026-09-15T01:20:35.023Z",
+      "is_registered": true,
+      "status": "active",
+      "whatsapp_pushname": "Helena"
+    },
+    "8196715913": {
+      "id": "contact-558196715913",
+      "store_id": null,
+      "store_name": null,
+      "name": "Helena Guimarães",
+      "phone": "558196715913",
+      "email": null,
+      "address": null,
+      "city": null,
+      "cep": null,
+      "notes": "Cadastrado e atualizado pelo fluxo do bot",
+      "baby_name": null,
+      "due_date": null,
+      "total_orders": 0,
+      "total_spent": 0,
+      "tags": [
+        "Cliente WhatsApp",
+        "Bot",
+        "Cliente"
+      ],
+      "last_interaction": "2026-09-15T01:20:33.928+00:00",
+      "created_at": "2026-09-15T01:20:44.409403+00:00",
+      "updated_at": "2026-09-15T01:20:35.023Z",
+      "is_registered": true,
+      "status": "active",
+      "whatsapp_pushname": "Helena"
     }
   },
   "conversations": {
@@ -1723,8 +2019,8 @@
     },
     "conv-5581987654321": {
       "id": "conv-5581987654321",
-      "contact_id": "contact-5581987654321",
-      "contact_name": "Mariana Silva",
+      "contact_id": "contact-81987654321",
+      "contact_name": "Carlos Oliveira",
       "contact_phone": "5581987654321",
       "phone": "5581987654321",
       "status": "bot",
@@ -1733,8 +2029,8 @@
       "unread_count": 0,
       "created_at": "2026-09-14T23:27:27.458Z",
       "last_message": "🏬 *Escolha de Filial / Loja:*\n\n🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?\n\n• *Loja Matriz — Centro* (Cabo - PE)\n• *Loja Ipojuca - Filial* (Ipojuca - PE)",
-      "last_message_at": "2026-09-14T23:27:29.199Z",
-      "updated_at": "2026-09-14T23:27:29.199Z"
+      "last_message_at": "2026-09-15T01:08:00.441Z",
+      "updated_at": "2026-09-15T01:08:00.441Z"
     },
     "conv-558188887777": {
       "id": "conv-558188887777",
@@ -1795,6 +2091,81 @@
       "last_message": "Você foi transferido para um de nossos atendentes humanos.",
       "last_message_at": "2026-09-15T00:48:29.152Z",
       "updated_at": "2026-09-15T00:48:29.152Z"
+    },
+    "conv-81996138924": {
+      "id": "conv-81996138924",
+      "contact_id": "user-ceo",
+      "contact_name": "Rogerio Malaquias",
+      "contact_phone": "81996138924",
+      "phone": "81996138924",
+      "status": "bot",
+      "store_name": "Pitoco de Gente",
+      "started_at": "2026-09-15T01:10:50.279Z",
+      "unread_count": 0,
+      "created_at": "2026-09-15T01:10:50.279Z",
+      "last_message": "🏬 *Escolha de Filial / Loja:*\n\n🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?\n\n• *Loja Matriz — Centro* (Cabo - PE)\n• *Loja Ipojuca - Filial* (Ipojuca - PE)",
+      "last_message_at": "2026-09-15T01:19:16.464Z",
+      "updated_at": "2026-09-15T01:19:16.464Z"
+    },
+    "conv-81987654321": {
+      "id": "conv-81987654321",
+      "contact_id": "contact-81987654321",
+      "contact_name": "Carlos Oliveira",
+      "contact_phone": "81987654321",
+      "phone": "81987654321",
+      "status": "bot",
+      "store_name": "Pitoco de Gente",
+      "started_at": "2026-09-15T01:17:18.786Z",
+      "unread_count": 0,
+      "created_at": "2026-09-15T01:17:18.786Z",
+      "last_message": "🏬 *Escolha de Filial / Loja:*\n\n🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?\n\n• *Loja Matriz — Centro* (Cabo - PE)\n• *Loja Ipojuca - Filial* (Ipojuca - PE)",
+      "last_message_at": "2026-09-15T01:19:18.954Z",
+      "updated_at": "2026-09-15T01:19:18.954Z"
+    },
+    "conv-5581912344321": {
+      "id": "conv-5581912344321",
+      "contact_id": "contact-5581912344321",
+      "contact_name": "Mariana Santos",
+      "contact_phone": "5581912344321",
+      "phone": "5581912344321",
+      "status": "bot",
+      "store_name": "Pitoco de Gente",
+      "started_at": "2026-09-15T01:17:21.438Z",
+      "unread_count": 0,
+      "created_at": "2026-09-15T01:17:21.438Z",
+      "last_message": "*Opção não reconhecida.*\n\nPor favor, escolha uma das opções abaixo:\n\n1️⃣ *Matriz — Centro*\n\n2️⃣ *Ipojuca - Filial*\n\n_👉 Digite o número ou o nome da opção desejada:_",
+      "last_message_at": "2026-09-15T01:19:21.001Z",
+      "updated_at": "2026-09-15T01:19:21.001Z"
+    },
+    "conv-8196138924": {
+      "id": "conv-8196138924",
+      "contact_id": "user-ceo",
+      "contact_name": "Rogerio Malaquias",
+      "contact_phone": "8196138924",
+      "phone": "8196138924",
+      "status": "bot",
+      "store_name": "Pitoco de Gente",
+      "started_at": "2026-09-15T01:19:17.453Z",
+      "unread_count": 0,
+      "created_at": "2026-09-15T01:19:17.453Z",
+      "last_message": "🏬 *Escolha de Filial / Loja:*\n\n🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?\n\n• *Loja Matriz — Centro* (Cabo - PE)\n• *Loja Ipojuca - Filial* (Ipojuca - PE)",
+      "last_message_at": "2026-09-15T01:19:17.468Z",
+      "updated_at": "2026-09-15T01:19:17.468Z"
+    },
+    "conv-558196715913": {
+      "id": "conv-558196715913",
+      "contact_id": "contact-558196715913",
+      "contact_name": "Helena Guimarães",
+      "contact_phone": "558196715913",
+      "phone": "558196715913",
+      "status": "bot",
+      "store_name": "Pitoco de Gente",
+      "started_at": "2026-09-15T01:20:32.195Z",
+      "unread_count": 0,
+      "created_at": "2026-09-15T01:20:32.195Z",
+      "last_message": "🏬 *Escolha de Filial / Loja:*\n\n🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?\n\n• *Loja Matriz — Centro* (Cabo - PE)\n• *Loja Ipojuca - Filial* (Ipojuca - PE)",
+      "last_message_at": "2026-09-15T01:20:35.023Z",
+      "updated_at": "2026-09-15T01:20:35.023Z"
     }
   },
   "messages": {
@@ -2295,6 +2666,33 @@
         "content": "🏬 *Escolha de Filial / Loja:*\n\n🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?\n\n• *Loja Matriz — Centro* (Cabo - PE)\n• *Loja Ipojuca - Filial* (Ipojuca - PE)",
         "status": "delivered",
         "created_at": "2026-09-14T23:27:29.199Z"
+      },
+      {
+        "id": "msg-1789434480418-4mqeu",
+        "conversation_id": "conv-5581987654321",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Opções Interativas",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:08:00.418Z"
+      },
+      {
+        "id": "msg-1789434480428-xyq26",
+        "conversation_id": "conv-5581987654321",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Opções Interativas",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:08:00.428Z"
+      },
+      {
+        "id": "msg-1789434480441-v48gm",
+        "conversation_id": "conv-5581987654321",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "🏬 *Escolha de Filial / Loja:*\n\n🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?\n\n• *Loja Matriz — Centro* (Cabo - PE)\n• *Loja Ipojuca - Filial* (Ipojuca - PE)",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:08:00.441Z"
       }
     ],
     "conv-558188887777": [
@@ -2438,6 +2836,223 @@
         "content": "Você foi transferido para um de nossos atendentes humanos.",
         "status": "delivered",
         "created_at": "2026-09-15T00:48:29.152Z"
+      }
+    ],
+    "conv-81996138924": [
+      {
+        "id": "msg-1789434650279-ox328",
+        "conversation_id": "conv-81996138924",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "*Opção não reconhecida.*\n\nPor favor, escolha uma das opções abaixo:\n\n1️⃣ *Matriz — Centro*\n\n2️⃣ *Ipojuca - Filial*\n\n_👉 Digite o número ou o nome da opção desejada:_",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:10:50.279Z"
+      },
+      {
+        "id": "msg-1789435036459-wenl7",
+        "conversation_id": "conv-81996138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "👶✨ Olá, *Rogerio*! Que bom ter você de volta à *Pitoco de Gente*!\nComo podemos te ajudar hoje?",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:17:16.459Z"
+      },
+      {
+        "id": "msg-1789435036473-0nhe7",
+        "conversation_id": "conv-81996138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "🏬 *Escolha de Filial / Loja:*\n\n🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?\n\n• *Loja Matriz — Centro* (Cabo - PE)\n• *Loja Ipojuca - Filial* (Ipojuca - PE)",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:17:16.473Z"
+      },
+      {
+        "id": "msg-1789435156451-0bryz",
+        "conversation_id": "conv-81996138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "👶✨ Olá, *Rogerio*! Que bom ter você de volta à *Pitoco de Gente*!\nComo podemos te ajudar hoje?",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:19:16.451Z"
+      },
+      {
+        "id": "msg-1789435156464-rpbq0",
+        "conversation_id": "conv-81996138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "🏬 *Escolha de Filial / Loja:*\n\n🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?\n\n• *Loja Matriz — Centro* (Cabo - PE)\n• *Loja Ipojuca - Filial* (Ipojuca - PE)",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:19:16.464Z"
+      }
+    ],
+    "conv-81987654321": [
+      {
+        "id": "msg-1789435038786-7wd82",
+        "conversation_id": "conv-81987654321",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "👶✨ Olá, *Carlos*! Que bom ter você de volta à *Pitoco de Gente*!\nComo podemos te ajudar hoje?",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:17:18.786Z"
+      },
+      {
+        "id": "msg-1789435038813-9azso",
+        "conversation_id": "conv-81987654321",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "🏬 *Escolha de Filial / Loja:*\n\n🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?\n\n• *Loja Matriz — Centro* (Cabo - PE)\n• *Loja Ipojuca - Filial* (Ipojuca - PE)",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:17:18.813Z"
+      },
+      {
+        "id": "msg-1789435158936-igth5",
+        "conversation_id": "conv-81987654321",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "👶✨ Olá, *Carlos*! Que bom ter você de volta à *Pitoco de Gente*!\nComo podemos te ajudar hoje?",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:19:18.936Z"
+      },
+      {
+        "id": "msg-1789435158954-jy3pz",
+        "conversation_id": "conv-81987654321",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "🏬 *Escolha de Filial / Loja:*\n\n🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?\n\n• *Loja Matriz — Centro* (Cabo - PE)\n• *Loja Ipojuca - Filial* (Ipojuca - PE)",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:19:18.954Z"
+      }
+    ],
+    "conv-5581912344321": [
+      {
+        "id": "msg-1789435041438-9tqg0",
+        "conversation_id": "conv-5581912344321",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Por favor, informe seu *Nome*:",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:17:21.438Z"
+      },
+      {
+        "id": "msg-1789435043060-g622q",
+        "conversation_id": "conv-5581912344321",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "👶✨ Olá, *Mariana*! Que bom ter você de volta à *Pitoco de Gente*!\nComo podemos te ajudar hoje?",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:17:23.060Z"
+      },
+      {
+        "id": "msg-1789435043074-lc60u",
+        "conversation_id": "conv-5581912344321",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "🏬 *Escolha de Filial / Loja:*\n\n🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?\n\n• *Loja Matriz — Centro* (Cabo - PE)\n• *Loja Ipojuca - Filial* (Ipojuca - PE)",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:17:23.074Z"
+      },
+      {
+        "id": "msg-1789435160393-m4gew",
+        "conversation_id": "conv-5581912344321",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "👶✨ Olá, *Mariana*! Que bom ter você de volta à *Pitoco de Gente*!\nComo podemos te ajudar hoje?",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:19:20.392Z"
+      },
+      {
+        "id": "msg-1789435160404-z3402",
+        "conversation_id": "conv-5581912344321",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "🏬 *Escolha de Filial / Loja:*\n\n🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?\n\n• *Loja Matriz — Centro* (Cabo - PE)\n• *Loja Ipojuca - Filial* (Ipojuca - PE)",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:19:20.404Z"
+      },
+      {
+        "id": "msg-1789435161002-vdub6",
+        "conversation_id": "conv-5581912344321",
+        "direction": "outbound",
+        "message_type": "text",
+        "content": "*Opção não reconhecida.*\n\nPor favor, escolha uma das opções abaixo:\n\n1️⃣ *Matriz — Centro*\n\n2️⃣ *Ipojuca - Filial*\n\n_👉 Digite o número ou o nome da opção desejada:_",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:19:21.001Z"
+      }
+    ],
+    "conv-8196138924": [
+      {
+        "id": "msg-1789435157453-bajh9",
+        "conversation_id": "conv-8196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "👶✨ Olá, *Rogerio*! Que bom ter você de volta à *Pitoco de Gente*!\nComo podemos te ajudar hoje?",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:19:17.453Z"
+      },
+      {
+        "id": "msg-1789435157468-iah8c",
+        "conversation_id": "conv-8196138924",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "🏬 *Escolha de Filial / Loja:*\n\n🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?\n\n• *Loja Matriz — Centro* (Cabo - PE)\n• *Loja Ipojuca - Filial* (Ipojuca - PE)",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:19:17.468Z"
+      }
+    ],
+    "conv-558196715913": [
+      {
+        "id": "msg-1789435232195-2n3zr",
+        "conversation_id": "conv-558196715913",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Por favor, informe seu *Nome*:",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:20:32.195Z"
+      },
+      {
+        "id": "msg-1789435233435-c0ufo",
+        "conversation_id": "conv-558196715913",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "👶✨ Olá *Helena Guimarães*! Seja muito bem-vindo(a) à *Pitoco de Gente*!",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:20:33.435Z"
+      },
+      {
+        "id": "msg-1789435233453-mv704",
+        "conversation_id": "conv-558196715913",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "Me chamo *Victoria*, e sou assistente virtual. É um prazer atender você...",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:20:33.453Z"
+      },
+      {
+        "id": "msg-1789435233477-2gzn8",
+        "conversation_id": "conv-558196715913",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "🏬 *Escolha de Filial / Loja:*\n\n🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?\n\n• *Loja Matriz — Centro* (Cabo - PE)\n• *Loja Ipojuca - Filial* (Ipojuca - PE)",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:20:33.477Z"
+      },
+      {
+        "id": "msg-1789435235009-o00e5",
+        "conversation_id": "conv-558196715913",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "👶✨ Olá, *Helena*! Que bom ter você de volta à *Pitoco de Gente*!\nComo podemos te ajudar hoje?",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:20:35.009Z"
+      },
+      {
+        "id": "msg-1789435235023-j8jzp",
+        "conversation_id": "conv-558196715913",
+        "direction": "outbound",
+        "message_type": "button",
+        "content": "🏬 *Escolha de Filial / Loja:*\n\n🏬 *PITOCO DE GENTE — Escolha sua Loja de Preferência:*\n\nQual de nossas lojas você deseja falar hoje?\n\n• *Loja Matriz — Centro* (Cabo - PE)\n• *Loja Ipojuca - Filial* (Ipojuca - PE)",
+        "status": "delivered",
+        "created_at": "2026-09-15T01:20:35.023Z"
       }
     ]
   },
@@ -3062,186 +3677,6 @@
       "waitingForVar": "nome_clientenovo",
       "activeButtons": null
     },
-    "5581996138924": {
-      "flowId": "flow-pitoco-001",
-      "flowStatus": "in_progress",
-      "currentNodeId": "node-store_selector-1788913989382",
-      "variables": {
-        "whatsapp_pushname": "Leo",
-        "telefone_cliente": "558196138924",
-        "telefone_whatsapp": "558196138924",
-        "ultima_mensagem": "Oi",
-        "nome_cliente": "Leo",
-        "cliente_nome": "Leo",
-        "nome": "Leo",
-        "primeiro_nome": "Leo",
-        "is_primeiro_contato": false,
-        "is_novo_contato": false,
-        "is_existing_contact": true,
-        "tipo_cliente": "recorrente",
-        "cliente_telefone": "558196138924",
-        "telefone": "558196138924",
-        "{{nome_cliente}}": "Leo",
-        "{{cliente_nome}}": "Leo",
-        "{{nome}}": "Leo",
-        "{{primeiro_nome}}": "Leo",
-        "tags_contato": "Cliente WhatsApp, Bot, Cliente"
-      },
-      "lastFlowTriggerAt": 1789433231687,
-      "lastInteractionAt": 1789433231687,
-      "waitingForVar": null,
-      "activeButtons": [
-        {
-          "id": "store-001",
-          "title": "Matriz — Centro",
-          "storeId": "store-001",
-          "slug": "matriz",
-          "storeName": "Loja Matriz — Centro"
-        },
-        {
-          "id": "store-002",
-          "title": "Ipojuca - Filial",
-          "storeId": "store-002",
-          "slug": "ipojuca",
-          "storeName": "Loja Ipojuca - Filial"
-        }
-      ]
-    },
-    "81996138924": {
-      "flowId": "flow-pitoco-001",
-      "flowStatus": "in_progress",
-      "currentNodeId": "node-store_selector-1788913989382",
-      "variables": {
-        "whatsapp_pushname": "Leo",
-        "telefone_cliente": "558196138924",
-        "telefone_whatsapp": "558196138924",
-        "ultima_mensagem": "Oi",
-        "nome_cliente": "Leo",
-        "cliente_nome": "Leo",
-        "nome": "Leo",
-        "primeiro_nome": "Leo",
-        "is_primeiro_contato": false,
-        "is_novo_contato": false,
-        "is_existing_contact": true,
-        "tipo_cliente": "recorrente",
-        "cliente_telefone": "558196138924",
-        "telefone": "558196138924",
-        "{{nome_cliente}}": "Leo",
-        "{{cliente_nome}}": "Leo",
-        "{{nome}}": "Leo",
-        "{{primeiro_nome}}": "Leo",
-        "tags_contato": "Cliente WhatsApp, Bot, Cliente"
-      },
-      "lastFlowTriggerAt": 1789433231687,
-      "lastInteractionAt": 1789433231687,
-      "waitingForVar": null,
-      "activeButtons": [
-        {
-          "id": "store-001",
-          "title": "Matriz — Centro",
-          "storeId": "store-001",
-          "slug": "matriz",
-          "storeName": "Loja Matriz — Centro"
-        },
-        {
-          "id": "store-002",
-          "title": "Ipojuca - Filial",
-          "storeId": "store-002",
-          "slug": "ipojuca",
-          "storeName": "Loja Ipojuca - Filial"
-        }
-      ]
-    },
-    "8196138924": {
-      "flowId": "flow-pitoco-001",
-      "flowStatus": "in_progress",
-      "currentNodeId": "node-store_selector-1788913989382",
-      "variables": {
-        "whatsapp_pushname": "Leo",
-        "telefone_cliente": "558196138924",
-        "telefone_whatsapp": "558196138924",
-        "ultima_mensagem": "Oi",
-        "nome_cliente": "Leo",
-        "cliente_nome": "Leo",
-        "nome": "Leo",
-        "primeiro_nome": "Leo",
-        "is_primeiro_contato": false,
-        "is_novo_contato": false,
-        "is_existing_contact": true,
-        "tipo_cliente": "recorrente",
-        "cliente_telefone": "558196138924",
-        "telefone": "558196138924",
-        "{{nome_cliente}}": "Leo",
-        "{{cliente_nome}}": "Leo",
-        "{{nome}}": "Leo",
-        "{{primeiro_nome}}": "Leo",
-        "tags_contato": "Cliente WhatsApp, Bot, Cliente"
-      },
-      "lastFlowTriggerAt": 1789433231687,
-      "lastInteractionAt": 1789433231687,
-      "waitingForVar": null,
-      "activeButtons": [
-        {
-          "id": "store-001",
-          "title": "Matriz — Centro",
-          "storeId": "store-001",
-          "slug": "matriz",
-          "storeName": "Loja Matriz — Centro"
-        },
-        {
-          "id": "store-002",
-          "title": "Ipojuca - Filial",
-          "storeId": "store-002",
-          "slug": "ipojuca",
-          "storeName": "Loja Ipojuca - Filial"
-        }
-      ]
-    },
-    "558196138924": {
-      "flowId": "flow-pitoco-001",
-      "flowStatus": "in_progress",
-      "currentNodeId": "node-store_selector-1788913989382",
-      "variables": {
-        "whatsapp_pushname": "Leo",
-        "telefone_cliente": "558196138924",
-        "telefone_whatsapp": "558196138924",
-        "ultima_mensagem": "Oi",
-        "nome_cliente": "Leo",
-        "cliente_nome": "Leo",
-        "nome": "Leo",
-        "primeiro_nome": "Leo",
-        "is_primeiro_contato": false,
-        "is_novo_contato": false,
-        "is_existing_contact": true,
-        "tipo_cliente": "recorrente",
-        "cliente_telefone": "558196138924",
-        "telefone": "558196138924",
-        "{{nome_cliente}}": "Leo",
-        "{{cliente_nome}}": "Leo",
-        "{{nome}}": "Leo",
-        "{{primeiro_nome}}": "Leo",
-        "tags_contato": "Cliente WhatsApp, Bot, Cliente"
-      },
-      "lastFlowTriggerAt": 1789433231687,
-      "lastInteractionAt": 1789433231687,
-      "waitingForVar": null,
-      "activeButtons": [
-        {
-          "id": "store-001",
-          "title": "Matriz — Centro",
-          "storeId": "store-001",
-          "slug": "matriz",
-          "storeName": "Loja Matriz — Centro"
-        },
-        {
-          "id": "store-002",
-          "title": "Ipojuca - Filial",
-          "storeId": "store-002",
-          "slug": "ipojuca",
-          "storeName": "Loja Ipojuca - Filial"
-        }
-      ]
-    },
     "558199990001": {
       "flowId": "flow-pitoco-001",
       "flowStatus": "completed",
@@ -3433,23 +3868,775 @@
       "waitingForVar": null,
       "activeButtons": null,
       "completedAt": 1789433309138
+    },
+    "8187654321": {
+      "flowId": "flow-pitoco-001",
+      "flowStatus": "in_progress",
+      "currentNodeId": "node-store_selector-1788913989382",
+      "variables": {
+        "whatsapp_pushname": "Carlos",
+        "telefone_cliente": "81987654321",
+        "telefone_whatsapp": "81987654321",
+        "ultima_mensagem": "Oi",
+        "nome_cliente": "Carlos Oliveira",
+        "cliente_nome": "Carlos Oliveira",
+        "nome": "Carlos Oliveira",
+        "primeiro_nome": "Carlos",
+        "is_primeiro_contato": false,
+        "is_novo_contato": false,
+        "is_existing_contact": true,
+        "is_returning_customer": true,
+        "acabou_de_cadastrar": false,
+        "tipo_cliente": "recorrente",
+        "cliente_telefone": "81987654321",
+        "telefone": "81987654321",
+        "{{nome_cliente}}": "Carlos Oliveira",
+        "{{cliente_nome}}": "Carlos Oliveira",
+        "{{nome}}": "Carlos Oliveira",
+        "{{primeiro_nome}}": "Carlos",
+        "tags_contato": "Cliente, VIP"
+      },
+      "lastFlowTriggerAt": 1789435158091,
+      "lastInteractionAt": 1789435158091,
+      "waitingForVar": null,
+      "activeButtons": [
+        {
+          "id": "store-001",
+          "title": "Matriz — Centro",
+          "storeId": "store-001",
+          "slug": "matriz",
+          "storeName": "Loja Matriz — Centro"
+        },
+        {
+          "id": "store-002",
+          "title": "Ipojuca - Filial",
+          "storeId": "store-002",
+          "slug": "ipojuca",
+          "storeName": "Loja Ipojuca - Filial"
+        }
+      ]
+    },
+    "558187654321": {
+      "flowId": "flow-pitoco-001",
+      "flowStatus": "in_progress",
+      "currentNodeId": "node-store_selector-1788913989382",
+      "variables": {
+        "whatsapp_pushname": "Carlos",
+        "telefone_cliente": "81987654321",
+        "telefone_whatsapp": "81987654321",
+        "ultima_mensagem": "Oi",
+        "nome_cliente": "Carlos Oliveira",
+        "cliente_nome": "Carlos Oliveira",
+        "nome": "Carlos Oliveira",
+        "primeiro_nome": "Carlos",
+        "is_primeiro_contato": false,
+        "is_novo_contato": false,
+        "is_existing_contact": true,
+        "is_returning_customer": true,
+        "acabou_de_cadastrar": false,
+        "tipo_cliente": "recorrente",
+        "cliente_telefone": "81987654321",
+        "telefone": "81987654321",
+        "{{nome_cliente}}": "Carlos Oliveira",
+        "{{cliente_nome}}": "Carlos Oliveira",
+        "{{nome}}": "Carlos Oliveira",
+        "{{primeiro_nome}}": "Carlos",
+        "tags_contato": "Cliente, VIP"
+      },
+      "lastFlowTriggerAt": 1789435158091,
+      "lastInteractionAt": 1789435158091,
+      "waitingForVar": null,
+      "activeButtons": [
+        {
+          "id": "store-001",
+          "title": "Matriz — Centro",
+          "storeId": "store-001",
+          "slug": "matriz",
+          "storeName": "Loja Matriz — Centro"
+        },
+        {
+          "id": "store-002",
+          "title": "Ipojuca - Filial",
+          "storeId": "store-002",
+          "slug": "ipojuca",
+          "storeName": "Loja Ipojuca - Filial"
+        }
+      ]
+    },
+    "8112344321": {
+      "flowId": "flow-pitoco-001",
+      "flowStatus": "in_progress",
+      "currentNodeId": "node-store_selector-1788913989382",
+      "variables": {
+        "whatsapp_pushname": "Desconhecido",
+        "telefone_cliente": "5581912344321",
+        "telefone_whatsapp": "5581912344321",
+        "ultima_mensagem": "Mariana Santos",
+        "nome_cliente": "Mariana Santos",
+        "cliente_nome": "Mariana Santos",
+        "nome": "Mariana Santos",
+        "primeiro_nome": "Mariana",
+        "is_primeiro_contato": false,
+        "is_novo_contato": false,
+        "is_existing_contact": true,
+        "is_returning_customer": true,
+        "acabou_de_cadastrar": false,
+        "tipo_cliente": "recorrente",
+        "cliente_telefone": "5581912344321",
+        "telefone": "5581912344321",
+        "{{nome_cliente}}": "Mariana Santos",
+        "{{cliente_nome}}": "Mariana Santos",
+        "{{nome}}": "Mariana Santos",
+        "{{primeiro_nome}}": "Mariana",
+        "tags_contato": "Cliente WhatsApp, Bot, Cliente"
+      },
+      "lastFlowTriggerAt": 1789435160996,
+      "lastInteractionAt": 1789435160996,
+      "waitingForVar": null,
+      "activeButtons": [
+        {
+          "id": "store-001",
+          "title": "Matriz — Centro",
+          "storeId": "store-001",
+          "slug": "matriz",
+          "storeName": "Loja Matriz — Centro"
+        },
+        {
+          "id": "store-002",
+          "title": "Ipojuca - Filial",
+          "storeId": "store-002",
+          "slug": "ipojuca",
+          "storeName": "Loja Ipojuca - Filial"
+        }
+      ]
+    },
+    "558112344321": {
+      "flowId": "flow-pitoco-001",
+      "flowStatus": "in_progress",
+      "currentNodeId": "node-store_selector-1788913989382",
+      "variables": {
+        "whatsapp_pushname": "Desconhecido",
+        "telefone_cliente": "5581912344321",
+        "telefone_whatsapp": "5581912344321",
+        "ultima_mensagem": "Mariana Santos",
+        "nome_cliente": "Mariana Santos",
+        "cliente_nome": "Mariana Santos",
+        "nome": "Mariana Santos",
+        "primeiro_nome": "Mariana",
+        "is_primeiro_contato": false,
+        "is_novo_contato": false,
+        "is_existing_contact": true,
+        "is_returning_customer": true,
+        "acabou_de_cadastrar": false,
+        "tipo_cliente": "recorrente",
+        "cliente_telefone": "5581912344321",
+        "telefone": "5581912344321",
+        "{{nome_cliente}}": "Mariana Santos",
+        "{{cliente_nome}}": "Mariana Santos",
+        "{{nome}}": "Mariana Santos",
+        "{{primeiro_nome}}": "Mariana",
+        "tags_contato": "Cliente WhatsApp, Bot, Cliente"
+      },
+      "lastFlowTriggerAt": 1789435160996,
+      "lastInteractionAt": 1789435160996,
+      "waitingForVar": null,
+      "activeButtons": [
+        {
+          "id": "store-001",
+          "title": "Matriz — Centro",
+          "storeId": "store-001",
+          "slug": "matriz",
+          "storeName": "Loja Matriz — Centro"
+        },
+        {
+          "id": "store-002",
+          "title": "Ipojuca - Filial",
+          "storeId": "store-002",
+          "slug": "ipojuca",
+          "storeName": "Loja Ipojuca - Filial"
+        }
+      ]
+    },
+    "81996138924": {
+      "flowId": "flow-pitoco-001",
+      "flowStatus": "in_progress",
+      "currentNodeId": "node-store_selector-1788913989382",
+      "variables": {
+        "whatsapp_pushname": "Kaju WhatsApp",
+        "telefone_cliente": "81996138924",
+        "telefone_whatsapp": "81996138924",
+        "ultima_mensagem": "Olá, boa tarde",
+        "nome_cliente": "Rogerio Malaquias",
+        "cliente_nome": "Rogerio Malaquias",
+        "nome": "Rogerio Malaquias",
+        "primeiro_nome": "Rogerio",
+        "is_primeiro_contato": false,
+        "is_novo_contato": false,
+        "is_existing_contact": true,
+        "is_returning_customer": true,
+        "acabou_de_cadastrar": false,
+        "tipo_cliente": "recorrente",
+        "cliente_telefone": "81996138924",
+        "telefone": "81996138924",
+        "{{nome_cliente}}": "Rogerio Malaquias",
+        "{{cliente_nome}}": "Rogerio Malaquias",
+        "{{nome}}": "Rogerio Malaquias",
+        "{{primeiro_nome}}": "Rogerio",
+        "tags_contato": "Cliente VIP, Equipe Pitoco, CEO"
+      },
+      "lastFlowTriggerAt": 1789435157149,
+      "lastInteractionAt": 1789435157149,
+      "waitingForVar": null,
+      "activeButtons": [
+        {
+          "id": "store-001",
+          "title": "Matriz — Centro",
+          "storeId": "store-001",
+          "slug": "matriz",
+          "storeName": "Loja Matriz — Centro"
+        },
+        {
+          "id": "store-002",
+          "title": "Ipojuca - Filial",
+          "storeId": "store-002",
+          "slug": "ipojuca",
+          "storeName": "Loja Ipojuca - Filial"
+        }
+      ]
+    },
+    "5581996138924": {
+      "flowId": "flow-pitoco-001",
+      "flowStatus": "in_progress",
+      "currentNodeId": "node-store_selector-1788913989382",
+      "variables": {
+        "whatsapp_pushname": "Kaju WhatsApp",
+        "telefone_cliente": "81996138924",
+        "telefone_whatsapp": "81996138924",
+        "ultima_mensagem": "Olá, boa tarde",
+        "nome_cliente": "Rogerio Malaquias",
+        "cliente_nome": "Rogerio Malaquias",
+        "nome": "Rogerio Malaquias",
+        "primeiro_nome": "Rogerio",
+        "is_primeiro_contato": false,
+        "is_novo_contato": false,
+        "is_existing_contact": true,
+        "is_returning_customer": true,
+        "acabou_de_cadastrar": false,
+        "tipo_cliente": "recorrente",
+        "cliente_telefone": "81996138924",
+        "telefone": "81996138924",
+        "{{nome_cliente}}": "Rogerio Malaquias",
+        "{{cliente_nome}}": "Rogerio Malaquias",
+        "{{nome}}": "Rogerio Malaquias",
+        "{{primeiro_nome}}": "Rogerio",
+        "tags_contato": "Cliente VIP, Equipe Pitoco, CEO"
+      },
+      "lastFlowTriggerAt": 1789435157149,
+      "lastInteractionAt": 1789435157149,
+      "waitingForVar": null,
+      "activeButtons": [
+        {
+          "id": "store-001",
+          "title": "Matriz — Centro",
+          "storeId": "store-001",
+          "slug": "matriz",
+          "storeName": "Loja Matriz — Centro"
+        },
+        {
+          "id": "store-002",
+          "title": "Ipojuca - Filial",
+          "storeId": "store-002",
+          "slug": "ipojuca",
+          "storeName": "Loja Ipojuca - Filial"
+        }
+      ]
+    },
+    "8196138924": {
+      "flowId": "flow-pitoco-001",
+      "flowStatus": "in_progress",
+      "currentNodeId": "node-store_selector-1788913989382",
+      "variables": {
+        "whatsapp_pushname": "Kaju WhatsApp",
+        "telefone_cliente": "81996138924",
+        "telefone_whatsapp": "81996138924",
+        "ultima_mensagem": "Olá, boa tarde",
+        "nome_cliente": "Rogerio Malaquias",
+        "cliente_nome": "Rogerio Malaquias",
+        "nome": "Rogerio Malaquias",
+        "primeiro_nome": "Rogerio",
+        "is_primeiro_contato": false,
+        "is_novo_contato": false,
+        "is_existing_contact": true,
+        "is_returning_customer": true,
+        "acabou_de_cadastrar": false,
+        "tipo_cliente": "recorrente",
+        "cliente_telefone": "81996138924",
+        "telefone": "81996138924",
+        "{{nome_cliente}}": "Rogerio Malaquias",
+        "{{cliente_nome}}": "Rogerio Malaquias",
+        "{{nome}}": "Rogerio Malaquias",
+        "{{primeiro_nome}}": "Rogerio",
+        "tags_contato": "Cliente VIP, Equipe Pitoco, CEO"
+      },
+      "lastFlowTriggerAt": 1789435157149,
+      "lastInteractionAt": 1789435157149,
+      "waitingForVar": null,
+      "activeButtons": [
+        {
+          "id": "store-001",
+          "title": "Matriz — Centro",
+          "storeId": "store-001",
+          "slug": "matriz",
+          "storeName": "Loja Matriz — Centro"
+        },
+        {
+          "id": "store-002",
+          "title": "Ipojuca - Filial",
+          "storeId": "store-002",
+          "slug": "ipojuca",
+          "storeName": "Loja Ipojuca - Filial"
+        }
+      ]
+    },
+    "558196138924": {
+      "flowId": "flow-pitoco-001",
+      "flowStatus": "in_progress",
+      "currentNodeId": "node-store_selector-1788913989382",
+      "variables": {
+        "whatsapp_pushname": "Kaju WhatsApp",
+        "telefone_cliente": "81996138924",
+        "telefone_whatsapp": "81996138924",
+        "ultima_mensagem": "Olá, boa tarde",
+        "nome_cliente": "Rogerio Malaquias",
+        "cliente_nome": "Rogerio Malaquias",
+        "nome": "Rogerio Malaquias",
+        "primeiro_nome": "Rogerio",
+        "is_primeiro_contato": false,
+        "is_novo_contato": false,
+        "is_existing_contact": true,
+        "is_returning_customer": true,
+        "acabou_de_cadastrar": false,
+        "tipo_cliente": "recorrente",
+        "cliente_telefone": "81996138924",
+        "telefone": "81996138924",
+        "{{nome_cliente}}": "Rogerio Malaquias",
+        "{{cliente_nome}}": "Rogerio Malaquias",
+        "{{nome}}": "Rogerio Malaquias",
+        "{{primeiro_nome}}": "Rogerio",
+        "tags_contato": "Cliente VIP, Equipe Pitoco, CEO"
+      },
+      "lastFlowTriggerAt": 1789435157149,
+      "lastInteractionAt": 1789435157149,
+      "waitingForVar": null,
+      "activeButtons": [
+        {
+          "id": "store-001",
+          "title": "Matriz — Centro",
+          "storeId": "store-001",
+          "slug": "matriz",
+          "storeName": "Loja Matriz — Centro"
+        },
+        {
+          "id": "store-002",
+          "title": "Ipojuca - Filial",
+          "storeId": "store-002",
+          "slug": "ipojuca",
+          "storeName": "Loja Ipojuca - Filial"
+        }
+      ]
+    },
+    "81987654321": {
+      "flowId": "flow-pitoco-001",
+      "flowStatus": "in_progress",
+      "currentNodeId": "node-store_selector-1788913989382",
+      "variables": {
+        "whatsapp_pushname": "Carlos",
+        "telefone_cliente": "81987654321",
+        "telefone_whatsapp": "81987654321",
+        "ultima_mensagem": "Oi",
+        "nome_cliente": "Carlos Oliveira",
+        "cliente_nome": "Carlos Oliveira",
+        "nome": "Carlos Oliveira",
+        "primeiro_nome": "Carlos",
+        "is_primeiro_contato": false,
+        "is_novo_contato": false,
+        "is_existing_contact": true,
+        "is_returning_customer": true,
+        "acabou_de_cadastrar": false,
+        "tipo_cliente": "recorrente",
+        "cliente_telefone": "81987654321",
+        "telefone": "81987654321",
+        "{{nome_cliente}}": "Carlos Oliveira",
+        "{{cliente_nome}}": "Carlos Oliveira",
+        "{{nome}}": "Carlos Oliveira",
+        "{{primeiro_nome}}": "Carlos",
+        "tags_contato": "Cliente, VIP"
+      },
+      "lastFlowTriggerAt": 1789435158091,
+      "lastInteractionAt": 1789435158091,
+      "waitingForVar": null,
+      "activeButtons": [
+        {
+          "id": "store-001",
+          "title": "Matriz — Centro",
+          "storeId": "store-001",
+          "slug": "matriz",
+          "storeName": "Loja Matriz — Centro"
+        },
+        {
+          "id": "store-002",
+          "title": "Ipojuca - Filial",
+          "storeId": "store-002",
+          "slug": "ipojuca",
+          "storeName": "Loja Ipojuca - Filial"
+        }
+      ]
+    },
+    "5581987654321": {
+      "flowId": "flow-pitoco-001",
+      "flowStatus": "in_progress",
+      "currentNodeId": "node-store_selector-1788913989382",
+      "variables": {
+        "whatsapp_pushname": "Carlos",
+        "telefone_cliente": "81987654321",
+        "telefone_whatsapp": "81987654321",
+        "ultima_mensagem": "Oi",
+        "nome_cliente": "Carlos Oliveira",
+        "cliente_nome": "Carlos Oliveira",
+        "nome": "Carlos Oliveira",
+        "primeiro_nome": "Carlos",
+        "is_primeiro_contato": false,
+        "is_novo_contato": false,
+        "is_existing_contact": true,
+        "is_returning_customer": true,
+        "acabou_de_cadastrar": false,
+        "tipo_cliente": "recorrente",
+        "cliente_telefone": "81987654321",
+        "telefone": "81987654321",
+        "{{nome_cliente}}": "Carlos Oliveira",
+        "{{cliente_nome}}": "Carlos Oliveira",
+        "{{nome}}": "Carlos Oliveira",
+        "{{primeiro_nome}}": "Carlos",
+        "tags_contato": "Cliente, VIP"
+      },
+      "lastFlowTriggerAt": 1789435158091,
+      "lastInteractionAt": 1789435158091,
+      "waitingForVar": null,
+      "activeButtons": [
+        {
+          "id": "store-001",
+          "title": "Matriz — Centro",
+          "storeId": "store-001",
+          "slug": "matriz",
+          "storeName": "Loja Matriz — Centro"
+        },
+        {
+          "id": "store-002",
+          "title": "Ipojuca - Filial",
+          "storeId": "store-002",
+          "slug": "ipojuca",
+          "storeName": "Loja Ipojuca - Filial"
+        }
+      ]
+    },
+    "5581912344321": {
+      "flowId": "flow-pitoco-001",
+      "flowStatus": "in_progress",
+      "currentNodeId": "node-store_selector-1788913989382",
+      "variables": {
+        "whatsapp_pushname": "Desconhecido",
+        "telefone_cliente": "5581912344321",
+        "telefone_whatsapp": "5581912344321",
+        "ultima_mensagem": "Mariana Santos",
+        "nome_cliente": "Mariana Santos",
+        "cliente_nome": "Mariana Santos",
+        "nome": "Mariana Santos",
+        "primeiro_nome": "Mariana",
+        "is_primeiro_contato": false,
+        "is_novo_contato": false,
+        "is_existing_contact": true,
+        "is_returning_customer": true,
+        "acabou_de_cadastrar": false,
+        "tipo_cliente": "recorrente",
+        "cliente_telefone": "5581912344321",
+        "telefone": "5581912344321",
+        "{{nome_cliente}}": "Mariana Santos",
+        "{{cliente_nome}}": "Mariana Santos",
+        "{{nome}}": "Mariana Santos",
+        "{{primeiro_nome}}": "Mariana",
+        "tags_contato": "Cliente WhatsApp, Bot, Cliente"
+      },
+      "lastFlowTriggerAt": 1789435160996,
+      "lastInteractionAt": 1789435160996,
+      "waitingForVar": null,
+      "activeButtons": [
+        {
+          "id": "store-001",
+          "title": "Matriz — Centro",
+          "storeId": "store-001",
+          "slug": "matriz",
+          "storeName": "Loja Matriz — Centro"
+        },
+        {
+          "id": "store-002",
+          "title": "Ipojuca - Filial",
+          "storeId": "store-002",
+          "slug": "ipojuca",
+          "storeName": "Loja Ipojuca - Filial"
+        }
+      ]
+    },
+    "81912344321": {
+      "flowId": "flow-pitoco-001",
+      "flowStatus": "in_progress",
+      "currentNodeId": "node-store_selector-1788913989382",
+      "variables": {
+        "whatsapp_pushname": "Desconhecido",
+        "telefone_cliente": "5581912344321",
+        "telefone_whatsapp": "5581912344321",
+        "ultima_mensagem": "Mariana Santos",
+        "nome_cliente": "Mariana Santos",
+        "cliente_nome": "Mariana Santos",
+        "nome": "Mariana Santos",
+        "primeiro_nome": "Mariana",
+        "is_primeiro_contato": false,
+        "is_novo_contato": false,
+        "is_existing_contact": true,
+        "is_returning_customer": true,
+        "acabou_de_cadastrar": false,
+        "tipo_cliente": "recorrente",
+        "cliente_telefone": "5581912344321",
+        "telefone": "5581912344321",
+        "{{nome_cliente}}": "Mariana Santos",
+        "{{cliente_nome}}": "Mariana Santos",
+        "{{nome}}": "Mariana Santos",
+        "{{primeiro_nome}}": "Mariana",
+        "tags_contato": "Cliente WhatsApp, Bot, Cliente"
+      },
+      "lastFlowTriggerAt": 1789435160996,
+      "lastInteractionAt": 1789435160996,
+      "waitingForVar": null,
+      "activeButtons": [
+        {
+          "id": "store-001",
+          "title": "Matriz — Centro",
+          "storeId": "store-001",
+          "slug": "matriz",
+          "storeName": "Loja Matriz — Centro"
+        },
+        {
+          "id": "store-002",
+          "title": "Ipojuca - Filial",
+          "storeId": "store-002",
+          "slug": "ipojuca",
+          "storeName": "Loja Ipojuca - Filial"
+        }
+      ]
+    },
+    "5581996715913": {
+      "flowId": "flow-pitoco-001",
+      "flowStatus": "in_progress",
+      "currentNodeId": "node-store_selector-1788913989382",
+      "variables": {
+        "whatsapp_pushname": "Helena",
+        "telefone_cliente": "558196715913",
+        "telefone_whatsapp": "558196715913",
+        "ultima_mensagem": "Oi",
+        "nome_cliente": "Helena Guimarães",
+        "cliente_nome": "Helena Guimarães",
+        "nome": "Helena Guimarães",
+        "primeiro_nome": "Helena",
+        "is_primeiro_contato": false,
+        "is_novo_contato": false,
+        "is_existing_contact": true,
+        "is_returning_customer": true,
+        "acabou_de_cadastrar": false,
+        "tipo_cliente": "recorrente",
+        "cliente_telefone": "558196715913",
+        "telefone": "558196715913",
+        "{{nome_cliente}}": "Helena Guimarães",
+        "{{cliente_nome}}": "Helena Guimarães",
+        "{{nome}}": "Helena Guimarães",
+        "{{primeiro_nome}}": "Helena",
+        "tags_contato": "Cliente WhatsApp, Bot, Cliente"
+      },
+      "lastFlowTriggerAt": 1789435234132,
+      "lastInteractionAt": 1789435234132,
+      "waitingForVar": null,
+      "activeButtons": [
+        {
+          "id": "store-001",
+          "title": "Matriz — Centro",
+          "storeId": "store-001",
+          "slug": "matriz",
+          "storeName": "Loja Matriz — Centro"
+        },
+        {
+          "id": "store-002",
+          "title": "Ipojuca - Filial",
+          "storeId": "store-002",
+          "slug": "ipojuca",
+          "storeName": "Loja Ipojuca - Filial"
+        }
+      ]
+    },
+    "81996715913": {
+      "flowId": "flow-pitoco-001",
+      "flowStatus": "in_progress",
+      "currentNodeId": "node-store_selector-1788913989382",
+      "variables": {
+        "whatsapp_pushname": "Helena",
+        "telefone_cliente": "558196715913",
+        "telefone_whatsapp": "558196715913",
+        "ultima_mensagem": "Oi",
+        "nome_cliente": "Helena Guimarães",
+        "cliente_nome": "Helena Guimarães",
+        "nome": "Helena Guimarães",
+        "primeiro_nome": "Helena",
+        "is_primeiro_contato": false,
+        "is_novo_contato": false,
+        "is_existing_contact": true,
+        "is_returning_customer": true,
+        "acabou_de_cadastrar": false,
+        "tipo_cliente": "recorrente",
+        "cliente_telefone": "558196715913",
+        "telefone": "558196715913",
+        "{{nome_cliente}}": "Helena Guimarães",
+        "{{cliente_nome}}": "Helena Guimarães",
+        "{{nome}}": "Helena Guimarães",
+        "{{primeiro_nome}}": "Helena",
+        "tags_contato": "Cliente WhatsApp, Bot, Cliente"
+      },
+      "lastFlowTriggerAt": 1789435234132,
+      "lastInteractionAt": 1789435234132,
+      "waitingForVar": null,
+      "activeButtons": [
+        {
+          "id": "store-001",
+          "title": "Matriz — Centro",
+          "storeId": "store-001",
+          "slug": "matriz",
+          "storeName": "Loja Matriz — Centro"
+        },
+        {
+          "id": "store-002",
+          "title": "Ipojuca - Filial",
+          "storeId": "store-002",
+          "slug": "ipojuca",
+          "storeName": "Loja Ipojuca - Filial"
+        }
+      ]
+    },
+    "8196715913": {
+      "flowId": "flow-pitoco-001",
+      "flowStatus": "in_progress",
+      "currentNodeId": "node-store_selector-1788913989382",
+      "variables": {
+        "whatsapp_pushname": "Helena",
+        "telefone_cliente": "558196715913",
+        "telefone_whatsapp": "558196715913",
+        "ultima_mensagem": "Oi",
+        "nome_cliente": "Helena Guimarães",
+        "cliente_nome": "Helena Guimarães",
+        "nome": "Helena Guimarães",
+        "primeiro_nome": "Helena",
+        "is_primeiro_contato": false,
+        "is_novo_contato": false,
+        "is_existing_contact": true,
+        "is_returning_customer": true,
+        "acabou_de_cadastrar": false,
+        "tipo_cliente": "recorrente",
+        "cliente_telefone": "558196715913",
+        "telefone": "558196715913",
+        "{{nome_cliente}}": "Helena Guimarães",
+        "{{cliente_nome}}": "Helena Guimarães",
+        "{{nome}}": "Helena Guimarães",
+        "{{primeiro_nome}}": "Helena",
+        "tags_contato": "Cliente WhatsApp, Bot, Cliente"
+      },
+      "lastFlowTriggerAt": 1789435234132,
+      "lastInteractionAt": 1789435234132,
+      "waitingForVar": null,
+      "activeButtons": [
+        {
+          "id": "store-001",
+          "title": "Matriz — Centro",
+          "storeId": "store-001",
+          "slug": "matriz",
+          "storeName": "Loja Matriz — Centro"
+        },
+        {
+          "id": "store-002",
+          "title": "Ipojuca - Filial",
+          "storeId": "store-002",
+          "slug": "ipojuca",
+          "storeName": "Loja Ipojuca - Filial"
+        }
+      ]
+    },
+    "558196715913": {
+      "flowId": "flow-pitoco-001",
+      "flowStatus": "in_progress",
+      "currentNodeId": "node-store_selector-1788913989382",
+      "variables": {
+        "whatsapp_pushname": "Helena",
+        "telefone_cliente": "558196715913",
+        "telefone_whatsapp": "558196715913",
+        "ultima_mensagem": "Oi",
+        "nome_cliente": "Helena Guimarães",
+        "cliente_nome": "Helena Guimarães",
+        "nome": "Helena Guimarães",
+        "primeiro_nome": "Helena",
+        "is_primeiro_contato": false,
+        "is_novo_contato": false,
+        "is_existing_contact": true,
+        "is_returning_customer": true,
+        "acabou_de_cadastrar": false,
+        "tipo_cliente": "recorrente",
+        "cliente_telefone": "558196715913",
+        "telefone": "558196715913",
+        "{{nome_cliente}}": "Helena Guimarães",
+        "{{cliente_nome}}": "Helena Guimarães",
+        "{{nome}}": "Helena Guimarães",
+        "{{primeiro_nome}}": "Helena",
+        "tags_contato": "Cliente WhatsApp, Bot, Cliente"
+      },
+      "lastFlowTriggerAt": 1789435234132,
+      "lastInteractionAt": 1789435234132,
+      "waitingForVar": null,
+      "activeButtons": [
+        {
+          "id": "store-001",
+          "title": "Matriz — Centro",
+          "storeId": "store-001",
+          "slug": "matriz",
+          "storeName": "Loja Matriz — Centro"
+        },
+        {
+          "id": "store-002",
+          "title": "Ipojuca - Filial",
+          "storeId": "store-002",
+          "slug": "ipojuca",
+          "storeName": "Loja Ipojuca - Filial"
+        }
+      ]
     }
   },
   "rolePermissions": {},
   "lid_mappings": {},
   "logs": [
     {
-      "id": "log-1789433309158-fonlw",
+      "id": "log-1789435235032-3l7lx",
       "type": "message_outbound",
-      "title": "Resposta para Gabriel",
-      "description": "Você foi transferido para um de nossos atendentes humanos.",
-      "contact_phone": "558199990001",
-      "contact_name": "Gabriel",
+      "title": "Resposta para Helena",
+      "description": "Mensagem Interativa",
+      "contact_phone": "558196715913",
+      "contact_name": "Helena",
       "details": {
         "direction": "outbound",
-        "messageId": "msg-1789433309152-wh4yl"
+        "messageId": "msg-1789435235023-j8jzp"
       },
-      "created_at": "2026-09-15T00:48:29.158Z"
+      "created_at": "2026-09-15T01:20:35.032Z"
     }
   ]
 }

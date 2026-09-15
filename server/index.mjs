@@ -39,7 +39,8 @@ import {
   recordRealMessage,
   isTestOrDummy,
   setWhatsAppProfilePicGetter,
-  getBrazilianPhoneVariations
+  getBrazilianPhoneVariations,
+  areBrazilianPhonesMatching
 } from './flowRunner.mjs';
 import { processAdminBotMessage } from './botEngine.mjs';
 import { syncToSupabase } from './syncSupabase.mjs';
@@ -3119,7 +3120,7 @@ app.listen(PORT, HOST, async () => {
   setTimeout(async () => {
     try {
       if (supabaseServer) {
-        const [flowsRes, clientsRes, contactsRes, botRes, setRes, storesRes, prodsRes, catsRes] = await Promise.all([
+        const [flowsRes, clientsRes, contactsRes, botRes, setRes, storesRes, prodsRes, catsRes, usersRes] = await Promise.all([
           safeSupa(supabaseServer.from('flows').select('*')),
           safeSupa(supabaseServer.from('clients').select('*')),
           safeSupa(supabaseServer.from('contacts').select('*')),
@@ -3128,6 +3129,7 @@ app.listen(PORT, HOST, async () => {
           safeSupa(supabaseServer.from('stores').select('*').order('slug', { ascending: true })),
           safeSupa(supabaseServer.from('products').select('*')),
           safeSupa(supabaseServer.from('categories').select('*').order('sort_order', { ascending: true })),
+          safeSupa(supabaseServer.from('system_users').select('*')),
         ]);
         const db = loadDb();
         if (Array.isArray(storesRes.data) && storesRes.data.length > 0) {
@@ -3142,6 +3144,9 @@ app.listen(PORT, HOST, async () => {
         if (Array.isArray(flowsRes.data)) {
           db.flows = flowsRes.data;
         }
+        if (Array.isArray(usersRes?.data)) {
+          db.systemUsers = usersRes.data;
+        }
 
         if (!db.contacts || typeof db.contacts !== 'object' || Array.isArray(db.contacts)) {
           db.contacts = {};
@@ -3155,11 +3160,11 @@ app.listen(PORT, HOST, async () => {
             if (!p || p.length >= 14 || p.startsWith('1686') || p.startsWith('219')) return;
             const rawTags = co.tags || [];
             const tagList = Array.isArray(rawTags) ? rawTags.map(t => String(t).toLowerCase().trim()) : [];
-            const hasClientTag = tagList.some(t => t.includes('cliente') || t.includes('vip') || t.includes('cadastrado'));
+            const hasClientTag = tagList.some(t => t.includes('cliente') || t.includes('vip') || t.includes('cadastrado') || t.includes('equipe'));
             const hasRealName = Boolean(co.name && co.name !== 'Cliente WhatsApp' && co.name !== 'Cliente' && co.name !== 'Lead');
             const isClient = hasClientTag || hasRealName || co.status === 'active';
 
-            cloudMap[p] = {
+            const record = {
               ...(cloudMap[p] || {}),
               ...co,
               phone: p,
@@ -3167,21 +3172,52 @@ app.listen(PORT, HOST, async () => {
               status: isClient ? 'active' : (co.status || 'lead'),
               tags: isClient && tagList.length > 0 ? (Array.isArray(co.tags) ? co.tags.filter(t => t.toLowerCase() !== 'lead') : ['Cliente WhatsApp', 'Cliente']) : (co.tags || ['Lead']),
             };
+
+            const vars = getBrazilianPhoneVariations(p);
+            for (const v of [p, ...vars]) {
+              if (v.length >= 10) cloudMap[v] = record;
+            }
           });
         }
 
-        // 2. Processar tabela clients (fonte mestre de clientes)
+        // 2. Processar tabela clients (fonte mestre de clientes do CRM)
         if (Array.isArray(clientsRes.data)) {
           clientsRes.data.forEach(c => {
             const p = String(c.phone || '').replace(/\D/g, '');
             if (!p || p.length >= 14 || p.startsWith('1686') || p.startsWith('219')) return;
-            cloudMap[p] = {
+            const record = {
               ...(cloudMap[p] || {}),
               ...c,
               phone: p,
               is_registered: true,
               status: 'active',
+              tags: Array.isArray(c.tags) && c.tags.length > 0 ? c.tags : ['Cliente WhatsApp', 'Bot', 'Cliente'],
             };
+            const vars = getBrazilianPhoneVariations(p);
+            for (const v of [p, ...vars]) {
+              if (v.length >= 10) cloudMap[v] = record;
+            }
+          });
+        }
+
+        // 3. Processar tabela system_users (CEO, Gerentes, Atendentes como Contatos VIP / Equipe)
+        if (Array.isArray(usersRes?.data)) {
+          usersRes.data.forEach(u => {
+            const p = String(u.phone || '').replace(/\D/g, '');
+            if (!p || p.length < 10) return;
+            const uRole = (u.role || 'Equipe').toUpperCase();
+            const record = {
+              id: u.id || `user-${p}`,
+              name: u.name || 'Equipe Pitoco',
+              phone: p,
+              is_registered: true,
+              status: 'active',
+              tags: ['Cliente VIP', 'Equipe Pitoco', uRole],
+            };
+            const vars = getBrazilianPhoneVariations(p);
+            for (const v of [p, ...vars]) {
+              if (v.length >= 10) cloudMap[v] = record;
+            }
           });
         }
 
