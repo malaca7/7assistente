@@ -22,6 +22,7 @@ import {
   ExternalLink,
   ChevronRight,
   ChevronLeft,
+  MoreVertical,
   ShoppingBag,
   Calendar,
   AlertCircle,
@@ -131,6 +132,7 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
 
   // 👤 CRM Drawer: Fechado por padrão (só abre quando o atendente/admin clicar para visualizar ou editar)
   const [isCrmOpen, setIsCrmOpen] = useState(false);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
 
   // ⛶ Modo Tela Cheia Imersivo no Navegador
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -169,6 +171,7 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
         searchInputRef.current?.focus();
       }
       if (e.key === 'Escape') {
+        if (isMoreMenuOpen) setIsMoreMenuOpen(false);
         if (isCrmOpen) setIsCrmOpen(false);
         if (isFullscreen) setIsFullscreen(false);
         if (isCatalogModalOpen) setIsCatalogModalOpen(false);
@@ -178,7 +181,15 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isCrmOpen, isFullscreen, isCatalogModalOpen, isTransferModalOpen, isEditClientModalOpen]);
+  }, [isMoreMenuOpen, isCrmOpen, isFullscreen, isCatalogModalOpen, isTransferModalOpen, isEditClientModalOpen]);
+
+  // Fechar menu suspenso de ações ao clicar fora
+  useEffect(() => {
+    if (!isMoreMenuOpen) return;
+    const handleOutsideClick = () => setIsMoreMenuOpen(false);
+    window.addEventListener('click', handleOutsideClick);
+    return () => window.removeEventListener('click', handleOutsideClick);
+  }, [isMoreMenuOpen]);
 
   // Carregar lojas, atendentes e setores cadastrados
   useEffect(() => {
@@ -220,8 +231,13 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
       if (!activeConv && data.length > 0) {
         const targetConvId = getConvIdFromUrl();
         const matched = targetConvId ? data.find(c => c.id === targetConvId || c.phone === targetConvId || `conv-${c.phone}` === targetConvId) : null;
-        const firstValid = matched || data.find(c => !c.is_deleted) || data[0];
-        setActiveConv(firstValid);
+        const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
+        if (matched) {
+          setActiveConv(matched);
+        } else if (isDesktop && !targetConvId) {
+          const firstValid = data.find(c => !c.is_deleted) || data[0];
+          setActiveConv(firstValid);
+        }
       }
     } catch (err) {
       console.error('Error fetching conversations:', err);
@@ -232,10 +248,21 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
 
   const handleSelectConv = (conv: Conversation) => {
     setActiveConv(conv);
+    setIsMoreMenuOpen(false);
     if (typeof window !== 'undefined') {
       const filterQuery = statusFilter !== 'all' ? `?filter=${encodeURIComponent(statusFilter)}` : '';
       const url = `/atendimento/id/${encodeURIComponent(conv.id)}${filterQuery}`;
-      window.history.replaceState({}, '', url);
+      window.history.pushState({}, '', url);
+    }
+  };
+
+  const handleBackToList = () => {
+    setActiveConv(null);
+    setIsMoreMenuOpen(false);
+    setIsCrmOpen(false);
+    if (typeof window !== 'undefined') {
+      const filterQuery = statusFilter !== 'all' ? `?filter=${encodeURIComponent(statusFilter)}` : '';
+      window.history.pushState({}, '', `/atendimento${filterQuery}`);
     }
   };
 
@@ -268,6 +295,8 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
       if (cId) {
         const found = conversations.find(c => c.id === cId || c.phone === cId || `conv-${c.phone}` === cId);
         if (found) setActiveConv(found);
+      } else {
+        setActiveConv(null);
       }
     };
     window.addEventListener('popstate', handlePopState);
@@ -885,23 +914,24 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
       className={`${
         isFullscreen 
           ? 'fixed inset-0 z-50 bg-[#0c1017] p-2 sm:p-3 h-screen w-screen flex flex-col gap-2.5' 
-          : 'h-[calc(100dvh-135px)] md:h-[calc(100vh-105px)] flex flex-col gap-2 md:gap-3 font-sans'
+          : 'h-[calc(100dvh-125px)] md:h-[calc(100vh-105px)] flex flex-col gap-2 md:gap-3 font-sans w-full overflow-hidden'
       } select-none transition-all duration-200`}
       style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif' }}
     >
-      {/* 🍏 Topbar macOS Nativa (Traffic Lights + Título + Segmented Stores + Fast Controls) */}
-      <header className={`${activeConv ? 'hidden md:flex' : 'flex'} flex-col lg:flex-row lg:items-center justify-between gap-2.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl bg-slate-900/75 backdrop-blur-xl border border-white/10 shadow-sm shrink-0`}>
-        <div className="flex items-center gap-3.5">
+      {/* 🍏 Topbar macOS Nativa (Desktop) & Barra Rápida Mobile */}
+      <header className={`${activeConv ? 'hidden md:flex' : 'flex'} flex-col lg:flex-row lg:items-center justify-between gap-2 p-2 sm:p-2.5 sm:px-4 rounded-2xl bg-slate-900/75 backdrop-blur-xl border border-white/10 shadow-sm shrink-0`}>
+        {/* Identidade do Aplicativo (visível em desktop, simplificada em mobile) */}
+        <div className="hidden sm:flex items-center gap-3.5">
           {/* macOS Traffic Lights Sutis */}
-          <div className="hidden sm:flex items-center gap-1.5 px-1 py-1">
+          <div className="flex items-center gap-1.5 px-1 py-1">
             <span className="w-3 h-3 rounded-full bg-[#ff5f56] border border-[#e0443e]/40 shadow-sm inline-block" />
             <span className="w-3 h-3 rounded-full bg-[#ffbd2e] border border-[#dea123]/40 shadow-sm inline-block" />
             <span className="w-3 h-3 rounded-full bg-[#27c93f] border border-[#1aab29]/40 shadow-sm inline-block" />
           </div>
 
-          <div className="h-4 w-px bg-white/10 hidden sm:block" />
+          <div className="h-4 w-px bg-white/10" />
 
-          {/* Identidade do Aplicativo */}
+          {/* Identidade */}
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 flex items-center justify-center text-slate-950 font-black shadow-md shadow-emerald-500/20">
               <MessageSquare className="w-4 h-4 fill-slate-950 text-slate-950" />
@@ -916,7 +946,7 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                   Ao Vivo
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 leading-tight">
+              <p className="text-[11px] text-slate-400 leading-tight hidden lg:block">
                 {isAttendantMode 
                   ? 'Atenda clientes com rapidez, consulte enxovais e envie produtos do catálogo' 
                   : 'Gestão de filas, transbordo do robô e privacidade de conversas'}
@@ -925,27 +955,13 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
           </div>
         </div>
 
-        {/* Controles da Barra de Janela */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Métricas macOS Pills */}
-          <div className="flex items-center gap-1.5 text-[11px]">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-300 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-              <span>Fila de Espera: <strong>{conversations.filter(c => c.status === 'waiting_human').length}</strong></span>
-            </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span>Com Você: <strong>{conversations.filter(c => (c.assigned_to === user?.name || c.assigned_attendant_name === user?.name)).length}</strong></span>
-            </div>
-          </div>
-
-          <div className="h-4 w-px bg-white/10 hidden md:block" />
-
-          {/* Segmented Control de Lojas no Estilo Apple */}
-          <div className="flex items-center bg-slate-950/70 p-0.5 rounded-xl border border-white/10">
+        {/* Controles: Chips de Filiais & Métricas Rápidas */}
+        <div className="flex items-center gap-2 justify-between sm:justify-end w-full lg:w-auto">
+          {/* Segmented Control de Lojas no Estilo Apple (Scroll horizontal no mobile) */}
+          <div className="flex items-center bg-slate-950/70 p-0.5 rounded-xl border border-white/10 overflow-x-auto no-scrollbar flex-1 sm:flex-initial">
             <button
               onClick={() => setSelectedStoreFilter('all')}
-              className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-all ${
+              className={`px-2.5 py-1 text-xs rounded-lg font-medium whitespace-nowrap transition-all ${
                 selectedStoreFilter === 'all'
                   ? 'bg-white/20 text-white font-semibold shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
@@ -957,7 +973,7 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
               <button
                 key={s.id}
                 onClick={() => setSelectedStoreFilter(s.id)}
-                className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-all ${
+                className={`px-2.5 py-1 text-xs rounded-lg font-medium whitespace-nowrap transition-all ${
                   selectedStoreFilter === s.id
                     ? 'bg-white/20 text-white font-semibold shadow-sm'
                     : 'text-slate-400 hover:text-slate-200'
@@ -972,7 +988,7 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
           <select
             value={selectedSectorFilter}
             onChange={(e) => setSelectedSectorFilter(e.target.value)}
-            className="bg-slate-950/70 border border-white/10 text-xs text-slate-200 rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-emerald-500/60 transition-colors"
+            className="bg-slate-950/70 border border-white/10 text-xs text-slate-200 rounded-xl px-2 py-1 focus:outline-none focus:border-emerald-500/60 transition-colors hidden sm:inline-block"
           >
             <option value="all">Setores: Todos</option>
             {sectors.map(s => (
@@ -980,11 +996,23 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
             ))}
           </select>
 
-          {/* Botão de Tela Cheia / Restaurar */}
+          {/* Métricas Pills */}
+          <div className="flex items-center gap-1.5 text-[11px] shrink-0">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-300 font-medium" title="Fila de Espera">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              <span>Fila: <strong>{conversations.filter(c => c.status === 'waiting_human').length}</strong></span>
+            </div>
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 font-medium" title="Com Você">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span>Com Você: <strong>{conversations.filter(c => (c.assigned_to === user?.name || c.assigned_attendant_name === user?.name)).length}</strong></span>
+            </div>
+          </div>
+
+          {/* Botão de Tela Cheia */}
           <button
             type="button"
             onClick={() => setIsFullscreen(prev => !prev)}
-            className={`p-1.5 rounded-xl border transition-all ${
+            className={`p-1.5 rounded-xl border transition-all hidden md:flex ${
               isFullscreen 
                 ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm' 
                 : 'bg-slate-950/70 text-slate-300 border-white/10 hover:text-white hover:bg-white/5'
@@ -1219,55 +1247,51 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
         </div>
 
         {/* ========================================================= */}
-        {/* COLUNA 2: ÁREA PRINCIPAL DE CHAT (macOS Message Window) */}
+        {/* COLUNA 2: ÁREA PRINCIPAL DE CHAT (macOS Message Window / Mobile Fullscreen) */}
         {/* ========================================================= */}
-        <div className={`${activeConv ? 'flex' : 'hidden md:flex'} flex flex-col h-full rounded-2xl bg-slate-900/60 backdrop-blur-xl border border-white/10 overflow-hidden transition-all duration-300 shadow-sm ${isCrmOpen ? 'md:col-span-6' : 'md:col-span-8'}`}>
+        <div className={`${activeConv ? 'flex fixed inset-0 z-50 bg-[#09090b] md:static md:z-auto md:w-auto md:bg-slate-900/60 md:rounded-2xl' : 'hidden md:flex'} flex-col h-full overflow-hidden transition-all duration-300 shadow-sm md:backdrop-blur-xl md:border md:border-white/10 ${isCrmOpen ? 'md:col-span-6' : 'md:col-span-8'}`}>
           {activeConv ? (
             <>
               {/* Header do Chat Ativo */}
-              <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-b border-white/5 bg-slate-900/80 backdrop-blur-md flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <div className="px-3 sm:px-4 py-2 sm:py-3 border-b border-white/5 bg-slate-900/90 backdrop-blur-md flex items-center justify-between gap-2 shrink-0">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                   {/* Botão Voltar para lista de conversas no mobile */}
                   <button
                     type="button"
-                    onClick={() => setActiveConv(null)}
-                    className="md:hidden p-1.5 -ml-1 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-slate-300 hover:text-white transition-all shrink-0"
+                    onClick={handleBackToList}
+                    className="md:hidden p-1.5 -ml-1 rounded-xl bg-white/5 hover:bg-white/10 active:scale-90 text-slate-300 hover:text-white transition-all shrink-0"
                     title="Voltar para a lista de conversas"
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
 
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-slate-700 to-slate-800 flex items-center justify-center text-white text-xs sm:text-sm font-bold border border-white/10 shrink-0">
-                    {(activeConv.contact_name || 'C')[0]}
+                  <div className="relative shrink-0">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-slate-700 to-slate-800 flex items-center justify-center text-white text-xs sm:text-sm font-bold border border-white/10 shrink-0">
+                      {(activeConv.contact_name || 'C')[0]}
+                    </div>
+                    {activeConv.status === 'human' && (
+                      <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-slate-900" />
+                    )}
                   </div>
-                  <div className="min-w-0">
+
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <h2 className="text-xs md:text-sm font-bold text-white truncate">
                         {activeConv.contact_name || 'Cliente WhatsApp'}
                       </h2>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-white/10 font-medium">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-white/10 font-medium hidden sm:inline">
                         {activeConv.store_name || 'Rede Geral'}
                       </span>
                     </div>
                     
-                    {/* Seletor de Setor no Header */}
-                    <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-slate-400">
-                      <span>Setor:</span>
-                      <select
-                        value={activeConv.sector || 'Vendas & Enxoval'}
-                        onChange={(e) => handleSectorChange(e.target.value)}
-                        className="bg-transparent text-emerald-300 font-bold focus:outline-none cursor-pointer hover:underline"
-                      >
-                        {sectors.map(sec => (
-                          <option key={sec} value={sec} className="bg-slate-900 text-white">{sec}</option>
-                        ))}
-                      </select>
-                    </div>
+                    <p className="text-[10px] text-slate-400 font-mono truncate">
+                      {activeConv.contact_phone || activeConv.phone} • {activeConv.store_name || 'Rede'}
+                    </p>
                   </div>
                 </div>
 
-                {/* Ações da Janela de Chat */}
-                <div className="flex items-center gap-1.5 flex-wrap">
+                {/* Ações da Janela de Chat no Desktop */}
+                <div className="hidden md:flex items-center gap-1.5 flex-wrap">
                   {/* Badge Blindado */}
                   {activeConv.status === 'human' && (
                     <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] font-semibold" title="Atendimento Humano Ativo">
@@ -1322,7 +1346,7 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                         title="Transferir para outro operador ou fila"
                       >
                         <ArrowRightLeft className="w-3.5 h-3.5" />
-                        <span className="hidden lg:inline">Transferir</span>
+                        <span>Transferir</span>
                       </button>
 
                       {/* Exportar Transcrição */}
@@ -1358,6 +1382,118 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                       )}
                     </>
                   )}
+                </div>
+
+                {/* Ações da Janela de Chat no Mobile (Compactas & Sem Quebras de Linha) */}
+                <div className="flex md:hidden items-center gap-1.5 shrink-0">
+                  {/* Botão de Dossiê */}
+                  <button
+                    type="button"
+                    onClick={() => setIsCrmOpen(!isCrmOpen)}
+                    className={`p-1.5 rounded-xl border transition-all active:scale-95 ${
+                      isCrmOpen 
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm' 
+                        : 'bg-white/5 border-white/10 text-slate-300 hover:text-white'
+                    }`}
+                    title="Dossiê do Cliente"
+                  >
+                    <User className="w-4 h-4" />
+                  </button>
+
+                  {/* Botão Primário: Assumir ou Devolver para o Robô */}
+                  {!activeConv.is_deleted && (
+                    activeConv.status === 'human' && activeConv.assigned_to === (user?.name || (isCEO ? 'Malaca CEO' : isAdmin ? 'Administrador Geral' : isManager ? 'Gerente' : 'Sofia Consultora VIP')) ? (
+                      <button
+                        type="button"
+                        onClick={handleTransferToBot}
+                        className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white transition-all active:scale-95"
+                        title="Devolver para o Robô"
+                      >
+                        <Bot className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Robô</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleAssumeConversation()}
+                        className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm transition-all active:scale-95"
+                      >
+                        <UserCheck className="w-3.5 h-3.5" />
+                        <span>Assumir</span>
+                      </button>
+                    )
+                  )}
+
+                  {/* Menu Dropdown de Mais Ações Mobile (Três Pontinhos) */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsMoreMenuOpen(prev => !prev)}
+                      className="p-1.5 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white transition-all active:scale-95"
+                      title="Mais opções"
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
+
+                    {isMoreMenuOpen && (
+                      <div 
+                        className="absolute right-0 top-full mt-1.5 w-48 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsTransferModalOpen(true);
+                            setIsMoreMenuOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 flex items-center gap-2"
+                        >
+                          <ArrowRightLeft className="w-4 h-4 text-slate-400" />
+                          <span>Transferir</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleExportTranscript();
+                            setIsMoreMenuOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 flex items-center gap-2"
+                        >
+                          <Download className="w-4 h-4 text-slate-400" />
+                          <span>Baixar Histórico</span>
+                        </button>
+
+                        {canAdminDestructive && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleClearHistory();
+                                setIsMoreMenuOpen(false);
+                              }}
+                              className="w-full text-left px-3 py-2 text-xs text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 flex items-center gap-2"
+                            >
+                              <Eraser className="w-4 h-4 text-amber-400" />
+                              <span>Limpar Mensagens</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleDeleteConversation(activeConv);
+                                setIsMoreMenuOpen(false);
+                              }}
+                              className="w-full text-left px-3 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 flex items-center gap-2"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-400" />
+                              <span>Apagar Conversa</span>
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -1478,7 +1614,7 @@ export const AtendimentoHumanoInbox: React.FC<AtendimentoHumanoInboxProps> = ({
                     disabled={activeConv.is_deleted}
                     onChange={e => setInputText(e.target.value)}
                     placeholder={activeConv.is_deleted ? 'Conversa na lixeira.' : 'Escreva uma mensagem para o cliente...'}
-                    className="w-full bg-slate-950/90 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/60 disabled:opacity-50 transition-all"
+                    className="w-full bg-slate-950/90 border border-white/10 rounded-xl px-3.5 py-2 text-base sm:text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/60 disabled:opacity-50 transition-all"
                   />
                 </div>
 

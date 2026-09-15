@@ -90,7 +90,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         />
 
         {/* Page Content Viewport */}
-        <main className={`flex-1 pb-24 md:pb-8 ${fullWidth ? 'p-1 sm:p-3 md:p-6' : 'p-3 sm:p-5 md:p-8 max-w-7xl w-full mx-auto'}`}>
+        <main className={`flex-1 ${fullWidth ? 'p-0 md:p-3 pb-16 md:pb-4' : 'p-3 sm:p-5 md:p-8 max-w-7xl w-full mx-auto pb-24 md:pb-8'}`}>
           {children}
         </main>
       </div>
