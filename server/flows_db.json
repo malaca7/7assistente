@@ -1389,64 +1389,108 @@
   },
   "contacts": {
     "558196138924": {
-      "id": "user-ceo",
-      "name": "Rogerio Malaquias",
-      "phone": "81996138924",
-      "status": "active",
-      "is_registered": true,
-      "is_verified": true,
+      "id": "contact-558196138924",
+      "store_id": null,
+      "store_name": null,
+      "name": "Jair Lira",
+      "phone": "558196138924",
+      "email": null,
+      "address": null,
+      "city": null,
+      "cep": null,
+      "notes": "Cadastrado e atualizado pelo fluxo do bot",
+      "baby_name": null,
+      "due_date": null,
+      "total_orders": 0,
+      "total_spent": 0,
       "tags": [
-        "Cliente VIP",
-        "Equipe Pitoco",
-        "CEO"
+        "Cliente WhatsApp",
+        "Bot",
+        "Cliente"
       ],
-      "whatsapp_pushname": "Kaju WhatsApp",
-      "updated_at": "2026-09-15T01:19:17.468Z"
+      "last_interaction": "2026-09-16T22:00:26.77+00:00",
+      "created_at": "2026-09-16T21:59:01.851767+00:00",
+      "updated_at": "2026-09-16T22:00:26.77+00:00",
+      "is_registered": true,
+      "status": "active"
     },
     "5581996138924": {
-      "id": "user-ceo",
-      "name": "Rogerio Malaquias",
-      "phone": "81996138924",
-      "status": "active",
-      "is_registered": true,
-      "is_verified": true,
+      "id": "contact-558196138924",
+      "store_id": null,
+      "store_name": null,
+      "name": "Jair Lira",
+      "phone": "558196138924",
+      "email": null,
+      "address": null,
+      "city": null,
+      "cep": null,
+      "notes": "Cadastrado e atualizado pelo fluxo do bot",
+      "baby_name": null,
+      "due_date": null,
+      "total_orders": 0,
+      "total_spent": 0,
       "tags": [
-        "Cliente VIP",
-        "Equipe Pitoco",
-        "CEO"
+        "Cliente WhatsApp",
+        "Bot",
+        "Cliente"
       ],
-      "whatsapp_pushname": "Kaju WhatsApp",
-      "updated_at": "2026-09-15T01:19:17.468Z"
+      "last_interaction": "2026-09-16T22:00:26.77+00:00",
+      "created_at": "2026-09-16T21:59:01.851767+00:00",
+      "updated_at": "2026-09-16T22:00:26.77+00:00",
+      "is_registered": true,
+      "status": "active"
     },
     "81996138924": {
-      "id": "user-ceo",
-      "name": "Rogerio Malaquias",
-      "phone": "81996138924",
-      "status": "active",
-      "is_registered": true,
-      "is_verified": true,
+      "id": "contact-558196138924",
+      "store_id": null,
+      "store_name": null,
+      "name": "Jair Lira",
+      "phone": "558196138924",
+      "email": null,
+      "address": null,
+      "city": null,
+      "cep": null,
+      "notes": "Cadastrado e atualizado pelo fluxo do bot",
+      "baby_name": null,
+      "due_date": null,
+      "total_orders": 0,
+      "total_spent": 0,
       "tags": [
-        "Cliente VIP",
-        "Equipe Pitoco",
-        "CEO"
+        "Cliente WhatsApp",
+        "Bot",
+        "Cliente"
       ],
-      "whatsapp_pushname": "Kaju WhatsApp",
-      "updated_at": "2026-09-15T01:19:17.468Z"
+      "last_interaction": "2026-09-16T22:00:26.77+00:00",
+      "created_at": "2026-09-16T21:59:01.851767+00:00",
+      "updated_at": "2026-09-16T22:00:26.77+00:00",
+      "is_registered": true,
+      "status": "active"
     },
     "8196138924": {
-      "id": "user-ceo",
-      "name": "Rogerio Malaquias",
-      "phone": "81996138924",
-      "status": "active",
-      "is_registered": true,
-      "is_verified": true,
+      "id": "contact-558196138924",
+      "store_id": null,
+      "store_name": null,
+      "name": "Jair Lira",
+      "phone": "558196138924",
+      "email": null,
+      "address": null,
+      "city": null,
+      "cep": null,
+      "notes": "Cadastrado e atualizado pelo fluxo do bot",
+      "baby_name": null,
+      "due_date": null,
+      "total_orders": 0,
+      "total_spent": 0,
       "tags": [
-        "Cliente VIP",
-        "Equipe Pitoco",
-        "CEO"
+        "Cliente WhatsApp",
+        "Bot",
+        "Cliente"
       ],
-      "whatsapp_pushname": "Kaju WhatsApp",
-      "updated_at": "2026-09-15T01:19:17.468Z"
+      "last_interaction": "2026-09-16T22:00:26.77+00:00",
+      "created_at": "2026-09-16T21:59:01.851767+00:00",
+      "updated_at": "2026-09-16T22:00:26.77+00:00",
+      "is_registered": true,
+      "status": "active"
     },
     "558188887777": {
       "id": "contact-558188887777",
@@ -4201,49 +4245,21 @@
     "558196138924": {
       "flowId": "flow-pitoco-001",
       "flowStatus": "in_progress",
-      "currentNodeId": "node-store_selector-1788913989382",
+      "currentNodeId": "node-check_contact-1788893686878",
       "variables": {
-        "whatsapp_pushname": "Kaju WhatsApp",
-        "telefone_cliente": "81996138924",
-        "telefone_whatsapp": "81996138924",
-        "ultima_mensagem": "Olá, boa tarde",
-        "nome_cliente": "Rogerio Malaquias",
-        "cliente_nome": "Rogerio Malaquias",
-        "nome": "Rogerio Malaquias",
-        "primeiro_nome": "Rogerio",
-        "is_primeiro_contato": false,
-        "is_novo_contato": false,
-        "is_existing_contact": true,
-        "is_returning_customer": true,
-        "acabou_de_cadastrar": false,
-        "tipo_cliente": "recorrente",
-        "cliente_telefone": "81996138924",
-        "telefone": "81996138924",
-        "{{nome_cliente}}": "Rogerio Malaquias",
-        "{{cliente_nome}}": "Rogerio Malaquias",
-        "{{nome}}": "Rogerio Malaquias",
-        "{{primeiro_nome}}": "Rogerio",
-        "tags_contato": "Cliente VIP, Equipe Pitoco, CEO"
+        "whatsapp_pushname": "Jair Lira",
+        "telefone_cliente": "558196138924",
+        "telefone_whatsapp": "558196138924",
+        "ultima_mensagem": "oi",
+        "nome_cliente": "",
+        "cliente_nome": "",
+        "nome": "",
+        "primeiro_nome": ""
       },
-      "lastFlowTriggerAt": 1789435157149,
-      "lastInteractionAt": 1789435157149,
+      "lastFlowTriggerAt": 1789597414415,
+      "lastInteractionAt": 1789597414415,
       "waitingForVar": null,
-      "activeButtons": [
-        {
-          "id": "store-001",
-          "title": "Matriz — Centro",
-          "storeId": "store-001",
-          "slug": "matriz",
-          "storeName": "Loja Matriz — Centro"
-        },
-        {
-          "id": "store-002",
-          "title": "Ipojuca - Filial",
-          "storeId": "store-002",
-          "slug": "ipojuca",
-          "storeName": "Loja Ipojuca - Filial"
-        }
-      ]
+      "activeButtons": null
     },
     "81987654321": {
       "flowId": "flow-pitoco-001",
@@ -4623,20 +4639,8 @@
     }
   },
   "rolePermissions": {},
-  "lid_mappings": {},
-  "logs": [
-    {
-      "id": "log-1789435235032-3l7lx",
-      "type": "message_outbound",
-      "title": "Resposta para Helena",
-      "description": "Mensagem Interativa",
-      "contact_phone": "558196715913",
-      "contact_name": "Helena",
-      "details": {
-        "direction": "outbound",
-        "messageId": "msg-1789435235023-j8jzp"
-      },
-      "created_at": "2026-09-15T01:20:35.032Z"
-    }
-  ]
+  "lid_mappings": {
+    "168650497613858": "558196138924",
+    "558196138924": "168650497613858"
+  }
 }

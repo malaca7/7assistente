@@ -346,29 +346,96 @@ async function startWhatsApp() {
 
         const rawPhone = remoteJid.replace('@s.whatsapp.net', '').replace(/@lid$/, '').replace(/\D/g, '');
         const participantPhone = (msg.key.participant || msg.participant || '').replace('@s.whatsapp.net', '').replace(/@lid$/, '').replace(/\D/g, '');
-        
+        const altPhone = (msg.key?.participantAlt || msg.key?.remoteJidAlt || '').replace('@s.whatsapp.net', '').replace(/@lid$/, '').replace(/\D/g, '');
+
         if (remoteJid.includes('@lid') && participantPhone && participantPhone.length >= 10 && participantPhone.length <= 13) {
           registerLidMapping(rawPhone, participantPhone);
         }
+        if (remoteJid.includes('@lid') && altPhone && altPhone.length >= 10 && altPhone.length <= 13) {
+          registerLidMapping(rawPhone, altPhone);
+        }
 
         const dbCheck = loadDb();
-        const { primaryPhone, allPhones } = resolveLinkedPhones(rawPhone, dbCheck);
+        let { primaryPhone, allPhones } = resolveLinkedPhones(rawPhone, dbCheck);
 
         // Identificar telefone real do cliente (prioriza formato celular 10-13 dígitos sobre LID)
         let clientPhone = (primaryPhone && primaryPhone.length >= 10 && primaryPhone.length <= 13)
           ? primaryPhone
-          : (participantPhone && participantPhone.length >= 10 && participantPhone.length <= 13)
-            ? participantPhone
-            : rawPhone;
+          : (altPhone && altPhone.length >= 10 && altPhone.length <= 13)
+            ? altPhone
+            : (participantPhone && participantPhone.length >= 10 && participantPhone.length <= 13)
+              ? participantPhone
+              : rawPhone;
 
-        const isLid = clientPhone.length >= 14 || clientPhone.startsWith('1686') || clientPhone.startsWith('219');
+        let isLid = clientPhone.length >= 14 || clientPhone.startsWith('1686') || clientPhone.startsWith('219');
         if (isLid) {
           for (const p of allPhones) {
             if (p.length >= 10 && p.length <= 13) {
               clientPhone = p;
+              isLid = false;
               break;
             }
           }
+        }
+
+        // Se ainda for LID, consultar repositório nativo de chaves do Baileys
+        if (isLid && sock?.signalRepository?.lidMapping?.getPNForLID) {
+          try {
+            const pnJid = await sock.signalRepository.lidMapping.getPNForLID(remoteJid);
+            if (pnJid) {
+              const cleanPn = String(pnJid).replace('@s.whatsapp.net', '').replace(/@lid$/, '').replace(/\D/g, '');
+              if (cleanPn && cleanPn.length >= 10 && cleanPn.length <= 13) {
+                registerLidMapping(rawPhone, cleanPn);
+                clientPhone = cleanPn;
+                isLid = false;
+              }
+            }
+          } catch (e) {}
+        }
+
+        // Se ainda for LID, consultar arquivos do diretório de autenticação whatsapp_auth
+        if (isLid) {
+          const authDir = AUTH_FOLDER;
+          const candidates = [
+            path.resolve(authDir, `lid-mapping-${rawPhone}_reverse.json`),
+            path.resolve(authDir, `lid-mapping-${rawPhone}.json`),
+            path.resolve(authDir, `lid-mapping-${rawPhone}_reverse`),
+            path.resolve(authDir, `lid-mapping-${rawPhone}`)
+          ];
+          for (const cFile of candidates) {
+            if (fs.existsSync(cFile)) {
+              try {
+                const parsed = JSON.parse(fs.readFileSync(cFile, 'utf8'));
+                const cleanFilePhone = String(parsed || '').replace(/@s\.whatsapp\.net$/, '').replace(/\D/g, '');
+                if (cleanFilePhone && cleanFilePhone.length >= 10 && cleanFilePhone.length <= 13) {
+                  registerLidMapping(rawPhone, cleanFilePhone);
+                  clientPhone = cleanFilePhone;
+                  isLid = false;
+                  break;
+                }
+              } catch (e) {}
+            }
+          }
+        }
+
+        // Se ainda for LID, consultar Supabase contacts pelo LID
+        if (isLid && supabaseServer) {
+          try {
+            const { data: ctLid } = await supabaseServer
+              .from('contacts')
+              .select('*')
+              .or(`id.eq.contact-${rawPhone},phone.eq.${rawPhone}`)
+              .limit(1)
+              .maybeSingle();
+            if (ctLid) {
+              const foundReal = String(ctLid.phone || ctLid.metadata?.real_phone || '').replace(/\D/g, '');
+              if (foundReal && foundReal.length >= 10 && foundReal.length <= 13) {
+                registerLidMapping(rawPhone, foundReal);
+                clientPhone = foundReal;
+                isLid = false;
+              }
+            }
+          } catch (e) {}
         }
 
         // JID de destino para envio: SEMPRE responder no chat de onde a mensagem veio (ex: @lid ou @s.whatsapp.net)
@@ -382,6 +449,7 @@ async function startWhatsApp() {
         ];
         const searchKeys = Array.from(new Set([clientPhone, rawPhone, ...allPhones, ...phoneVariations]));
 
+        // 1. Consultar memória local (db.contacts e conversas)
         for (const p of searchKeys) {
           const contact = (typeof dbCheck.contacts === 'object' && !Array.isArray(dbCheck.contacts)) 
             ? dbCheck.contacts[p] 
@@ -395,6 +463,24 @@ async function startWhatsApp() {
             registeredName = dbCheck.conversations[convKey].contact_name.trim();
             break;
           }
+        }
+
+        // 2. Consultar banco central Supabase (clients do CRM) para garantir o nome cadastrado
+        if (!registeredName && supabaseServer) {
+          try {
+            const validPhones = searchKeys.filter(k => k.length >= 10 && k.length <= 13);
+            if (validPhones.length > 0) {
+              const { data: clRecord } = await supabaseServer
+                .from('clients')
+                .select('name')
+                .in('phone', validPhones)
+                .limit(1)
+                .maybeSingle();
+              if (clRecord?.name && !['Cliente WhatsApp', 'Cliente', 'Cliente Pitoco', 'Lead'].includes(clRecord.name.trim())) {
+                registeredName = clRecord.name.trim();
+              }
+            }
+          } catch (e) {}
         }
 
         let clientName = registeredName || msg.pushName || 'Cliente';
@@ -1700,6 +1786,30 @@ app.delete('/api/contacts/:id', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// ==============================================================================
+// 2.1 ROTAS ALIAS /api/clients (INTEROPERABILIDADE TOTAL COM CRM E DASHBOARD)
+// ==============================================================================
+app.get('/api/clients', (req, res, next) => {
+  req.url = req.url.replace(/^\/api\/clients/, '/api/contacts');
+  app._router.handle(req, res, next);
+});
+app.post('/api/clients', (req, res, next) => {
+  req.url = req.url.replace(/^\/api\/clients/, '/api/contacts');
+  app._router.handle(req, res, next);
+});
+app.delete('/api/clients', (req, res, next) => {
+  req.url = req.url.replace(/^\/api\/clients/, '/api/contacts');
+  app._router.handle(req, res, next);
+});
+app.delete('/api/clients/:id', (req, res, next) => {
+  req.url = req.url.replace(/^\/api\/clients/, '/api/contacts');
+  app._router.handle(req, res, next);
+});
+app.put('/api/clients/:id', (req, res, next) => {
+  req.url = req.url.replace(/^\/api\/clients/, '/api/contacts');
+  app._router.handle(req, res, next);
 });
 
 // ==============================================================================

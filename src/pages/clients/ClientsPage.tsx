@@ -42,6 +42,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { StorageService, getBackendUrl } from '../../lib/storage';
 import { Contact, Appointment, AgendaSettings } from '../../types';
 import { formatPhone, formatDate } from '../../lib/utils';
+import { areBrazilianPhonesMatching } from '../../lib/phoneUtils';
 
 export interface ClientsPageProps {
   onNavigate: (path: string) => void;
@@ -207,15 +208,13 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [clients, initialClientIdFromUrl]);
 
-  // Phone match helper
+  // Phone match helper (utiliza comparação canônica de 4 variações brasileiras)
   const isMatchingPhone = (phoneA?: string, phoneB?: string) => {
     if (!phoneA || !phoneB) return false;
-    const cleanA = phoneA.replace(/\D/g, '');
-    const cleanB = phoneB.replace(/\D/g, '');
-    return cleanA === cleanB || cleanA.endsWith(cleanB) || cleanB.endsWith(cleanA);
+    return areBrazilianPhonesMatching(phoneA, phoneB);
   };
 
-  // Compute Client Statistics (Appointments history, LTV, last visit)
+  // Compute Client Statistics (Appointments history, LTV, last visit, DB Orders)
   const clientStatsMap = useMemo(() => {
     const stats: Record<string, {
       totalAppointments: number;
@@ -260,6 +259,12 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
         }
       }
 
+      // Integrar com dados de compras e faturamento persistidos no banco de dados (tabela clients)
+      const clientTotalSpent = Number(client.total_spent) || 0;
+      const clientTotalOrders = Number(client.total_orders) || 0;
+      const finalTotalSpent = Math.max(totalSpent, clientTotalSpent);
+      const finalCompletedCount = Math.max(completed.length, clientTotalOrders);
+
       // Past & Future visits
       const pastVisits = clientApts.filter(a => a.appointment_date <= todayStr && (a.status === 'completed' || a.status === 'confirmed'));
       const futureVisits = clientApts.filter(a => a.appointment_date >= todayStr && a.status === 'confirmed');
@@ -273,12 +278,12 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
         .slice(0, 2);
 
       stats[client.id] = {
-        totalAppointments: clientApts.length,
-        completedCount: completed.length,
+        totalAppointments: Math.max(clientApts.length, finalCompletedCount),
+        completedCount: finalCompletedCount,
         confirmedCount: confirmed.length,
         cancelledCount: cancelled.length,
         noShowCount: noShow.length,
-        totalSpent,
+        totalSpent: finalTotalSpent,
         lastVisitDate: lastVisit,
         nextVisitDate: nextVisit,
         clientAppointments: clientApts,
@@ -292,7 +297,9 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigate }) => {
   // Overall Global KPIs
   const totalClientsCount = clients.length;
   const activeClientsCount = clients.filter(c => c.status !== 'blocked').length;
-  const totalCompletedAppointments = appointments.filter(a => a.status === 'completed').length;
+  const totalCompletedAppointments = useMemo(() => {
+    return Object.values(clientStatsMap).reduce((acc, curr) => acc + curr.completedCount, 0);
+  }, [clientStatsMap]);
   const totalRevenueGenerated = useMemo(() => {
     return Object.values(clientStatsMap).reduce((acc, curr) => acc + curr.totalSpent, 0);
   }, [clientStatsMap]);

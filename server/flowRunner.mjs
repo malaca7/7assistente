@@ -149,6 +149,62 @@ export function resolveLinkedPhones(phone, db) {
     if (v.length >= 10) phones.add(v);
   });
 
+  const isLid = clean.length >= 14 || clean.startsWith('1686') || clean.startsWith('219');
+
+  // Varredura nos arquivos de autenticação do Baileys para resolver LIDs
+  const authDir = path.resolve(__dirname, 'whatsapp_auth');
+  if (isLid) {
+    const candidates = [
+      path.resolve(authDir, `lid-mapping-${clean}_reverse.json`),
+      path.resolve(authDir, `lid-mapping-${clean}.json`),
+      path.resolve(authDir, `lid-mapping-${clean}_reverse`),
+      path.resolve(authDir, `lid-mapping-${clean}`)
+    ];
+    for (const cFile of candidates) {
+      if (fs.existsSync(cFile)) {
+        try {
+          const raw = fs.readFileSync(cFile, 'utf8');
+          const parsed = JSON.parse(raw);
+          const digits = String(parsed || '').replace(/@s\.whatsapp\.net$/, '').replace(/\D/g, '');
+          if (digits && digits.length >= 10 && digits.length <= 13) {
+            phones.add(digits);
+            getBrazilianPhoneVariations(digits).forEach(v => {
+              if (v.length >= 10) phones.add(v);
+            });
+            if (db) {
+              if (!db.lid_mappings) db.lid_mappings = {};
+              db.lid_mappings[clean] = digits;
+              db.lid_mappings[digits] = clean;
+            }
+          }
+        } catch (e) {}
+      }
+    }
+  } else if (clean.length >= 10 && clean.length <= 13) {
+    const candidates = [
+      path.resolve(authDir, `lid-mapping-${clean}.json`),
+      path.resolve(authDir, `lid-mapping-${clean}@s.whatsapp.net.json`),
+      path.resolve(authDir, `lid-mapping-${clean}`)
+    ];
+    for (const cFile of candidates) {
+      if (fs.existsSync(cFile)) {
+        try {
+          const raw = fs.readFileSync(cFile, 'utf8');
+          const parsed = JSON.parse(raw);
+          const digits = String(parsed || '').replace(/@lid$/, '').replace(/\D/g, '');
+          if (digits && digits.length >= 14) {
+            phones.add(digits);
+            if (db) {
+              if (!db.lid_mappings) db.lid_mappings = {};
+              db.lid_mappings[clean] = digits;
+              db.lid_mappings[digits] = clean;
+            }
+          }
+        } catch (e) {}
+      }
+    }
+  }
+
   if (db?.conversations) {
     Object.values(db.conversations).forEach(conv => {
       if (!conv) return;
@@ -171,6 +227,11 @@ export function resolveLinkedPhones(phone, db) {
       if (!c) return;
       const p = String(c.phone || '').replace(/\D/g, '');
       const realP = String(c.real_phone || c.phone_number || c.metadata?.real_phone || '').replace(/\D/g, '');
+      const lidP = String(c.lid || c.metadata?.lid || '').replace(/\D/g, '');
+      if (lidP && (lidP === clean || clean === lidP)) {
+        if (p) phones.add(p);
+        if (realP) phones.add(realP);
+      }
       const contactPhones = [p, realP].filter(Boolean);
       for (const cp of contactPhones) {
         const cpVars = getBrazilianPhoneVariations(cp);
@@ -186,12 +247,26 @@ export function resolveLinkedPhones(phone, db) {
   }
 
   if (db?.lid_mappings) {
-    if (db.lid_mappings[clean]) phones.add(String(db.lid_mappings[clean]).replace(/\D/g, ''));
+    if (db.lid_mappings[clean]) {
+      const mapped = String(db.lid_mappings[clean]).replace(/\D/g, '');
+      if (mapped) {
+        phones.add(mapped);
+        getBrazilianPhoneVariations(mapped).forEach(v => {
+          if (v.length >= 10) phones.add(v);
+        });
+      }
+    }
     for (const [k, v] of Object.entries(db.lid_mappings)) {
       const ck = String(k).replace(/\D/g, '');
       const cv = String(v).replace(/\D/g, '');
-      if (ck === clean && cv) phones.add(cv);
-      if (cv === clean && ck) phones.add(ck);
+      if (ck === clean && cv) {
+        phones.add(cv);
+        getBrazilianPhoneVariations(cv).forEach(varP => { if (varP.length >= 10) phones.add(varP); });
+      }
+      if (cv === clean && ck) {
+        phones.add(ck);
+        getBrazilianPhoneVariations(ck).forEach(varP => { if (varP.length >= 10) phones.add(varP); });
+      }
       for (const varP of variations) {
         if (ck === varP && cv) phones.add(cv);
         if (cv === varP && ck) phones.add(ck);
@@ -215,6 +290,11 @@ export function resolveLinkedPhones(phone, db) {
     const standardPhone = allPhones.find(p => p.length >= 10 && p.length <= 13);
     if (standardPhone) {
       primaryPhone = standardPhone;
+      if (db) {
+        if (!db.lid_mappings) db.lid_mappings = {};
+        db.lid_mappings[clean] = standardPhone;
+        db.lid_mappings[standardPhone] = clean;
+      }
     }
   }
 
@@ -507,6 +587,11 @@ function migrateLidContacts(db) {
           }));
           delete db.messages[`conv-${key}`];
         }
+
+        // Preservar mapeamento bidirecional em db.lid_mappings
+        if (!db.lid_mappings) db.lid_mappings = {};
+        db.lid_mappings[key] = realPhone;
+        db.lid_mappings[realPhone] = key;
 
         // Migrar e vincular sessão ativa
         if (db.sessions && db.sessions[key]) {
@@ -1501,6 +1586,29 @@ export async function findRegisteredContact(cleanPhone, senderName, db, checkCri
     }
   }
 
+  // Se ainda for LID, tentar buscar mapeamento em contacts no Supabase
+  if ((digitsOnly.length >= 14 || digitsOnly.startsWith('1686') || digitsOnly.startsWith('219')) && supabaseClient) {
+    try {
+      const { data: ctLid } = await supabaseClient
+        .from('contacts')
+        .select('*')
+        .or(`id.eq.contact-${digitsOnly},phone.eq.${digitsOnly}`)
+        .limit(1)
+        .maybeSingle();
+      if (ctLid) {
+        const foundPhone = String(ctLid.phone || ctLid.metadata?.real_phone || '').replace(/\D/g, '');
+        if (foundPhone && foundPhone.length >= 10 && foundPhone.length <= 13) {
+          digitsOnly = foundPhone;
+          if (db) {
+            if (!db.lid_mappings) db.lid_mappings = {};
+            db.lid_mappings[cleanPhone] = foundPhone;
+            db.lid_mappings[foundPhone] = cleanPhone;
+          }
+        }
+      }
+    } catch (e) {}
+  }
+
   // Gera todas as 4 variações canônicas brasileiras (ex: 5581996138924, 81996138924, 8196138924, 558196138924)
   const canonicalVariations = getBrazilianPhoneVariations(digitsOnly);
   const { allPhones } = resolveLinkedPhones(digitsOnly, db);
@@ -1551,7 +1659,148 @@ export async function findRegisteredContact(cleanPhone, senderName, db, checkCri
     return false;
   };
 
-  // 1. Verificar se é usuário do sistema / equipe / CEO (ex: Rogerio Malaquias 81996138924)
+  // 1. PRIORIDADE MÁXIMA: Tabela clients do Supabase (Fonte Central da Verdade do CRM Pitoco de Gente)
+  if (supabaseClient) {
+    try {
+      const varsArray = Array.from(variations).filter(v => v.length >= 10);
+      
+      // 1.1 Consultar tabela clients (principal do CRM)
+      const clientRes = await supabaseClient
+        .from('clients')
+        .select('*')
+        .in('phone', varsArray)
+        .limit(1)
+        .maybeSingle();
+
+      let clientRecord = clientRes?.data || null;
+
+      if (!clientRecord) {
+        // Fallback: varredura em clients com comparação flexível de telefones brasileiros
+        const { data: allClients } = await supabaseClient.from('clients').select('*');
+        if (Array.isArray(allClients)) {
+          clientRecord = allClients.find(c => c?.phone && areBrazilianPhonesMatching(digitsOnly, c.phone)) || null;
+        }
+      }
+
+      if (clientRecord && isVerifiedClient(clientRecord)) {
+        const clientData = {
+          ...clientRecord,
+          is_registered: true,
+          status: 'active',
+          tags: Array.isArray(clientRecord.tags) && clientRecord.tags.length > 0 
+            ? clientRecord.tags 
+            : ['Cliente WhatsApp', 'Bot', 'Cliente'],
+        };
+        if (!db.contacts) db.contacts = {};
+        for (const varP of variations) {
+          if (varP.length >= 10) db.contacts[varP] = clientData;
+        }
+        db.contacts[digitsOnly] = clientData;
+        db.contacts[cleanPhone] = clientData;
+        saveDb(db);
+        return { isRegistered: true, contact: clientData, hasRealName: true };
+      }
+
+      // 1.2 Consultar tabela contacts do Supabase
+      const contactRes = await supabaseClient
+        .from('contacts')
+        .select('*')
+        .in('phone', varsArray)
+        .limit(1)
+        .maybeSingle();
+
+      let rawContact = contactRes?.data || null;
+      if (!rawContact) {
+        const { data: allContacts } = await supabaseClient.from('contacts').select('*');
+        if (Array.isArray(allContacts)) {
+          rawContact = allContacts.find(c => c?.phone && areBrazilianPhonesMatching(digitsOnly, c.phone)) || null;
+        }
+      }
+
+      if (rawContact && isVerifiedClient(rawContact)) {
+        const contactData = {
+          ...rawContact,
+          is_registered: true,
+          status: 'active',
+        };
+        if (!db.contacts) db.contacts = {};
+        for (const varP of variations) {
+          if (varP.length >= 10) db.contacts[varP] = contactData;
+        }
+        db.contacts[digitsOnly] = contactData;
+        db.contacts[cleanPhone] = contactData;
+        saveDb(db);
+        return { isRegistered: true, contact: contactData, hasRealName: true };
+      }
+    } catch (e) {
+      console.warn('[FlowRunner] Erro ao consultar contato no Supabase:', e.message);
+    }
+  }
+
+  // 2. Search in memory / db.contacts
+  // 2.1 Busca direta nas chaves do objeto por todas as variações
+  for (const v of variations) {
+    const directContact = db.contacts?.[v];
+    if (directContact && isVerifiedClient(directContact)) {
+      directContact.is_registered = true;
+      directContact.status = 'active';
+      for (const varP of variations) {
+        if (varP.length >= 10) db.contacts[varP] = directContact;
+      }
+      db.contacts[digitsOnly] = directContact;
+      db.contacts[cleanPhone] = directContact;
+      saveDb(db);
+      return { isRegistered: true, contact: directContact, hasRealName: true };
+    }
+  }
+
+  // 2.2 Scan completo da lista de contatos comparando variações
+  const contactsList = Object.values(db.contacts || {});
+  for (const c of contactsList) {
+    if (!c) continue;
+    const cDigits = (c.phone || c.id || '').replace(/\D/g, '');
+    if (areBrazilianPhonesMatching(digitsOnly, cDigits) && isVerifiedClient(c)) {
+      c.is_registered = true;
+      c.status = 'active';
+      for (const varP of variations) {
+        if (varP.length >= 10) db.contacts[varP] = c;
+      }
+      db.contacts[digitsOnly] = c;
+      db.contacts[cleanPhone] = c;
+      saveDb(db);
+      return { isRegistered: true, contact: c, hasRealName: true };
+    }
+  }
+
+  // 3. Search in Appointments (Historic bookings)
+  const apts = (db.appointments || []).filter(a => a.status === 'confirmed' || a.status === 'completed');
+  const aptMatch = apts.find((a) => {
+    const aDigits = (a.contact_phone || a.phone || '').replace(/\D/g, '');
+    return areBrazilianPhonesMatching(digitsOnly, aDigits);
+  });
+
+  if (aptMatch && aptMatch.contact_name && aptMatch.contact_name.toLowerCase() !== 'cliente' && !aptMatch.contact_name.includes('{{')) {
+    const matchedContact = {
+      name: aptMatch.contact_name,
+      phone: digitsOnly,
+      is_registered: true,
+      status: 'active'
+    };
+    if (!db.contacts) db.contacts = {};
+    for (const varP of variations) {
+      if (varP.length >= 10) db.contacts[varP] = matchedContact;
+    }
+    db.contacts[digitsOnly] = matchedContact;
+    db.contacts[cleanPhone] = matchedContact;
+    saveDb(db);
+    return {
+      isRegistered: true,
+      contact: matchedContact,
+      hasRealName: true,
+    };
+  }
+
+  // 4. Verificar se é usuário do sistema / equipe / CEO apenas se NÃO for cliente cadastrado
   const allLocalUsers = [
     ...(Array.isArray(db.systemUsers) ? db.systemUsers : Object.values(db.systemUsers || {})),
     ...(Array.isArray(initialAccessUsers) ? initialAccessUsers : []),
@@ -1603,147 +1852,6 @@ export async function findRegisteredContact(cleanPhone, senderName, db, checkCri
     db.contacts[cleanPhone] = contactData;
     saveDb(db);
     return { isRegistered: true, contact: contactData, hasRealName: true };
-  }
-
-  // 2. Search in Supabase Cloud Database (Single Source of Truth)
-  if (supabaseClient) {
-    try {
-      const varsArray = Array.from(variations).filter(v => v.length >= 10);
-      
-      // 2.1 Consultar tabela clients (principal do CRM)
-      const clientRes = await supabaseClient
-        .from('clients')
-        .select('*')
-        .in('phone', varsArray)
-        .limit(1)
-        .maybeSingle();
-
-      let clientRecord = clientRes?.data || null;
-
-      if (!clientRecord) {
-        // Fallback: varredura em clients com comparação flexível de telefones brasileiros
-        const { data: allClients } = await supabaseClient.from('clients').select('*');
-        if (Array.isArray(allClients)) {
-          clientRecord = allClients.find(c => c?.phone && areBrazilianPhonesMatching(digitsOnly, c.phone)) || null;
-        }
-      }
-
-      if (clientRecord && isVerifiedClient(clientRecord)) {
-        const clientData = {
-          ...clientRecord,
-          is_registered: true,
-          status: 'active',
-          tags: Array.isArray(clientRecord.tags) && clientRecord.tags.length > 0 
-            ? clientRecord.tags 
-            : ['Cliente WhatsApp', 'Bot', 'Cliente'],
-        };
-        if (!db.contacts) db.contacts = {};
-        for (const varP of variations) {
-          if (varP.length >= 10) db.contacts[varP] = clientData;
-        }
-        db.contacts[digitsOnly] = clientData;
-        db.contacts[cleanPhone] = clientData;
-        saveDb(db);
-        return { isRegistered: true, contact: clientData, hasRealName: true };
-      }
-
-      // 2.2 Consultar tabela contacts do Supabase
-      const contactRes = await supabaseClient
-        .from('contacts')
-        .select('*')
-        .in('phone', varsArray)
-        .limit(1)
-        .maybeSingle();
-
-      let rawContact = contactRes?.data || null;
-      if (!rawContact) {
-        const { data: allContacts } = await supabaseClient.from('contacts').select('*');
-        if (Array.isArray(allContacts)) {
-          rawContact = allContacts.find(c => c?.phone && areBrazilianPhonesMatching(digitsOnly, c.phone)) || null;
-        }
-      }
-
-      if (rawContact && isVerifiedClient(rawContact)) {
-        const contactData = {
-          ...rawContact,
-          is_registered: true,
-          status: 'active',
-        };
-        if (!db.contacts) db.contacts = {};
-        for (const varP of variations) {
-          if (varP.length >= 10) db.contacts[varP] = contactData;
-        }
-        db.contacts[digitsOnly] = contactData;
-        db.contacts[cleanPhone] = contactData;
-        saveDb(db);
-        return { isRegistered: true, contact: contactData, hasRealName: true };
-      }
-    } catch (e) {
-      console.warn('[FlowRunner] Erro ao consultar contato no Supabase:', e.message);
-    }
-  }
-
-  // 3. Search in memory / db.contacts
-  // 3.1 Busca direta nas chaves do objeto por todas as variações
-  for (const v of variations) {
-    const directContact = db.contacts?.[v];
-    if (directContact && isVerifiedClient(directContact)) {
-      directContact.is_registered = true;
-      directContact.status = 'active';
-      for (const varP of variations) {
-        if (varP.length >= 10) db.contacts[varP] = directContact;
-      }
-      db.contacts[digitsOnly] = directContact;
-      db.contacts[cleanPhone] = directContact;
-      saveDb(db);
-      return { isRegistered: true, contact: directContact, hasRealName: true };
-    }
-  }
-
-  // 3.2 Scan completo da lista de contatos comparando variações
-  const contactsList = Object.values(db.contacts || {});
-  for (const c of contactsList) {
-    if (!c) continue;
-    const cDigits = (c.phone || c.id || '').replace(/\D/g, '');
-    if (areBrazilianPhonesMatching(digitsOnly, cDigits) && isVerifiedClient(c)) {
-      c.is_registered = true;
-      c.status = 'active';
-      for (const varP of variations) {
-        if (varP.length >= 10) db.contacts[varP] = c;
-      }
-      db.contacts[digitsOnly] = c;
-      db.contacts[cleanPhone] = c;
-      saveDb(db);
-      return { isRegistered: true, contact: c, hasRealName: true };
-    }
-  }
-
-  // 4. Search in Appointments (Historic bookings)
-  const apts = (db.appointments || []).filter(a => a.status === 'confirmed' || a.status === 'completed');
-  const aptMatch = apts.find((a) => {
-    const aDigits = (a.contact_phone || a.phone || '').replace(/\D/g, '');
-    return areBrazilianPhonesMatching(digitsOnly, aDigits);
-  });
-
-  if (aptMatch && aptMatch.contact_name && aptMatch.contact_name.toLowerCase() !== 'cliente' && !aptMatch.contact_name.includes('{{')) {
-    const matchedContact = {
-      name: aptMatch.contact_name,
-      phone: digitsOnly,
-      is_registered: true,
-      status: 'active'
-    };
-    if (!db.contacts) db.contacts = {};
-    for (const varP of variations) {
-      if (varP.length >= 10) db.contacts[varP] = matchedContact;
-    }
-    db.contacts[digitsOnly] = matchedContact;
-    db.contacts[cleanPhone] = matchedContact;
-    saveDb(db);
-    return {
-      isRegistered: true,
-      contact: matchedContact,
-      hasRealName: true,
-    };
   }
 
   return { isRegistered: false, contact: null, hasRealName: false };
@@ -3288,15 +3396,17 @@ function parseCustomDateString(input) {
         await syncContactToSupabase(contactObj);
       }
 
-      // 8. Limpeza de LIDs espúrios em todas as chaves vinculadas
-      for (const p of allPhones) {
-        if (p.length >= 14 || p.startsWith('1686') || p.startsWith('219')) {
-          delete db.contacts[p];
-          if (db.conversations) delete db.conversations[`conv-${p}`];
-          if (supabaseClient) {
-            Promise.resolve(supabaseClient.from('clients').delete().eq('phone', p)).catch(() => {});
-            Promise.resolve(supabaseClient.from('contacts').delete().eq('phone', p)).catch(() => {});
-          }
+      // 8. Registro em db.lid_mappings e limpeza de LIDs espúrios de listas visíveis
+      if (!db.lid_mappings) db.lid_mappings = {};
+      const lidCandidates = [cleanPhone, ...allPhones].filter(p => p && (p.length >= 14 || p.startsWith('1686') || p.startsWith('219')));
+      for (const p of lidCandidates) {
+        db.lid_mappings[p] = targetPhone;
+        db.lid_mappings[targetPhone] = p;
+        delete db.contacts[p];
+        if (db.conversations) delete db.conversations[`conv-${p}`];
+        if (supabaseClient) {
+          Promise.resolve(supabaseClient.from('clients').delete().eq('phone', p)).catch(() => {});
+          Promise.resolve(supabaseClient.from('contacts').delete().eq('phone', p)).catch(() => {});
         }
       }
 
